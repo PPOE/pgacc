@@ -8,7 +8,7 @@ echo '
 <head>
 <title>Buchungssystem Piratenpartei Österreichs</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="gregor.js/gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
 <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
 </head>
 <body>

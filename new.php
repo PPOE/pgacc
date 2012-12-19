@@ -20,9 +20,9 @@ $in_type = get_param($part, 'in_type', 0, '/^\d+$/');
 $out_type = get_param($part, 'out_type', 0, '/^\d+$/');
 $lo = get_param($part, 'lo', 10, '/^\d+$/');
 $amount = intval(floatval(get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/')) * 100);
-$gegenkonto = get_param($part, 'gegenkonto', '', '/^\d+$/');
-$konto = get_param($part, 'konto', '', '/^\d+$/');
-$comment = get_param($part, 'comment', '', null);
+$gegenkonto = intval(get_param($part, 'gegenkonto', '', '/^\d+$/'));
+$konto = intval(get_param($part, 'konto', '', '/^\d+$/'));
+$comment = pg_escape_string(get_param($part, 'comment', '', null));
 $purpose = get_param_bool($part, 'purpose', false, null, true);
 $member = get_param_bool($part, 'member', false, null, true);
 $mitgliedsnummer = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
@@ -31,7 +31,7 @@ $street = get_param($part, 'street', '', null);
 $plz = get_param($part, 'plz', '', null);
 $city = get_param($part, 'city', '', null);
 
-$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,$name,$street,$city,$amount,$konto,$comment,".($purpose?"true":"false").",false,false)";
+$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,".($dir == "in"?$in_type:$out_type).",$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,'$name','$street','$plz','$city',$amount,$konto,'$comment',".($purpose?"true":"false").",false,false)";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -44,17 +44,14 @@ $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
 
-if ($voucher_number == 0)
-{
-$query = "SELECT nextval(voucher_number) AS num;";
+$query = "SELECT nextval('voucher_number') AS num;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 $voucher_number = $line['num'];
 }
 pg_free_result($result);
-}
 
-echo '<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>';
+echo "<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>";
 
 for ($i = 0; $i < $parts; $i++)
 {
