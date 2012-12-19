@@ -7,4 +7,5 @@ CREATE TABLE oo (id serial, name text not null, lo integer not null);
 insert into oo (name,lo) VALUES ('Piratenpartei Graz',6);
 CREATE TABLE donation_type (id serial, name text not null);
 insert into donation_type (name) VALUES ('natürliche Person'),('juristische Person/Firma'),('Verein'),('Berufsverband/Wirtschaftsverband/Anstalt/Stiftung/Fonds');
-
+CREATE TABLE vouchers (id serial, voucher_id integer, type integer, orga integer, member boolean, member_id integer, contra_account integer, name text, street text, plz text, city text, amount integer, account integer, comment text, committed boolean, acknowledged boolean, receipt_received boolean);
+CREATE SEQUENCE voucher_number;

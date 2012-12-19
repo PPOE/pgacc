@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 require("constants.php");
 require("new.php");
 require("closed.php");
+require("transfer.php");
 require("open.php");
 require("report.php");
 $dbconn = pg_connect("dbname=accounting")
@@ -14,7 +15,7 @@ require("functions.php");
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","open","closed")))
+  if (in_array($_GET["action"],array("new","open","closed","transfer")))
     $page = $_GET["action"];
   else
     $page = "report";
@@ -29,11 +30,18 @@ if ($page == "open")
 }
 else if ($page == "new")
 {
-  page_new();
+  if ($_POST["speichern"] == "speichern")
+    page_new_save();
+  else
+    page_new();
 }
 else if ($page == "closed")
 {
   page_closed();
+}
+else if ($page == "transfer")
+{
+  page_transfer();
 }
 else
 {

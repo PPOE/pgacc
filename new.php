@@ -1,53 +1,64 @@
 <?php
+function get_param($part, $name, $default, $regex)
+{
+$value = $default;
+if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+        $value = $_POST[$name . $part];
+return $value;
+}
+function get_param_bool($part, $name, $default, $regex, $default_if_true)
+{
+$value = $default;
+if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+        $value = $default_if_true;
+return $value;
+}
+function page_save_buchung($part = 0, $voucher_number = 0)
+{
+$dir = get_param($part, 'dir', 'in', '/^(in|out)$/');
+$in_type = get_param($part, 'in_type', 0, '/^\d+$/');
+$out_type = get_param($part, 'out_type', 0, '/^\d+$/');
+$lo = get_param($part, 'lo', 10, '/^\d+$/');
+$amount = intval(floatval(get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/')) * 100);
+$gegenkonto = get_param($part, 'gegenkonto', '', '/^\d+$/');
+$konto = get_param($part, 'konto', '', '/^\d+$/');
+$comment = get_param($part, 'comment', '', null);
+$purpose = get_param_bool($part, 'purpose', false, null, true);
+$member = get_param_bool($part, 'member', false, null, true);
+$mitgliedsnummer = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
+$name = get_param($part, 'name', '', null);
+$street = get_param($part, 'street', '', null);
+$plz = get_param($part, 'plz', '', null);
+$city = get_param($part, 'city', '', null);
+
+$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES (".($voucher_number == 0?"nextval(voucher_number)":$voucher_number).",$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,$name,$street,$city,$amount,$konto,$comment,false,false,false)";
+//$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<option value="'.($out_type == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+';
+}
+pg_free_result($result);
+
+}
 function page_new_buchung($part = 0)
 {
-block_start();
-$dir = 'in';
-if (isset($_POST["dir" . $part]) && preg_match('/^(in|out)$/', $_POST["dir" . $part]) == 1)
-	$dir = $_POST["dir" . $part];
-$in_type = '0';
-if (isset($_POST["in_type" . $part]) && preg_match('/^\d+$/', $_POST["in_type" . $part]) == 1)
-        $in_type = $_POST["in_type" . $part];
-$out_type = '0';
-if (isset($_POST["out_type" . $part]) && preg_match('/^\d+$/', $_POST["out_type" . $part]) == 1)
-        $out_type = $_POST["out_type" . $part];
-$lo = '10';
-if (isset($_POST["lo" . $part]) && preg_match('/^\d+$/', $_POST["lo" . $part]) == 1)
-        $lo = $_POST["lo" . $part];
-$amount = '0.00';
-if (isset($_POST["amount" . $part]) && preg_match('/^-?\d+((\.|,)\d\d)?$/', $_POST["amount" . $part]) == 1)
-        $amount = $_POST["amount" . $part];
-$gegenkonto = '';
-if (isset($_POST["gegenkonto" . $part]) && preg_match('/^\d+$/', $_POST["gegenkonto" . $part]) == 1)
-        $gegenkonto = $_POST["gegenkonto" . $part];
-$konto = '';
-if (isset($_POST["konto" . $part]) && preg_match('/^\d+$/', $_POST["konto" . $part]) == 1)
-        $konto = $_POST["konto" . $part];
-$comment = '';
-if (isset($_POST["comment" . $part]))
-        $comment = $_POST["comment" . $part];
-$purpose = '';
-if (isset($_POST["purpose" . $part]))
-        $purpose = ' checked="checked"';
-$member = '';
-if (isset($_POST["member" . $part]))
-        $member = ' checked="checked"';
-$mitgliedsnummer = '0';
-if (isset($_POST["mitgliedsnummer" . $part]) && preg_match('/^\d+$/', $_POST["mitgliedsnummer" . $part]) == 1)
-        $mitgliedsnummer = $_POST["mitgliedsnummer" . $part];
-$name = '';
-if (isset($_POST["name" . $part]))
-        $name = $_POST["name" . $part];
-$street = '';
-if (isset($_POST["street" . $part]))
-        $street = $_POST["street" . $part];
-$plz = '';
-if (isset($_POST["plz" . $part]))
-        $plz = $_POST["plz" . $part];
-$city = '';
-if (isset($_POST["city" . $part]))
-        $city = $_POST["city" . $part];
+$dir = get_param($part, 'dir', 'in', '/^(in|out)$/');
+$in_type = get_param($part, 'in_type', 0, '/^\d+$/');
+$out_type = get_param($part, 'out_type', 0, '/^\d+$/');
+$lo = get_param($part, 'lo', 10, '/^\d+$/');
+$amount = get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/');
+$gegenkonto = get_param($part, 'gegenkonto', '', '/^\d+$/');
+$konto = get_param($part, 'konto', '', '/^\d+$/');
+$comment = get_param($part, 'comment', '', null);
+$purpose = get_param_bool($part, 'purpose', '', null, ' checked="checked"');
+$member = get_param_bool($part, 'member', '', null, ' checked="checked"');
+$mitgliedsnummer = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
+$name = get_param($part, 'name', '', null);
+$street = get_param($part, 'street', '', null);
+$plz = get_param($part, 'plz', '', null);
+$city = get_param($part, 'city', '', null);
 
+block_start();
 echo '
 <div>
 <label for="dir'.$part.'" class="ui_field_label">Einnahme/Ausgabe
@@ -146,15 +157,13 @@ if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
 	$parts = $_POST["parts"];
 if (isset($_POST["add"]))
 	$parts++;
-$id = rand(0,100);
-if (isset($_POST["id"]) && preg_match('/^\d+$/', $_POST["id"]) == 1)
-        $id = $_POST["id"];
 
 echo '
 <script type="text/javascript">
-function clicked()
+function clicked(init)
 {
-  document.getElementById("speichern").style.display = "none";
+  if (!init)
+    document.getElementById("speichern").style.display = "none";
   var max = parseInt(document.getElementById("parts").value);
   var i = 0;
   while (i < max)
@@ -192,8 +201,7 @@ function clicked()
 }
 </script>
 <form class="vertical" action="index.php?action=new" method="post">
-<h1>Buchungsnummer '.$id.' - Auf Beleg notieren!</h1>
-<input value="'.$id.'" type="hidden" name="id" id="id" />
+<h1>Buchung erfassen</h1>
 ';
 
 for ($i = 0; $i < $parts; $i++)
@@ -231,10 +239,10 @@ echo '
 <br />
 <br />
 <input value="Vorschau" type="submit" name="preview" />
-<input id="speichern" value="Speichern" type="submit" />
+<input name="speichern" id="speichern" value="Speichern" type="submit" />
 ';
 
 block_end();
-echo '</form><script type="text/javascript">clicked();</script>';
+echo '</form><script type="text/javascript">clicked(true);</script>';
 }
 ?>

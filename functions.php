@@ -21,6 +21,7 @@ echo '
 <a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>
 <a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>
 <a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>
+<a href="index.php?action=transfer"'.($page == "transfer"?' class="selected"':'').'>Offene Kontotransfers</a>
 </div><br />
 ';
 }
