@@ -13,7 +13,7 @@ if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name 
         $value = $default_if_true;
 return $value;
 }
-function page_save_buchung($part = 0, $voucher_number = 0)
+function page_save_buchung($voucher_number, $part = 0)
 {
 $dir = get_param($part, 'dir', 'in', '/^(in|out)$/');
 $in_type = get_param($part, 'in_type', 0, '/^\d+$/');
@@ -31,14 +31,35 @@ $street = get_param($part, 'street', '', null);
 $plz = get_param($part, 'plz', '', null);
 $city = get_param($part, 'city', '', null);
 
-$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES (".($voucher_number == 0?"nextval(voucher_number)":$voucher_number).",$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,$name,$street,$city,$amount,$konto,$comment,false,false,false)";
-//$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,$name,$street,$city,$amount,$konto,$comment,".($purpose?"true":"false").",false,false)";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<option value="'.($out_type == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
-';
 }
 pg_free_result($result);
+return $voucher_number;
+}
+function page_new_save()
+{
+$parts = 1;
+if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+        $parts = $_POST["parts"];
 
+if ($voucher_number == 0)
+{
+$query = "SELECT nextval(voucher_number) AS num;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+$voucher_number = $line['num'];
+}
+pg_free_result($result);
+}
+
+echo '<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>';
+
+for ($i = 0; $i < $parts; $i++)
+{
+        page_save_buchung($voucher_number, $i);
+}
 }
 function page_new_buchung($part = 0)
 {

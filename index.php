@@ -30,7 +30,7 @@ if ($page == "open")
 }
 else if ($page == "new")
 {
-  if ($_POST["speichern"] == "speichern")
+  if (isset($_POST["speichern"]) && $_POST["speichern"] == "speichern")
     page_new_save();
   else
     page_new();
