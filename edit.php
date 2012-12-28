@@ -29,7 +29,6 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-
 echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
 
 $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id;";
@@ -51,7 +50,14 @@ $voucher = get_voucher($part);
 }
 else
 {
-$voucher['dir'] = 'in';
+$query = "SELECT income FROM type WHERE id = " . $vouchers[$part]['type'];
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+$voucher['dir'] = $line['income'] == 't' ? 'in' : 'out';
+}
+pg_free_result($result);
+
+$voucher['date'] = $vouchers[$part]['date'];
 $voucher['in_type'] = $vouchers[$part]['type'];
 $voucher['out_type'] = $vouchers[$part]['type'];
 $voucher['lo'] = $vouchers[$part]['orga'];
@@ -112,9 +118,6 @@ for ($i = 0; $i < $parts; $i++)
 }
 
 $schatzmeister = true;
-if ($schatzmeister)
-{
-block_start();
 $ack = $vouchers[0]['acknowledged'];
 if (isset($_POST["ack"]))
         $ack = ' checked="checked"';
@@ -122,7 +125,7 @@ $beleg = $vouchers[0]['receipt_received'];
 if (isset($_POST["beleg"]))
         $beleg = ' checked="checked"';
 
-bsm_block($schatzmeister,$ack,$beleg)
+bsm_block($schatzmeister,$ack,$beleg);
 
-end_of_form($ack);}
+end_of_form($ack,$parts);}
 ?>

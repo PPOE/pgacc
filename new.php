@@ -1,20 +1,21 @@
 <?php
-function get_param($part, $voucher['name'], $default, $regex)
+function get_param($part, $name, $default, $regex)
 {
 $value = $default;
-if (isset($_POST[$voucher['name'] . $part]) && (!$regex || preg_match($regex, $_POST[$voucher['name'] . $part]) == 1))
-        $value = $_POST[$voucher['name'] . $part];
+if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+        $value = $_POST[$name . $part];
 return $value;
 }
-function get_param_bool($part, $voucher['name'], $default, $regex, $default_if_true)
+function get_param_bool($part, $name, $default, $regex, $default_if_true)
 {
 $value = $default;
-if (isset($_POST[$voucher['name'] . $part]) && (!$regex || preg_match($regex, $_POST[$voucher['name'] . $part]) == 1))
+if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
         $value = $default_if_true;
 return $value;
 }
 function get_voucher($part)
 {
+$voucher['date'] = get_param($part, 'date', null, '/^(\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d$/');
 $voucher['dir'] = get_param($part, 'dir', 'in', '/^(in|out)$/');
 $voucher['in_type'] = get_param($part, 'in_type', 0, '/^\d+$/');
 $voucher['out_type'] = get_param($part, 'out_type', 0, '/^\d+$/');
@@ -26,10 +27,10 @@ $voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
 $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
-$voucher['name'] = get_param($part, 'name', '', null);
-$voucher['street'] = get_param($part, 'street', '', null);
-$voucher['plz'] = get_param($part, 'plz', '', null);
-$voucher['city'] = get_param($part, 'city', '', null);
+$voucher['name'] = pg_escape_string(get_param($part, 'name', '', null));
+$voucher['street'] = pg_escape_string(get_param($part, 'street', '', null));
+$voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
+$voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['ack'] = get_param_bool('', 'ack', 'false', null, 'true');
 $voucher['receipt'] = get_param_bool('', 'beleg', 'false', null, 'true');
 return $voucher;
@@ -37,7 +38,13 @@ return $voucher;
 function page_save_buchung($voucher_number, $part = 0)
 {
 $voucher = get_voucher($part);
-$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",$voucher['lo'],$voucher['member'],$voucher['mitgliedsnummer'],$voucher['gegenkonto'],'$voucher['name']','$voucher['street']','$voucher['plz']','$voucher['city']',$voucher['amount'],$voucher['konto'],'$voucher['comment']',$voucher['purpose'],$voucher['ack'],$voucher['receipt'])";
+if ($voucher['date'] == null)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Kein Datum angegeben.</div><br /><br /><br />';
+  return;
+}
+
+$query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},{$voucher['gegenkonto']},'{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},{$voucher['konto']},'{$voucher['comment']}',{$voucher['purpose']},{$voucher['ack']},{$voucher['receipt']})";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -69,6 +76,9 @@ function page_edit_form($part,$voucher)
 {
 block_start();
 echo '
+<div>
+<label class="ui_field_label" for="date'.$part.'">Datum</label><input type="text" id="date'.$part.'" name="date'.$part.'" value="'.$voucher['date'].'" onchange="clicked();" />
+</div>
 <div>
 <label for="dir'.$part.'" class="ui_field_label">Einnahme/Ausgabe
 </label>
@@ -158,7 +168,7 @@ block_end();
 
 function page_new_buchung($part = 0)
 {
-$voucher = get_voucher();
+$voucher = get_voucher($part);
 
 page_edit_form($part,$voucher);
 }
@@ -241,12 +251,12 @@ if (isset($_POST["ack"]))
 $beleg = '';
 if (isset($_POST["beleg"]))
         $beleg = ' checked="checked"';
-bsm_block($schatzmeister,$ack,$beleg)
+bsm_block($schatzmeister,$ack,$beleg);
 
-end_of_form($ack);
+end_of_form('1',$parts);
 }
 
-function end_of_form($ack)
+function end_of_form($ack,$parts)
 {
 echo '
 <input value="'.$parts.'" type="hidden" id="parts" name="parts" />
@@ -263,9 +273,11 @@ echo '
 <br />
 <input value="Vorschau" type="submit" name="preview" />
 <input name="speichern" id="speichern" value="Speichern" type="submit" />
+<script type="text/javascript">clicked(true);</script>
 ';
 
 block_end();
+}
 }
 
 function bsm_block($schatzmeister,$ack,$beleg)
@@ -286,5 +298,6 @@ echo '
 block_end();
 }
 }
+
 
 ?>
