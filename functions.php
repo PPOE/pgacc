@@ -1,5 +1,8 @@
 <?php
-
+function tag($tag, $text)
+{
+  echo "<$tag>$text</$tag>";
+}
 function acc_header($page = "index")
 {
 echo '
@@ -12,6 +15,7 @@ echo '
 <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
 </head>
 <body>
+<div class="wiki motd">Dies ist nur eine Demo-Version die keine realen Daten enthält.</div>
 ';
 echo '
 <div class="page">
@@ -22,15 +26,17 @@ echo '
 <a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>
 <a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>
 <a href="index.php?action=transfer"'.($page == "transfer"?' class="selected"':'').'>Offene Kontotransfers</a>
+<a href="index.php?action=deleted"'.($page == "deleted"?' class="selected"':'').'>Gelöschte Buchungen</a>
+<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spendentransparenz</a>
 </div><br />
 ';
 }
 
-function block_start()
+function block_start($p = "")
 {
 echo '
 <br style="clear: both;" />
-<div class="wiki use_terms">
+<div class="wiki use_terms'.$p.'">
 ';
 }
 function block_end()
@@ -45,7 +51,7 @@ function acc_footer()
 echo '
 </div></div></div></div>
     <div class="footer" id="footer">
-      <div class="slot_footer" id="slot_footer"><a href="impressum.html">Impressum</a></div>
+      <div class="slot_footer" id="slot_footer"><a href="index.php?action=impressum">Impressum</a></div>
     </div>
     </div>
   </body>

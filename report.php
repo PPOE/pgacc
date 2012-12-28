@@ -1,5 +1,5 @@
 <?php
-function unit_report($unit = 0)
+function unit_report($unit = 10)
 {
 global $dbconn;
 echo '
@@ -7,10 +7,16 @@ echo '
 <h3>Einnahmen</h3>
 <table>
 ';
-$query = "SELECT name FROM type WHERE income = true ORDER BY used DESC,id ASC";
+$query = "SELECT id,name FROM type WHERE income = true ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td>{$line['name']}</td><td>0 €</td></tr>\n";
+  echo "<tr><td>{$line['name']}</td><td>";
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND orga = {$unit} AND orga = {$unit} AND type = {$line['id']}";
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+  }
+  pg_free_result($result2);
 }
 pg_free_result($result);
 echo '
@@ -20,10 +26,16 @@ echo '
 <h3>Ausgaben</h3>
 <table>
 ';
-$query = "SELECT name FROM type WHERE income = true ORDER BY used DESC,id ASC";
+$query = "SELECT id,name FROM type WHERE income = false ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td>{$line['name']}</td><td>0 €</td></tr>\n";
+  echo "<tr><td>{$line['name']}</td><td>";
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND orga = {$unit} AND orga = {$unit} AND type = {$line['id']}";
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+  }
+  pg_free_result($result2);
 }
 pg_free_result($result);
 echo '
@@ -43,17 +55,17 @@ echo '
 Die Piratenpartei Österreichs hat die folgenden Unterorganisationen:
 <ul>
 ';
-$query = "SELECT id,name FROM lo ORDER BY id ASC";
+$query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<li>{$line['name']}";
-  $query = "SELECT name FROM oo WHERE lo = {$line['id']} ORDER BY id ASC";
+  echo "<li><a href=\"#{$line['name']}\">{$line['name']}</a></li>\n";
+  $query = "SELECT name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
   $result2 = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   if (pg_num_rows($result2) > 0)
     echo "\n<ul>\n";
 
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-    echo "<li>{$line2['name']}</li>\n";
+    echo "<li><a href=\"#{$line2['name']}\">{$line2['name']}</a></li>\n";
   }
 
   if (pg_num_rows($result2) > 0)
@@ -68,15 +80,22 @@ Die Unterorganisationen haben keine eigene Rechtspersönlichkeit.
 
 <h1>Einnahmen und Ausgaben Bund</h1>
 ';
-unit_report(0);
+unit_report(10);
 echo'
 <h1>Einnahmen und Ausgaben Länder</h1>
 ';
-$query = "SELECT id,name FROM lo ORDER BY id ASC";
+$query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<h2>{$line['name']}</h2>\n";
+  echo "<h2><a name=\"{$line['name']}\">{$line['name']}</a></h2>\n";
   unit_report($line['id']);
+$query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo "<h3><a name=\"{$line2['name']}\">{$line2['name']}</a></h3>\n";
+  unit_report($line2['id']);
+}
+pg_free_result($result2);
 }
 pg_free_result($result);
 echo'

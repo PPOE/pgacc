@@ -23,15 +23,17 @@ $amount = intval(floatval(get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d
 $gegenkonto = intval(get_param($part, 'gegenkonto', '', '/^\d+$/'));
 $konto = intval(get_param($part, 'konto', '', '/^\d+$/'));
 $comment = pg_escape_string(get_param($part, 'comment', '', null));
-$purpose = get_param_bool($part, 'purpose', false, null, true);
-$member = get_param_bool($part, 'member', false, null, true);
+$purpose = get_param_bool($part, 'purpose', 'false', null, 'true');
+$member = get_param_bool($part, 'member', 'false', null, 'true');
 $mitgliedsnummer = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
 $name = get_param($part, 'name', '', null);
 $street = get_param($part, 'street', '', null);
 $plz = get_param($part, 'plz', '', null);
 $city = get_param($part, 'city', '', null);
+$ack = get_param_bool('', 'ack', 'false', null, 'true');
+$receipt = get_param_bool('', 'beleg', 'false', null, 'true');
 
-$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,".($dir == "in"?$in_type:$out_type).",$lo,".($member?"true":"false").",$mitgliedsnummer,$gegenkonto,'$name','$street','$plz','$city',$amount,$konto,'$comment',".($purpose?"true":"false").",false,false)";
+$query = "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number,".($dir == "in"?$in_type:$out_type).",$lo,$member,$mitgliedsnummer,$gegenkonto,'$name','$street','$plz','$city',$amount,$konto,'$comment',$purpose,$ack,$receipt)";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
