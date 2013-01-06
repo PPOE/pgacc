@@ -15,12 +15,12 @@ return $value;
 }
 function get_voucher($part)
 {
-$voucher['date'] = get_param($part, 'date', null, '/^(\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d$/');
+$voucher['date'] = format_date(get_param($part, 'date', null, '/^((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1)))$/'));
 $voucher['dir'] = get_param($part, 'dir', 'in', '/^(in|out)$/');
 $voucher['in_type'] = get_param($part, 'in_type', 0, '/^\d+$/');
 $voucher['out_type'] = get_param($part, 'out_type', 0, '/^\d+$/');
 $voucher['lo'] = get_param($part, 'lo', 10, '/^\d+$/');
-$voucher['amount'] = intval(floatval(get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/')) * 100);
+$voucher['amount'] = intval(floatval(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/'))) * 100);
 $voucher['gegenkonto'] = intval(get_param($part, 'gegenkonto', '', '/^\d+$/'));
 $voucher['konto'] = intval(get_param($part, 'konto', '', '/^\d+$/'));
 $voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
@@ -43,7 +43,11 @@ if ($voucher['date'] == null)
   echo '<div class="slot_error" id="slot_error">FEHLER: Kein Datum angegeben.</div><br /><br /><br />';
   return;
 }
-
+if ($voucher['purpose'] == 'true' && ($voucher['dir'] == 'out' || $voucher['in_type'] != 7))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Eine Zweckwidmung ist nur bei einer Spende möglich.</div><br /><br /><br />';
+  return;
+}
 $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},{$voucher['gegenkonto']},'{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},{$voucher['konto']},'{$voucher['comment']}',{$voucher['purpose']},{$voucher['ack']},{$voucher['receipt']})";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -130,7 +134,7 @@ echo '
 </select>
 </div>
 <div>
-<label class="ui_field_label" for="member'.$part.'">Mitglied</label><input type="checkbox" id="member'.$part.'" name="member'.$part.'" value="1" '.$voucher['member'].' onchange="clicked();" />
+<label class="ui_field_label" for="member'.$part.'">Mitglied</label><input type="checkbox" id="member'.$part.'" name="member'.$part.'" value="1" '.($voucher['member']=='true'?' checked="checked"':'').' onchange="clicked();" />
 </div>
 <div id="mitgliedsnummer'.$part.'">
 <label class="ui_field_label" for="mitgliedsnummer'.$part.'">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer'.$part.'" value="'.$voucher['mitgliedsnummer'].'" onchange="clicked();" />
@@ -139,7 +143,7 @@ echo '
 <label class="ui_field_label" for="gegenkonto'.$part.'">Gegenkonto</label><input type="text" name="gegenkonto'.$part.'" value="'.$voucher['gegenkonto'].'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="amount'.$part.'">Betrag (in €)</label><input type="text" id="amount'.$part.'" name="amount'.$part.'" value="'.$voucher['amount'].'" onchange="clicked();" />
+<label class="ui_field_label" for="amount'.$part.'">Betrag (in €)</label><input type="text" id="amount'.$part.'" name="amount'.$part.'" value="'.$voucher['amount'] / 100.0 .'" onchange="clicked();" />
 </div>
 <div>
 <label class="ui_field_label" for="konto'.$part.'">Konto</label><input type="text" id="konto'.$part.'" name="konto'.$part.'" value="'.$voucher['konto'].'" onchange="clicked();" />
@@ -148,7 +152,7 @@ echo '
 <label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.$voucher['comment'].'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="purpose'.$part.'">Zweckgebunden</label><input type="checkbox" id="purpose'.$part.'" name="purpose'.$part.'" value="1" '.$voucher['purpose'].' onchange="clicked();" />
+<label class="ui_field_label" for="purpose'.$part.'">Zweckgebunden</label><input type="checkbox" id="purpose'.$part.'" name="purpose'.$part.'" value="1" '.($voucher['purpose']=='true'?' checked="checked"':'').' onchange="clicked();" />
 </div>
 <div id="name'.$part.'">
 <label class="ui_field_label" for="name'.$part.'">Name</label><input type="text" name="name'.$part.'" value="'.$voucher['name'].'" onchange="clicked();" />
@@ -162,13 +166,20 @@ echo '
 <div id="city'.$part.'">
 <label class="ui_field_label" for="city'.$part.'">Ort</label><input type="text" name="city'.$part.'" value="'.$voucher['city'].'" onchange="clicked();" />
 </div>
+<div style="float: right;">
+<a href="javascript:deleteB('.$part.');">Diesen Beleg löschen</a>
+</div>
+<br />
 ';
 block_end();
 }
 
-function page_new_buchung($part = 0)
+function page_new_buchung($part = 0, $part_to_remove)
 {
-$voucher = get_voucher($part);
+if ($part_to_remove != -1 && $part >= $part_to_remove)
+	$voucher = get_voucher($part+1);
+else
+	$voucher = get_voucher($part);
 
 page_edit_form($part,$voucher);
 }
@@ -178,6 +189,22 @@ function page_form_header($p)
 
 echo '
 <script type="text/javascript">
+function deleteB(part)
+{
+  document.getElementById("speichern").style.display = "none";
+  var max = parseInt(document.getElementById("parts").value);
+  if (max == 1)
+  {
+    alert("Kann letzten Beleg nicht löschen!");
+    return;
+  }
+  if (!confirm("Sicher löschen?"))
+    return;
+  var e = document.createElement("div");
+  e.innerHTML = "<input type=\'hidden\' name=\'remove\' value=\'" + part + "\' />";
+  document.mainform.appendChild(e);
+  document.mainform.submit();
+}
 function clicked(init)
 {
   if (!init)
@@ -218,7 +245,7 @@ function clicked(init)
   }
 }
 </script>
-<form class="vertical" action="index.php?action='.$p.'" method="post">
+<form name="mainform" class="vertical" action="index.php?action='.$p.'" method="post">
 ';
 }
 
@@ -232,7 +259,12 @@ if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
 	$parts = $_POST["parts"];
 if (isset($_POST["add"]))
 	$parts++;
-
+$part_to_remove = -1;
+if (isset($_POST["remove"]) && intval($_POST["remove"]) >= 0 && intval($_POST["remove"]) < $parts)
+{
+        $parts--;
+	$part_to_remove = intval($_POST["remove"]);
+}
 
 page_form_header("new");
 echo '
@@ -241,7 +273,7 @@ echo '
 
 for ($i = 0; $i < $parts; $i++)
 {
-	page_new_buchung($i);
+	page_new_buchung($i, $part_to_remove);
 }
 
 $schatzmeister = true;
@@ -268,10 +300,10 @@ block_start();
 echo '
 <br />
 
-<input value="Weitere Buchung zu DIESER Transaktion" type="submit" name="add" />
-<br />
-<br />
 <input value="Vorschau" type="submit" name="preview" />
+<br />
+<br />
+<input value="Weitere Buchung zu DIESER Transaktion" type="submit" name="add" />
 <input name="speichern" id="speichern" value="Speichern" type="submit" />
 <script type="text/javascript">clicked(true);</script>
 ';

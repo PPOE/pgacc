@@ -5,12 +5,14 @@ require("constants.php");
 require("new.php");
 require("open.php");
 require("closed.php");
+require("import.php");
 require("edit.php");
 require("transfer.php");
 require("deleted.php");
 require("donations.php");
 require("impressum.php");
 require("report.php");
+require("recover.php");
 $dbconn = pg_connect("dbname=accounting")
   or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
 
@@ -19,7 +21,7 @@ require("functions.php");
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","open","closed","transfer","edit","donations","deleted","impressum")))
+  if (in_array($_GET["action"],array("new","open","closed","transfer","edit","donations","deleted","impressum","recover","import")))
     $page = $_GET["action"];
   else
     $page = "report";
@@ -66,9 +68,22 @@ else if ($page == "impressum")
 {
   page_impressum();
 }
+else if ($page == "recover")
+{
+  page_recover();
+}
+else if ($page == "import")
+{
+  page_import();
+}
 else
 {
-  page_report();
+  $year = 2012;
+  if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1)
+  {
+    $year = intval($_GET["year"]);
+  }
+  page_report($year);
 }
 
 acc_footer();

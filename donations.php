@@ -1,13 +1,23 @@
 <?php
-function page_donations()
+function date_condition($year)
 {
+  return "AND date >= '".$year."-01-01' AND date < '".(intval($year)+1)."-01-01'";
+}
+function page_donations($year = 2012)
+{
+echo '<div class="wiki motd">';
+for ($i = 2012; $i <= intval(date('Y')); $i++)
+{
+echo "<a href=\"index.php?action=donations&year=$i\">$i</a> ";
+}
+echo'</div>';
 block_start();
 echo '
 <table style="min-width: 50%" border="1">
 <tr><td><b>Name</b></td><td><b>Anschrift</b></td><td><b>Spendensumme</b></td></tr>
 ';
 $donation_condition = "AND type = 8";
-$query = "SELECT name,street,plz,city,SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND NOT member $donation_condition GROUP BY name,street,plz,city;";
+$query = "SELECT name,street,plz,city,SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND NOT member $donation_condition ".date_condition($year)." GROUP BY name,street,plz,city;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if ($line['sum'] <= 0) { continue; }
@@ -16,7 +26,7 @@ $donations[] = $line;
 }
 pg_free_result($result);
 
-$query = "SELECT member_id,SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND member $donation_condition GROUP BY member_id;";
+$query = "SELECT member_id,SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND member $donation_condition ".date_condition($year)." GROUP BY member_id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if ($line['sum'] <= 0) { continue; }

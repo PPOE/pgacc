@@ -8,12 +8,12 @@ echo '
 ';
 }
 
-function page_listing_line($line)
+function page_listing_line($line, $action = "edit")
 {
 echo "<tr>";
-tag("td", '<a href="index.php?action=edit&id=' . $line["voucher_id"] . '">' . $line["voucher_id"] . "</a>");
+tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
 tag("td", $line["id"]);
-tag("td", $line["date"]);
+tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
@@ -26,7 +26,7 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 tag("td", $line2["name"]);
 }
 pg_free_result($result2);
-tag("td", intval($line["member"]) != 'f' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
+tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
 tag("td", $line["contra_account"]);
 tag("td", $line["account"]);
 tag("td", ($line["amount"] / 100.0) . "€");
@@ -41,7 +41,7 @@ echo "</tr>";
 function page_closed()
 {
 page_listing_header();
-$query = "SELECT * FROM vouchers WHERE NOT deleted AND acknowledged ORDER BY voucher_id,id";
+$query = "SELECT * FROM vouchers WHERE NOT deleted AND acknowledged ORDER BY voucher_id DESC,id DESC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line);

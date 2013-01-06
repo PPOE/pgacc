@@ -1,5 +1,5 @@
 <?php
-function unit_report($unit = 10)
+function unit_report($unit = 10,$year = 2012)
 {
 global $dbconn;
 echo '
@@ -11,7 +11,11 @@ $query = "SELECT id,name FROM type WHERE income = true ORDER BY used DESC,id ASC
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>{$line['name']}</td><td>";
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND orga = {$unit} AND orga = {$unit} AND type = {$line['id']}";
+  if ($unit == -1)
+    $unit_s = "";
+  else
+    $unit_s = " AND orga = " . $unit;
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type = {$line['id']} ".date_condition($year);
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -19,6 +23,17 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   pg_free_result($result2);
 }
 pg_free_result($result);
+echo "<tr><td><b>Summe</b></td><td>";
+if ($unit == -1)
+  $unit_s = "";
+else
+  $unit_s = " AND orga = " . $unit;
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type IN (SELECT id FROM type WHERE income) ".date_condition($year);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+}
+pg_free_result($result2);
 echo '
 </table>
 </td>
@@ -30,7 +45,11 @@ $query = "SELECT id,name FROM type WHERE income = false ORDER BY used DESC,id AS
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>{$line['name']}</td><td>";
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged AND orga = {$unit} AND orga = {$unit} AND type = {$line['id']}";
+  if ($unit == -1)
+    $unit_s = "";
+  else
+    $unit_s = " AND orga = " . $unit;
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type = {$line['id']} ".date_condition($year);
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -38,6 +57,17 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   pg_free_result($result2);
 }
 pg_free_result($result);
+echo "<tr><td><b>Summe</b></td><td>";
+if ($unit == -1)
+  $unit_s = "";
+else
+  $unit_s = " AND orga = " . $unit;
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type IN (SELECT id FROM type WHERE NOT income) ".date_condition($year);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+}
+pg_free_result($result2);
 echo '
 </table>
 </td>
@@ -46,11 +76,15 @@ echo '
 ';
 }
 
-function page_report()
+function page_report($year = 2012)
 {
-$year = date('Y');
+echo '<div class="wiki motd">';
+for ($i = 2012; $i <= intval(date('Y')); $i++)
+{
+echo "<a href=\"index.php?year=$i\">$i</a> ";
+}
+echo'</div>';
 echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs '.$year.'</h1><br>';
-block_start();
 echo '
 Die Piratenpartei Österreichs hat die folgenden Unterorganisationen:
 <ul>
@@ -78,16 +112,27 @@ echo '
 </ul>
 Die Unterorganisationen haben keine eigene Rechtspersönlichkeit.
 
-<h1>Einnahmen und Ausgaben Bund</h1>
+<h1>Einnahmen und Ausgaben Bund (inkl. Länder)</h1>
 ';
+block_start();
+unit_report(-1);
+block_end();
+echo '
+<br />
+<h1>Einnahmen und Ausgaben Bund (exkl. Länder)</h1>
+';
+block_start();
 unit_report(10);
+block_end();
 echo'
+<br />
 <h1>Einnahmen und Ausgaben Länder</h1>
 ';
+block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<h2><a name=\"{$line['name']}\">{$line['name']}</a></h2>\n";
+  echo "<br /><h2><a name=\"{$line['name']}\">{$line['name']}</a></h2>\n";
   unit_report($line['id']);
 $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -98,10 +143,13 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 pg_free_result($result2);
 }
 pg_free_result($result);
+if ($year == 2012)
+{
 echo'
-<h2>Ausgaben Wahlwerbung Gemeinderatswahl Graz 2012</h2>
+<br /><h2>Ausgaben Wahlwerbung Gemeinderatswahl Graz 2012</h2>
 TODO
 ';
+}
 echo '
 <h2>Liste jener Unternehmen, an denen die Partei Stimmrechte hält</h2>
 Die Piratenpartei Österreichs hält keine Stimmrechte an Unternehmen.

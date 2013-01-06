@@ -20,9 +20,10 @@ else
   return;
 }
 
-$query = "SELECT acknowledged FROM vouchers WHERE NOT deleted AND voucher_id = $id;";
+$query = "SELECT acknowledged FROM vouchers WHERE NOT deleted AND acknowledged AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  print_r($line);
   echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
   pg_free_result($result);
   return;
@@ -42,14 +43,20 @@ for ($i = 0; $i < $parts; $i++)
         page_save_buchung($id, $i, true);
 }
 }
-function page_edit_buchung($vouchers, $part = 0)
+function page_edit_buchung($vouchers, $part = 0, $part_to_remove = -1)
 {
 if (isset($_POST["changed"]))
 {
-$voucher = get_voucher($part);
+if ($part_to_remove != -1 && $part >= $part_to_remove)
+        $voucher = get_voucher($part+1);
+else
+        $voucher = get_voucher($part);
 }
 else
 {
+$part_o = $part;
+if ($part_to_remove != -1 && $part >= $part_to_remove)
+	$part++;
 $query = "SELECT income FROM type WHERE id = " . $vouchers[$part]['type'];
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -57,16 +64,16 @@ $voucher['dir'] = $line['income'] == 't' ? 'in' : 'out';
 }
 pg_free_result($result);
 
-$voucher['date'] = $vouchers[$part]['date'];
+$voucher['date'] = format_date($vouchers[$part]['date']);
 $voucher['in_type'] = $vouchers[$part]['type'];
 $voucher['out_type'] = $vouchers[$part]['type'];
 $voucher['lo'] = $vouchers[$part]['orga'];
-$voucher['amount'] = $vouchers[$part]['amount'] / 100.0;
+$voucher['amount'] = $vouchers[$part]['amount'];
 $voucher['gegenkonto'] = $vouchers[$part]['contra_account'];
 $voucher['konto'] = $vouchers[$part]['account'];
 $voucher['comment'] = $vouchers[$part]['comment'];
-$voucher['purpose'] = $vouchers[$part]['committed'] == 't' ? ' checked="checked" ' : '';
-$voucher['member'] = $vouchers[$part]['member'] == 't' ? ' checked="checked" ' : '';
+$voucher['purpose'] = $vouchers[$part]['committed'] == 't' ? 'true' : 'false';
+$voucher['member'] = $vouchers[$part]['member'] == 't' ? 'true' : 'false';
 $voucher['mitgliedsnummer'] = $vouchers[$part]['member_id'];
 $voucher['name'] = $vouchers[$part]['name'];
 $voucher['street'] = $vouchers[$part]['street'];
@@ -74,6 +81,7 @@ $voucher['plz'] = $vouchers[$part]['plz'];
 $voucher['city'] = $vouchers[$part]['city'];
 $voucher['ack'] = $vouchers[$part]['acknowledged'];
 $voucher['receipt'] = $vouchers[$part]['receipt_received'];
+$part = $part_o;
 }
 page_edit_form($part,$voucher);
 }
@@ -98,7 +106,7 @@ else
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " ORDER BY id ASC;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-$vouchers[] = $line;
+  $vouchers[] = $line;
 }
 pg_free_result($result);
 $parts = count($vouchers);
@@ -106,6 +114,12 @@ if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
 	$parts = $_POST["parts"];
 if (isset($_POST["add"]))
 	$parts++;
+$part_to_remove = -1;
+if (isset($_POST["remove"]) && intval($_POST["remove"]) >= 0 && intval($_POST["remove"]) < $parts)
+{
+        $parts--;
+        $part_to_remove = intval($_POST["remove"]);
+}
 
 page_form_header("edit");
 echo '<input type="hidden" name="id" value="'.intval($id).'" />
@@ -114,7 +128,7 @@ echo '<input type="hidden" name="id" value="'.intval($id).'" />
 ';
 for ($i = 0; $i < $parts; $i++)
 {
-	page_edit_buchung($vouchers,$i);
+	page_edit_buchung($vouchers,$i,$part_to_remove);
 }
 
 $schatzmeister = true;
