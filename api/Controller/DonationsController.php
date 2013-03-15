@@ -76,8 +76,10 @@ class DonationsController{
 
             foreach ($donations as $line)
             {
-                $name = $line["name"];
-                $result[$name] = $line["sum"] / 100.0;
+                $donation = array();
+                $donation["name"] = $line["name"];
+                $donation["sum"] = $line["sum"] / 100.0;
+                $result[] = $donation;
             }
         }
 
