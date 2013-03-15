@@ -26,7 +26,7 @@ else
 echo'</div>';
 block_start();
 echo '
-<table style="min-width: 50%" border="1">
+<table id="donations" style="min-width: 50%" border="1">
 <tr><td><b>Name</b></td><td><b>Spendensumme</b></td></tr>
 ';
 $donation_condition = "AND type = 8";

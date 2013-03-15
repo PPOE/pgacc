@@ -91,7 +91,7 @@ if ($year == intval(date('Y')))
 $prev = "31.12." . ($year-1);
 echo '
 <h2>Finanzübersicht</h2>
-<table width="90%"><tr><td>Organisationseinheit</td><td>Kontostand '.$prev.'</td><td>Einnahmen '.$year.'</td><td>Ausgaben '.$year.'</td><td>Kontostand '.$last.'</td></tr>
+<table id="financeOverview"><th><td>Kontostand '.$prev.'</td><td>Einnahmen '.$year.'</td><td>Ausgaben '.$year.'</td><td>Kontostand '.$last.'</td></th>
 <tr><td>Bund (inkl. Länder)</td>
 ';
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes() . date_condition($year - 1,0);
@@ -183,7 +183,7 @@ block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<br /><h2><a name=\"{$line['name']}\">{$line['name']}</a></h2>\n";
+  echo "<br /><h2><a name=\"{$line['name']}\" href=\"#{$line['name']}\">{$line['name']}</a></h2>\n";
   unit_report($line['id'],$year);
 $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

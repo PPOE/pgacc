@@ -15,6 +15,7 @@ echo '
 <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
 </head>
 <body>
+<div id="content">
 <div class="wiki motd">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde.</div>
 ';
 $rights = checklogin('rights',false);
@@ -70,6 +71,7 @@ if (strlen($rights) == 0)
 if (strlen($rights) != 0)
   echo '<a href="index.php?action=logout">Logout</a>';
 echo '      </div>
+    </div>
     </div>
     </div>
     </div>

@@ -1541,4 +1541,28 @@ div.notifications {
   text-decoration: none;
 }
 
+/*****************************
+    pgacc
+*/
+
+#content {
+    margin: 0 auto;
+    max-width: 1000px;
+}
+
+h1 {
+    margin: 60px 0 20px;
+}
+
+#financeOverview {
+    margin: 0 0 10px 0;
+}
+
+table tr:nth-child(even) {
+    background-color: #FFFFDF;
+}
+
+#financeOverview tr:nth-child(even) {
+    background-color: #DFDFDF;
+}
 
