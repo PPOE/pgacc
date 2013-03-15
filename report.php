@@ -15,7 +15,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     $unit_s = "";
   else
     $unit_s = " AND orga = " . $unit;
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type = {$line['id']} ".date_condition($year);
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type = {$line['id']} ".date_condition($year);
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -28,7 +28,7 @@ if ($unit == -1)
   $unit_s = "";
 else
   $unit_s = " AND orga = " . $unit;
-$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type IN (SELECT id FROM type WHERE income) ".date_condition($year);
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type IN (SELECT id FROM type WHERE income) ".date_condition($year);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -49,7 +49,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     $unit_s = "";
   else
     $unit_s = " AND orga = " . $unit;
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type = {$line['id']} ".date_condition($year);
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type = {$line['id']} ".date_condition($year);
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -62,7 +62,7 @@ if ($unit == -1)
   $unit_s = "";
 else
   $unit_s = " AND orga = " . $unit;
-$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND acknowledged {$unit_s} AND type IN (SELECT id FROM type WHERE NOT income) ".date_condition($year);
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type IN (SELECT id FROM type WHERE NOT income) ".date_condition($year);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -85,15 +85,43 @@ echo "<a href=\"index.php?year=$i\">$i</a> ";
 }
 echo'</div>';
 echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs '.$year.'</h1><br>';
+$last = "31.12.$year";
+if ($year == intval(date('Y')))
+  $last = date('d.m.Y');
+$prev = "31.12." . ($year-1);
 echo '
-Die Piratenpartei Österreichs hat die folgenden Unterorganisationen:
-<ul>
+<h2>Finanzübersicht</h2>
+<table width="90%"><tr><td>Organisationseinheit</td><td>Kontostand '.$prev.'</td><td>Einnahmen '.$year.'</td><td>Ausgaben '.$year.'</td><td>Kontostand '.$last.'</td></tr>
+<tr><td>Bund (inkl. Länder)</td>
 ';
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes() . date_condition($year - 1,0);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+}
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND type IN (SELECT id FROM type WHERE income) ".date_condition($year);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+}
+pg_free_result($result2);
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND type IN (SELECT id FROM type WHERE NOT income) ".date_condition($year);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());      
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {            
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";              
+}                
+pg_free_result($result2);
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes() . date_condition($year,0);
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+}
+echo "</tr>\n";
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<li><a href=\"#{$line['name']}\">{$line['name']}</a></li>\n";
-  $query = "SELECT name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
+  echo "<tr><td><a href=\"#{$line['name']}\">{$line['name']}</a></td>\n";
+/*  $query = "SELECT name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
   $result2 = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   if (pg_num_rows($result2) > 0)
     echo "\n<ul>\n";
@@ -105,24 +133,47 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   if (pg_num_rows($result2) > 0)
     echo "\n</ul>\n";
 
+  pg_free_result($result2);*/
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND orga = {$line['id']} ".date_condition($year-1,0);
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND orga = {$line['id']} AND type IN (SELECT id FROM type WHERE income) ".date_condition($year);
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
   pg_free_result($result2);
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND orga = {$line['id']} AND type IN (SELECT id FROM type WHERE NOT income) ".date_condition($year);
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
+  pg_free_result($result2);
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." AND orga = {$line['id']} ".date_condition($year,0);
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
+  echo "</tr>\n";
 }
 pg_free_result($result);
 echo '
-</ul>
+</table>
 Die Unterorganisationen haben keine eigene Rechtspersönlichkeit.
 
 <h1>Einnahmen und Ausgaben Bund (inkl. Länder)</h1>
 ';
 block_start();
-unit_report(-1);
+unit_report(-1,$year);
 block_end();
 echo '
 <br />
 <h1>Einnahmen und Ausgaben Bund (exkl. Länder)</h1>
 ';
 block_start();
-unit_report(10);
+unit_report(10,$year);
 block_end();
 echo'
 <br />
@@ -133,12 +184,12 @@ $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id A
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<br /><h2><a name=\"{$line['name']}\">{$line['name']}</a></h2>\n";
-  unit_report($line['id']);
+  unit_report($line['id'],$year);
 $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo "<h3><a name=\"{$line2['name']}\">{$line2['name']}</a></h3>\n";
-  unit_report($line2['id']);
+  unit_report($line2['id'],$year);
 }
 pg_free_result($result2);
 }

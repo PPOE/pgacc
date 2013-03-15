@@ -20,9 +20,9 @@ $voucher['dir'] = get_param($part, 'dir', 'in', '/^(in|out)$/');
 $voucher['in_type'] = get_param($part, 'in_type', 0, '/^\d+$/');
 $voucher['out_type'] = get_param($part, 'out_type', 0, '/^\d+$/');
 $voucher['lo'] = get_param($part, 'lo', 10, '/^\d+$/');
-$voucher['amount'] = intval(floatval(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d)?$/'))) * 100);
-$voucher['gegenkonto'] = intval(get_param($part, 'gegenkonto', '', '/^\d+$/'));
-$voucher['konto'] = intval(get_param($part, 'konto', '', '/^\d+$/'));
+$voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
+$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|[A-Z])+$/i'));
+$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|[A-Z])+$/i'));
 $voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
@@ -31,7 +31,6 @@ $voucher['name'] = pg_escape_string(get_param($part, 'name', '', null));
 $voucher['street'] = pg_escape_string(get_param($part, 'street', '', null));
 $voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
 $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
-$voucher['ack'] = get_param_bool('', 'ack', 'false', null, 'true');
 $voucher['receipt'] = get_param_bool('', 'beleg', 'false', null, 'true');
 return $voucher;
 }
@@ -41,14 +40,30 @@ $voucher = get_voucher($part);
 if ($voucher['date'] == null)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Kein Datum angegeben.</div><br /><br /><br />';
-  return;
+  $voucher['date'] = '1800-01-01';
 }
-if ($voucher['purpose'] == 'true' && ($voucher['dir'] == 'out' || $voucher['in_type'] != 7))
+if ($voucher['purpose'] == 'true' && ($voucher['dir'] == 'out' || $voucher['in_type'] != 8))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Eine Zweckwidmung ist nur bei einer Spende möglich.</div><br /><br /><br />';
-  return;
+  $voucher['purpose'] = 'false';
 }
-$query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, acknowledged, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},{$voucher['gegenkonto']},'{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},{$voucher['konto']},'{$voucher['comment']}',{$voucher['purpose']},{$voucher['ack']},{$voucher['receipt']})";
+
+if ($voucher['member'] == 'true')
+{
+getusers();
+$query = "SELECT name FROM ppmembers WHERE id = {$voucher['mitgliedsnummer']};";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  $voucher['name'] = $line['name'];
+}
+pg_free_result($result);
+
+$query = 'DROP TABLE IF EXISTS ppmembers;';
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+pg_free_result($result);
+}
+
+$query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -76,7 +91,7 @@ for ($i = 0; $i < $parts; $i++)
 }
 }
 
-function page_edit_form($part,$voucher)
+function page_edit_form($part,$voucher,$rights)
 {
 block_start();
 echo '
@@ -126,6 +141,8 @@ echo '
 $query = "SELECT id,name FROM lo ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+$rights2 = explode(",", $rights);
+if (in_array('bsm',$rights2) || in_array('bgf',$rights2) || in_array('root',$rights2) || in_array($line['id'], konto2lo($rights2)))
   echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.$line['name'].'</option>
 ';
 }
@@ -174,14 +191,14 @@ echo '
 block_end();
 }
 
-function page_new_buchung($part = 0, $part_to_remove)
+function page_new_buchung($part = 0, $part_to_remove,$rights)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
 	$voucher = get_voucher($part+1);
 else
 	$voucher = get_voucher($part);
 
-page_edit_form($part,$voucher);
+page_edit_form($part,$voucher,$rights);
 }
 
 function page_form_header($p)
@@ -192,6 +209,7 @@ echo '
 function deleteB(part)
 {
   document.getElementById("speichern").style.display = "none";
+  document.getElementById("ack").style.display = "none";
   var max = parseInt(document.getElementById("parts").value);
   if (max == 1)
   {
@@ -208,7 +226,10 @@ function deleteB(part)
 function clicked(init)
 {
   if (!init)
+  {
     document.getElementById("speichern").style.display = "none";
+    document.getElementById("ack").style.display = "none";
+  }
   var max = parseInt(document.getElementById("parts").value);
   var i = 0;
   while (i < max)
@@ -249,7 +270,7 @@ function clicked(init)
 ';
 }
 
-function page_new()
+function page_new($rights)
 {
 $preview = true;
 if (isset($_POST["preview"]))
@@ -273,56 +294,52 @@ echo '
 
 for ($i = 0; $i < $parts; $i++)
 {
-	page_new_buchung($i, $part_to_remove);
+	page_new_buchung($i, $part_to_remove, $rights);
 }
 
-$schatzmeister = true;
-$ack = '';
-if (isset($_POST["ack"]))
-        $ack = ' checked="checked"';
+$schatzmeister = strpos($rights,'bsm') !== false;
 $beleg = '';
 if (isset($_POST["beleg"]))
         $beleg = ' checked="checked"';
-bsm_block($schatzmeister,$ack,$beleg);
+bsm_block($schatzmeister,$beleg);
 
-end_of_form('1',$parts);
+end_of_form($parts,$rights,true,false);
 }
 
-function end_of_form($ack,$parts)
+function end_of_form($parts,$rights,$open = true,$ack = true)
 {
 echo '
 <input value="'.$parts.'" type="hidden" id="parts" name="parts" />
 ';
 
-if ($ack != '')
+if ($open)
 {
 block_start();
 echo '
 <br />
 
 <input value="Vorschau" type="submit" name="preview" />
-<br />
-<br />
 <input value="Weitere Buchung zu DIESER Transaktion" type="submit" name="add" />
-<input name="speichern" id="speichern" value="Speichern" type="submit" />
-<script type="text/javascript">clicked(true);</script>
+<br />
+<br />
+<input name="speichern" id="speichern" value="Speichern" type="submit" />';
+if (strpos($rights,'bgf') !== false && $ack)
+  echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" />';
+echo '<script type="text/javascript">clicked(true);</script>
 ';
 
 block_end();
 }
 }
 
-function bsm_block($schatzmeister,$ack,$beleg)
+function bsm_block($schatzmeister,$beleg)
 {
 if ($schatzmeister)
 {
 block_start();
 
 echo '
-<h3>Bundesschatzmeister</h3>
-<div>
-<label class="ui_field_label" for="ack">Bestätigt</label><input type="checkbox" name="ack" '.$ack.' value="1"/>
-</div>
+<h3>Bundesgesschatzmeister</h3>
 <div>
 <label class="ui_field_label" for="beleg">Beleg erhalten</label><input type="checkbox" name="beleg" '.$beleg.' value="1"/>
 </div>
