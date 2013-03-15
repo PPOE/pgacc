@@ -254,4 +254,24 @@ function eyes()
   return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
 }
 
+/**
+ * Return a subset of the parameter array with only keys of the whitelist.
+ * Only checks keys, not values.
+ *
+ * @author meisterluk
+ * @author Peter Grassberger <petertheone@gmail.com>
+ *
+ * @param $array array to select from
+ * @param $whitelist array of keys to select
+ * @return array a subset of array
+ */
+function whitelist($array, $whitelist) {
+    $new_array = array();
+    foreach ($array as $key => $value) {
+        if (isset($whitelist[$key]))
+            $new_array[$key] = $value;
+    }
+    return $new_array;
+}
+
 ?>
