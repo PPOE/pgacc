@@ -126,7 +126,7 @@ else if ($page == "new")
 }
 else if ($page == "transactions")
 {
-  page_transactions($rights);
+  page_transactions();
 }
 else if ($page == "closed")
 {
@@ -135,7 +135,7 @@ else if ($page == "closed")
 }
 else if ($page == "spendings")
 {
-  page_spendings($rights);
+  page_spendings();
 }
 else if ($page == "transfer")
 {
