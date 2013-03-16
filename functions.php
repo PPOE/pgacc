@@ -20,7 +20,7 @@ echo '
 ';
 $rights = checklogin('rights',false);
 echo '
-<div class="page">
+<div class="page ' . $page . '">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
 <a href="index.php"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
