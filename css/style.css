@@ -52,9 +52,7 @@ a:focus {
  */
 
 body {
-  background: #f8f8f9;
-  background-image: url("back.png");
-  line-height: 120%:
+  background: #4c2582;
 }
 
 body, th, td {

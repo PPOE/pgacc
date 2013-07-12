@@ -129,7 +129,7 @@ function block_start($p = "")
 {
 echo '
 <br style="clear: both;" />
-<div class="wiki use_terms'.$p.'">
+<div class="well wiki use_terms'.$p.'">
 ';
 }
 function block_end()
@@ -144,22 +144,21 @@ function acc_footer()
 $rights = checklogin('rights',false);
 echo '
 </div></div>
-<div class="slot_default" id="slot_default"><div class="ui_tabs">
-<div class="ui_tabs"><div class="ui_tabs_links">
-      <a href="index.php?action=impressum">Impressum</a>
+<div class="well">
+<a href="index.php?action=impressum">Impressum</a>
 ';
 if (strlen($rights) == 0)
   echo '<a href="index.php?action=login">Login</a>';
 if (strlen($rights) != 0)
   echo '<a href="index.php?action=logout">Logout</a>';
-echo '      </div>
-    </div>
-    </div>
-    </div>
-    </div>
-    </div>
-    </div>
-  </body>
+echo '</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
 </html>
 ';
 }
