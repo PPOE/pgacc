@@ -1,6 +1,12 @@
 <?php
 function page_import()
 {
+  /*if (isset($_FILES['uploadcsv']))
+  {
+    echo "<pre>";
+    print_r($_FILES['uploadcsv']);
+    echo "</pre>";
+  }*/
   getusers();
   block_start();
   echo "<table>\n";

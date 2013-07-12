@@ -1545,10 +1545,29 @@ div.notifications {
     pgacc
 */
 
-#content {
+.main {
+    margin: 0;
+}
+
+.page {
+    max-width: 1000px;
+}
+
+.ui_tabs_links {
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 1000px;
+}
+
+.page.open, .page.closed {
     margin: 0 auto;
     max-width: 95%;
     min-width: 1000px;
+}
+
+.motd {
+    margin: 1ex auto 2ex;
+    max-width: 1000px;
 }
 
 h1 {
