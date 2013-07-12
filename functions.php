@@ -61,37 +61,68 @@ echo '
 <head>
 <title>Buchungssystem Piratenpartei Österreichs</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="css/bootstrap-responsive.min.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="css/style.css" />
+<script src="js/jquery-1.10.2.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
 </head>
 <body>
-<div id="content">
-<div class="wiki motd">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde. '.percent_of_bookings($dbconn).'</div>
 ';
-$rights = checklogin('rights',false);
 echo '
-<div class="page ' . $page . '">
-<div class="main" id="default">
-<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="index.php"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
-echo '<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spendentransparenz</a>
-<a href="index.php?action=spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgabentransparenz</a>
-<a href="index.php?action=transactions"'.($page == "transactions"?' class="selected"':'').'>Transaktionen</a>
+<!-- Navbar
+================================================== -->
+<div class="navbar navbar-inverse navbar-fixed-top">
+<div class="navbar-inner">
+<div class="container">
+<button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+</button>
+<a class="brand" href="index.php">Piratenpartei &Ouml;sterreichs</a>
+<div class="nav-collapse collapse">
+<ul class="nav">
+<li'.($page == "index"?' class="active"':'').'><a href="index.php">Rechenschaftsbericht</a></li>
+<li'.($page == "donations"?' class="active"':'').'><a href="index.php?action=donations">Spendentransparenz</a></li>
+<li'.($page == "spendings"?' class="active"':'').'><a href="index.php?action=spendings">Ausgabentransparenz</a></li>
+<li'.($page == "transactions"?' class="active"':'').'><a href="index.php?action=transactions">Transaktionen</a></li>
+<li class="dropdown">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+Bearbeiten
+<b class="caret"></b>
+</a>
+<ul class="dropdown-menu">
 ';
 if (strlen($rights) > 0)
 {
-  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';
-  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Buchungsimport</a>';
-  echo '<a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
-  echo '<a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
-  echo '<a href="index.php?action=all"'.($page == "all"?' class="selected"':'').'>Alle Buchungen</a>';
+  echo '<li'.($page == "new"?' class="active"':'').'><a href="index.php?action=new">Buchung erfassen</a></li>';
+  echo '<li'.($page == "import"?' class="active"':'').'><a href="index.php?action=import">Buchungsimport</a></li>';
+  echo '<li'.($page == "open"?' class="active"':'').'><a href="index.php?action=open">Offene Buchungen</a></li>';
+  echo '<li'.($page == "closed"?' class="active"':'').'><a href="index.php?action=closed">Abgeschlossene Buchungen</a></li>';
+  echo '<li'.($page == "all"?' class="active"':'').'><a href="index.php?action=all">Alle Buchungen</a></li>';
   if (strpos($rights,'bsm') !== false || strpos($rights,'root') !== false)
-    echo '<a href="index.php?action=deleted"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
+    echo '<li'.($page == "deleted"?' class="active"':'').'><a href="index.php?action=deleted">Alte Revisionen</a></li>';
   if (strpos($rights,'root') !== false)
-    echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzerverwaltung</a>';
+    echo '<li'.($page == "accounts"?' class="active"':'').'><a href="index.php?action=accounts">Benutzerverwaltung</a></li>';
 }
-echo '</div><br />
+echo '
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
 ';
+
+
+echo '<div id="container">
+<div class="alert">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde. '.percent_of_bookings($dbconn).'</div>
+';
+$rights = checklogin('rights',false);
+echo '
+<div class="page ' . $page . '">';
 }
 
 function block_start($p = "")
