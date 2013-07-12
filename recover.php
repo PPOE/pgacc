@@ -1,5 +1,5 @@
 <?php
-function page_recover()
+function page_recover($rights)
 {
 $id = -1;
 if (isset($_GET["id"]))
@@ -21,6 +21,12 @@ else
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
+if (strpos($rights,'root') === false)
+{
+  echo '<div class="slot_error" id="slot_error">WARNUNG: Diese Funktion sollte nur von Admins verwendet um Fehlerfälle zu beheben. Bitte kontaktiere einen der Admins.</div><br /><br /><br />';
+    return;
+}
+
 $doit = false;
 if (isset($_GET["doit"]))
 {
@@ -29,7 +35,7 @@ if (isset($_GET["doit"]))
 
 if ($doit)
 {
-echo "<h1>Buchung Nr. $id / Beleg Nr. $bid wiederhergestellt!</h1>";
+echo "<h1>Buchung Nr. $id / Buchungszeile Nr. $bid wiederhergestellt!</h1>";
 
 $query = "UPDATE vouchers SET deleted = false WHERE voucher_id = $id AND id = $bid;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -40,7 +46,7 @@ pg_free_result($result);
 else
 {
 echo '
-<div class="wiki motd">BEACHTE: Das Wiederherstellen von Buchungen bzw. Belegen kann dazu führen dass Buchungen doppelt im System sind! Benutze diese Funktion nur wenn du dir ganz sicher bist dass deine Buchung überschrieben wurde und daher diese alte Buchung wiederherstellen möchtest!</div>
+<div class="wiki motd">BEACHTE: Das Wiederherstellen von Buchungen bzw. Buchungszeilen kann dazu führen dass Buchungen bzw. Buchungszeilen doppelt im System sind! Benutze diese Funktion nur wenn du dir ganz sicher bist dass deine Buchung überschrieben wurde und daher diese alte Buchung wiederherstellen möchtest!</div>
 <br /><br /><br />
 <center>
 <form action="index.php" method="GET">

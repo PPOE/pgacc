@@ -3,8 +3,8 @@ function transactions_page_listing_header($action)
 {
 block_start();
 echo '<table>';
-echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Lfd. Nr.'))) . 
-tag("td",tag("b",sortlink($action,'bida','Belegnr.'))) . 
+echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
+tag("td",tag("b",sortlink($action,'bida','Buchungszeile'))) . 
 tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
 tag("td",tag("b",sortlink($action,'typea','Art'))) . 
 tag("td",tag("b",sortlink($action,'loa','LO'))) . 
@@ -61,7 +61,7 @@ function page_transactions()
 {
 transactions_page_listing_header('transactions');
 $sort = getsort();
-$query = "SELECT * FROM vouchers WHERE NOT deleted ORDER BY $sort";
+$query = "SELECT * FROM vouchers WHERE NOT deleted AND amount != 0 ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 transactions_page_listing_line($line);

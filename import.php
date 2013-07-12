@@ -1,7 +1,6 @@
 <?php
 function page_import()
 {
-  print_r($_FILES['uploadcsv']);
   getusers();
   block_start();
   echo "<table>\n";
@@ -11,7 +10,7 @@ function page_import()
     {
       continue;
     }
-    if (strlen($_FILES['uploadcsv']['type'][$i]) <= 0 || $_FILES['uploadcsv']['type'][$i] != "text/comma-separated-values")
+    if (strlen($_FILES['uploadcsv']['type'][$i]) <= 0 || ($_FILES['uploadcsv']['type'][$i] != "text/comma-separated-values" && $_FILES['uploadcsv']['type'][$i] != "text/csv"))
     {
       echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") hat ein ungültiges Dateiformat und konnte daher nicht importiert werden.<br />";
       continue;
@@ -31,7 +30,7 @@ function page_import()
         $voucher_number = 0;
         while (($data = fgetcsv($handle, 0, ";")) !== FALSE)
         {
-          $csvline = pg_escape_string(iconv('ISO-8859-15','UTF-8',implode(";",$data)));
+          $csvline = pg_escape_string(str_replace(array('|',' ',"\n","\t","\r"),array('','','','',''),iconv('ISO-8859-15','UTF-8',implode(";",$data))));
           $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
           $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
           if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -80,6 +79,7 @@ function page_import()
               continue;
           }
           $voucher['gegenkonto'] = '';
+          $voucher['person_type'] = 1;
           $voucher['name'] = '';
           $voucher['member'] = 'false';
           $voucher['mitgliedsnummer'] = 0;
@@ -105,7 +105,7 @@ function page_import()
             $voucher['gegenkonto'] = $matches[1];
             $voucher['name'] = $matches[2];
           }
-          $voucher['in_type'] = 14;
+          $voucher['type'] = 14;
           if (strlen($voucher['name']) > 0)
           {
             $n = $voucher['name'];
@@ -133,7 +133,7 @@ function page_import()
                   $voucher['member'] = 'true';
                   $voucher['mitgliedsnummer'] = intval($line['id']);
                   $voucher['lo'] = $line['lo'];
-                  $voucher['in_type'] = 1;
+                  $voucher['type'] = 1;
                   pg_free_result($result);
                   $found = true;
                   break;
@@ -144,14 +144,14 @@ function page_import()
             if (!$found)
             {
               // no member!
-              $voucher['in_type'] = 8;
+              $voucher['type'] = 8;
             }
           }
           $voucher['date'] = format_date($data[2]);
           $voucher['amount'] = str_replace(',','',$data[4]);
           $voucher['dir'] = $voucher['amount'] > 0 ? 'in' : 'out';
           $voucher['out_type'] = 28;
-          $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:$voucher['out_type']).",{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
+          $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
           //echo str_replace("\n","<br />",$query)."<br />";
           echo "Buchung $voucher_number erstellt!<br />\n";
           $result = pg_query($query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error());
@@ -170,7 +170,7 @@ function page_import()
   echo "</table>\n";
   echo 'Bite wähle die CSV Dateien für den Import:
 <form enctype="multipart/form-data" action="index.php?action=import" method="POST">
-<input type="hidden" name="MAX_FILE_SIZE" value="100000" />
+<input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
 ';
 for ($i = 1; $i < 15; $i++)
 {

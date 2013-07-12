@@ -3,8 +3,8 @@ function spendings_page_listing_header($action)
 {
 block_start();
 echo '<table>';
-echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Lfd. Nr.'))) . 
-tag("td",tag("b",sortlink($action,'bida','Belegnr.'))) . 
+echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
+tag("td",tag("b",sortlink($action,'bida','Buchungszeile'))) . 
 tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
 tag("td",tag("b",sortlink($action,'typea','Art'))) . 
 tag("td",tag("b",sortlink($action,'loa','LO'))) . 

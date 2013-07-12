@@ -64,6 +64,8 @@ require("constants.php");
 require("getusers.php");
 require("new.php");
 require("open.php");
+require("all.php");
+require("search.php");
 require("closed.php");
 require("transactions.php");
 require("import.php");
@@ -77,6 +79,7 @@ require("accounts.php");
 require("impressum.php");
 require("report.php");
 require("recover.php");
+require("file.php");
 $dbconn = pg_connect("dbname=accounting")
   or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
 
@@ -85,32 +88,68 @@ require("functions.php");
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","open","transactions","spendings","closed","transfer","edit","donations","deleted","impressum","recover","import","accounts","login","logout")))
+  if (in_array($_GET["action"],array("new","search","all","open","transactions","spendings","closed","transfer","edit","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge")))
     $page = $_GET["action"];
   else
     $page = "report";
 
 }
 
-acc_header($page);
-$year = 2013;
+if ($page == "file")
+{
+  $rights = checklogin('rights');
+  $success = download_file($rights);
+  if ($success)
+  {
+    pg_close($dbconn);
+    return;
+  }
+}
+
+acc_header($dbconn,$page);
+$year = 2012;
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1)
 {
   $year = intval($_GET["year"]);
 }
+else if (isset($_GET["year"]) && preg_match('/^\d\d\d\d-\d$/', $_GET["year"]) == 1)
+{
+  $year = $_GET["year"];
+} 
 
-if ($page == "open")
+if ($page == "all")
+{
+  $rights = checklogin('rights');
+  page_all($rights);
+}
+else if ($page == "open")
 {
   $rights = checklogin('rights');
   page_open($rights);
 }
+else if ($page == "search")
+{
+  $rights = checklogin('rights');
+  page_search($rights);
+}
+else if ($page == "merge")
+{
+  $rights = checklogin('rights');
+  page_edit_merge($rights,intval($_POST["bid1"]),intval($_POST["bid2"]));
+}
 else if ($page == "edit")
 {
   $rights = checklogin('rights');
-  if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
+  if (isset($_POST["fileupload"]) && $_POST["fileupload"] == "PDF Hochladen (OHNE SPEICHERN)")
+    page_new_file($rights);
+  else if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
     page_edit_save($rights);
   else if (isset($_POST["ack"]))
     page_edit_ack($rights);
+  else if (isset($_POST["beleg"]))
+    page_edit_finalize($rights);
+  else if (isset($_POST["belegfehler"]))
+    page_edit_drop_acks($rights);
   else
     page_edit($rights);
 }

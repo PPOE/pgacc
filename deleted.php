@@ -6,8 +6,9 @@ echo '
 ';
 $rightssql = rights2orgasql($rights);
 page_listing_header('deleted');
+$filter = getfilter();
 $sort = getsort();
-$query = "SELECT * FROM vouchers WHERE deleted AND ack1 IS NULL AND ack2 IS NULL $rightssql ORDER BY $sort";
+$query = "SELECT * FROM vouchers WHERE deleted AND ack1 IS NULL AND ack2 IS NULL $rightssql $filter ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line,"recover");

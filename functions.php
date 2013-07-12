@@ -1,9 +1,59 @@
 <?php
+function getfilter()
+{
+  $filter = "";
+  if (isset($_GET['filter_id']) && preg_match('/^\d+$/',$_GET['filter_id']) == 1)
+    $filter .= " AND voucher_id = " . $_GET['filter_id'];
+  if (isset($_GET['filter_bid']) && preg_match('/^\d+$/',$_GET['filter_bid']) == 1)
+    $filter .= " AND id = " . $_GET['filter_bid'];
+  if (isset($_GET['filter_date']))
+  {
+    if (preg_match('/^\d\d\d\d$/',$_GET['filter_date']) == 1)
+    {
+      $filter .= " AND date >= '" . $_GET['filter_date'] . "-01-01' AND date <= '" . $_GET['filter_date'] . "-12-31' ";
+    }
+    else if (preg_match('/^\d\d\d\d-\d\d$/',$_GET['filter_date']) == 1)
+    {
+      $filter .= " AND date >= '" . $_GET['filter_date'] . "-01' AND date <= '" . $_GET['filter_date'] . "-30' ";
+    }
+    else if (preg_match('/^\d\d\d\d-\d\d-\d\d$/',$_GET['filter_date']) == 1)
+    {
+      $filter .= " AND date = '" . $_GET['filter_date'] . "' ";
+    }
+  }
+  if (isset($_GET['filter_type']) && preg_match('/^\d+$/',$_GET['filter_type']) == 1)
+    $filter .= " AND type = " . $_GET['filter_type'];
+  if (isset($_GET['filter_lo']) && preg_match('/^\d+$/',$_GET['filter_lo']) == 1)
+    $filter .= " AND orga = " . $_GET['filter_lo'];
+  if (isset($_GET['filter_member']))
+    $filter .= " AND member ";
+  if (isset($_GET['filter_member_id']) && preg_match('/^\d+$/',$_GET['filter_member_id']) == 1)
+    $filter .= " AND member_id = " . $_GET['filter_member_id'];
+  if (isset($_GET['filter_gk']) && preg_match('/^\d+$/',$_GET['filter_gk']) == 1)
+    $filter .= " AND contra_account = " . $_GET['filter_gk'];
+  if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *\d+?$/',$_GET['filter_amount']) == 1)
+    $filter .= " AND amount " . $_GET['filter_amount'] . "00";
+  else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *\d+(\.(\d\d)?)?$/',$_GET['filter_amount']) == 1)
+    $filter .= " AND amount " . $_GET['filter_amount'];
+  if (isset($_GET['filter_k']) && preg_match('/^\d+$/',$_GET['filter_k']) == 1)
+    $filter .= " AND account = '" . $_GET['filter_k']."'";
+  if (isset($_GET['filter_text']) && preg_match('/^[a-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
+    $filter .= " AND comment LIKE '%" . $_GET['filter_text'] . "%'";
+  if (isset($_GET['filter_comm']))
+    $filter .= " AND committed ";
+  if (isset($_GET['filter_ack']) && preg_match('/^[a-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
+    $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
+  if (isset($_GET['filter_bel']))
+    $filter .= " AND receipt_received ";
+  if (isset($_GET['filter_name']) && preg_match('/^[a-z0-9 ]+$/i',$_GET['filter_name']) == 1)
+    $filter .= " AND name LIKE '%" . $_GET['filter_name'] . "%'";
+  return $filter;
+}
 function tag($tag, $text)
 {
   return "<$tag>$text</$tag>\n";
 }
-function acc_header($page = "index")
+function acc_header($dbconn,$page = "index")
 {
 echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -16,7 +66,7 @@ echo '
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde.</div>
+<div class="wiki motd">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde. '.percent_of_bookings($dbconn).'</div>
 ';
 $rights = checklogin('rights',false);
 echo '
@@ -24,22 +74,23 @@ echo '
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
 <a href="index.php"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
-if (strlen($rights) > 0)
-echo '<a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';
-if (strlen($rights) > 0)
-  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Buchungsimport</a>';
-if (strlen($rights) > 0)
-  echo '<a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
-if (strlen($rights) > 0)
-  echo '<a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
-if (strpos($rights,'bsm') !== false || strpos($rights,'root') !== false)
-  echo '<a href="index.php?action=deleted"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
-if (strlen($rights) > 0)
-  echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzerverwaltung</a>';
 echo '<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spendentransparenz</a>
 <a href="index.php?action=spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgabentransparenz</a>
 <a href="index.php?action=transactions"'.($page == "transactions"?' class="selected"':'').'>Transaktionen</a>
-</div><br />
+';
+if (strlen($rights) > 0)
+{
+  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';
+  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Buchungsimport</a>';
+  echo '<a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
+  echo '<a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
+  echo '<a href="index.php?action=all"'.($page == "all"?' class="selected"':'').'>Alle Buchungen</a>';
+  if (strpos($rights,'bsm') !== false || strpos($rights,'root') !== false)
+    echo '<a href="index.php?action=deleted"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
+  if (strpos($rights,'root') !== false)
+    echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzerverwaltung</a>';
+}
+echo '</div><br />
 ';
 }
 
@@ -98,16 +149,16 @@ function format_date($date)
 function rights2orgasql($rights)
 {
   $rights_r = explode(",", $rights);
-  if (!in_array('bgf',$rights_r) && !in_array('bsm',$rights_r) && !in_array('root',$rights_r))
+  if (!in_array('bgf',$rights_r) && !in_array('bsm',$rights_r))
   {
-    $rights_r = explode(",", $rights);
+/*    $rights_r = explode(",", $rights);
     foreach ($rights_r as $right)
     {
       if (preg_match('/^\d+$/', $right) == 1)
         $rights2[] = "'".$right."'";
     }
-    if (count($rights2) > 0)
-      return " AND account IN (" . implode(",",$rights2) . ") ";
+    if (count($rights2) > 0)*/
+      return " AND NOT receipt_received ";//AND account IN (" . implode(",",$rights2) . ") ";
   }
   return "";
 }
@@ -139,7 +190,7 @@ function konto2lo($konto)
 }
 function getsort()
 {
-  $sort = "voucher_id DESC,id ASC";
+  $sort = "date ASC, voucher_id DESC,id ASC";
   if (isset($_GET["sort"]))
   { 
     switch ($_GET["sort"])
@@ -163,70 +214,70 @@ function getsort()
         $sort = "date ASC, voucher_id DESC, id ASC";
         break;          
       case 'typea':
-        $sort = "type ASC, voucher_id DESC, id ASC";
+        $sort = "type ASC, date ASC, voucher_id DESC, id ASC";
         break;          
       case 'typed':
-        $sort = "type DESC, voucher_id DESC, id ASC";
+        $sort = "type DESC, date ASC, voucher_id DESC, id ASC";
         break;          
       case 'loa':
-        $sort = "orga ASC, voucher_id DESC, id ASC";
+        $sort = "orga ASC, date ASC, voucher_id DESC, id ASC";
         break;          
       case 'lod':
-        $sort = "orga DESC, voucher_id DESC, id ASC";
+        $sort = "orga DESC, date ASC, voucher_id DESC, id ASC";
         break;          
       case 'membera':
-        $sort = "member ASC, voucher_id DESC, id ASC";
+        $sort = "member_id ASC, date ASC, voucher_id DESC, id ASC";
         break;          
       case 'memberd':
-        $sort = "member DESC, voucher_id DESC, id ASC";
+        $sort = "member_id DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'gka':
-        $sort = "contra_account DESC, voucher_id DESC, id ASC";
+        $sort = "contra_account DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'gkd':
-        $sort = "contra_account ASC, voucher_id DESC, id ASC";
+        $sort = "contra_account ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'ka':
-        $sort = "account ASC, voucher_id DESC, id ASC";
+        $sort = "account ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'kd':
-        $sort = "account DESC, voucher_id DESC, id ASC";
+        $sort = "account DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'ama':
-        $sort = "amount ASC, voucher_id DESC, id ASC";
+        $sort = "amount ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'amd':
-        $sort = "amount DESC, voucher_id DESC, id ASC";
+        $sort = "amount DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'texta':
-        $sort = "text ASC, voucher_id DESC, id ASC";
+        $sort = "comment ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'textd':
-        $sort = "text DESC, voucher_id DESC, id ASC";
+        $sort = "comment DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'comma':
-        $sort = "committed DESC, voucher_id DESC, id ASC";
+        $sort = "committed DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'commd':
-        $sort = "committed ASC, voucher_id DESC, id ASC";
+        $sort = "committed ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'acka':
-        $sort = "length(ack1) ASC, length(ack2) ASC, voucher_id DESC, id ASC";
+        $sort = "ack1 ASC, ack2 ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'ackd':
-        $sort = "length(ack1) DESC, length(ack2) DESC, voucher_id DESC, id ASC";
+        $sort = "ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'bela':
-        $sort = "receipt_received ASC, voucher_id DESC, id ASC";
+        $sort = "receipt_received ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'beld':
-        $sort = "receipt_received DESC, voucher_id DESC, id ASC";
+        $sort = "receipt_received DESC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'namea':
-        $sort = "name ASC, voucher_id DESC, id ASC";
+        $sort = "name ASC, date ASC, voucher_id DESC, id ASC";
         break;
       case 'named':
-        $sort = "name DESC, voucher_id DESC, id ASC";
+        $sort = "name DESC, date ASC, voucher_id DESC, id ASC";
         break;
       default: 
     }
@@ -251,6 +302,34 @@ function getoppsort($sortn)
   }
   return $sortn;
 }
+function percent_of_bookings()
+{
+  $text = "";
+  $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date < '2013-01-01' AND NOT deleted;";
+  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+    $c = intval($line['c']);
+    $b = intval($line['b']) - intval($line['a']);
+    $bp = round($b * 100 / (1.0 * $c),2);
+    $a = intval($line['a']);
+    $ap = round($a * 100 / (1.0 * $c),2);
+    $text = "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (2012).</i>";
+  }
+  pg_free_result($result);
+  $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2013-01-01' AND NOT deleted;";
+  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+    $c = intval($line['c']);
+    $b = intval($line['b']) - intval($line['a']);
+    $bp = round($b * 100 / (1.0 * $c),2);
+    $a = intval($line['a']);
+    $ap = round($a * 100 / (1.0 * $c),2);
+    $text .= "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (2013).</i>";
+  }
+  pg_free_result($result);
+  return $text;
+}
+
 function eyes()
 {
   return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
