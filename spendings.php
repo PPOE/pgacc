@@ -54,7 +54,7 @@ echo tag("td", str_replace(array(
 'Piratenpartei Tirol',
 'Piratenpartei Burgenland'
 ),$line["account"]));
-echo tag("td", preg_replace(array('/((BG|FE)\/\d+(\s\d+)+)|(((BG|FE)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"]));
+echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])));
 echo tag("td", ($line["amount"] / 100.0) . "€");
 echo "</tr>";
 }
@@ -63,7 +63,7 @@ function page_spendings()
 {
 spendings_page_listing_header('spendings');
 $sort = getsort();
-$query = "SELECT * FROM vouchers A WHERE ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = A.voucher_id) < 0 ORDER BY $sort";
+$query = "SELECT * FROM vouchers WHERE ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) < 0 AND amount < 0 ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 spendings_page_listing_line($line);

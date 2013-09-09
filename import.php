@@ -1,4 +1,66 @@
 <?php
+function fix_old_ones()
+{
+  $query2 = "SELECT * FROM vouchers WHERE NOT deleted AND ack1 IS NULL AND ack2 IS NULL AND name = ''";
+  $result2 = pg_query($query2) or die('Abfrage ('.$query2.') fehlgeschlagen: ' . pg_last_error());
+  while ($voucher = pg_fetch_array($result2, null, PGSQL_ASSOC))
+  {
+          echo '<font color="red">' . str_replace("\n","<br>",print_r($voucher,1)) . "</font><br>";
+          $c = $voucher['comment'];
+          if (preg_match('/(\d+ \d+) ([^\d]+ [^\d]+)$/i', $c, $matches) == 1)
+          {
+            $voucher['gegenkonto'] = $matches[1];
+            $voucher['name'] = $matches[2];
+          }
+          $voucher['type'] = 14;
+          if (strlen($voucher['name']) > 0)
+          {
+            $n = $voucher['name'];
+            $n2 = trim(str_replace(array('Mag.','DI (FH)','iur.','Dipl.-Ing.','Dr.','Ing.'),array('','','','','',''),$n));
+            $nt = explode(" ",$n,2);
+            $nt2 = explode(" ",$n2,2);
+            $queries = array();
+            $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n');";
+            if (count($nt) == 2)
+              $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt[1]} {$nt[0]}');";
+            if ($n != $n2)
+            {
+              $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n2');";
+              if (count($nt2) == 2)
+                $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt2[1]} {$nt2[0]}');";
+            }
+            $found = false;
+            foreach ($queries as $query)
+            {
+              if ($result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error()))
+              {
+                if (pg_num_rows($result) == 1)
+                {
+                  $line = pg_fetch_array($result, null, PGSQL_ASSOC);
+                  $voucher['member'] = 'true';
+                  $voucher['mitgliedsnummer'] = intval($line['id']);
+                  //$voucher['lo'] = $line['lo'];
+                  $voucher['type'] = 1;
+                  pg_free_result($result);
+                  $found = true;
+                  break;
+                }
+                pg_free_result($result);
+              }
+            }
+          }
+          if ($voucher['amount'] < 0) { $voucher['type'] = 28; }
+          echo '<font color="green">' . str_replace("\n","<br>",print_r($voucher,1)) . "</font><br>";
+          echo "<br>";
+          if ($voucher['member'] == 'true')
+          {
+            $query = "UPDATE vouchers SET name = '{$voucher['name']}', member = true, member_id = {$voucher['mitgliedsnummer']}, type = {$voucher['type']}, contra_account = '{$voucher['gegenkonto']}' WHERE NOT deleted AND id = {$voucher['id']};";
+            $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+            pg_free_result($result);
+          }
+  }
+  pg_free_result($result2);
+}
 function page_import()
 {
   /*if (isset($_FILES['uploadcsv']))
@@ -8,6 +70,8 @@ function page_import()
     echo "</pre>";
   }*/
   getusers();
+//  fix_old_ones();
+//  return;
   block_start();
   echo "<table>\n";
   for ($i = 0; $i < count($_FILES['uploadcsv']['name']); $i++)
@@ -138,7 +202,7 @@ function page_import()
                   $line = pg_fetch_array($result, null, PGSQL_ASSOC);
                   $voucher['member'] = 'true';
                   $voucher['mitgliedsnummer'] = intval($line['id']);
-                  $voucher['lo'] = $line['lo'];
+                  //$voucher['lo'] = $line['lo'];
                   $voucher['type'] = 1;
                   pg_free_result($result);
                   $found = true;
@@ -155,8 +219,7 @@ function page_import()
           }
           $voucher['date'] = format_date($data[2]);
           $voucher['amount'] = str_replace(',','',$data[4]);
-          $voucher['dir'] = $voucher['amount'] > 0 ? 'in' : 'out';
-          $voucher['out_type'] = 28;
+          if ($voucher['amount'] < 0) { $voucher['type'] = 28; }
           $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
           //echo str_replace("\n","<br />",$query)."<br />";
           echo "Buchung $voucher_number erstellt!<br />\n";
@@ -166,7 +229,7 @@ function page_import()
           pg_free_result($result);
 
           $query = "INSERT INTO import (line) VALUES ('{$csvline}');";
-          $result = pg_query($query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error());#
+          $result = pg_query($query);
           pg_free_result($result);
         }
         fclose($handle);

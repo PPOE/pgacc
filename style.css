@@ -64,7 +64,7 @@ body, th, td {
   margin: 0;
 }
 td {
-  min-width: 75px;
+  min-width: 10px;
   text-align: right;
 }
 .page,
@@ -101,6 +101,12 @@ th {
 
 a.active {
   color: #fff; 
+}
+
+.icon {
+  position: absolute;
+  margin-top: -0.9em;
+  margin-left: -0.9em;
 }
 
 .revoked {

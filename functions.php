@@ -23,30 +23,34 @@ function getfilter()
   }
   if (isset($_GET['filter_type']) && preg_match('/^\d+$/',$_GET['filter_type']) == 1)
     $filter .= " AND type = " . $_GET['filter_type'];
+  else if (isset($_GET['filter_type']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_type']) == 1)
+    $filter .= " AND lower(type.name) LIKE lower('%" . $_GET['filter_type'] . "%')";
   if (isset($_GET['filter_lo']) && preg_match('/^\d+$/',$_GET['filter_lo']) == 1)
     $filter .= " AND orga = " . $_GET['filter_lo'];
+  if (isset($_GET['filter_lo']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_lo']) == 1)
+    $filter .= " AND lower(lo.name) LIKE lower('%" . $_GET['filter_lo'] . "%')";
   if (isset($_GET['filter_member']))
     $filter .= " AND member ";
   if (isset($_GET['filter_member_id']) && preg_match('/^\d+$/',$_GET['filter_member_id']) == 1)
     $filter .= " AND member_id = " . $_GET['filter_member_id'];
-  if (isset($_GET['filter_gk']) && preg_match('/^\d+$/',$_GET['filter_gk']) == 1)
-    $filter .= " AND contra_account = " . $_GET['filter_gk'];
-  if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *\d+?$/',$_GET['filter_amount']) == 1)
+  if (isset($_GET['filter_gk']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_gk']) == 1)
+    $filter .= " AND contra_account LIKE '" . $_GET['filter_gk'] . "%'";
+  if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/',$_GET['filter_amount']) == 1)
     $filter .= " AND amount " . $_GET['filter_amount'] . "00";
-  else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *\d+(\.(\d\d)?)?$/',$_GET['filter_amount']) == 1)
+  else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+(\.(\d\d)?)?$/',$_GET['filter_amount']) == 1)
     $filter .= " AND amount " . $_GET['filter_amount'];
-  if (isset($_GET['filter_k']) && preg_match('/^\d+$/',$_GET['filter_k']) == 1)
-    $filter .= " AND account = '" . $_GET['filter_k']."'";
-  if (isset($_GET['filter_text']) && preg_match('/^[a-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
-    $filter .= " AND comment LIKE '%" . $_GET['filter_text'] . "%'";
+  if (isset($_GET['filter_k']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_k']) == 1)
+    $filter .= " AND account LIKE '" . $_GET['filter_k']."%'";
+  if (isset($_GET['filter_text']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
+    $filter .= " AND lower(comment) LIKE lower('%" . $_GET['filter_text'] . "%')";
   if (isset($_GET['filter_comm']))
     $filter .= " AND committed ";
-  if (isset($_GET['filter_ack']) && preg_match('/^[a-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
+  if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
     $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
   if (isset($_GET['filter_bel']))
-    $filter .= " AND receipt_received ";
-  if (isset($_GET['filter_name']) && preg_match('/^[a-z0-9 ]+$/i',$_GET['filter_name']) == 1)
-    $filter .= " AND name LIKE '%" . $_GET['filter_name'] . "%'";
+    $filter .= " AND file != 0 ";
+  if (isset($_GET['filter_name']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_name']) == 1)
+    $filter .= " AND lower(vouchers.name) LIKE lower('%" . $_GET['filter_name'] . "%')";
   return $filter;
 }
 function tag($tag, $text)
@@ -62,11 +66,11 @@ echo '
 <title>Buchungssystem Piratenpartei Österreichs</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?" />
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden derzeit noch eingearbeitet und sind daher noch nicht vollständig. Die Buchungen werden in einem 4-Augen-Prinzip bestätigt. Derzeit ist dies allerdings noch deaktiviert. Beträge können sich daher noch geringfügig ändern falls eine Buchung nicht korrekt durchgeführt wurde. '.percent_of_bookings($dbconn).'</div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren. '.percent_of_bookings($dbconn).'</div>
 ';
 $rights = checklogin('rights',false);
 echo '
@@ -190,94 +194,94 @@ function konto2lo($konto)
 }
 function getsort()
 {
-  $sort = "date ASC, voucher_id DESC,id ASC";
+  $sort = "date ASC, voucher_id DESC, vouchers.id ASC";
   if (isset($_GET["sort"]))
   { 
     switch ($_GET["sort"])
     {
       case 'ida':
-        $sort = "voucher_id ASC, id ASC";
+        $sort = "voucher_id ASC, vouchers.id ASC";
         break;
       case 'idd':
-        $sort = "voucher_id DESC, id ASC";
+        $sort = "voucher_id DESC, vouchers.id ASC";
         break;
       case 'bida':
-        $sort = "id ASC, voucher_id ASC";
+        $sort = "vouchers.id ASC, voucher_id ASC";
         break;          
       case 'bidd':
-        $sort = "id DESC, voucher_id ASC";
+        $sort = "vouchers.id DESC, voucher_id ASC";
         break;          
       case 'dated':
-        $sort = "date DESC, voucher_id DESC, id ASC";
+        $sort = "date DESC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'datea':
-        $sort = "date ASC, voucher_id DESC, id ASC";
+        $sort = "date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'typea':
-        $sort = "type ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "type ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'typed':
-        $sort = "type DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "type DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'loa':
-        $sort = "orga ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "orga ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'lod':
-        $sort = "orga DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "orga DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'membera':
-        $sort = "member_id ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "member_id ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;          
       case 'memberd':
-        $sort = "member_id DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "member_id DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'gka':
-        $sort = "contra_account DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "contra_account DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'gkd':
-        $sort = "contra_account ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "contra_account ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'ka':
-        $sort = "account ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "account ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'kd':
-        $sort = "account DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "account DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'ama':
-        $sort = "amount ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "amount ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'amd':
-        $sort = "amount DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "amount DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'texta':
-        $sort = "comment ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "comment ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'textd':
-        $sort = "comment DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "comment DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'comma':
-        $sort = "committed DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "committed DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'commd':
-        $sort = "committed ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "committed ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'acka':
-        $sort = "ack1 ASC, ack2 ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "ack1 ASC, ack2 ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'ackd':
-        $sort = "ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'bela':
-        $sort = "receipt_received ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "file ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'beld':
-        $sort = "receipt_received DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "file DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'namea':
-        $sort = "name ASC, date ASC, voucher_id DESC, id ASC";
+        $sort = "name ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'named':
-        $sort = "name DESC, date ASC, voucher_id DESC, id ASC";
+        $sort = "name DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       default: 
     }

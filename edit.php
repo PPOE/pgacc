@@ -334,6 +334,20 @@ echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
+if (strpos($rights, 'root') !== false)
+{
+  echo '<script type="text/javascript">
+function merge()
+{
+  var bid = prompt("Merge mit welcher anderen Buchung?", "");
+  document.getElementById("mergelink").href = "index.php?action=merge&bid1='.intval($id).'&bid2=" + bid;
+  document.getElementById("mergelink").innerHTML = "Merge mit Buchung " + bid;
+}
+</script>
+<a href="javascript:merge();" id="mergelink" name="mergelink" />Merge</a>
+<br />
+<br />';
+}
 if ($acks > 0)
 {
   echo '<h4>Bestätigt von: '.$vouchers[0]['ack1'].' '.$vouchers[0]['ack2'].'</h4>';

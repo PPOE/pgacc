@@ -30,8 +30,8 @@ else
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
 $voucher['lo'] = get_param($part, 'lo', 10, '/^\d+$/');
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
-$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|[A-Z])+$/i'));
-$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|[A-Z])+$/i'));
+$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|[A-Z]|[ÄÖÜäöü])+$/i'));
+$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|[A-Z]|[Ä[ÄÖÜäöü]])+$/i'));
 $voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');

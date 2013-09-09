@@ -4,6 +4,10 @@ if (empty( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) || $_SERVER['HTTP_X_FORWARDED_PR
   header("Location: https://" . $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"]);
   return;
 }
+global $user_id;
+$user_id = 0;
+global $user_prefs_hide;
+$user_prefs_hide = array();
 function login($user, $pass)
 {
   $user = pg_escape_string($user);
@@ -28,9 +32,10 @@ function login($user, $pass)
   pg_free_result($data);
   return 0;
 }
-
 function checklogin($get = 'name', $redir = true)
 {
+  global $user_id;
+  global $user_prefs_hide;
   if (isset($_COOKIE["pp_pgacc_login"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_login"]) == 1 && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
     $data = pg_query("SELECT * FROM users WHERE cookie = {$_COOKIE["pp_pgacc_login"]} AND id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
@@ -38,6 +43,13 @@ function checklogin($get = 'name', $redir = true)
       return $get == 'id'?0:'';
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
     {
+      $user_id = $line['id'];
+      $hide_cols = explode(",",$line['hide']);
+      foreach ($hide_cols as $col)
+      {
+        if (intval($col) > 0)
+          $user_prefs_hide[$col] = 1;
+      }
       if ($get == 'name')
       {
         pg_free_result($data);
@@ -105,6 +117,29 @@ if ($page == "file")
     return;
   }
 }
+if (isset($_GET["hide"]))
+{
+  global $user_id;
+  global $user_prefs_hide;
+  $id = checklogin('id');
+  $col = intval($_GET["hide"]);
+  if ($col > 0)
+    $user_prefs_hide[$col] = 1;
+  elseif ($col < 0)
+    $user_prefs_hide[-$col] = 0;    
+  $cols_array = array();
+  foreach ($user_prefs_hide as $hide_col => $state)
+  {
+    if (intval($hide_col) > 0 && $state == 1)
+    {
+      $cols_array[] = $hide_col;
+    }
+  }
+  $cols = implode(',',$cols_array);
+  $data = pg_query("UPDATE users SET hide = '$cols' WHERE id = $id") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  pg_free_result($data);
+}
+
 
 acc_header($dbconn,$page);
 $year = 2012;
@@ -182,7 +217,7 @@ else if ($page == "transfer")
 }
 else if ($page == "donations")
 {
-  page_donations($year);
+  page_donations(intval($_GET["year"]));
 }
 else if ($page == "deleted")
 {

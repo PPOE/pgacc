@@ -32,74 +32,159 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_name=" . $_GET['filter_name'];
   return "<a href=\"index.php?action=$action&sort=".getoppsort($sort)."$filters\">$text</a>";
 }
-function page_listing_header($action,$rights)
+function gentab($tabc,$action,$s,$t)
+{
+  global $user_prefs_hide;
+  if ($user_prefs_hide[$tabc] == 1)
+    return tag("td",'<a href="index.php?action='.$action.'&hide=-'.$tabc.'"><img class="icon" src="icons/add.png"></a>');
+  else
+    return tag("td",tag("b",sortlink($action,$s,$t) . '<a href="index.php?action='.$action.'&hide='.$tabc.'"><img class="icon" src="icons/delete.png"></a>'));
+}
+function page_listing_header($action)
 {
 block_start();
 echo '<table>';
-echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
-tag("td",tag("b",sortlink($action,'bida','Buchungszeile'))) . 
-tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
-tag("td",tag("b",sortlink($action,'typea','Art'))) . 
-tag("td",tag("b",sortlink($action,'loa','LO'))) . 
-tag("td",tag("b",sortlink($action,'membera','Mitglied'))) . 
-tag("td",tag("b",sortlink($action,'gka','Fremdkonto'))) . 
-tag("td",tag("b",sortlink($action,'ka','Konto'))) . 
-tag("td",tag("b",sortlink($action,'ama','Betrag'))) . 
-tag("td",tag("b",sortlink($action,'texta','Text'))) . 
-tag("td",tag("b",sortlink($action,'comma','Gewidmet'))) . 
-tag("td",tag("b",sortlink($action,'acka','Bestätigt'))) . 
-tag("td",tag("b",sortlink($action,'bela','Finalisiert'))) . 
-tag("td",tag("b",sortlink($action,'namea','Name/Adresse'))));
+$tabs = "";
+$tabc = 1;
+$tabs .= gentab($tabc++,$action,'idd','Buchung');
+$tabs .= gentab($tabc++,$action,'bida','Buchungszeile');
+$tabs .= gentab($tabc++,$action,'datea','Datum');
+$tabs .= gentab($tabc++,$action,'typea','Art');
+$tabs .= gentab($tabc++,$action,'loa','LO');
+$tabs .= gentab($tabc++,$action,'membera','Mitglied');
+$tabs .= gentab($tabc++,$action,'gka','Fremdkonto');
+$tabs .= gentab($tabc++,$action,'ka','Konto');
+$tabs .= gentab($tabc++,$action,'ama','Betrag');
+$tabs .= gentab($tabc++,$action,'texta','Text');
+$tabs .= gentab($tabc++,$action,'comma','Gewidmet');
+$tabs .= gentab($tabc++,$action,'acka','Bestätigt');
+$tabs .= gentab($tabc++,$action,'bela','Datei');
+$tabs .= gentab($tabc++,$action,'namea','Name/Adresse');
+echo tag("tr",$tabs);
 echo '<form action="index.php" method="GET"> <tr>
 <td><input type="hidden" name="action" value="'.$action.'" />
 ';
 if (isset($_GET['sort']))
   echo '<input type="hidden" name="sort" value="'.$_GET['sort'].'" />';
-echo '
-<input type="text" name="filter_id" value="'.(isset($_GET['filter_id'])?$_GET['filter_id']:'').'" size="1" /></td>
-<td><input type="text" name="filter_bid" value="'.(isset($_GET['filter_bid'])?$_GET['filter_bid']:'').'" size="1" /></td>
-<td><input type="text" name="filter_date" value="'.(isset($_GET['filter_date'])?$_GET['filter_date']:'').'" size="1" /></td>
-<td><input type="text" name="filter_type" value="'.(isset($_GET['filter_type'])?$_GET['filter_type']:'').'" size="1" /></td>
-<td><input type="text" name="filter_lo" value="'.(isset($_GET['filter_lo'])?$_GET['filter_lo']:'').'" size="1" /></td>
-<td><input type="text" name="filter_member_id" value="'.(isset($_GET['filter_member_id'])?$_GET['filter_member_id']:'').'" size="1" /></td>
-<td><input type="text" name="filter_gk" value="'.(isset($_GET['filter_gk'])?$_GET['filter_gk']:'').'" size="1" /></td>
-<td><input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?$_GET['filter_k']:'').'" size="1" /></td>
-<td><input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?$_GET['filter_amount']:'').'" size="1" /></td>
-<td><input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?$_GET['filter_text']:'').'" size="1" /></td>
-<td><input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?$_GET['filter_comm']:'').'" size="1" /></td>
-<td><input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?$_GET['filter_ack']:'').'" size="1" /></td>
-<td><input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?$_GET['filter_bel']:'').'" size="1" /></td>
-<td><input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?$_GET['filter_name']:'').'" size="1" /><input style="display: none;" value="Filtern" type="submit" /></td>
+$tabc = 1;
+global $user_prefs_hide;
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_id" value="'.(isset($_GET['filter_id'])?$_GET['filter_id']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_bid" value="'.(isset($_GET['filter_bid'])?$_GET['filter_bid']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_date" value="'.(isset($_GET['filter_date'])?$_GET['filter_date']:'').'" size="4" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_type" value="'.(isset($_GET['filter_type'])?$_GET['filter_type']:'').'" size="5" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_lo" value="'.(isset($_GET['filter_lo'])?$_GET['filter_lo']:'').'" size="5" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_member_id" value="'.(isset($_GET['filter_member_id'])?$_GET['filter_member_id']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<select type="text" name="filter_gk" value="'.(isset($_GET['filter_gk'])?$_GET['filter_gk']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?$_GET['filter_k']:'').'" size="7" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?$_GET['filter_amount']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?$_GET['filter_text']:'').'" size="15" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?$_GET['filter_comm']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?$_GET['filter_ack']:'').'" size="3" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?$_GET['filter_bel']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?$_GET['filter_name']:'').'" size="1" />';
+echo '<input style="display: none;" value="Filtern" type="submit" />
+</td>
 </tr></form>';
 }
 
 function page_listing_line($line, $action = "edit")
 {
+global $user_prefs_hide;
 echo "<tr>";
-echo tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
-echo tag("td", $line["id"]);
-echo tag("td", format_date($line["date"]));
+$tabc = 1;
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["id"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td", $line2["name"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td", $line2["name"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
-echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
-echo tag("td", $line["contra_account"]);
-echo tag("td", $line["account"]);
-echo tag("td", ($line["amount"] / 100.0) . "€");
-echo tag("td", $line["comment"]);
-echo tag("td", $line["committed"] == 't' ? 'Ja' : 'Nein');
-echo tag("td", $line["ack1"] . " " . $line["ack2"]);
-echo tag("td", $line["receipt_received"] == 't' ? 'Ja' : 'Nein');
-echo tag("td", $line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["contra_account"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["account"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", ($line["amount"] / 100.0) . "€");
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["comment"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["committed"] == 't' ? 'Ja' : 'Nein');
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["ack1"] . " " . $line["ack2"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["file"] != 0 ? 'Ja' : 'Nein');
+if ($user_prefs_hide[$tabc++] == 1)
+  echo tag("td","");
+else
+  echo tag("td", $line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]);
 echo "</tr>";
 }
 
@@ -109,7 +194,7 @@ page_listing_header('closed');
 $rightssql = rights2orgasql($rights);
 $filter = getfilter();
 $sort = getsort();
-$query = "SELECT * FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL $rightssql $filter ORDER BY $sort";
+$query = "SELECT vouchers.*,lo.name AS lo_name,type.name AS type_name FROM vouchers LEFT JOIN lo ON orga = lo.id LEFT JOIN type ON type = type.id WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL $rightssql $filter ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line);

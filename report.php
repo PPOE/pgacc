@@ -7,44 +7,7 @@ if ($variant == 'wk')
 echo '
 <table>
 ';
-$query = "SELECT id,name FROM type WHERE income = -1 AND realtype != id ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td>{$line['name']}</td><td>";
-  if ($unit == -1)
-    $unit_s = "";
-  else
-    $unit_s = " AND orga = " . $unit;
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-    echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
-  }
-  pg_free_result($result2);
-}
-pg_free_result($result);
-echo "<tr><td><b>Summe</b></td><td>";
-if ($unit == -1)
-  $unit_s = "";
-else
-  $unit_s = " AND orga = " . $unit;
-$query2 = "SELECT SUM(amount) AS sum FROM vouchers WHERE NOT deleted AND ".eyes()." {$unit_s} AND type IN (SELECT id FROM type WHERE income = -1) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-  echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
-}
-pg_free_result($result2);
-echo '
-</table>
-';
-return;
-}
-echo '
-<table><tr><td>
-<h3>Einnahmen</h3>
-<table>
-';
-$query = "SELECT id,name FROM type WHERE income >= 1 AND realtype = id ORDER BY used DESC,id ASC";
+$query = "SELECT id,name FROM type WHERE income = -1 AND realtype = id ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>{$line['name']}</td><td>";
@@ -65,7 +28,44 @@ if ($unit == -1)
   $unit_s = "";
 else
   $unit_s = " AND orga = " . $unit;
-$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND ".eyes()." {$unit_s} AND realtype IN (SELECT id FROM type WHERE income >= 1) ".$cond;
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND ".eyes()." {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = -1) ".$cond;
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+}
+pg_free_result($result2);
+echo '
+</table>
+';
+return;
+}
+echo '
+<table><tr><td>
+<h3>Einnahmen</h3>
+<table>
+';
+$query = "SELECT id,name FROM type WHERE income = 1 AND realtype = id ORDER BY used DESC,id ASC";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo "<tr><td>{$line['name']}</td><td>";
+  if ($unit == -1)
+    $unit_s = "";
+  else
+    $unit_s = " AND orga = " . $unit;
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND ".eyes()." {$unit_s} AND realtype = {$line['id']} ".$cond;
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
+  }
+  pg_free_result($result2);
+}
+pg_free_result($result);
+echo "<tr><td><b>Summe</b></td><td>";
+if ($unit == -1)
+  $unit_s = "";
+else
+  $unit_s = " AND orga = " . $unit;
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND ".eyes()." {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo ($line2['sum'] / 100.0) . " €</td></tr>\n";
@@ -158,7 +158,46 @@ if ($i == 2012)
 echo'</div>';
 echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs '.$year.$months.'</h1><br>';
 echo '
-<h2>Finanzübersicht (ohne Sachspenden)</h2>
+<h2>Finanzübersicht (ohne Sachspenden, ohne interne Umbuchungen)</h2>
+<table id="financeOverview"><th><td width="150px">Einnahmen</td><td width="150px">Ausgaben</td></th>
+<tr><td>Bund (inkl. Länder)</td>
+';
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND ".eyes()." AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+  echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+}
+pg_free_result($result2);
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND ".eyes()." AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
+$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());      
+while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {            
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";              
+}                
+pg_free_result($result2);
+echo "</tr>\n";
+$query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo "<tr><td><a href=\"#{$line['name']}\">{$line['name']}</a></td>\n";
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND ".eyes()." AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
+  pg_free_result($result2);
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND ".eyes()." AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
+  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+    echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
+  }
+  pg_free_result($result2);
+  echo "</tr>\n";
+}
+pg_free_result($result);
+echo '
+</table>
+<p>&nbsp;</p>
+<h2>Finanzübersicht (ohne Sachspenden, mit internen Umbuchungen)</h2>
 <table id="financeOverview"><th><td width="150px">Kontostand '.$prev.'</td><td width="150px">Einnahmen</td><td width="150px">Ausgaben</td><td width="150px">Kontostand '.$last.'</td></th>
 <tr><td>Bund (inkl. Länder)</td>
 ';
@@ -173,7 +212,7 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
 }
 pg_free_result($result2);
-$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND ".eyes()." AND realtype IN (SELECT id FROM type WHERE income = 0) ".$cond;
+$query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND ".eyes()." AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());      
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {            
     echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";              
@@ -213,7 +252,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
   }
   pg_free_result($result2);
-  $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND ".eyes()." AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income = 0) ".$cond;
+  $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND ".eyes()." AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
@@ -234,15 +273,15 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         case 3: $soll = 98299; break;
         case 4: $soll = 116156; break;
         case 5: $soll = 53222; break;
-        case 6: $soll = 30266; break;
+        case 6: $soll = 30266+27082+9376; break;
         case 8: $soll = 46726; break;
         case 9: $soll = 182337; break;
       }
       if ($line2['sum'] == $soll)
       {
-        $sollok = " *";
+        $sollok = " <sup>*</sup>";
       }
-      echo "<td>" . ($line2['sum'] / 100.0) . " €"./*"(".($soll / 100.0).")"./**/"</td>\n";
+      echo "<td>" . ($line2['sum'] / 100.0) . " € $sollok</td>\n";
     }
     else
       echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
@@ -252,6 +291,10 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 echo '
 </table>
+';
+if ($last == '31.12.2012')
+  echo '<sup>*</sup> Vollständig<br />';
+echo '
 Die Unterorganisationen haben keine eigene Rechtspersönlichkeit.<br />
 <h1>Inhaltsübersicht</h1>
 <ul>

@@ -19,7 +19,24 @@ function umlaute($text){
     }
     return $returnvalue;
 } 
-function page_donations($year = 2012)
+function page_donations($year)
+{
+  $captcha_check = true;
+  if ($year < 2012)
+  {
+    $captcha_check = false;
+    $year = 2012;
+  }
+echo "<h1>Spenden-Einnahmen der Piratenpartei Österreichs $year</h1>\n";
+echo '<div class="wiki motd"><h2>';
+for ($i = 2012; $i <= intval(date('Y')); $i++)
+{
+echo "<a href=\"index.php?action=donations&year=$i\">$i</a> ";
+}
+echo '</h2>';
+  echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
+echo'</div>';
+  if (isset($_POST['captcha_input']) && isset($_POST['captcha']) && intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37)
 {
 echo '<script type="text/javascript">
 function base64_decode (data) {
@@ -74,22 +91,6 @@ function base64_decode (data) {
 }
 </script>
 ';
-echo "<h1>Spenden-Einnahmen der Piratenpartei Österreichs $year</h1>\n";
-echo '<div class="wiki motd">';
-for ($i = 2012; $i <= intval(date('Y')); $i++)
-{
-echo "<a href=\"index.php?action=donations&year=$i\">$i</a> ";
-}
-echo '<br /><br />';
-if ($year == 2012)
-{
-  echo 'Gemäß <a href="https://wiki.piratenpartei.at/wiki/BGV2012-01/Protokoll#Antrag_FO01">Beschluss FO01 der Bundesgeneralversammlung in Wien am 1.4.2012</a> veröffentlichen wir alle Spenden im Jahr 2012.';
-}
-else
-{
-  echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
-}
-echo'</div>';
 block_start();
 echo '
 <table id="donations" style="min-width: 50%" border="1">
@@ -100,8 +101,8 @@ $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE ".eyes()." $donatio
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 $count = 0;
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-if ($year != 2012 && $line['sum'] <= 10000) { continue; }
-if ($year == 2012 && $line['sum'] <= 0) { continue; }
+if ($line['sum'] <= 10000) { continue; }
+//if ($year == 2012 && $line['sum'] <= 0) { continue; }
 $donations[] = $line;
 $count++;
 }
@@ -129,5 +130,19 @@ $i++;
 }
 echo '</table>';
 block_end();
+}
+else if ($captcha_check)
+{
+  block_start();
+  $a = rand(1,50);
+  $b = rand(1,50);
+  $c = $a + $b - 37;
+  echo <<<END
+Bevor die Spenderliste angezeigt wird, musst du ein Rätsel lösen, um zu beweisen, dass du kein Roboter bist:
+<div class="main" id="default"><form class="login" action="index.php?action=donations&year=$year" method="POST"><div><label for="captcha_input" class="ui_field_label">Was ergibt die Addition $a + $b?</label> <input id="captcha_input" name="captcha_input" value="" type="text"></div><input value="$c" name="captcha" type="hidden"><input value="Bestätigen" name="submit" type="submit"></form></div>
+END;
+  block_end();
+}
+echo "<br /><br /><br />";
 }
 ?>
