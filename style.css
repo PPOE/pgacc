@@ -1565,7 +1565,7 @@ div.notifications {
     max-width: 1000px;
 }
 
-.page.open, .page.closed {
+.page.open, .page.closed, .page.all {
     margin: 0 auto;
     max-width: 95%;
     min-width: 1000px;
