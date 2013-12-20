@@ -218,7 +218,7 @@ function page_import()
             }
           }
           $voucher['date'] = format_date($data[2]);
-          $voucher['amount'] = str_replace(',','',$data[4]);
+          $voucher['amount'] = str_replace(['.', ','], '',$data[4]);
           if ($voucher['amount'] < 0) { $voucher['type'] = 28; }
           $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
           //echo str_replace("\n","<br />",$query)."<br />";
