@@ -309,28 +309,24 @@ function getoppsort($sortn)
 function percent_of_bookings()
 {
   $text = "";
-  $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date < '2013-01-01' AND NOT deleted;";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $c = intval($line['c']);
-    $b = intval($line['b']) - intval($line['a']);
-    $bp = round($b * 100 / (1.0 * $c),2);
-    $a = intval($line['a']);
-    $ap = round($a * 100 / (1.0 * $c),2);
-    $text = "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (2012).</i>";
+  $startYear = 2012;
+  $endYear = min('2014', date('Y') + 1);
+  for ($currentYear = $startYear; $currentYear < $endYear + 1; $currentYear++) {
+    $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '" . ($currentYear - 1) . "-01-01' AND date < '" . $currentYear . "-01-01' AND NOT deleted;";
+    $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+      $c = intval($line['c']);
+      if ($c <= 0) {
+        continue;
+      }
+      $b = intval($line['b']) - intval($line['a']);
+      $bp = round($b * 100 / (1.0 * $c),2);
+      $a = intval($line['a']);
+      $ap = round($a * 100 / (1.0 * $c),2);
+      $text .= "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (" . $currentYear . ").</i>";
+    }
+    pg_free_result($result);
   }
-  pg_free_result($result);
-  $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2013-01-01' AND NOT deleted;";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $c = intval($line['c']);
-    $b = intval($line['b']) - intval($line['a']);
-    $bp = round($b * 100 / (1.0 * $c),2);
-    $a = intval($line['a']);
-    $ap = round($a * 100 / (1.0 * $c),2);
-    $text .= "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (2013).</i>";
-  }
-  pg_free_result($result);
   return $text;
 }
 
