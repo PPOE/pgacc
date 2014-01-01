@@ -312,7 +312,7 @@ function percent_of_bookings()
   $startYear = 2012;
   $endYear = min('2014', date('Y') + 1);
   for ($currentYear = $startYear; $currentYear < $endYear + 1; $currentYear++) {
-    $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '" . ($currentYear - 1) . "-01-01' AND date < '" . $currentYear . "-01-01' AND NOT deleted;";
+    $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '" . $currentYear . "-01-01' AND date < '" . ($currentYear + 1) . "-01-01' AND NOT deleted;";
     $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
       $c = intval($line['c']);
