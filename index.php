@@ -91,6 +91,7 @@ require("impressum.php");
 require("report.php");
 require("recover.php");
 require("file.php");
+require("statistics.php");
 $dbconn = pg_connect("dbname=accounting")
   or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
 
@@ -99,7 +100,7 @@ require("functions.php");
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","search","all","open","transactions","spendings","closed","transfer","edit","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge")))
+  if (in_array($_GET["action"],array("new","search","all","open","transactions","spendings","closed","transfer","edit","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics")))
     $page = $_GET["action"];
   else
     $page = "report";
@@ -262,6 +263,10 @@ else if ($page == "import")
 {
   $rights = checklogin('rights');
   page_import($rights);
+}
+else if ($page == "statistics")
+{
+  page_statistics();
 }
 else
 {
