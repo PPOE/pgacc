@@ -12,7 +12,10 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line);
 }
 pg_free_result($result);
+global $make_csv;
+if (!$make_csv)
 echo '</table>';
 block_end();
+csv_download_link();
 }
 ?>

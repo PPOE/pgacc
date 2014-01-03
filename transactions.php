@@ -1,7 +1,9 @@
 <?php
 function transactions_page_listing_header($action)
 {
+global $make_csv;
 block_start();
+if (!$make_csv)
 echo '<table>';
 echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
 tag("td",tag("b",sortlink($action,'bida','Buchungszeile'))) . 
@@ -14,6 +16,8 @@ tag("td",tag("b",sortlink($action,'ama','Betrag'))));
 
 function transactions_page_listing_line($line, $action = "edit")
 {
+global $make_csv;
+if (!$make_csv)
 echo "<tr>";
 echo tag("td", $line["voucher_id"]);
 echo tag("td", $line["id"]);
@@ -54,11 +58,15 @@ echo tag("td", str_replace(array(
 'Piratenpartei Burgenland'
 ),$line["account"]));
 echo tag("td", ($line["amount"] / 100.0) . "€");
-echo "</tr>";
+if ($make_csv)
+  echo "\n";
+else
+  echo "</tr>";
 }
 
 function page_transactions()
 {
+global $make_csv;
 transactions_page_listing_header('transactions');
 $sort = getsort();
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND amount != 0 ORDER BY $sort";
@@ -67,7 +75,9 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 transactions_page_listing_line($line);
 }
 pg_free_result($result);
-echo '</table>';
+if (!$make_csv)
+  echo '</table>';
 block_end();
+csv_download_link();
 }
 ?>

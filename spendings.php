@@ -2,7 +2,9 @@
 function spendings_page_listing_header($action)
 {
 block_start();
-echo '<table>';
+global $make_csv;
+if (!$make_csv)
+  echo '<table>';
 echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
 tag("td",tag("b",sortlink($action,'bida','Buchungszeile'))) . 
 tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
@@ -15,6 +17,8 @@ tag("td",tag("b",sortlink($action,'ama','Betrag'))));
 
 function spendings_page_listing_line($line)
 {
+global $make_csv;
+if (!$make_csv)
 echo "<tr>";
 echo tag("td", $line["voucher_id"]);
 echo tag("td", $line["id"]);
@@ -56,7 +60,10 @@ echo tag("td", str_replace(array(
 ),$line["account"]));
 echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])));
 echo tag("td", ($line["amount"] / 100.0) . "€");
-echo "</tr>";
+if ($make_csv)
+  echo "\n";
+else
+  echo "</tr>";
 }
 
 function page_spendings()
@@ -69,7 +76,10 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 spendings_page_listing_line($line);
 }
 pg_free_result($result);
+global $make_csv;
+if (!$make_csv)
 echo '</table>';
 block_end();
+csv_download_link();
 }
 ?>

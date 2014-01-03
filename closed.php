@@ -1,6 +1,9 @@
 <?php
 function sortlink($action,$sort,$text)
 {
+  global $make_csv;
+  if ($make_csv)
+    return $text;
   $filters = "";
   if (isset($_GET['filter_id']) && strlen($_GET['filter_id']) > 0)
     $filters .= "&filter_id=" . $_GET['filter_id'];
@@ -34,7 +37,14 @@ function sortlink($action,$sort,$text)
 }
 function gentab($tabc,$action,$s,$t)
 {
-  global $user_prefs_hide;
+  global $user_prefs_hide, $make_csv;
+  if ($make_csv)
+  {
+    if ($user_prefs_hide[$tabc] == 1)
+      return "";
+    else
+      return "$t\t";
+  }
   if ($user_prefs_hide[$tabc] == 1)
     return tag("td",'<a href="index.php?action='.$action.'&hide=-'.$tabc.'"><img class="icon" src="icons/add.png"></a>');
   else
@@ -42,8 +52,10 @@ function gentab($tabc,$action,$s,$t)
 }
 function page_listing_header($action)
 {
+global $make_csv;
 block_start();
-echo '<table>';
+if (!$make_csv)
+  echo '<table>';
 $tabs = "";
 $tabc = 1;
 $tabs .= gentab($tabc++,$action,'idd','Buchung');
@@ -61,7 +73,9 @@ $tabs .= gentab($tabc++,$action,'acka','Bestätigt');
 $tabs .= gentab($tabc++,$action,'bela','Datei');
 $tabs .= gentab($tabc++,$action,'namea','Name/Adresse');
 echo tag("tr",$tabs);
-echo '<form action="index.php" method="GET"> <tr>
+if (!$make_csv)
+{
+  echo '<form action="index.php" method="GET"> <tr>
 <td><input type="hidden" name="action" value="'.$action.'" />
 ';
 if (isset($_GET['sort']))
@@ -113,29 +127,43 @@ echo '<input style="display: none;" value="Filtern" type="submit" />
 </td>
 </tr></form>';
 }
+}
+
+function emptytag($tag)
+{
+  global $make_csv;
+  if (!$make_csv)
+    echo tag($tag);
+}
 
 function page_listing_line($line, $action = "edit")
 {
-global $user_prefs_hide;
+global $user_prefs_hide,$make_csv;
+if (!$make_csv)
 echo "<tr>";
 $tabc = 1;
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
-  echo tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
+{
+  if ($make_csv)
+    echo tag("td", $line["voucher_id"]);
+  else
+    echo tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
+}
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["id"]);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line2["name"]);
 }
@@ -144,48 +172,56 @@ $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
-  echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
+{
+  if ($make_csv)
+    echo tag("td", $line["member"] == 't' ? $line["member_id"] : 'Nein');
+  else
+    echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
+}
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["contra_account"]);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["account"]);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", ($line["amount"] / 100.0) . "€");
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["comment"]);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["committed"] == 't' ? 'Ja' : 'Nein');
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["ack1"] . " " . $line["ack2"]);
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["file"] != 0 ? 'Ja' : 'Nein');
 if ($user_prefs_hide[$tabc++] == 1)
-  echo tag("td","");
+  echo emptytag("td");
 else
   echo tag("td", $line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]);
-echo "</tr>";
+if ($make_csv)
+  echo "\n";
+else
+  echo "</tr>";
 }
 
 function page_closed($rights)
@@ -200,7 +236,10 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line);
 }
 pg_free_result($result);
+global $make_csv;
+if (!$make_csv)
 echo '</table>';
 block_end();
+csv_download_link();
 }
 ?>

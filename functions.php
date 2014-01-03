@@ -1,4 +1,12 @@
 <?php
+function csv_download_link()
+{
+  global $make_csv;
+  if ($make_csv)
+    return;
+  $link = $_SERVER['REQUEST_URI'] . "&format=csv";
+  echo "<br style=\"clear: both;\" /><center><a href=\"$link\">Als CSV Datei herunterladen</a></center>";
+}
 function getfilter()
 {
   $filter = "";
@@ -55,6 +63,21 @@ function getfilter()
 }
 function tag($tag, $text)
 {
+  global $make_csv;
+  if ($make_csv)
+  {
+    $text = str_replace(array("\n"),array(' / '),$text);
+    if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
+    {
+      $text = str_replace(array("."),array(","),$text);
+    }
+    if ($tag == 'tr')
+      return "$text\n";
+    else if ($tag == 'td')
+      return "$text\t";
+    else
+      return "$text";
+  }
   return "<$tag>$text</$tag>\n";
 }
 function acc_header($dbconn,$page = "index")
@@ -70,7 +93,7 @@ echo '
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren. '.percent_of_bookings($dbconn).'</div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.' .percent_of_bookings($dbconn).'</div>
 ';
 $rights = checklogin('rights',false);
 echo '
@@ -100,6 +123,9 @@ echo '</div><br />
 
 function block_start($p = "")
 {
+  global $make_csv;
+  if ($make_csv)
+    return;
 echo '
 <br style="clear: both;" />
 <div class="wiki use_terms'.$p.'">
@@ -107,6 +133,9 @@ echo '
 }
 function block_end()
 {
+  global $make_csv;
+  if ($make_csv)
+    return;
 echo '
 </div>
 ';

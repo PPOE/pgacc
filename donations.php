@@ -96,7 +96,7 @@ echo '
 <table id="donations" style="min-width: 50%" border="1">
 <tr><td><b>Name</b></td><td><b>Spendensumme</b></td></tr>
 ';
-$donation_condition = "AND type = 8";
+$donation_condition = "AND type IN (8,12)";
 $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE ".eyes()." $donation_condition ".date_condition($year)." GROUP BY name;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 $count = 0;

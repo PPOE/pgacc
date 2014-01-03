@@ -71,7 +71,6 @@ function checklogin($get = 'name', $redir = true)
   if ($redir)
     header("Location: index.php?action=login");
 }
-
 require("constants.php");
 require("getusers.php");
 require("new.php");
@@ -107,6 +106,17 @@ if (isset($_GET["action"]))
 
 }
 
+global $make_csv;
+$make_csv = false;
+if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"],array("search","all","open","transactions","spendings","closed","deleted")))
+{
+  header('Content-Encoding: UTF-8');
+  header('Content-type: text/csv; charset=UTF-8');
+  header("Content-Disposition: attachment; filename=$page.csv");
+  echo "\xEF\xBB\xBF"; // UTF-8 BOM
+  $make_csv = true;
+}
+
 if ($page == "file")
 {
   $rights = checklogin('rights');
@@ -140,8 +150,8 @@ if (isset($_GET["hide"]))
   pg_free_result($data);
 }
 
-
-acc_header($dbconn,$page);
+if (!$make_csv)
+  acc_header($dbconn,$page);
 $year = 2012;
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1)
 {
@@ -258,7 +268,8 @@ else
   page_report($year);
 }
 
-acc_footer();
+if (!$make_csv)
+  acc_footer();
 
 pg_close($dbconn);
 ?>

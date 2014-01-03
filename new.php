@@ -162,7 +162,7 @@ for ($part = 0; $part < $parts; $part++)
     }
   }
 }
-if ($file == -1 || $_FILES["file$part"]["size"] > 10000000)
+if ($file == -1 || $_FILES["file$part"]["size"] > 100000000)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Datei Upload fehlgeschlagen.</div><br /><br /><br />';
   return;
@@ -320,7 +320,7 @@ echo '
 </select>
 </div>
 <div>
-<label class="ui_field_label" for="member'.$part.'">Mitglied</label><input type="checkbox" id="member'.$part.'" name="member'.$part.'" value="1" '.($voucher['member']=='true'?' checked="checked"':'').' onchange="clicked();" />
+<label class="ui_field_label" for="member'.$part.'">Mitglied</label><input type="checkbox" id="member'.$part.'" name="member'.$part.'" value="1" '.($voucher['member']=='true'?' checked="checked"':'').' onchange="clicked();" />'.(intval($voucher['mitgliedsnummer']) > 0 ?' &middot; <a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id='.$voucher['mitgliedsnummer'].'" target="_blank">In MV öffnen</a> &middot; <a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile_save.php?new_user=0&user_id='.$voucher['mitgliedsnummer'].'&usf-25='.date("d.m.Y", strtotime($voucher['date'])).'&usf-26=31.12.2014&usf-27='.($voucher['amount'] / 100.0).'" target="_blank">MB f&uuml;r 2014 in MV übertragen</a>':'').'
 </div>
 <div id="mitgliedsnummer'.$part.'">
 <label class="ui_field_label" for="mitgliedsnummer'.$part.'">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer'.$part.'" value="'.$voucher['mitgliedsnummer'].'" onchange="clicked();" />
@@ -361,7 +361,7 @@ if (intval($voucher['file']) > 0)
 else if (intval($voucher['file']) == 0)
 {
   echo '
-<input type="hidden" name="MAX_FILE_SIZE" value="10000000" />
+<input type="hidden" name="MAX_FILE_SIZE" value="100000000" />
 <input name="file'.$part.'" type="file"  onchange="clicked();" accept="application/pdf"/><br />
 <input type="submit" name="fileupload" value="PDF Hochladen (OHNE SPEICHERN)" />
 ';
