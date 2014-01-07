@@ -13,12 +13,12 @@ $query = 'DROP TABLE IF EXISTS ppmembers;';
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 pg_free_result($result);
 
-$query = 'CREATE TABLE ppmembers (id integer, name text, lo integer);';
+$query = 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer);';
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 pg_free_result($result);
 
 $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($datakey), base64_decode($sData), MCRYPT_MODE_CBC, md5(md5($datakey))), "\0");
-$query = 'INSERT INTO ppmembers (id, name, lo) VALUES ';
+$query = 'INSERT INTO ppmembers (id, name, lo, paid) VALUES ';
 $lines = explode("\n",$decrypted);
 $count = 0;
 foreach ($lines as $line)
@@ -28,6 +28,7 @@ foreach ($lines as $line)
   $id = $values[1];
   $name = stripslashes(iconv('ISO-8859-15','UTF-8',$values[2]));
   $lo = $values[3];
+  $paid = intval($values[4]);
   switch ($lo)
   {
     case 38: $lo_num = 1; break;
@@ -44,7 +45,7 @@ foreach ($lines as $line)
   //echo "insert: id=$id, name=$name, lo=$lo_num\n";
   if ($count > 0)
     $query .= ',';
-  $query .= "($id,'".pg_escape_string($name)."',$lo_num)";
+  $query .= "($id,'".pg_escape_string($name)."',$lo_num,$paid)";
   $count++;
 }
 if ($count > 0)

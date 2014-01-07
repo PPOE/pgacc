@@ -121,39 +121,12 @@ $prev = "31.12." . ($year-1);
 $prev_cond = "AND date < '".(intval($year))."-01-01'";
 $cond = date_condition($year,1);
 $condall = date_condition($year,0);
-if (strcmp($year,'2012-1') == 0)
-{
-  $year = 2012;
-  $months = " - 1. Halbjahr";
-  $prev = "31.12.2011";
-  $last = "30.06.2012";
-  $prev_cond = "AND date < '2012-01-01'";
-  $cond = "AND date >= '2012-01-01' AND date < '2012-07-01'";
-  $condall = "AND date < '2012-07-01'";
-}
-else if (strcmp($year,'2012-2') == 0)
-{
-  $year = 2012;
-  $months = " - 2. Halbjahr";
-  $prev = "30.06.2012";
-  $last = "31.12.2012";
-  $prev_cond = "AND date < '2012-07-01'";
-  $cond = "AND date >= '2012-07-01' AND date < '2013-01-01'";
-  $condall = "AND date < '2013-01-01'";
-}
-else
-{
   if ($year == intval(date('Y')))
     $last = date('d.m.Y');
-}
 echo '<div class="wiki motd">';
 for ($i = 2012; $i <= intval(date('Y')); $i++)
 {
 echo "<a href=\"index.php?year=$i\">$i</a> ";
-if ($i == 2012)
-{
-  echo " (<a href=\"index.php?year=2012-1\">1</a> <a href=\"index.php?year=2012-2\">2</a>) ";
-}
 }
 echo'</div>';
 echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs '.$year.$months.'</h1><br>';
@@ -323,19 +296,6 @@ else
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo "<td>" . ($line2['sum'] / 100.0) . " €</td>\n";
-/*    $soll = 0;
-    switch ($line['id'])
-    {
-      case 0: $soll = 373590+62020; break;
-      case 1: $soll = 58366; break;
-      case 2: $soll = 92283; break;
-      case 3: $soll = 98299; break;
-      case 4: $soll = 116156; break;
-      case 5: $soll = 53222; break;
-      case 6: $soll = 30266+27082+9376; break;
-      case 8: $soll = 46726; break;
-      case 9: $soll = 182337; break;
-    }*/
   }
 $query2 = "SELECT value FROM balance WHERE orga = {$line['id']} AND date = '$last_date_r'";
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

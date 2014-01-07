@@ -101,11 +101,13 @@ echo '
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
 <a href="index.php"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
-echo '<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spendentransparenz</a>
-<a href="index.php?action=spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgabentransparenz</a>
+echo '<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spenden</a>
+<a href="index.php?action=kdonations"'.($page == "kdonations"?' class="selected"':'').'>Sachspenden</a>
+<a href="index.php?action=spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgaben</a>
+<a href="index.php?action=wk"'.($page == "wk"?' class="selected"':'').'>Wahlkampf</a>
 <a href="index.php?action=transactions"'.($page == "transactions"?' class="selected"':'').'>Transaktionen</a>
-<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
-';
+';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
+';*/
 if (strlen($rights) > 0)
 {
   echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';

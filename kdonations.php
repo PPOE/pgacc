@@ -1,24 +1,23 @@
 <?php
-function spendings_page_listing_header($action)
+function kdonations_page_listing_header($action)
 {
 block_start();
 global $make_csv;
 if (!$make_csv)
   echo '<table>';
-echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) . 
-tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
+echo tag("tr",tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
 tag("td",tag("b",sortlink($action,'typea','Art'))) . 
 tag("td",tag("b",sortlink($action,'loa','LO'))) . 
 tag("td",tag("b",sortlink($action,'texta','Text'))) .
-tag("td",tag("b",sortlink($action,'ama','Betrag'))));
+tag("td",tag("b",sortlink($action,'ama','Wert'))) .
+tag("td",tag("b",sortlink($action,'namea','Name'))));
 }
 
-function spendings_page_listing_line($line)
+function kdonations_page_listing_line($line)
 {
 global $make_csv;
 if (!$make_csv)
 echo "<tr>";
-echo tag("td", $line["voucher_id"]);
 echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -34,13 +33,14 @@ echo tag("td", $line2["name"]);
 pg_free_result($result2);
 echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])));
 echo tag("td", ($line["amount"] / 100.0) . "€");
+echo tag("td", (intval($line["amount"]) <= 350000) ? "" : $line["name"]);
 if ($make_csv)
   echo "\n";
 else
   echo "</tr>";
 }
 
-function page_spendings()
+function page_kdonations()
 {
   $type = -1;
   if (isset($_GET["type"]) && preg_match('/^\d+$/', $_GET["type"]) == 1)
@@ -64,12 +64,13 @@ if ($from != -1)
   $where .= " AND date >= '$from'";
 if ($to != -1)
   $where .= " AND date < '$to'";
-spendings_page_listing_header('spendings');
+
+kdonations_page_listing_header('kdonations');
 $sort = getsort();
-$query = "SELECT * FROM vouchers WHERE ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) < 0 AND amount < 0 $where ORDER BY $sort";
+$query = "SELECT * FROM vouchers WHERE NOT deleted AND type IN (11,12) AND ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) > 0 AND amount > 0 $where ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-spendings_page_listing_line($line);
+kdonations_page_listing_line($line);
 }
 pg_free_result($result);
 global $make_csv;

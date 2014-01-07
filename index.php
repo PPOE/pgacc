@@ -75,6 +75,7 @@ require("constants.php");
 require("getusers.php");
 require("new.php");
 require("open.php");
+require("mb.php");
 require("all.php");
 require("search.php");
 require("closed.php");
@@ -84,11 +85,13 @@ require("edit.php");
 require("transfer.php");
 require("deleted.php");
 require("donations.php");
+require("kdonations.php");
 require("spendings.php");
 require("login.php");
 require("accounts.php");
 require("impressum.php");
 require("report.php");
+require("wk.php");
 require("recover.php");
 require("file.php");
 require("statistics.php");
@@ -100,7 +103,7 @@ require("functions.php");
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","search","all","open","transactions","spendings","closed","transfer","edit","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics")))
+  if (in_array($_GET["action"],array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics","wk")))
     $page = $_GET["action"];
   else
     $page = "report";
@@ -168,6 +171,11 @@ if ($page == "all")
   $rights = checklogin('rights');
   page_all($rights);
 }
+else if ($page == "mb")
+{
+  $rights = checklogin('rights');
+  page_mb($rights);
+}
 else if ($page == "open")
 {
   $rights = checklogin('rights');
@@ -226,6 +234,10 @@ else if ($page == "transfer")
 {
   page_transfer();
 }
+else if ($page == "kdonations")
+{
+  page_kdonations(intval($_GET["year"]));
+}
 else if ($page == "donations")
 {
   page_donations(intval($_GET["year"]));
@@ -267,6 +279,10 @@ else if ($page == "import")
 else if ($page == "statistics")
 {
   page_statistics();
+}
+else if ($page == "wk")
+{
+  page_wk();
 }
 else
 {
