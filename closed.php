@@ -25,6 +25,8 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_amount=" . $_GET['filter_amount'];
   if (isset($_GET['filter_text']) && strlen($_GET['filter_text']) > 0)
     $filters .= "&filter_text=" . $_GET['filter_text'];
+  if (isset($_GET['filter_comment']) && strlen($_GET['filter_comment']) > 0)
+    $filters .= "&filter_comment=" . $_GET['filter_comment'];
   if (isset($_GET['filter_comm']) && strlen($_GET['filter_comm']) > 0)
     $filters .= "&filter_comm=" . $_GET['filter_comm'];
   if (isset($_GET['filter_ack']) && strlen($_GET['filter_ack']) > 0)
@@ -68,6 +70,7 @@ $tabs .= gentab($tabc++,$action,'gka','Fremdkonto');
 $tabs .= gentab($tabc++,$action,'ka','Konto');
 $tabs .= gentab($tabc++,$action,'ama','Betrag');
 $tabs .= gentab($tabc++,$action,'texta','Text');
+$tabs .= gentab($tabc++,$action,'commenta','Kommentar');
 $tabs .= gentab($tabc++,$action,'comma','Gewidmet');
 $tabs .= gentab($tabc++,$action,'acka','Bestätigt');
 $tabs .= gentab($tabc++,$action,'bela','Datei');
@@ -111,6 +114,9 @@ if ($user_prefs_hide[$tabc++] != 1)
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?$_GET['filter_text']:'').'" size="15" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_comment" value="'.(isset($_GET['filter_comment'])?$_GET['filter_comment']:'').'" size="15" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?$_GET['filter_comm']:'').'" size="1" />';
@@ -202,6 +208,10 @@ if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
   echo tag("td", $line["comment"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo emptytag("td");
+else
+  echo tag("td", $line["commentgf"]);
 if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else

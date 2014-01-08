@@ -42,6 +42,7 @@ else
 
 function page_kdonations()
 {
+  echo "<h1>Sachspendenliste der Piratenpartei Österreichs</h1>\n";
   $type = -1;
   if (isset($_GET["type"]) && preg_match('/^\d+$/', $_GET["type"]) == 1)
     $type = $_GET["type"];

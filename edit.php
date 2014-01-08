@@ -240,6 +240,7 @@ $voucher['amount'] = $vouchers[$part]['amount'];
 $voucher['gegenkonto'] = $vouchers[$part]['contra_account'];
 $voucher['konto'] = $vouchers[$part]['account'];
 $voucher['comment'] = $vouchers[$part]['comment'];
+$voucher['commentgf'] = $vouchers[$part]['commentgf'];
 $voucher['purpose'] = $vouchers[$part]['committed'] == 't' ? 'true' : 'false';
 $voucher['member'] = $vouchers[$part]['member'] == 't' ? 'true' : 'false';
 $voucher['mitgliedsnummer'] = $vouchers[$part]['member_id'];

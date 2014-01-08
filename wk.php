@@ -120,7 +120,7 @@ echo '
 function page_wk()
 {
 echo '<h1>Vorläufige Wahlkampfabrechnungen</h1><br>';
-echo 'Bei den Wahlkampfabrechnungen hier handelt es sich um vorläufige Wahlkampfabrechnungen die sich noch leicht verändern können bis 100% der Buchungen im betroffenen Zeitraum im 4-Augen-Prinzip bestätigt wurden.<br />
+echo 'Bei den nachfolgenden Wahlkampfabrechnungen handelt es sich um vorläufige Wahlkampfabrechnungen die sich noch leicht verändern können bis 100% der Buchungen im betroffenen Zeitraum im 4-Augen-Prinzip bestätigt wurden.<br />
 <ul>
 <li><a href="#g2012">Graz 2012</a></li>
 <li><a href="#k2013">Kärnten 2013</a></li>
@@ -132,8 +132,8 @@ echo 'Bei den Wahlkampfabrechnungen hier handelt es sich um vorläufige Wahlkamp
 ';
 echo '<h1><a name="g2012">Graz 2012</a></h1>';
 block_start();
-$cond = " AND date < '2013-01-01' AND date >= '2012-09-28' ";
-wk_unit_report("",$cond,$cond,6,$year,'2013-01-01','2012-09-28');
+$cond = " AND date < '2013-01-29' AND date >= '2012-09-28' ";
+wk_unit_report("",$cond,$cond,6,$year,'2013-01-29','2012-09-28');
 block_end();
 
 echo '<h1><a name="k2013">Kärnten 2013</a></h1>';

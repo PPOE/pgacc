@@ -84,6 +84,7 @@ img {
 table {
   border-collapse: collapse;
   border: none;
+  width: 100%;
 }
 
 td, th {
@@ -92,6 +93,7 @@ td, th {
 
 td {
   vertical-align: top;
+  max-width: 400px;
 }
 
 th {

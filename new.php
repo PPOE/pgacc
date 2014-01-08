@@ -33,6 +33,7 @@ $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00'
 $voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|[A-Z]|[ÄÖÜäöü])+$/i'));
 $voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|[A-Z]|[Ä[ÄÖÜäöü]])+$/i'));
 $voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
+$voucher['commentgf'] = pg_escape_string(get_param($part, 'commentgf', '', null));
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
 $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
@@ -115,7 +116,7 @@ pg_free_result($result);
 }
 if ($voucher['file'] == -1)
   $voucher['file'] = 0;
-$query = "INSERT INTO vouchers (voucher_id, date, type, person_type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, file) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:($voucher['dir'] == "out"?$voucher['out_type']:$voucher['wk_type'])).",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['file']})";
+$query = "INSERT INTO vouchers (voucher_id, date, type, person_type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, commentgf, committed, file) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:($voucher['dir'] == "out"?$voucher['out_type']:$voucher['wk_type'])).",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}','{$voucher['commentgf']}',{$voucher['purpose']},{$voucher['file']})";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -336,6 +337,9 @@ echo '
 </div>
 <div>
 <label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.$voucher['comment'].'" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="commentgf'.$part.'">Kommentar</label><input type="text" id="commentgf'.$part.'" name="commentgf'.$part.'" value="'.$voucher['commentgf'].'" onchange="clicked();" />
 </div>
 <div>
 <label class="ui_field_label" for="purpose'.$part.'">Zweckgebunden</label><input type="checkbox" id="purpose'.$part.'" name="purpose'.$part.'" value="1" '.($voucher['purpose']=='true'?' checked="checked"':'').' onchange="clicked();" />

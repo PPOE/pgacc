@@ -1,5 +1,5 @@
 <?php
-function unit_report($prevcond,$cond,$condall,$unit = 10,$year = 2012,$variant = '')
+function unit_report($prevcond,$cond,$condall,$unit = 10,$year = 2013,$variant = '')
 {
 global $dbconn;
 if ($variant == 'wk')

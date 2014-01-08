@@ -51,6 +51,8 @@ function getfilter()
     $filter .= " AND account LIKE '" . $_GET['filter_k']."%'";
   if (isset($_GET['filter_text']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
     $filter .= " AND lower(comment) LIKE lower('%" . $_GET['filter_text'] . "%')";
+  if (isset($_GET['filter_comment']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_comment']) == 1)
+    $filter .= " AND lower(commentgf) LIKE lower('%" . $_GET['filter_comment'] . "%')";
   if (isset($_GET['filter_comm']))
     $filter .= " AND committed ";
   if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
@@ -80,16 +82,50 @@ function tag($tag, $text)
   }
   return "<$tag>$text</$tag>\n";
 }
-function acc_header($dbconn,$page = "index")
+function acc_header($dbconn,$page = "index",$year = 2013)
 {
 echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>Buchungssystem Piratenpartei Österreichs</title>
+';
+switch ($page)
+{
+case "donations":
+  echo '<title>Spenden - Piratenpartei Österreichs</title>
+  <meta name="description" content="Aktuelle Spendenlisten der Piratenpartei Österreichs" />
+  <meta name="keywords" content="spenden, spendenliste" />';
+  break;
+case "kdonations":
+  echo '<title>Sachspenden - Piratenpartei Österreichs</title>
+  <meta name="description" content="Liste aller Sachspenden welche die Piratenpartei Österreichs erhalten hat" />
+  <meta name="keywords" content="sachspenden, spenden, spendenliste, sachspendenliste" />';
+  break;
+case "spendings":
+  echo '<title>Ausgaben - Piratenpartei Österreichs</title>
+  <meta name="description" content="Liste aller Ausgaben welche die Piratenpartei Österreichs getätigt hat" />
+  <meta name="keywords" content="ausgaben, ausgabenliste" />';
+  break;
+case "wk":
+  echo '<title>Wahlkampfkosten - Piratenpartei Österreichs</title>
+  <meta name="description" content="Wahlkampfabrechnungen der Piratenpartei Österreichs" />
+  <meta name="keywords" content="wahlkampf, wahlkampfkosten, wahlkampfabrechnung" />';
+  break;
+case "transactions":
+  echo '<title>Kontobewegungen - Piratenpartei Österreichs</title>
+  <meta name="description" content="Liste aller Kontobewegungen der Piratenpartei Österreichs" />
+  <meta name="keywords" content="konto, einsicht, kontenbewegungen, transaktionen" />';
+  break;
+default:
+  echo '<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />';
+  break;
+}
+echo '
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css?" />
+<link rel="stylesheet" type="text/css" media="screen" href="/acc/gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="/acc/style.css" />
 </head>
 <body>
 <div id="content">
@@ -100,23 +136,23 @@ echo '
 <div class="page ' . $page . '">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="index.php"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
-echo '<a href="index.php?action=donations"'.($page == "donations"?' class="selected"':'').'>Spenden</a>
-<a href="index.php?action=kdonations"'.($page == "kdonations"?' class="selected"':'').'>Sachspenden</a>
-<a href="index.php?action=spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgaben</a>
-<a href="index.php?action=wk"'.($page == "wk"?' class="selected"':'').'>Wahlkampf</a>
-<a href="index.php?action=transactions"'.($page == "transactions"?' class="selected"':'').'>Transaktionen</a>
+<a href="/acc"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
+echo '<a href="/acc/donations"'.($page == "donations"?' class="selected"':'').'>Spenden</a>
+<a href="/acc/kdonations"'.($page == "kdonations"?' class="selected"':'').'>Sachspenden</a>
+<a href="/acc/spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgaben</a>
+<a href="/acc/wk"'.($page == "wk"?' class="selected"':'').'>Wahlkampf</a>
+<a href="/acc/transactions"'.($page == "transactions"?' class="selected"':'').'>Kontobewegungen</a>
 ';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
 ';*/
 if (strlen($rights) > 0)
 {
   echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';
   echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Buchungsimport</a>';
-  echo '<a href="index.php?action=open"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
-  echo '<a href="index.php?action=closed"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
-  echo '<a href="index.php?action=all"'.($page == "all"?' class="selected"':'').'>Alle Buchungen</a>';
+  echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
+  echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
+  echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alle Buchungen</a>';
   if (strpos($rights,'bsm') !== false || strpos($rights,'root') !== false)
-    echo '<a href="index.php?action=deleted"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
+    echo '<a href="index.php?action=deleted'.$year.'"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
   if (strpos($rights,'root') !== false)
     echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzerverwaltung</a>';
 }
@@ -284,6 +320,12 @@ function getsort()
         break;
       case 'amd':
         $sort = "amount DESC, date ASC, voucher_id DESC, vouchers.id ASC";
+        break;
+      case 'commenta':
+        $sort = "commentgf ASC, date ASC, voucher_id DESC, vouchers.id ASC";
+        break;
+      case 'commentd':
+        $sort = "commentgf DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
       case 'texta':
         $sort = "comment ASC, date ASC, voucher_id DESC, vouchers.id ASC";

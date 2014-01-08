@@ -25,13 +25,13 @@ function page_donations($year)
   if ($year < 2012)
   {
     $captcha_check = false;
-    $year = 2012;
+    $year = 2013;
   }
-echo "<h1>Spenden-Einnahmen der Piratenpartei Österreichs $year</h1>\n";
+echo "<h1>Spendenliste der Piratenpartei Österreichs $year</h1>\n";
 echo '<div class="wiki motd"><h2>';
 for ($i = 2012; $i <= intval(date('Y')); $i++)
 {
-echo "<a href=\"index.php?action=donations&year=$i\">$i</a> ";
+echo "<a href=\"/acc/donations?year=$i\">$i</a> ";
 }
 echo '</h2>';
   echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
@@ -139,7 +139,7 @@ else if ($captcha_check)
   $c = $a + $b - 37;
   echo <<<END
 Bevor die Spenderliste angezeigt wird, musst du ein Rätsel lösen, um zu beweisen, dass du kein Roboter bist:
-<div class="main" id="default"><form class="login" action="index.php?action=donations&year=$year" method="POST"><div><label for="captcha_input" class="ui_field_label">Was ergibt die Addition $a + $b?</label> <input id="captcha_input" name="captcha_input" value="" type="text"></div><input value="$c" name="captcha" type="hidden"><input value="Bestätigen" name="submit" type="submit"></form></div>
+<div class="main" id="default"><form class="login" action="/acc/donations?year=$year" method="POST"><div><label for="captcha_input" class="ui_field_label">Was ergibt die Addition $a + $b?</label> <input id="captcha_input" name="captcha_input" value="" type="text"></div><input value="$c" name="captcha" type="hidden"><input value="Bestätigen" name="submit" type="submit"></form></div>
 END;
   block_end();
 }

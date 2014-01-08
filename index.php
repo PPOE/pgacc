@@ -82,7 +82,6 @@ require("closed.php");
 require("transactions.php");
 require("import.php");
 require("edit.php");
-require("transfer.php");
 require("deleted.php");
 require("donations.php");
 require("kdonations.php");
@@ -156,7 +155,7 @@ if (isset($_GET["hide"]))
 
 if (!$make_csv)
   acc_header($dbconn,$page);
-$year = 2012;
+$year = 2013;
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1)
 {
   $year = intval($_GET["year"]);
