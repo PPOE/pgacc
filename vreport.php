@@ -15,12 +15,12 @@ function v_graph($konto, $date_begin, $date_end)
   if ($date_end)
     $cond .= " AND date <= '$date_end' ";
 
-  $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount), (SELECT SUM(amount) FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
+  $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount) / 100.0, (SELECT SUM(amount) / 100.0 FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   //$array = pg_fetch_all($result);
   $array = array();
   while ($line = pg_fetch_array($result)) {
-    $array[] = array($line['timestamp'], intval($line['runningtotal']));
+    $array[] = array($line['timestamp'], $line['runningtotal']);
   }
   echo '<script>var values = ' . json_encode($array) . ';</script>' . "\n";
   echo '<div id="graph" style="width: 100%; height: 300px;"></div>';
@@ -55,7 +55,10 @@ function v_graph($konto, $date_begin, $date_end)
         "#graph",
         [values], {
           series: {
-            lines: {show:true},
+            lines: {
+              show: true,
+              steps: true
+            },
             points: {
               show: true
             }
