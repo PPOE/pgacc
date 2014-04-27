@@ -19,11 +19,13 @@ function v_graph($konto, $date_begin, $date_end)
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   //$array = pg_fetch_all($result);
   $array = array();
+  $min = 0;
   while ($line = pg_fetch_array($result)) {
     $array[] = array($line['timestamp'], $line['runningtotal']);
+    $min = $line['runningtotal'] < $min ? $line['runningtotal'] : $min;
   }
   echo '<script>var values = ' . json_encode($array) . ';</script>' . "\n";
-  echo '<div id="graph" style="width: 100%; height: 300px;"></div>';
+  echo '<div id="graph" style="width: 100%; height: 400px;"></div>';
   ?>
     <script>
       var previousPoint = null;
@@ -35,7 +37,7 @@ function v_graph($konto, $date_begin, $date_end)
           previousPoint = item.dataIndex;
           $('#tooltip').remove();
           var date = new Date(item.datapoint[0]);
-          var dateformatted = date.getDate() + '.' + date.getMonth() + '.' + date.getFullYear();
+          var dateformatted = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear();
 	  var value = item.datapoint[1] + '€';
           $('<div id="tooltip">' + dateformatted + ': ' + value + '</div>').css({
             position: 'absolute',
@@ -68,7 +70,9 @@ function v_graph($konto, $date_begin, $date_end)
             mode: "time", 
             timeformat: "%d.%m.%Y"
           },
-          yaxis: {min: 0}
+          yaxis: {
+            min: <?php echo $min * 1.1; ?>
+          }
         }
       );
     </script>
@@ -191,8 +195,9 @@ pg_free_result($result2);
     $date_end = $_GET["date_end"];
 echo "<h1>Bericht Konto $konto</h1><br>";
 block_start();
-v_report($konto,$date_begin,$date_end);
 v_graph($konto, $date_begin, $date_end);
+v_report($konto,$date_begin,$date_end);
+//v_graph($konto, $date_begin, $date_end);
 block_end();
 
 }
