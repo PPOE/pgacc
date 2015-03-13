@@ -32,8 +32,8 @@ echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
 echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])));
-echo tag("td", ($line["amount"] / 100.0) . "€");
-echo tag("td", (intval($line["amount"]) <= 350000) ? "" : $line["name"]);
+echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
+echo tag("td", ($line["name"]));
 if ($make_csv)
   echo "\n";
 else

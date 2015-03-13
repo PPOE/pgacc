@@ -21,6 +21,8 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_gk=" . $_GET['filter_gk'];
   if (isset($_GET['filter_k']) && strlen($_GET['filter_k']) > 0)
     $filters .= "&filter_k=" . $_GET['filter_k'];
+  if (isset($_GET['filter_vk']) && strlen($_GET['filter_vk']) > 0)
+    $filters .= "&filter_vk=" . $_GET['filter_vk'];
   if (isset($_GET['filter_amount']) && strlen($_GET['filter_amount']) > 0)
     $filters .= "&filter_amount=" . $_GET['filter_amount'];
   if (isset($_GET['filter_text']) && strlen($_GET['filter_text']) > 0)
@@ -68,11 +70,13 @@ $tabs .= gentab($tabc++,$action,'loa','LO');
 $tabs .= gentab($tabc++,$action,'membera','Mitglied');
 $tabs .= gentab($tabc++,$action,'gka','Fremdkonto');
 $tabs .= gentab($tabc++,$action,'ka','Konto');
+$tabs .= gentab($tabc++,$action,'vka','Virt.Konto');
 $tabs .= gentab($tabc++,$action,'ama','Betrag');
 $tabs .= gentab($tabc++,$action,'texta','Text');
 $tabs .= gentab($tabc++,$action,'commenta','Kommentar');
 $tabs .= gentab($tabc++,$action,'comma','Gewidmet');
 $tabs .= gentab($tabc++,$action,'acka','Bestätigt');
+$tabs .= gentab($tabc++,$action,'refunda','Rück.');
 $tabs .= gentab($tabc++,$action,'bela','Datei');
 $tabs .= gentab($tabc++,$action,'namea','Name/Adresse');
 echo tag("tr",$tabs);
@@ -110,6 +114,9 @@ if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?$_GET['filter_k']:'').'" size="7" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_vk" value="'.(isset($_GET['filter_vk'])?$_GET['filter_vk']:'').'" size="7" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?$_GET['filter_amount']:'').'" size="1" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
@@ -125,11 +132,14 @@ if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?$_GET['filter_ack']:'').'" size="3" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="checkbox" name="filter_refund" value="'.(isset($_GET['filter_refund'])?$_GET['filter_refund']:'').'" size="1" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?$_GET['filter_bel']:'').'" size="1" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?$_GET['filter_name']:'').'" size="1" />';
-echo '<input style="display: none;" value="Filtern" type="submit" />
+echo '<input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
 </td>
 </tr></form>';
 }
@@ -203,7 +213,11 @@ else
 if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
-  echo tag("td", ($line["amount"] / 100.0) . "€");
+  echo tag("td", $line["vaccount"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo emptytag("td");
+else
+  echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
@@ -220,6 +234,10 @@ if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
   echo tag("td", $line["ack1"] . " " . $line["ack2"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo emptytag("td");
+else
+  echo tag("td", $line["refund"] == 't' ? 'Ja' : 'Nein');
 if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
@@ -240,7 +258,7 @@ page_listing_header('closed');
 $rightssql = rights2orgasql($rights);
 $filter = getfilter();
 $sort = getsort();
-$query = "SELECT vouchers.*,lo.name AS lo_name,type.name AS type_name FROM vouchers LEFT JOIN lo ON orga = lo.id LEFT JOIN type ON type = type.id WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL $rightssql $filter ORDER BY $sort";
+$query = "SELECT anyfile AS file, vouchers.id, vouchers.voucher_id, vouchers.type, vouchers.orga, vouchers.member, vouchers.member_id, vouchers.contra_account, vouchers.name, vouchers.street, vouchers.plz, vouchers.city, vouchers.amount, vouchers.account, vouchers.comment, vouchers.committed, vouchers.receipt_received, vouchers.deleted, vouchers.date, vouchers.ack1, vouchers.ack2, vouchers.person_type, vouchers.save_date, vouchers.save_user, vouchers.commentgf, vouchers.refund, lo.name AS lo_name, type.name AS type_name FROM vouchers LEFT JOIN lo ON vouchers.orga = lo.id LEFT JOIN type ON vouchers.type = type.id LEFT JOIN (SELECT voucher_id,1 as anyfile FROM vouchers F WHERE F.file != 0 AND F.ack1 IS NOT NULL AND F.ack2 IS NOT NULL GROUP BY voucher_id) F ON F.voucher_id = vouchers.voucher_id WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL $rightssql $filter ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 page_listing_line($line);

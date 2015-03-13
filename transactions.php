@@ -64,7 +64,7 @@ echo tag("td", str_replace(array(
 'Piratenpartei Österreichs (Bank Austria)',
 'Piratenpartei Österreichs (Altes BAWAG Konto)'
 ),$line["account"]));
-echo tag("td", ($line["amount"] / 100.0) . "€");
+echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 if ($make_csv)
   echo "\n";
 else

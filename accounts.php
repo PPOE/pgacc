@@ -38,22 +38,25 @@ function page_accounts($rights)
   }
 
   echo '<h1>Benutzerverwaltung:</h1><br>';
+if (strpos($rights,'root') !== false)
+{
+  echo '<p>1: Burgenland, 2: Kärnten, 3: Niederösterreich, 4: Oberösterreich, 5: Salzburg, 6: Steiermark, 8: Vorarlberg, 9: Wien, 10: Bund (only), bgf: Alles</p>';
+  echo '<p>Ein vorgestelltes R erzeugt einen read only Zugang. Beispiel: Rbgf. root hat Möglichkeit Buchungen zu mergen, sowie gelöschte Buchungszeilen wiederherzustellen</p>';
+}
   block_start();
 echo '<form action="index.php?action=accounts" method="POST"><table>
 <tr><td><b>Name</b></td><td><b>Passwort</b></td>'.(strpos($rights,'root') !== false ? '<td><b>Rechte</b></td>':'').'</tr>
 ';
 $id = checklogin("id");
 $restrict = "";
-$i = 0;
 if (strpos($rights,'root') === false)
 {
   $restrict = " WHERE id = $id ";
-  $i = intval($id) - 1;
 }
-$query = "SELECT * FROM users $restrict ORDER BY id ASC";
+$query = "SELECT * FROM users $restrict ORDER BY rights DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  $i++;
+  $i = $line['id'];
   echo '<tr><td>'.$line['name'].'</td><td><input type="password" name="password'.$i.'" value="******"></td>'.(strpos($rights,'root') !== false ? '<td><input type="text" name="rights'.$i.'" value="'.$line['rights'].'" /></td>':'').'<td><input type="submit" name="submit" value="Benutzer '.$i.' aktualisieren" /></td></tr>'."\n";
 }
 pg_free_result($result);

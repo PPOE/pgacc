@@ -1,6 +1,10 @@
 <?php
 function v_graph($konto, $date_begin, $date_end)
 {
+  if ($konto === "") {
+    return;
+  }
+
   echo '<script src="js/jquery-1.11.0.min.js"></script>' . "\n";
   echo '<script src="js/jquery.flot.js"></script>' . "\n";
   echo '<script src="js/jquery.flot.time.js"></script>' . "\n";
@@ -168,22 +172,22 @@ echo '
 
 function page_vreport($rights)
 {
-  if (strlen($rights) > 0)
-  {
-$query2 = "SELECT vaccount FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY vaccount ORDER BY vaccount";
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-echo "<ul>";
-while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-  $k = $line2['vaccount'];
-  if ($rights == '' && is_numeric(str_replace(array(" ","AT"),array("",""),$k)))
-  {
-    $k = substr($line2['vaccount'],-3,3);
-  }
-  echo "<li><a href=\"vreport?konto=$k\">Konto '".$k."'</a></li>";
-}
-echo "</ul>";
-pg_free_result($result2);
-}
+  //if (strlen($rights) > 0)
+  //{
+    $query2 = "SELECT vaccount FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY vaccount ORDER BY vaccount";
+    $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    echo "<ul>";
+    while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
+      $k = $line2['vaccount'];
+      if ($rights == '' && is_numeric(str_replace(array(" ","AT"),array("",""),$k)))
+      {
+        $k = substr($line2['vaccount'],-3,3);
+      }
+      echo "<li><a href=\"vreport?konto=$k\">Konto '".$k."'</a></li>";
+    }
+    echo "</ul>";
+    pg_free_result($result2);
+  //}
   $konto = "";
   $date_begin = "";
   $date_end = "";
@@ -193,12 +197,11 @@ pg_free_result($result2);
     $date_begin = $_GET["date_begin"];
   if (isset($_GET["date_end"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_end"]) == 1)
     $date_end = $_GET["date_end"];
-echo "<h1>Bericht Konto $konto</h1><br>";
-block_start();
-v_graph($konto, $date_begin, $date_end);
-v_report($konto,$date_begin,$date_end);
-//v_graph($konto, $date_begin, $date_end);
-block_end();
+  echo "<h1>Bericht Konto $konto</h1><br>";
+  block_start();
+  v_graph($konto, $date_begin, $date_end);
+  v_report($konto,$date_begin,$date_end);
+  block_end();
 
 }
 ?>

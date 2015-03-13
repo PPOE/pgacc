@@ -128,20 +128,34 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-echo "<h1>Buchung bestätigt - Buchung Nr. $id</h1>";
-block_start();
-echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
-block_end();
 $rightssql = rights2orgasql($rights);
 
+$hasfile = false;
+$query = "SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  $hasfile = true;
+}
+pg_free_result($result);
+
+if (!$hasfile)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
+  return;
+}
 $name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET ack1 = '$name' WHERE ack1 IS NULL AND (ack2 IS NULL OR ack2 != '$name') AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL WHERE ack1 IS NULL AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-$query = "UPDATE vouchers SET ack2 = '$name' WHERE ack2 IS NULL AND (ack1 IS NULL OR ack1 != '$name') AND voucher_id = $id $rightssql;";
+echo "<h1>Buchung bestätigt - Buchung Nr. $id</h1>";
+block_start();
+echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
+block_end();
+
+$query = "UPDATE vouchers SET ack2 = '$name' WHERE ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -201,24 +215,24 @@ pg_free_result($result);
 
 for ($i = 0; $i < $parts; $i++)
 {
-        page_save_buchung($id, $i, true);
+        page_save_buchung($id, $rights, $i, true);
 }
 relocate("index.php?action=edit&id=$id&hint=5");
 }
-function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = false)
+function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = 0)
 {
 if (isset($_POST["changed"]))
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
-        $voucher = get_voucher($part+1);
+        $voucher = get_voucher($part+1,$rights);
 else if ($new_part)
 {
-        $voucher = get_voucher($part-1);
+        $voucher = get_voucher($part-1,$rights);
         $voucher['file'] = -1;
         $voucher['bid'] = 0;
 }
 else
-        $voucher = get_voucher($part);
+        $voucher = get_voucher($part,$rights);
 }
 else
 {
@@ -234,14 +248,17 @@ pg_free_result($result);
 $voucher['bid'] = $vouchers[$part]['id'];
 $voucher['date'] = format_date($vouchers[$part]['date']);
 $voucher['type'] = $vouchers[$part]['type'];
+if ($voucher['type'] == 45) { $voucher['dir'] = 'bel'; }
 $voucher['person_type'] = $vouchers[$part]['person_type'];
 $voucher['lo'] = $vouchers[$part]['orga'];
 $voucher['amount'] = $vouchers[$part]['amount'];
 $voucher['gegenkonto'] = $vouchers[$part]['contra_account'];
 $voucher['konto'] = $vouchers[$part]['account'];
+$voucher['vkonto'] = $vouchers[$part]['vaccount'];
 $voucher['comment'] = $vouchers[$part]['comment'];
 $voucher['commentgf'] = $vouchers[$part]['commentgf'];
 $voucher['purpose'] = $vouchers[$part]['committed'] == 't' ? 'true' : 'false';
+$voucher['refund'] = $vouchers[$part]['refund'] == 't' ? 'true' : 'false';
 $voucher['member'] = $vouchers[$part]['member'] == 't' ? 'true' : 'false';
 $voucher['mitgliedsnummer'] = $vouchers[$part]['member_id'];
 $voucher['name'] = $vouchers[$part]['name'];
@@ -250,6 +267,12 @@ $voucher['plz'] = $vouchers[$part]['plz'];
 $voucher['city'] = $vouchers[$part]['city'];
 $voucher['file'] = $vouchers[$part]['file'];
 $part = $part_o;
+}
+if ($new_part == 2)
+{
+  $voucher['amount'] = 0;
+  $voucher['dir'] = 'bel';
+  $voucher['type'] = 45;
 }
 page_edit_form($part,$voucher,$rights);
 }
@@ -311,7 +334,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 $parts = count($vouchers);
-if ($parts == 0 && strpos($rights, 'bsm') === false && strpos($rights, 'bgf') === false)
+if ($parts == 0 && strpos($rights, 'bgf') === false)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -359,18 +382,22 @@ for ($i = 0; $i < $parts; $i++)
 }
 if (isset($_POST["add"]))
 {
-  page_edit_buchung($rights, $vouchers,$parts,$part_to_remove,true);
+  page_edit_buchung($rights, $vouchers,$parts,$part_to_remove,1);
+  $parts++;
+}
+if (isset($_POST["addB"]))
+{
+  page_edit_buchung($rights, $vouchers,$parts,$part_to_remove,2);
   $parts++;
 }
 
 $user_name = checklogin('name');
-$schatzmeister = strpos($rights, 'bsm') !== false && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
+$bgfandack = strpos($rights, 'bgf') !== false && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 $beleg = $vouchers[0]['receipt_received'] == 't' ? ' checked="checked"':'';
 if (isset($_POST["beleg"]))
         $beleg = ' checked="checked"';
 
-bsm_block($schatzmeister,$beleg);
 
-end_of_form($parts,$rights);
+end_of_form($parts,$rights,$bgfandack,$rights);
 }
 ?>

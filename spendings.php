@@ -10,7 +10,8 @@ tag("td",tag("b",sortlink($action,'datea','Datum'))) .
 tag("td",tag("b",sortlink($action,'typea','Art'))) . 
 tag("td",tag("b",sortlink($action,'loa','LO'))) . 
 tag("td",tag("b",sortlink($action,'texta','Text'))) .
-tag("td",tag("b",sortlink($action,'ama','Betrag'))));
+tag("td",tag("b",sortlink($action,'ama','Betrag'))) .
+tag("td",tag("b",sortlink($action,'ama','Name'))));
 }
 
 function spendings_page_listing_line($line)
@@ -32,8 +33,9 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
-echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])));
-echo tag("td", ($line["amount"] / 100.0) . "€");
+echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
+echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
+echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? $line["name"] : "<i>Privatperson</i>");
 if ($make_csv)
   echo "\n";
 else
@@ -67,7 +69,7 @@ if ($to != -1)
   $where .= " AND date < '$to'";
 spendings_page_listing_header('spendings');
 $sort = getsort();
-$query = "SELECT * FROM vouchers WHERE ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) < 0 AND amount < 0 $where ORDER BY $sort";
+$query = "SELECT * FROM vouchers WHERE ".eyes()./*" AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) < 0*/" AND amount < 0 $where ORDER BY $sort";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 spendings_page_listing_line($line);

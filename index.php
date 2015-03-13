@@ -4,6 +4,8 @@ if (empty( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) || $_SERVER['HTTP_X_FORWARDED_PR
   header("Location: https://" . $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"]);
   return;
 }
+global $realtype_req;
+$realtype_req = "";//" AND realtype = id ";
 global $user_id;
 $user_id = 0;
 global $user_prefs_hide;
@@ -25,13 +27,46 @@ function login($user, $pass)
       setcookie("pp_pgacc_login", $rand, time()+86400);
       setcookie("pp_pgacc_id", $id, time()+86400);
       pg_free_result($data);
-      header("Location: index.php");
+      if (isset($_POST['target']))
+        header("Location: " . hex2ascii($_POST['target']));
+      else
+        header("Location: index.php");
       return $id;
     }
   }
   pg_free_result($data);
   return 0;
 }
+require("constants.php");
+require("getusers.php");
+require("new.php");
+require("open.php");
+require("mb.php");
+require("all.php");
+require("search.php");
+require("closed.php");
+require("transactions.php");
+require("import.php");
+require("edit.php");
+require("deleted.php");
+require("donations.php");
+require("kdonations.php");
+require("spendings.php");
+require("login.php");
+require("accounts.php");
+require("impressum.php");
+require("report.php");
+require("vreport.php");
+require("tinyreport.php");
+require("wk.php");
+require("recover.php");
+require("file.php");
+require("statistics.php");
+$dbconn = pg_connect("dbname=accounting")
+  or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
+
+require("functions.php");
+
 function checklogin($get = 'name', $redir = true)
 {
   global $user_id;
@@ -69,44 +104,24 @@ function checklogin($get = 'name', $redir = true)
     pg_free_result($data);
   }
   if ($redir)
-    header("Location: index.php?action=login");
+    header("Location: index.php?action=login&target=" . ascii2hex($_SERVER["REQUEST_URI"]));
 }
-require("constants.php");
-require("getusers.php");
-require("new.php");
-require("open.php");
-require("mb.php");
-require("all.php");
-require("search.php");
-require("closed.php");
-require("transactions.php");
-require("import.php");
-require("edit.php");
-require("deleted.php");
-require("donations.php");
-require("kdonations.php");
-require("spendings.php");
-require("login.php");
-require("accounts.php");
-require("impressum.php");
-require("report.php");
-require("wk.php");
-require("recover.php");
-require("file.php");
-require("statistics.php");
-$dbconn = pg_connect("dbname=accounting")
-  or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
-
-require("functions.php");
 
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics","wk")))
+  if (in_array($_GET["action"],array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport")))
     $page = $_GET["action"];
   else
     $page = "report";
 
+}
+
+global $print_empty;
+$print_empty = false;
+if (isset($_GET["print_empty"]))
+{
+  $print_empty = true;
 }
 
 global $make_csv;
@@ -153,9 +168,11 @@ if (isset($_GET["hide"]))
   pg_free_result($data);
 }
 
+$year = date('Y');
+
 if (!$make_csv)
-  acc_header($dbconn,$page);
-$year = 2013;
+  acc_header($dbconn,$page,$year);
+
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1)
 {
   $year = intval($_GET["year"]);
@@ -282,6 +299,16 @@ else if ($page == "statistics")
 else if ($page == "wk")
 {
   page_wk();
+}
+else if ($page == "tinyreport")
+{
+  $rights = checklogin('rights',false);
+  page_tinyreport($rights);
+}
+else if ($page == "vreport")
+{
+  $rights = checklogin('rights',false);
+  page_vreport($rights);
 }
 else
 {

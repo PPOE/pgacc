@@ -1,11 +1,34 @@
 <?php
-function csv_download_link()
+function hex2ascii($hex){
+        $ascii='';
+        $hex=str_replace(" ", "", $hex);
+        for($i=0; $i<strlen($hex); $i=$i+2) {
+                $ascii.=chr(hexdec(substr($hex, $i, 2)));
+                }
+                return($ascii);
+}
+ 
+function ascii2hex($ascii) {
+        $hex = '';
+        for ($i = 0; $i < strlen($ascii); $i++) {
+                $byte = strtoupper(dechex(ord($ascii{$i})));
+                $byte = str_repeat('0', 2 - strlen($byte)).$byte;
+                $hex.=$byte." ";
+                }
+                $hex=str_replace(" ", "", $hex);
+                return $hex;
+}
+
+function csv_download_link($i = -1)
 {
   global $make_csv;
   if ($make_csv)
     return;
   $link = $_SERVER['REQUEST_URI'] . "&format=csv";
-  echo "<br style=\"clear: both;\" /><center><a href=\"$link\">Als CSV Datei herunterladen</a></center>";
+  echo "<br style=\"clear: both;\" /><center>";
+  if ($i >= 0)
+    echo "$i Umsätze gefunden<br /><br />";
+  echo "<a href=\"$link\">Als CSV Datei herunterladen</a></center>";
 }
 function getfilter()
 {
@@ -22,7 +45,7 @@ function getfilter()
     }
     else if (preg_match('/^\d\d\d\d-\d\d$/',$_GET['filter_date']) == 1)
     {
-      $filter .= " AND date >= '" . $_GET['filter_date'] . "-01' AND date <= '" . $_GET['filter_date'] . "-30' ";
+      $filter .= " AND date >= '" . $_GET['filter_date'] . "-01' AND date < TIMESTAMP '" . $_GET['filter_date'] . "-01' + INTERVAL '1 month' ";
     }
     else if (preg_match('/^\d\d\d\d-\d\d-\d\d$/',$_GET['filter_date']) == 1)
     {
@@ -41,15 +64,19 @@ function getfilter()
     $filter .= " AND member ";
   if (isset($_GET['filter_member_id']) && preg_match('/^\d+$/',$_GET['filter_member_id']) == 1)
     $filter .= " AND member_id = " . $_GET['filter_member_id'];
-  if (isset($_GET['filter_gk']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_gk']) == 1)
+  if (isset($_GET['filter_gk']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_gk']) == 1)
     $filter .= " AND contra_account LIKE '" . $_GET['filter_gk'] . "%'";
   if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/',$_GET['filter_amount']) == 1)
     $filter .= " AND amount " . $_GET['filter_amount'] . "00";
-  else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+(\.(\d\d)?)?$/',$_GET['filter_amount']) == 1)
-    $filter .= " AND amount " . $_GET['filter_amount'];
-  if (isset($_GET['filter_k']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_k']) == 1)
+  else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/',$_GET['filter_amount']) == 1)
+    $filter .= " AND amount " . str_replace(array(".",","),array("",""),$_GET['filter_amount']);
+  else if (isset($_GET['filter_amount']) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/',$_GET['filter_amount']) == 1)
+    $filter .= " AND amount = " . str_replace(array(".",","),array("",""),$_GET['filter_amount']);
+  if (isset($_GET['filter_k']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_k']) == 1)
     $filter .= " AND account LIKE '" . $_GET['filter_k']."%'";
-  if (isset($_GET['filter_text']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
+  if (isset($_GET['filter_vk']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_vk']) == 1)
+    $filter .= " AND vaccount LIKE '" . $_GET['filter_vk']."%'";
+  if (isset($_GET['filter_text']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_text']) == 1)
     $filter .= " AND lower(comment) LIKE lower('%" . $_GET['filter_text'] . "%')";
   if (isset($_GET['filter_comment']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i',$_GET['filter_comment']) == 1)
     $filter .= " AND lower(commentgf) LIKE lower('%" . $_GET['filter_comment'] . "%')";
@@ -57,6 +84,8 @@ function getfilter()
     $filter .= " AND committed ";
   if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
     $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
+  if (isset($_GET['filter_refund']))
+    $filter .= " AND refund ";
   if (isset($_GET['filter_bel']))
     $filter .= " AND file != 0 ";
   if (isset($_GET['filter_name']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_name']) == 1)
@@ -82,7 +111,7 @@ function tag($tag, $text)
   }
   return "<$tag>$text</$tag>\n";
 }
-function acc_header($dbconn,$page = "index",$year = 2013)
+function acc_header($dbconn,$page = "index",$year = 2015)
 {
 echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -124,8 +153,8 @@ default:
 }
 echo '
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="/acc/gregor.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="/acc/style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
 </head>
 <body>
 <div id="content">
@@ -136,25 +165,29 @@ echo '
 <div class="page ' . $page . '">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="/acc"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
-echo '<a href="/acc/donations"'.($page == "donations"?' class="selected"':'').'>Spenden</a>
-<a href="/acc/kdonations"'.($page == "kdonations"?' class="selected"':'').'>Sachspenden</a>
-<a href="/acc/spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgaben</a>
-<a href="/acc/wk"'.($page == "wk"?' class="selected"':'').'>Wahlkampf</a>
-<a href="/acc/transactions"'.($page == "transactions"?' class="selected"':'').'>Kontobewegungen</a>
+<a href="/"'.($page == "index"?' class="selected"':'').'>Rechenschaftsbericht</a>';
+echo '<a href="donations"'.($page == "donations"?' class="selected"':'').'>Spenden</a>
+<a href="kdonations"'.($page == "kdonations"?' class="selected"':'').'>Sachspenden</a>
+<a href="spendings"'.($page == "spendings"?' class="selected"':'').'>Ausgaben</a>
+<a href="wk"'.($page == "wk"?' class="selected"':'').'>Wahlkampf</a>
+<a href="transactions"'.($page == "transactions"?' class="selected"':'').'>Kontobeweg.</a>
+<a href="vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>
 ';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
 ';*/
 if (strlen($rights) > 0)
 {
-  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Buchung erfassen</a>';
-  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Buchungsimport</a>';
-  echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offene Buchungen</a>';
-  echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossene Buchungen</a>';
-  echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alle Buchungen</a>';
-  if (strpos($rights,'bsm') !== false || strpos($rights,'root') !== false)
-    echo '<a href="index.php?action=deleted'.$year.'"'.($page == "deleted"?' class="selected"':'').'>Alte Revisionen</a>';
-  if (strpos($rights,'root') !== false)
-    echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzerverwaltung</a>';
+  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
+  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
+  echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offen</a>';
+  echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossen</a>';
+  echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alles</a>';
+  echo '<a href="index.php?action=mb"'.($page == "mb"?' class="selected"':'').'>Mitgliedsbeiträge</a>';
+  echo '<a href="index.php?action=tinyreport"'.($page == "tinyreport"?' class="selected"':'').'>Konten</a>';
+  //echo '<a href="index.php?action=vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>';
+  if (strpos($rights,'bgf') !== false || strpos($rights,'root') !== false)
+    echo '<a href="index.php?action=deleted&filter_date='.$year.'"'.($page == "deleted"?' class="selected"':'').'>Alte Rev.</a>';
+//  if (strpos($rights,'root') !== false)
+    echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzer</a>';
 }
 echo '</div><br />
 ';
@@ -221,16 +254,17 @@ function format_date($date)
 function rights2orgasql($rights)
 {
   $rights_r = explode(",", $rights);
-  if (!in_array('bgf',$rights_r) && !in_array('bsm',$rights_r))
+  if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-/*    $rights_r = explode(",", $rights);
+    $rights_r = explode(",", $rights);
     foreach ($rights_r as $right)
     {
       if (preg_match('/^\d+$/', $right) == 1)
         $rights2[] = "'".$right."'";
     }
-    if (count($rights2) > 0)*/
-      return " AND NOT receipt_received ";//AND account IN (" . implode(",",$rights2) . ") ";
+    if (count($rights2) > 0)
+      return " AND orga IN (" . implode(",",$rights2) . ") ";
+    return " AND false ";
   }
   return "";
 }
@@ -345,6 +379,12 @@ function getsort()
       case 'ackd':
         $sort = "ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
+      case 'refunda':
+        $sort = "refund ASC, date ASC, voucher_id DESC, vouchers.id ASC";
+        break;
+      case 'refundd':
+        $sort = "refund DESC, date ASC, voucher_id DESC, vouchers.id ASC";
+        break;
       case 'bela':
         $sort = "file ASC, date ASC, voucher_id DESC, vouchers.id ASC";
         break;
@@ -384,7 +424,7 @@ function percent_of_bookings()
 {
   $text = "";
   $startYear = 2012;
-  $endYear = min('2014', date('Y') + 1);
+  $endYear = date('Y') + 1;
   for ($currentYear = $startYear; $currentYear < $endYear + 1; $currentYear++) {
     $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '" . $currentYear . "-01-01' AND date < '" . ($currentYear + 1) . "-01-01' AND NOT deleted;";
     $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -397,7 +437,9 @@ function percent_of_bookings()
       $bp = round($b * 100 / (1.0 * $c),2);
       $a = intval($line['a']);
       $ap = round($a * 100 / (1.0 * $c),2);
-      $text .= "<br /><i>$c Buchungszeilen, davon sind $b ($bp %) in Bearbeitung und $a ($ap %) abgeschlossen (" . $currentYear . ").</i>";
+      $d = $c - $b - $a;
+      $dp = round($d * 100 / (1.0 * $c), 2);
+      $text .= "<br /><i>$currentYear: $c Buchungszeilen, $a ($ap %) abgeschlossen, $b ($bp %) in bearbeitung, $d ($dp %) unbearbeitet.</i>";
     }
     pg_free_result($result);
   }
@@ -406,7 +448,10 @@ function percent_of_bookings()
 
 function eyes()
 {
-  return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
+  if (isset($_GET["noeyes"]))
+    return " NOT deleted ";
+  else
+    return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
 }
 
 /**
