@@ -439,7 +439,7 @@ function percent_of_bookings()
       $ap = round($a * 100 / (1.0 * $c),2);
       $d = $c - $b - $a;
       $dp = round($d * 100 / (1.0 * $c), 2);
-      $text .= "<br /><i>$currentYear: $c Buchungszeilen, $a ($ap %) abgeschlossen, $b ($bp %) in bearbeitung, $d ($dp %) unbearbeitet.</i>";
+      $text .= "<br /><i>$currentYear: $c Buchungszeilen, $a ($ap %) abgeschlossen, $b ($bp %) bearbeitet, $d ($dp %) unbearbeitet.</i>";
     }
     pg_free_result($result);
   }
