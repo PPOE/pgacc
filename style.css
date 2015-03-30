@@ -53,8 +53,7 @@ a:focus {
 
 body {
   background: #f8f8f9;
-  background-image: url("back.png");
-  line-height: 120%:
+  line-height: 120%;
 }
 
 body, th, td {
@@ -308,7 +307,7 @@ form.unit_selector {
   color: #89408e;
 }
 
-*/
+
 /*************************************************************************
  * Title of current page including path and actions
  */
@@ -1121,16 +1120,6 @@ div.notifications {
   font-weight: bold;
 }
 
-x.initiative_link.supported {
-  background-color: #cdf;
-  border-radius: 5px;
-}
-
-x.initiative_link.potentially_supported {
-  background-color: #cdf;
-  border-radius: 5px;
-}
-
 .lang_chooser {
   float: right;
   margin-right: 0.5em;
@@ -1527,11 +1516,11 @@ div.notifications {
   background: -o-linear-gradient(#cdf, #abe);
   background: linear-gradient(#cdf, #abe);
   background-color: #abf;
-#  color: #f7f7f7;
+/*color: #f7f7f7;*/
   white-space: nowrap;
   border-radius: 4px;
   font-size: 100%;
-#  font-weight: bold;
+/*font-weight: bold;*/
   margin: 2px;
   margin-right: 3px;
 }
