@@ -47,6 +47,7 @@ require("search.php");
 require("closed.php");
 require("transactions.php");
 require("import.php");
+require("import2.php");
 require("edit.php");
 require("deleted.php");
 require("donations.php");
@@ -62,6 +63,7 @@ require("wk.php");
 require("recover.php");
 require("file.php");
 require("statistics.php");
+require("vendor/autoload.php");
 $dbconn = pg_connect("dbname=accounting")
   or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
 
@@ -110,7 +112,7 @@ function checklogin($get = 'name', $redir = true)
 $page = "index";
 if (isset($_GET["action"]))
 {
-  if (in_array($_GET["action"],array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport")))
+  if (in_array($_GET["action"],array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport")))
     $page = $_GET["action"];
   else
     $page = "report";
@@ -291,6 +293,11 @@ else if ($page == "import")
 {
   $rights = checklogin('rights');
   page_import($rights);
+}
+else if ($page == "import2")
+{
+  $rights = checklogin('rights');
+  page_import2($rights);
 }
 else if ($page == "statistics")
 {

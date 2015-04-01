@@ -330,7 +330,7 @@ function page_import()
       }
   }
   echo "</table>\n";
-  echo 'Bite wähle die CSV Dateien für den Import:
+  echo 'Bitte wähle die CSV Dateien für den Import:
 <form enctype="multipart/form-data" action="index.php?action=import" method="POST">
 <input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
 ';
