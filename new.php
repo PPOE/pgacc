@@ -62,7 +62,7 @@ $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
-function page_save_buchung($voucher_number, $rights, $part = 0)
+function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
 {
 $voucher = get_voucher($part,$rights);
 if ($voucher['date'] == null)
@@ -140,7 +140,24 @@ pg_free_result($result);
 }
 if ($voucher['file'] == -1)
   $voucher['file'] = 0;
-$query = "INSERT INTO vouchers (voucher_id, date, type, person_type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, vaccount, comment, commentgf, committed, file, refund) VALUES ($voucher_number, '{$voucher['date']}', ".($voucher['dir'] == "in"?$voucher['in_type']:($voucher['dir'] == "out"?$voucher['out_type']:($voucher['dir'] == "wk"?$voucher['wk_type']:$voucher['type']))).",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',{$voucher['purpose']},{$voucher['file']},{$voucher['refund']})";
+$query = "
+INSERT INTO vouchers
+(voucher_id, date, type, person_type, orga, member,
+member_id, contra_account, name, street, plz, city,
+amount, account, vaccount, comment, commentgf,
+committed, file, refund, ack1_old, ack2_old)
+VALUES
+($voucher_number, '{$voucher['date']}', ".
+  ($voucher['dir'] == "in"?$voucher['in_type']:($voucher['dir'] == "out"?$voucher['out_type']:($voucher['dir'] == "wk"?$voucher['wk_type']:$voucher['type']))).
+  ",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},
+  {$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}',
+  '{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}',
+  '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
+  '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
+  {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},".
+  ($ack1_old == null ? "NULL" : "'" . $ack1_old . "'").",".
+  ($ack2_old == null ? "NULL" : "'" . $ack2_old . "'").
+  ");";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -234,11 +251,8 @@ $targetpath = getcwd() . '/files/' . $file_number . ".aes";
 $data = file_get_contents($sourcepath);
 file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
 
-$query = "UPDATE vouchers SET ack1 = NULL,ack2 = NULL WHERE NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
-pg_free_result($result);
+  vouchers_reset_ack($id, $rightssql);
+
 $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {

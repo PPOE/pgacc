@@ -467,12 +467,31 @@ function eyes()
  * @return array a subset of array
  */
 function whitelist($array, $whitelist) {
-    $new_array = array();
-    foreach ($array as $key => $value) {
-        if (isset($whitelist[$key]))
-            $new_array[$key] = $value;
-    }
-    return $new_array;
+  $new_array = array();
+  foreach ($array as $key => $value) {
+    if (isset($whitelist[$key]))
+      $new_array[$key] = $value;
+  }
+  return $new_array;
+}
+
+function vouchers_reset_ack($id, $rightssql) {
+  $query = "
+    UPDATE vouchers
+    SET
+      ack1_old = ack1,
+      ack2_old = ack2,
+      ack1 = NULL,
+      ack2 = NULL
+    WHERE
+      NOT deleted AND
+      (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
+      voucher_id = $id $rightssql;
+  ";
+  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  }
+  pg_free_result($result);
 }
 
 ?>

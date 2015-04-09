@@ -90,12 +90,7 @@ echo "<a href=\"index.php?action=edit&id=$id&hint=3\">Zurück zur Buchung</a>";
 block_end();
 $rightssql = rights2orgasql($rights);
 
-$name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET ack1 = NULL, ack2 = NULL WHERE voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
-pg_free_result($result);
+vouchers_reset_ack($id, $rights);
 relocate("index.php?action=edit&id=$id&hint=3");
 }
 function page_edit_ack($rights)
@@ -144,7 +139,7 @@ if (!$hasfile)
   return;
 }
 $name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL WHERE ack1 IS NULL AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE ack1 IS NULL AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -155,7 +150,7 @@ block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
 block_end();
 
-$query = "UPDATE vouchers SET ack2 = '$name' WHERE ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -182,6 +177,14 @@ else
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
+  $ack1 = null;
+  $ack2 = null;
+  if (isset($_POST["ack1"])) {
+    $ack1 = $_POST["ack1"];
+  }
+  if (isset($_POST["ack2"])) {
+    $ack2 = $_POST["ack2"];
+  }
 $rightssql = rights2orgasql($rights);
 
 $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";
@@ -215,7 +218,7 @@ pg_free_result($result);
 
 for ($i = 0; $i < $parts; $i++)
 {
-        page_save_buchung($id, $rights, $i, true);
+        page_save_buchung($id, $rights, $i, $ack1, $ack2);
 }
 relocate("index.php?action=edit&id=$id&hint=5");
 }
@@ -355,6 +358,8 @@ if ($vouchers[0]['ack2'] != null && strlen($vouchers[0]['ack2']) > 3)
 page_form_header("edit");
 echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="acks" value="'.intval($acks).'" />
+<input type="hidden" name="ack1" value="'.$vouchers[0]['ack1'].'" />
+<input type="hidden" name="ack2" value="'.$vouchers[0]['ack2'].'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
@@ -372,10 +377,12 @@ function merge()
 <br />
 <br />';
 }
-if ($acks > 0)
-{
-  echo '<h4>Bestätigt von: '.$vouchers[0]['ack1'].' '.$vouchers[0]['ack2'].'</h4>';
-}
+  echo '<h4>Bestätigt von: '.$vouchers[0]['ack1'].' '.$vouchers[0]['ack2'];
+  if (isset($vouchers[0]['ack1_old']) || isset($vouchers[0]['ack2_old'])) {
+    echo '<del>'.$vouchers[0]['ack1_old'].' '.$vouchers[0]['ack2_old'].'</del>';
+  }
+  echo '</h4>';
+
 for ($i = 0; $i < $parts; $i++)
 {
 	page_edit_buchung($rights, $vouchers,$i,$part_to_remove);

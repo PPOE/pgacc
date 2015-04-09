@@ -126,11 +126,8 @@ function page_import2_process($rights)
       $data = file_get_contents($sourcepath);
       file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
 
-      $query = "UPDATE vouchers SET ack1 = NULL,ack2 = NULL WHERE NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND voucher_id = $id $rightssql;";
-      $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-      while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-      }
-      pg_free_result($result);
+      vouchers_reset_ack($id, $rightssql);
+
       $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
       $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
       while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
