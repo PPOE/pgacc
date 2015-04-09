@@ -84,6 +84,8 @@ function getfilter()
     $filter .= " AND committed ";
   if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
     $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
+  if (isset($_GET['filter_ack_old']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack_old']) == 1)
+    $filter .= " AND (ack1_old LIKE '%" . $_GET['filter_ack'] . "%' OR ack2_old LIKE '%" . $_GET['filter_ack'] . "%') ";
   if (isset($_GET['filter_refund']))
     $filter .= " AND refund ";
   if (isset($_GET['filter_bel']))

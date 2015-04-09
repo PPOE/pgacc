@@ -33,6 +33,8 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_comm=" . $_GET['filter_comm'];
   if (isset($_GET['filter_ack']) && strlen($_GET['filter_ack']) > 0)
     $filters .= "&filter_ack=" . $_GET['filter_ack'];
+  if (isset($_GET['filter_ack_old']) && strlen($_GET['filter_ack_old']) > 0)
+    $filters .= "&filter_ack_old=" . $_GET['filter_ack_old'];
   if (isset($_GET['filter_bel']) && strlen($_GET['filter_bel']) > 0)
     $filters .= "&filter_bel=" . $_GET['filter_bel'];
   if (isset($_GET['filter_name']) && strlen($_GET['filter_name']) > 0)
@@ -76,6 +78,7 @@ $tabs .= gentab($tabc++,$action,'texta','Text');
 $tabs .= gentab($tabc++,$action,'commenta','Kommentar');
 $tabs .= gentab($tabc++,$action,'comma','Gewidmet');
 $tabs .= gentab($tabc++,$action,'acka','Bestätigt');
+$tabs .= gentab($tabc++,$action,'acka_old','Best. alt');
 $tabs .= gentab($tabc++,$action,'refunda','Rück.');
 $tabs .= gentab($tabc++,$action,'bela','Datei');
 $tabs .= gentab($tabc++,$action,'namea','Name/Adresse');
@@ -130,6 +133,9 @@ if ($user_prefs_hide[$tabc++] != 1)
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?$_GET['filter_ack']:'').'" size="3" />';
+echo '</td><td>';
+if ($user_prefs_hide[$tabc++] != 1)
+  echo '<input type="text" name="filter_ack_old" value="'.(isset($_GET['filter_ack_old'])?$_GET['filter_ack_old']:'').'" size="3" />';
 echo '</td><td>';
 if ($user_prefs_hide[$tabc++] != 1)
   echo '<input type="checkbox" name="filter_refund" value="'.(isset($_GET['filter_refund'])?$_GET['filter_refund']:'').'" size="1" />';
@@ -234,6 +240,10 @@ if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else
   echo tag("td", $line["ack1"] . " " . $line["ack2"]);
+if ($user_prefs_hide[$tabc++] == 1)
+  echo emptytag("td");
+else
+  echo tag("td", "<del>" . $line["ack1_old"] . "</del> <del>" . $line["ack2_old"] . "</del>");
 if ($user_prefs_hide[$tabc++] == 1)
   echo emptytag("td");
 else

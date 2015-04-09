@@ -179,10 +179,16 @@ else
 }
   $ack1 = null;
   $ack2 = null;
-  if (isset($_POST["ack1"])) {
-    $ack1 = $_POST["ack1"];
+  if ((isset($_POST["ack1_old"]) || isset($_POST["ack2_old"])) &&
+    strlen($_POST["ack1_old"]) > 0 || strlen($_POST["ack2_old"]) > 0)
+  {
+    $ack1 = $_POST["ack1_old"];
+    $ack2 = $_POST["ack2_old"];
   }
-  if (isset($_POST["ack2"])) {
+  if ((isset($_POST["ack1"]) || isset($_POST["ack2"])) &&
+      strlen($_POST["ack1"]) > 0 || strlen($_POST["ack2"]) > 0)
+  {
+    $ack1 = $_POST["ack1"];
     $ack2 = $_POST["ack2"];
   }
 $rightssql = rights2orgasql($rights);
@@ -360,6 +366,8 @@ echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="acks" value="'.intval($acks).'" />
 <input type="hidden" name="ack1" value="'.$vouchers[0]['ack1'].'" />
 <input type="hidden" name="ack2" value="'.$vouchers[0]['ack2'].'" />
+<input type="hidden" name="ack1_old" value="'.$vouchers[0]['ack1_old'].'" />
+<input type="hidden" name="ack2_old" value="'.$vouchers[0]['ack2_old'].'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
