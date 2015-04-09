@@ -178,6 +178,7 @@ if (strlen($rights) > 0)
 {
   echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
   echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
+  echo '<a href="index.php?action=import2"'.($page == "import2"?' class="selected"':'').'>Belege Import</a>';
   echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offen</a>';
   echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossen</a>';
   echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alles</a>';

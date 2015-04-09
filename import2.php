@@ -5,7 +5,7 @@ function page_import2_form()
   ?>
   Bitte wähle die Beleg Dateien für den Import:
   <form enctype="multipart/form-data" action="index.php?action=import2" method="POST">
-    <input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
+    <input type="hidden" name="MAX_FILE_SIZE" value="10000000" />
     <input name="upload[]" type="file" multiple="multiple" /><br />
     <br />
     <input type="submit" value="Importieren" />
