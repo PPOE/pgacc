@@ -1,0 +1,127 @@
+             List of relations
+ Schema |     Name      | Type  |  Owner
+--------+---------------+-------+----------
+ public | balance       | table | www-data
+ public | donation_type | table | www-data
+ public | import        | table | www-data
+ public | lo            | table | www-data
+ public | oo            | table | www-data
+ public | person_type   | table | www-data
+ public | type          | table | www-data
+ public | users         | table | www-data
+ public | vouchers      | table | www-data
+(9 rows)
+
+                                   Table "public.balance"
+ Column |            Type             |                      Modifiers
+
+--------+-----------------------------+-----------------------------------------
+-------------
+ id     | integer                     | not null default nextval('balance_id_seq
+'::regclass)
+ value  | integer                     |
+ orga   | integer                     |
+ date   | timestamp without time zone |
+
+                         Table "public.donation_type"
+ Column |  Type   |                         Modifiers
+--------+---------+------------------------------------------------------------
+ id     | integer | not null default nextval('donation_type_id_seq'::regclass)
+ name   | text    | not null
+
+   Table "public.import"
+ Column | Type | Modifiers
+--------+------+-----------
+ line   | text |
+Indexes:
+    "import_line_key" UNIQUE, btree (line)
+
+                         Table "public.lo"
+ Column |  Type   |                    Modifiers
+--------+---------+-------------------------------------------------
+ id     | integer | not null default nextval('lo_id_seq'::regclass)
+ name   | text    | not null
+
+                         Table "public.oo"
+ Column |  Type   |                    Modifiers
+--------+---------+-------------------------------------------------
+ id     | integer | not null default nextval('oo_id_seq'::regclass)
+ name   | text    | not null
+ lo     | integer | not null
+
+                            Table "public.person_type"
+   Column    |  Type   |                        Modifiers
+
+-------------+---------+--------------------------------------------------------
+--
+ id          | integer | not null default nextval('person_type_id_seq'::regclass
+)
+ name        | text    |
+ description | text    |
+ used        | integer | default 0
+ public      | boolean | default true
+
+                          Table "public.type"
+  Column  |  Type   |                     Modifiers
+----------+---------+---------------------------------------------------
+ id       | integer | not null default nextval('type_id_seq'::regclass)
+ name     | text    | not null
+ used     | integer | not null default 0
+ income   | integer |
+ realtype | integer |
+
+                                   Table "public.users"
+ Column |            Type             |                     Modifiers
+
+--------+-----------------------------+-----------------------------------------
+-----------
+ id     | integer                     | not null default nextval('users_id_seq':
+:regclass)
+ name   | text                        |
+ hash   | text                        |
+ login  | timestamp without time zone |
+ cookie | integer                     |
+ rights | text                        |
+ hide   | text                        |
+Indexes:
+    "users_name_key" UNIQUE, btree (name)
+
+                                        Table "public.vouchers"
+      Column      |            Type             |                       Modifier
+s
+------------------+-----------------------------+-------------------------------
+------------------------
+ id               | integer                     | not null default nextval('vouc
+hers_id_seq'::regclass)
+ voucher_id       | integer                     |
+ type             | integer                     |
+ orga             | integer                     |
+ member           | boolean                     |
+ member_id        | integer                     |
+ contra_account   | text                        |
+ name             | text                        |
+ street           | text                        |
+ plz              | text                        |
+ city             | text                        |
+ amount           | integer                     |
+ account          | text                        |
+ comment          | text                        |
+ committed        | boolean                     |
+ receipt_received | boolean                     | default false
+ deleted          | boolean                     | not null default false
+ date             | timestamp without time zone |
+ ack1             | text                        |
+ ack2             | text                        |
+ person_type      | integer                     | default 2
+ file             | integer                     | default 0
+ save_date        | timestamp without time zone | default now()
+ save_user        | integer                     |
+ commentgf        | text                        | default ''::text
+ refund           | boolean                     | default false
+ vaccount         | text                        | default ''::text
+ ack1_old         | text                        |
+ ack2_old         | text                        |
+ ack_rp1          | text                        |
+ ack_rp2          | text                        |
+ ack_rp1_old      | text                        |
+ ack_rp2_old      | text                        |
