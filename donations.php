@@ -34,7 +34,8 @@ for ($i = 2012; $i <= intval(date('Y')); $i++)
 echo "<a href=\"donations?year=$i\">$i</a> ";
 }
 echo '</h2>';
-  echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
+  //echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
+  echo 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.';
 echo'</div>';
   if (isset($_POST['captcha_input']) && isset($_POST['captcha']) && intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37)
 {
@@ -103,7 +104,9 @@ $count = 0;
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if ($line['sum'] <= 10000) { continue; }
 //if ($year == 2012 && $line['sum'] <= 0) { continue; }
-$donations[] = $line;
+
+// disabled for legal reasons.
+//$donations[] = $line;
 $count++;
 }
 pg_free_result($result);

@@ -95,8 +95,10 @@ function kdonations_page_table()
   $query = "SELECT * FROM vouchers WHERE NOT deleted AND type IN (11,12) AND ".eyes()." AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) > 0 AND amount > 0 $where ORDER BY $sort";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    kdonations_page_listing_line($line);
+    //kdonations_page_listing_line($line);
+    // disabled for legal reasons
   }
+  echo 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.';
   pg_free_result($result);
   global $make_csv;
   if (!$make_csv)

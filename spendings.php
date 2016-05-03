@@ -9,7 +9,8 @@ echo tag("tr",tag("td",tag("b",sortlink($action,'idd','Buchung'))) .
 tag("td",tag("b",sortlink($action,'datea','Datum'))) . 
 tag("td",tag("b",sortlink($action,'typea','Art'))) . 
 tag("td",tag("b",sortlink($action,'loa','LO'))) . 
-tag("td",tag("b",sortlink($action,'texta','Text'))) .
+// removed for legal reasons.
+//tag("td",tag("b",sortlink($action,'texta','Text'))) .
 tag("td",tag("b",sortlink($action,'ama','Betrag'))) .
 tag("td",tag("b",sortlink($action,'ama','Name'))));
 }
@@ -33,7 +34,9 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
-echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
+// removed for legal reasons
+//echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
+
 echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? $line["name"] : "<i>Privatperson</i>");
 if ($make_csv)
