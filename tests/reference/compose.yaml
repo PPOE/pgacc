@@ -1,0 +1,114 @@
+# PHP 5 reference recordings (golden master). Added on top of a lane's Compose
+# files by tests/reference/run.sh; see tests/README.md, "PHP 5 reference
+# recordings". PGACC_REFERENCE_* are set by run.sh.
+services:
+  database:
+    volumes:
+      - ./tests/reference/runtime/postgres-statement-log.sql:/docker-entrypoint-initdb.d/zz-statement-log.sql:ro
+      - pglog:/pglog
+
+  application:
+    image: ${PGACC_REFERENCE_IMAGE:?}
+    build:
+      context: .
+      dockerfile: tests/reference/runtime.Dockerfile
+      args:
+        BASE_IMAGE: ${PGACC_REFERENCE_BASE_IMAGE:?}
+        PGACC_REFERENCE_MCRYPT: ${PGACC_REFERENCE_MCRYPT:-0}
+    environment:
+      # A fixed, ticking "now" for the application process only (date(),
+      # time(), cookie expiry). PostgreSQL keeps the real clock; columns it
+      # fills with now() are normalized in the database dumps.
+      LD_PRELOAD: /usr/local/lib/pgacc-libfaketime.so.1
+      FAKETIME: "@2026-06-15 10:00:00"
+      DONT_FAKE_MONOTONIC: "1"
+      XDEBUG_MODE: "off"
+    # As compose.test.yaml, but display_errors=0 (diagnostics are recorded by
+    # the diagnostics recorder instead of being mixed into the bodies) and the
+    # reference prepend, which chains the diagnostics recorder.
+    command:
+      - php
+      - -d
+      - output_buffering=4096
+      - -d
+      - display_errors=0
+      - -d
+      - auto_prepend_file=/app/tests/reference/runtime/prepend.php
+      - -S
+      - 0.0.0.0:8080
+      - -t
+      - /app
+    depends_on:
+      membership:
+        condition: service_healthy
+
+  # Local membership-system stub: getusers() fetches
+  # http://mitglieder.piratenpartei.at/adm_api/adm_names.php, which this alias
+  # resolves to inside the internal test network.
+  membership:
+    image: ${PGACC_REFERENCE_IMAGE:?}
+    pull_policy: never
+    environment:
+      PGACC_REFERENCE_STUB_LOG: /stub/requests.log
+    command: ["php", "-S", "0.0.0.0:80", "/app/tests/reference/membership/router.php"]
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    init: true
+    networks:
+      test:
+        aliases:
+          - mitglieder.piratenpartei.at
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - stub:/stub
+
+  reference-test:
+    image: ${PGACC_REFERENCE_IMAGE:?}
+    pull_policy: never
+    depends_on:
+      application:
+        condition: service_healthy
+    environment:
+      PGACC_TEST_BASE_URL: http://application:8080
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: accounting
+      PGUSER: pgacc_test
+      PGPASSWORD: pgacc_test
+      PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
+      PGACC_REFERENCE_MODE: ${PGACC_REFERENCE_MODE:?}
+      PGACC_REFERENCE_LANE: ${PGACC_REFERENCE_LANE:?}
+      PGACC_REFERENCE_OWNER: ${PGACC_REFERENCE_OWNER:-}
+      PGACC_REFERENCE_STATEMENT_LOG: /pglog/statements.csv
+      PGACC_REFERENCE_STUB_LOG: /stub/requests.log
+      XDEBUG_MODE: "off"
+      TZ: UTC
+    command: ["sh", "tests/reference/in-container.sh"]
+    init: true
+    networks:
+      - test
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - diagnostics:/diagnostics
+      - pglog:/pglog:ro
+      - stub:/stub:ro
+      - ${PGACC_REFERENCE_OUT:?}:/reference-out
+
+volumes:
+  pglog:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: mode=1777
+  stub:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: mode=1777
