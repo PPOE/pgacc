@@ -8,46 +8,6 @@ function relocate($loc)
   header("Location: " . $loc);
   exit;
 }
-function page_edit_finalize($rights)
-{
-$parts = 1;
-if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
-        $parts = $_POST["parts"];
-
-$id = -1;
-if (isset($_GET["id"]))
-{
-  $id = $_GET["id"];
-}
-elseif (isset($_POST["id"]))
-{
-  $id = $_POST["id"];
-}
-if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
-{
-  echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
-  return;
-}
-
-if (!has_right($rights, 'bgf'))
-{
-  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
-  return;
-}
-echo "<h1>Buchung finalisiert - Buchung Nr. $id</h1>";
-block_start();
-echo "<a href=\"index.php?action=edit&id=$id&hint=2\">Zurück zur Buchung</a>";
-block_end();
-$rightssql = rights2orgasql($rights);
-
-$name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
-pg_free_result($result);
-relocate("index.php?action=edit&id=$id&hint=2");
-}
 function page_edit_merge($rights)
 {
 $bid1 = 0;
@@ -455,9 +415,6 @@ if (isset($_POST["addB"]))
 
 $user_name = checklogin('name');
 $bgfandack = strpos($rights, 'bgf') !== false && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
-$beleg = $vouchers[0]['receipt_received'] == 't' ? ' checked="checked"':'';
-if (isset($_POST["beleg"]))
-        $beleg = ' checked="checked"';
 
 
 end_of_form($parts,$rights,$bgfandack,$rights);

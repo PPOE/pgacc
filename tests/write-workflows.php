@@ -208,13 +208,50 @@ assert_database_field($created, 'ack1', 'synthetic-admin', 'voucher after second
 assert_database_field($created, 'ack2', 'synthetic-reviewer', 'voucher after second approval');
 assert_database_field($created, 'receipt_received', 'f', 'voucher after second approval');
 
-$finalization = http_request(
-    '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
-    'POST',
-    array('id' => $createdVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
-    $adminCookies
+// Finalization ("beleg") is removed: the form has had no button for it since
+// 68cda09 (2015), and production has a single finalized row. A POST with
+// "beleg" shows the voucher page and changes nothing, for every user (users
+// who see no row of the voucher are left out: the voucher page then raises
+// the open edit.php $vouchers finding).
+$finalizeForm = array('beleg' => 'Beleg erhalten');
+$finalizationUsers = array(
+    'admin' => $adminCookies,
+    'bgf' => $reviewerCookies,
+    'organization two' => login_user('synthetic-unit-two', 'unit-two-password'),
+    'read-only bgf' => login_user('synthetic-read-only', 'read-only-password'),
 );
-assert_redirect($finalization, edit_location($createdVoucherId, 2), 'voucher finalization');
+foreach ($finalizationUsers as $userLabel => $cookies) {
+    $finalization = http_request(
+        '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
+        'POST',
+        array('id' => $createdVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
+        $cookies
+    );
+    assert_status($finalization, 200, "finalization request by $userLabel");
+    assert_not_contains($finalization['body'], 'finalisiert', "finalization request by $userLabel");
+    assert_database_count(
+        $database,
+        'SELECT COUNT(*) AS count FROM vouchers WHERE receipt_received AND voucher_id = $1',
+        array($createdVoucherId),
+        0,
+        "voucher after a finalization request by $userLabel"
+    );
+}
+assert_contains($finalization['body'], 'value="' . $createdComment . '"', 'finalization request (voucher page)');
+
+// The existing finalized rows stay locked: set up in the database.
+function finalize_in_database($database, $voucherId, $orga = null)
+{
+    $result = @pg_query_params(
+        $database,
+        'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $1 AND ($2::integer IS NULL OR orga = $2)',
+        array($voucherId, $orga)
+    );
+    if ($result === false) {
+        fail_test('could not finalize voucher ' . $voucherId . ': ' . pg_last_error($database));
+    }
+}
+finalize_in_database($database, $createdVoucherId);
 $created = database_row(
     $database,
     'SELECT id, receipt_received, deleted FROM vouchers
@@ -357,12 +394,6 @@ $unbufferedSteps = array(
         $reviewerCookies,
         edit_location($unbufferedVoucherId, 4),
     ),
-    'finalization' => array(
-        '/index.php?action=edit&id=' . rawurlencode($unbufferedVoucherId),
-        array('id' => $unbufferedVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
-        $adminCookies,
-        edit_location($unbufferedVoucherId, 2),
-    ),
     'revision' => array(
         '/index.php?action=edit&id=' . rawurlencode($unbufferedRevisionId),
         revision_form($unbufferedRevisionId, 'Synthetic unbuffered revision', '-4.50'),
@@ -387,11 +418,10 @@ $unbuffered = database_row(
     $database,
     'SELECT ack1, ack2, receipt_received FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
     array($unbufferedVoucherId),
-    'voucher after unbuffered approvals and finalization'
+    'voucher after unbuffered approvals'
 );
 assert_database_field($unbuffered, 'ack1', 'synthetic-admin', 'voucher after unbuffered approvals');
 assert_database_field($unbuffered, 'ack2', 'synthetic-reviewer', 'voucher after unbuffered approvals');
-assert_database_field($unbuffered, 'receipt_received', 't', 'voucher after unbuffered finalization');
 $unbufferedRevision = database_row(
     $database,
     'SELECT voucher_id, amount, deleted FROM vouchers WHERE comment = $1',
@@ -662,12 +692,7 @@ assert_database_field(
 // not tell whether the voucher is finalized.
 $approveForm = array('ack' => 'Bestätigen');
 $finalizedId = create_voucher($database, 'Synthetic finalized draft', '-9.50', 9004, $adminCookies);
-$finalizeForm = array('beleg' => 'Beleg erhalten');
-assert_redirect(
-    edit_request($finalizedId, $finalizeForm, $adminCookies),
-    edit_location($finalizedId, 2),
-    'finalization without approvals'
-);
+finalize_in_database($database, $finalizedId);
 $finalizedApproval = edit_request($finalizedId, $approveForm, $adminCookies);
 assert_status($finalizedApproval, 200, 'approval of a finalized voucher');
 assert_contains($finalizedApproval['body'], 'bereits finalisiert', 'approval of a finalized voucher');
@@ -716,23 +741,9 @@ $mixedFinalizedId = create_voucher_from_form(
     two_organization_form('Synthetic partly finalized voucher', 9006),
     $adminCookies
 );
-// Finalization needs the exact bgf right (the old treasurer button; the
-// current form has no finalization button): organization users and users
-// without rights are refused and nothing changes.
-$unfinalizedState = array(voucher_row_state('1', null, null, 'f'), voucher_row_state('2', null, null, 'f'));
-foreach (array('of organization one' => $unitOneCookies, 'of organization two' => $unitTwoCookies, 'without rights' => $noRightsCookies) as $userLabel => $cookies) {
-    $finalization = edit_request($mixedFinalizedId, $finalizeForm, $cookies);
-    assert_status($finalization, 200, "finalization by a user $userLabel");
-    assert_contains($finalization['body'], 'FEHLER: Keine Zugriffsrechte.', "finalization by a user $userLabel");
-    assert_voucher_rows($database, $mixedFinalizedId, $unfinalizedState, "mixed voucher after finalization by a user $userLabel");
-}
-// A partly finalized voucher (as organization users could finalize their
-// rows before), set up in the database.
-pg_query_params(
-    $database,
-    'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $1 AND orga = 1',
-    array($mixedFinalizedId)
-);
+// A partly finalized voucher (organization users could finalize their rows
+// before the removal), set up in the database.
+finalize_in_database($database, $mixedFinalizedId, 1);
 // The finalized row of organization one blocks the approval by organization
 // two.
 $partlyFinalizedApproval = edit_request($mixedFinalizedId, $approveForm, $unitTwoCookies);
@@ -786,7 +797,7 @@ $bgfReset = known_failure_reset($resetId, $resetForm, $reviewerCookies);
 assert_contains($bgfReset['body'], 'Abfrage fehlgeschlagen: ERROR:  syntax error', 'approval reset by a bgf user (KF-DROP-ACKS-BGF)');
 assert_voucher_rows($database, $resetId, $approvedState, 'voucher after approval reset by a bgf user (KF-DROP-ACKS-BGF)');
 
-// Voucher IDs of the edit actions (approval, finalization, approval reset,
+// Voucher IDs of the edit actions (approval, approval reset,
 // revision, receipt upload) are used in SQL. Only digits are accepted; any
 // other value gets "Buchung nicht gefunden" and changes nothing.
 $injectionTargetId = create_voucher($database, 'Synthetic injection target', '-11.00', 9008, $adminCookies);
@@ -802,7 +813,6 @@ $injectedIds = array(
 );
 $injectionActions = array(
     'approval' => array($approveForm, $reviewerCookies),
-    'finalization' => array($finalizeForm, $adminCookies),
     'approval reset' => array(array('belegfehler' => 'Bestätigungen zurücksetzen!'), $noRightsCookies),
     'revision' => array(revision_form('', 'Synthetic injected revision', '-13.00'), $adminCookies),
 );
@@ -993,7 +1003,6 @@ $writeRequests = array(
     'revision' => array('/index.php?action=edit&id=' . $readOnlyTwoId, revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50')),
     'revision without an organization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array_diff_key(revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50'), array('lo0' => true))),
     'approval' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'ack' => 'Bestätigen')),
-    'finalization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'beleg' => 'Beleg erhalten')),
     'approval reset' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'belegfehler' => 'Bestätigungen zurücksetzen!')),
     'merge' => array('/index.php?action=merge&bid1=' . $readOnlyOneId . '&bid2=' . $readOnlyTwoId, null),
     'receipt upload' => array('/index.php?action=edit', $readOnlyUpload),
@@ -1040,8 +1049,6 @@ assert_redirect(edit_request($readOnlyTwoId, $approveForm, $readOnlyTwoCookies),
 assert_voucher_rows($database, $readOnlyTwoId, array(voucher_row_state('2', 'synthetic-read-only-two', null, 'f')), 'voucher approved by Rbgf,2');
 $readOnlyTwoMerge = http_request('/index.php?action=merge&bid1=' . $readOnlyTwoId . '&bid2=' . $readOnlyOneId, 'GET', array(), $readOnlyTwoCookies);
 assert_contains($readOnlyTwoMerge['body'], 'nur von Admins', 'merge by Rbgf,2');
-$readOnlyTwoFinalization = edit_request($readOnlyTwoId, $finalizeForm, $readOnlyTwoCookies);
-assert_contains($readOnlyTwoFinalization['body'], 'FEHLER: Keine Zugriffsrechte.', 'finalization by Rbgf,2');
 $foreignByReadOnlyTwo = http_request('/index.php?action=new', 'POST', array_merge(voucher_form('Synthetic voucher of Rbgf,2 in one', '-19.00', 0), array('lo0' => '1')), $readOnlyTwoCookies);
 assert_contains($foreignByReadOnlyTwo['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation in organization one by Rbgf,2');
 assert_database_field(

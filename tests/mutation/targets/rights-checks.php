@@ -3,17 +3,16 @@
  * Organization scope of voucher writes: the rights that voucher creation and
  * revision pass to get_voucher() (default organization), the check of posted
  * organizations against them, and the rights SQL
- * of approval and finalization in edit.php. Users of one organization must
+ * of approval in edit.php. Users of one organization must
  * not change rows of another one. Tested with tests/write-workflows.php
  * (users of organizations 1 and 2, bgf, admin, empty rights). See
  * tests/mutation/README.md for the format.
  */
 $ack = array('start' => 'function page_edit_ack($rights)', 'end' => 'function page_edit_save($rights)');
-$finalize = array('start' => 'function page_edit_finalize($rights)', 'end' => 'function page_edit_merge($rights)');
 $dropAcks = array('start' => 'function page_edit_drop_acks($rights)', 'end' => 'function page_edit_ack($rights)');
 
 return array(
-    'description' => 'Organization scope of voucher creation, revision, approval and finalization '
+    'description' => 'Organization scope of voucher creation, revision and approval '
         . '(write-workflow tests)',
     'file' => 'edit.php',
     'tests' => array(
@@ -188,27 +187,6 @@ return array(
             'rationale' => 'bgf without root may not merge.',
         ),
         array(
-            'id' => 'finalize-bgf-check-removed',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => 'if (false)',
-            'rationale' => 'Fail-open: users without bgf finalize vouchers.',
-        ),
-        array(
-            'id' => 'finalize-bgf-check-closed',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => 'if (true)',
-            'rationale' => 'bgf users finalize vouchers.',
-        ),
-        array(
-            'id' => 'finalize-bgf-substring',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => "if (strpos(\$rights, 'bgf') === false)",
-            'rationale' => 'Read-only bgf (Rbgf) does not finalize.',
-        ),
-        array(
             'id' => 'drop-acks-bgf-substring',
             'region' => $dropAcks,
             'search' => "if (!has_right(\$rights, 'bgf'))",
@@ -216,13 +194,11 @@ return array(
             'rationale' => 'Read-only bgf (Rbgf) does not reset approvals.',
         ),
         array(
-            'id' => 'finalize-unscoped',
-            'region' => $finalize,
-            'search' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;',
-            'replace' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id;',
-            'rationale' => 'Wrong organization: finalization marks rows of other organizations.',
-            'equivalent' => array('reason' => 'Only users with the bgf right finalize since the bgf '
-                . 'check, and their rights SQL is empty.'),
+            'id' => 'finalization-write-restored',
+            'file' => 'index.php',
+            'search' => '  else if (isset($_POST["belegfehler"]))',
+            'replace' => '  else if (isset($_POST["beleg"]) && pg_query("UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
+            'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',
         ),
         array(
             'id' => 'drop-acks-reset-removed',

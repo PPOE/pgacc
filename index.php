@@ -250,8 +250,6 @@ else if ($page == "edit")
     page_edit_save($rights);
   else if (isset($_POST["ack"]))
     page_edit_ack($rights);
-  else if (isset($_POST["beleg"]))
-    page_edit_finalize($rights);
   else if (isset($_POST["belegfehler"]))
     page_edit_drop_acks($rights);
   else

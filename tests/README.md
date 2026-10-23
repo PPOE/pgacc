@@ -173,9 +173,10 @@ because PHP 8.5 deprecates that variable at compile time.
 
 `write-workflows.php` exercises real HTTP mutations and verifies their database
 effects: voucher creation, organization-scoped approval, distinct first and
-second reviewers, finalization, the finalized-entry edit lock, revision history,
+second reviewers, the removed finalization (a POST with `beleg` changes
+nothing), the finalized-entry edit lock, revision history,
 merges (including one by a user of another organization), and root-only
-recovery. The approval, finalization, revision and merge redirects must be a
+recovery. The approval, revision and merge redirects must be a
 302 to the voucher's edit page with the exact hint and an empty body, also on
 an `output_buffering=0` server. Visitors who are not logged in posting a new
 voucher, an approval, a finalization, a revision, or a merge get only the
@@ -183,7 +184,7 @@ login redirect, and nothing changes in the database. The fixture users
 `synthetic-unit-one` (organization 1), `synthetic-unit-two` (organization 2)
 and `synthetic-no-rights` (empty rights) cover the organization scope: the
 default organization of vouchers created or revised without one, approvals
-and finalization of a voucher with rows in two organizations, approvals of
+of a voucher with rows in two organizations, approvals of
 finalized vouchers, and the approval reset. It uses a synthetic receipt reference;
 `tests/http-receipts.php` covers receipt upload, PDF import (PHP 5 server only,
 i.e. the PHP 5.3 lane: the locked `smalot/pdfparser` does not load on 7.2+), download and the

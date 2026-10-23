@@ -94,7 +94,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 |---|---|
 | `index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
 | `functions.php` | Shared helpers: `acc_header`/`acc_footer`, `getfilter`, `getsort`, `rights2orgasql` (rights to SQL) |
-| `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), finalize, merge, revisions |
+| `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), merge, revisions (finalization removed) |
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
 | `getusers.php`, `mbapi.php` | Membership-system interface (lookup and export API) |

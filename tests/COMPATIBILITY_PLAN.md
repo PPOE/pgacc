@@ -102,16 +102,20 @@ with synthetic users and covered by a mutation target.
   `tests/write-workflows.php`): for `bgf` users the reset still fails with
   "Abfrage fehlgeschlagen" (syntax error); passing `$rightssql` would make
   it work. Mutation target `rights-checks`.
-- [x] Finalization (`page_edit_finalize()`, POST `beleg`). The voucher form
-  has had no finalization button since `68cda09` (2015); before, only the
-  treasurer (`bsm`) saw it, after both approvals. The action stayed
-  reachable by a direct request for every user, within the rights SQL. It
-  now requires the exact `bgf` right; other users get "FEHLER: Keine
-  Zugriffsrechte." and nothing changes. Behaviour difference: organization
-  users (and `Rbgf`) can no longer finalize their own rows; `bgf` users
-  are unchanged (they may still finalize without approvals). The
-  `finalize-unscoped` mutant of `rights-checks` is an accepted equivalent
-  since: the rights SQL of a `bgf` user is empty.
+- [x] Finalization (`page_edit_finalize()`, POST `beleg`) is **removed**
+  (owner decision). History: the treasurer button ("Ja, es ist alles in
+  Ordnung. Ich möchte die Buchung finalisieren.") was shown to `bsm` after
+  both approvals until `68cda09` (2015) and was never checked on the
+  server; afterwards the action stayed reachable by a direct request for
+  every user, within the rights SQL. Evidence: on production a single
+  voucher row has ever been finalized (booking date 2011), none of about
+  6,400 rows booked 2012-2025 (read-only count by the owner). The function,
+  its `index.php` dispatch and the unused `$beleg` of `page_edit()` are
+  deleted; a POST with `beleg` now shows the voucher page and writes
+  nothing (tested for admin, `bgf`, an organization user and `Rbgf`). The
+  `receipt_received` column and every "bereits finalisiert" check (approval,
+  revision, receipt upload) stay, so the existing finalized row stays
+  locked. Mutation target `rights-checks` (`finalization-write-restored`).
 - [x] Approval of a voucher of another organization (`page_edit_ack()`,
   `KD-EDIT-RIGHTSSQL`): the finalized check ran without the (then undefined)
   rights SQL, so a user of another organization learned whether a voucher
@@ -791,11 +795,11 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
-| Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`, fixed) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. The `donations.php` entries (5 findings) were removed with the fix. |
+| Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12; 11 after the finalization removal), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`, fixed) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. The `donations.php` entries (5 findings) were removed with the fix. |
 | Empty array passed to `foreach` | `donations.php:119`, `:127` (2) | Added with the `donations.php` fix: `$donations` is now always `array()`, because the assignment that filled it is commented out (publication disabled for legal reasons). PHPStan correctly reports the sort and output loops as dead code. Kept on purpose until the owner decides on publication; see the array/input table. |
 | Malformed regular expression | `functions.php:73` | Known |
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |

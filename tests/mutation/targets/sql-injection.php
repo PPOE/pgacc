@@ -1,19 +1,18 @@
 <?php
 /*
  * Request values used in SQL: the voucher ID of the edit actions (approval,
- * finalization, approval reset, revision, receipt upload) accepts digits
+ * approval reset, revision, receipt upload) accepts digits
  * only, old approval names and the old-approval filter are escaped, and the
  * voucher date must match its pattern as a whole. Tested with
  * tests/write-workflows.php. See tests/mutation/README.md for the format.
  */
-$finalize = array('start' => 'function page_edit_finalize($rights)', 'end' => 'function page_edit_merge($rights)');
 $dropAcks = array('start' => 'function page_edit_drop_acks($rights)', 'end' => 'function page_edit_ack($rights)');
 $ack = array('start' => 'function page_edit_ack($rights)', 'end' => 'function page_edit_save($rights)');
 $save = array('start' => 'function page_edit_save($rights)', 'end' => 'function page_edit_buchung(');
 $check = 'if (!is_string($id) || preg_match(\'/^\d+$/D\', $id) != 1)';
 
 $mutations = array();
-foreach (array('finalize' => $finalize, 'drop-acks' => $dropAcks, 'ack' => $ack, 'save' => $save) as $name => $region) {
+foreach (array('drop-acks' => $dropAcks, 'ack' => $ack, 'save' => $save) as $name => $region) {
     $mutations[] = array(
         'id' => "$name-id-unchecked",
         'region' => $region,
