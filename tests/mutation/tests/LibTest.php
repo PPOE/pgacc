@@ -58,6 +58,29 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->fail('Expected a PgaccMutationException containing: ' . $expectedMessagePart);
     }
 
+    public function testDropDatabaseUsesForceFromPostgresql13()
+    {
+        $this->assertSame(
+            array('DROP DATABASE IF EXISTS accounting WITH (FORCE)'),
+            pgacc_mutation_drop_database_sql('accounting', '130000')
+        );
+        $this->assertSame(
+            array('DROP DATABASE IF EXISTS accounting WITH (FORCE)'),
+            pgacc_mutation_drop_database_sql('accounting', '180001')
+        );
+    }
+
+    public function testDropDatabaseTerminatesBackendsBeforePostgresql13()
+    {
+        $expected = array(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'accounting' AND pid <> pg_backend_pid()",
+            'DROP DATABASE IF EXISTS accounting',
+        );
+        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '129999'));
+        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '90426'));
+        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', 0));
+    }
+
     public function testValidTargetGetsDefaults()
     {
         $target = pgacc_mutation_validate_target(self::target(array(

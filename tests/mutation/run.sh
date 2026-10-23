@@ -9,8 +9,8 @@ set -eu
 # Runs tests/mutation/runner.php in a one-off container of the lane's
 # application image, on the lane's isolated database and internal network.
 # Results go to build/mutation/<target>-php<lane>/ (override with
-# PGACC_MUTATION_HOST_DIR). PGACC_TEST_ID isolates concurrent runs exactly as
-# for tests/run.sh.
+# PGACC_MUTATION_HOST_DIR). PGACC_TEST_ID isolates concurrent runs and
+# PGACC_TEST_PG selects the PostgreSQL server exactly as for tests/run.sh.
 
 test_id=${PGACC_TEST_ID:-}
 case "$test_id" in
@@ -19,7 +19,8 @@ case "$test_id" in
     exit 2
     ;;
 esac
-PGACC_TEST_SUFFIX=${test_id:+-$test_id}
+. "$(dirname "$0")/../postgres-version.sh"
+PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
 export PGACC_TEST_SUFFIX
 
 usage()
@@ -83,7 +84,7 @@ if [ "$target" = --self-test ]; then
   exit
 fi
 
-host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane}
+host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane$PGACC_TEST_PG_TAG}
 rm -rf "$host_dir"
 mkdir -p "$host_dir"
 

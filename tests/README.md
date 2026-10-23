@@ -37,7 +37,9 @@ names are unchanged (`pgacc-test-php74`, `pgacc-test-application`, ...). Runs
 with an ID leave their tagged images behind; remove them with `docker rmi` when
 no longer needed.
 
-GitHub Actions runs the four application lanes as parallel matrix jobs,
+GitHub Actions runs the four application lanes as parallel matrix jobs
+on PostgreSQL 17, plus PHP 7.4 on PostgreSQL 9.4 and 18 (see
+[PostgreSQL versions](#postgresql-versions)),
 alongside a separate syntax compatibility job. A failure in any application
 lane fails CI; it does not cancel the other lanes. A separate, non-blocking `mutation`
 job runs Infection on PHP 7.4 and PHP 8.5 and uploads its reports.
@@ -63,7 +65,8 @@ The runner currently performs four checks:
 PHP 5.6, 7.4, and 8.0 are historical characterization runtimes, not supported
 deployment targets. PHP 8.5.12 is also tested as an upgrade target. Passing syntax
 checks alone does not establish behavioral compatibility. The database uses
-PostgreSQL 17 as the initial replacement platform target.
+PostgreSQL 17 as the initial replacement platform target by default; see
+[PostgreSQL versions](#postgresql-versions) for the 9.4, 14, and 18 servers.
 
 `fixtures/schema.sql` was reconstructed from a read-only inspection of the
 deployed PostgreSQL 8.4.20 catalog. It preserves the observed tables, columns,
@@ -221,6 +224,77 @@ reviewed equivalents.
 CI runs the runner's self-tests and the `rights2orgasql` target on every lane,
 and the `login-logout` target on PHP 5.6, 7.4 and 8.0.
 See [the runner documentation](mutation/README.md).
+
+## PostgreSQL versions
+
+The PostgreSQL server is a second test axis, selected with `PGACC_TEST_PG`
+(default `17`, unchanged behaviour). It combines with every PHP lane and with
+`PGACC_TEST_ID`:
+
+```bash
+PGACC_TEST_ID=pg94 PGACC_TEST_PG=9.4 sh tests/run.sh 7.4
+PGACC_TEST_ID=pg18 PGACC_TEST_PG=18 sh tests/run.sh 7.4
+PGACC_TEST_PG=9.4 sh tests/run.sh 5.6
+PGACC_TEST_PG=9.4 sh tests/mutation/run.sh 7.4 login-logout
+```
+
+| `PGACC_TEST_PG` | Image (pinned by digest in `tests/postgres-version.sh`) | Notes |
+|---|---|---|
+| `9.4` | `postgres:9.4` (9.4.26, last official build) | Oldest pullable stand-in for production 8.4.20. MD5 authentication only (no SCRAM); `password_encryption` is a boolean (`on`). |
+| `14` | `postgres:14-bookworm` | Last major that accepts `8AND` (see `KD-REPORT-SQL-PG15` in the compatibility plan). |
+| `17` | `postgres:17-bookworm` | Default; the digest is also the default in `compose.test.yaml`. |
+| `18` | `postgres:18-bookworm` | Data directory is `/var/lib/postgresql/18/docker`; the tmpfs moves to `/var/lib/postgresql`. Records NOT NULL as `pg_constraint` rows. |
+
+`postgres:8.4` and `postgres:9.0` images use a manifest format that current
+Docker engines no longer pull, so 8.4 itself cannot be tested here.
+
+`tests/postgres-version.sh` maps the version to the image, the data tmpfs and
+the MD5 `password_encryption` value, which `compose.test.yaml` and
+`compose.php56.yaml` read as `PGACC_TEST_PG_*` variables (their defaults are
+the 17 settings, so plain `docker compose` calls are unchanged). The
+`database-test` service uses the same image, so `psql` always matches the
+server. A non-default version appends `-pg94`, `-pg14` or `-pg18` to the
+Compose project names, the locally built image tags, and the mutation result
+directory, so several versions (and IDs) can run concurrently; for example
+`PGACC_TEST_ID=pg94 PGACC_TEST_PG=9.4 sh tests/run.sh 7.4` uses the project
+`pgacc-test-pg94-pg94-php74`. Remove the tagged images with `docker rmi` when
+no longer needed. Authentication per lane: PHP 7.4/8.0/8.5 use the server
+default (MD5 on 9.4, SCRAM on 14+); PHP 5.6 always uses MD5.
+
+Test infrastructure adaptations, all valid on 9.4 through 18:
+
+- `database-smoke.sh` includes the three SQL files from one generated `\i`
+  script, because `psql` before 9.6 silently runs only the last `--file`.
+- `database-characterization.sql` looks up the `public` namespace in
+  `pg_namespace` instead of `'public'::regnamespace` (9.5+), ignores
+  PostgreSQL 18's NOT NULL constraint rows (`contype = 'n'`) and checks NOT
+  NULL columns through `pg_attribute.attnotnull` instead, which is what 8.4
+  uses as well. Its comparisons use `IS DISTINCT FROM`: with `<>`, an empty
+  result (`NULL`) passed silently, which is how the 9.4 `--file` problem first
+  went unnoticed in the table check.
+- The mutation runner uses `DROP DATABASE ... WITH (FORCE)` only on 13+; on
+  older servers it terminates the database's other backends with
+  `pg_terminate_backend()` first.
+- `pgcrypto` (`crypt()`, `gen_salt('md5')`) is available as an extension in
+  all four images; production 8.4 installs it from contrib, with the same
+  MD5-crypt hashes.
+
+Coverage is collected only on PHP 7.4 with PostgreSQL 17; other PostgreSQL
+versions run the 7.4 lane without `compose.coverage.yaml`.
+`tests/known-diagnostics.php` has no PostgreSQL-specific entries: every lane
+produced the same diagnostics on 9.4, 14, 17 and 18 (see
+[COMPATIBILITY_PLAN.md](COMPATIBILITY_PLAN.md#postgresql-version-matrix)). If
+a version-specific diagnostic appears, add a `pg` key to that entry in the style
+of the `php` key and teach `tests/http-diagnostics.php` to match it, with tests.
+
+**Limit: 9.4 is not 8.4.** Differences that the 9.4 server cannot reproduce
+include `standard_conforming_strings` (off by default on 8.4, on from 9.1:
+backslashes in string literals built with `pg_escape_string()`), the 8.4
+planner, and `bytea_output` (hex from 9.0), and
+`DO`/`CREATE EXTENSION` (9.0/9.1; the characterization script itself needs
+9.0+). Read-only checks on production that could close this gap, to be run
+only by the owner, are proposed in the compatibility plan; nothing has been
+run against production.
 
 ## Coverage
 

@@ -10,7 +10,10 @@ case "$test_id" in
     exit 2
     ;;
 esac
-PGACC_TEST_SUFFIX=${test_id:+-$test_id}
+# PGACC_TEST_PG (default 17) selects the PostgreSQL server; non-default
+# versions add "-pgNN" to the suffix.
+. "$(dirname "$0")/postgres-version.sh"
+PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
 export PGACC_TEST_SUFFIX
 
 php_version=${1:-all}
@@ -26,11 +29,16 @@ case "$php_version" in
     ;;
   7.4|5.6|8.0|8.5) ;;
   *)
-    echo "Usage: sh tests/run.sh [all|7.4|5.6|8.0|8.5]" >&2
+    echo "Usage: [PGACC_TEST_PG=9.4|14|17|18] sh tests/run.sh [all|7.4|5.6|8.0|8.5]" >&2
     exit 2
     ;;
 esac
 
+# Coverage is collected only on PHP 7.4 with the default PostgreSQL 17 server.
+coverage=
+if [ "$php_version" = 7.4 ] && [ "$PGACC_TEST_PG" = 17 ]; then
+  coverage=1
+fi
 
 compose()
 {
@@ -43,9 +51,12 @@ compose()
   elif [ "$php_version" = 8.5 ]; then
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php85" \
       -f compose.test.yaml -f compose.php85.yaml "$@"
-  else
+  elif [ -n "$coverage" ]; then
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php74" \
       -f compose.test.yaml -f compose.coverage.yaml "$@"
+  else
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php74" \
+      -f compose.test.yaml "$@"
   fi
 }
 
@@ -56,7 +67,7 @@ cleanup()
 
 trap cleanup EXIT INT TERM
 
-if [ "$php_version" = 7.4 ]; then
+if [ -n "$coverage" ]; then
   # Merged PHPUnit + HTTP coverage report (see tests/README.md, "Coverage").
   repo_root=$(cd "$(dirname "$0")/.." && pwd)
   PGACC_COVERAGE_HOST_DIR=${PGACC_COVERAGE_HOST_DIR:-$repo_root/build/coverage}
@@ -72,7 +83,7 @@ if [ "$php_version" = 7.4 ]; then
   fi
 fi
 
-echo "Running application tests on PHP $php_version"
+echo "Running application tests on PHP $php_version with PostgreSQL $PGACC_TEST_PG"
 compose up --detach --wait database
 compose run --rm php-lint
 compose run --rm database-test

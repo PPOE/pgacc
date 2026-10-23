@@ -21,6 +21,22 @@ function pgacc_mutation_fixture_files()
     return array('tests/fixtures/schema.sql', 'tests/fixtures/data.sql', 'tests/database-characterization.sql');
 }
 
+// Statements that drop database $name even while clients are connected.
+// DROP DATABASE ... WITH (FORCE) needs PostgreSQL 13 (server_version_num
+// 130000); older servers (PGACC_TEST_PG=9.4) first terminate the other
+// backends, which pg_stat_activity.pid names from 9.2 on. $name must already
+// be a validated identifier.
+function pgacc_mutation_drop_database_sql($name, $serverVersionNum)
+{
+    if ((int) $serverVersionNum >= 130000) {
+        return array("DROP DATABASE IF EXISTS $name WITH (FORCE)");
+    }
+    return array(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$name' AND pid <> pg_backend_pid()",
+        "DROP DATABASE IF EXISTS $name",
+    );
+}
+
 class PgaccMutationException extends RuntimeException
 {
 }

@@ -35,25 +35,42 @@ jobs:
         run: sh tests/static-analysis.sh
 
   docker-harness:
-    name: PHP ${{ matrix.php }} characterization harness
+    name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        # PostgreSQL 17 is the default server for every PHP lane; PHP 7.4 also
+        # runs against 9.4 (oldest pullable stand-in for production 8.4) and
+        # 18. Coverage is collected only on PHP 7.4 / PostgreSQL 17.
         include:
           - php: '7.4'
+            pg: '17'
             project: pgacc-test-php74
             compose_files: -f compose.test.yaml -f compose.coverage.yaml
+          - php: '7.4'
+            pg: '9.4'
+            project: pgacc-test-pg94-php74
+            compose_files: -f compose.test.yaml
+          - php: '7.4'
+            pg: '18'
+            project: pgacc-test-pg18-php74
+            compose_files: -f compose.test.yaml
           - php: '5.6'
+            pg: '17'
             project: pgacc-test-php56
             compose_files: -f compose.test.yaml
           - php: '8.0'
+            pg: '17'
             project: pgacc-test-php80
             compose_files: -f compose.test.yaml
           - php: '8.5'
+            pg: '17'
             project: pgacc-test-php85
             compose_files: -f compose.test.yaml
+    env:
+      PGACC_TEST_PG: ${{ matrix.pg }}
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -63,19 +80,20 @@ jobs:
 
       - name: Run application checks
         env:
-          # PHP 7.4 lane only: fail if a changed executable line is uncovered.
+          # PHP 7.4 / PostgreSQL 17 lane only: fail if a changed executable
+          # line is uncovered (tests/run.sh ignores it on other lanes).
           PGACC_COVERAGE_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
         run: sh tests/run.sh '${{ matrix.php }}'
 
       - name: Publish coverage summary
-        if: always() && matrix.php == '7.4'
+        if: always() && matrix.php == '7.4' && matrix.pg == '17'
         run: |
           if [ -f build/coverage/summary.txt ]; then
             { echo '```'; cat build/coverage/summary.txt; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload coverage report
-        if: always() && matrix.php == '7.4'
+        if: always() && matrix.php == '7.4' && matrix.pg == '17'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-php74
@@ -99,7 +117,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: mutation-php${{ matrix.php }}
+          name: mutation-php${{ matrix.php }}${{ matrix.pg != '17' && format('-pg{0}', matrix.pg) || '' }}
           path: build/mutation
           if-no-files-found: warn
 

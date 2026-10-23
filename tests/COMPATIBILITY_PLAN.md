@@ -121,6 +121,93 @@ In addition to the PHP 8 forms of the issues above, they report:
   and `spendings.php`; `strlen(): Passing null to parameter #1` at
   `functions.php:179/228/230`.
 
+## PostgreSQL version matrix
+
+Run on 2026-10-23 with `PGACC_TEST_PG` (see the
+[test README](README.md#postgresql-versions)). Production runs 8.4.20, which
+cannot be pulled; 9.4.26 is the oldest stand-in.
+
+| Lane | 9.4.26 | 14.24 | 17.11 | 18.6 |
+|---|---|---|---|---|
+| PHP 7.4 (`run.sh 7.4`) | pass | pass | pass (coverage lane) | pass |
+| PHP 5.6 (`run.sh 5.6`) | pass | not run | CI lane (not re-run locally) | not run |
+
+All lanes that ran produced the same PHP diagnostics, PHPUnit results
+(155 tests; PHP 5.6 also 237 assertions), HTTP/login and write-workflow results on every server; the
+`known-diagnostics.php` baseline therefore needs no per-PostgreSQL entries
+(no `pg` key). As an additional manual check, 28 read-only pages (report
+2023-2025, ledger, open/closed/deleted lists and their CSV exports, public
+transactions/spendings/donations, statistics, `tinyreport`, `vreport`, `wk`,
+accounts, edit and recover views) were fetched as `synthetic-admin` from
+fresh fixtures on PHP 7.4 against each server. The bodies were byte-identical
+apart from random captcha numbers and Xdebug timings in the `mb.php` error
+page (it tries to reach the membership API, which the isolated network
+blocks). `KD-REPORT-SQL-PG15` was fixed before this run, so 14 and 15+
+no longer differ; before the fix, 9.4 and 14 accepted `8AND` and 15+ did not.
+
+Version-specific differences found, all in test infrastructure (adapted, no
+application change):
+
+- [x] `psql` before 9.6 runs only the **last** `--file`. On 9.4,
+  `database-smoke.sh` therefore ran only the characterization script without
+  schema or data. The table/sequence/constraint check still passed, because
+  `array_agg()` of no rows is `NULL` and `NULL <> ARRAY[...]` is not true; the
+  run then failed at the first `vouchers` reference. Fixed by including the
+  files from one `\i` script and by using `IS DISTINCT FROM` in every
+  characterization comparison, so empty results now fail on all versions.
+- [x] `'public'::regnamespace` needs 9.5+; replaced by a `pg_namespace` lookup.
+- [x] PostgreSQL 18 stores NOT NULL as `pg_constraint` rows (`contype = 'n'`,
+  e.g. `vouchers_deleted_not_null`), which broke the exact constraint list.
+  Those rows are excluded and NOT NULL columns are now checked through
+  `pg_attribute.attnotnull` on every version (the 8.4 representation).
+- [x] The 18 image keeps its data in `/var/lib/postgresql/18/docker` and
+  refuses to start with a mount at `/var/lib/postgresql/data`; the tmpfs path
+  is selected per version.
+- [x] 9.4's `password_encryption` is a boolean (`on` = MD5) and 9.4 has no
+  SCRAM: the PHP 5.6 lane's `password_encryption=md5` is spelled `on` there.
+  PHP 7.4 authenticates with MD5 on 9.4 and SCRAM on 14+.
+- [x] `DROP DATABASE ... WITH (FORCE)` (mutation runner) needs 13+; older
+  servers terminate the other backends first. Unit-tested in
+  `tests/mutation/tests/LibTest.php`; exercised against 9.4 by the CI lane's
+  mutation step.
+
+No application SQL failed or changed results on 9.4, 14, 17 or 18 within the
+covered routes. Not covered: imports (`import.php`, `import2.php`), `merge`,
+`accounts` writes, and the membership pages, which need the removed `mcrypt`
+or external services.
+
+### 8.4 behaviour that 9.4 cannot show
+
+- [ ] `standard_conforming_strings` is **off** by default on 8.4 (on from
+  9.1). `pg_escape_string()` adapts to the connection setting, but literals
+  in the application that contain backslashes would change meaning (a
+  search of the `pg_query()` lines found none; values pass through
+  `pg_escape_string()` in `accounts.php`, `edit.php`, `index.php`,
+  `getusers.php`, `import.php` and `new.php`, which follows the setting of the
+  connection). A test could
+  set `standard_conforming_strings=off` on the 9.4 server to emulate 8.4.
+- [ ] `bytea_output` is `escape` on 8.4 (`hex` from 9.0); the schema has no
+  `bytea` columns, so this matters only for ad-hoc queries.
+- [ ] Planner and sort differences: queries without `ORDER BY` (or with
+  ties) can return rows in a different order on 8.4. The synthetic fixtures
+  gave identical page output on 9.4-18, but they are small.
+
+Proposed read-only checks on production, for the owner to run; nothing has
+been run against production:
+
+1. `SHOW server_version; SHOW standard_conforming_strings; SHOW
+   bytea_output; SHOW datestyle; SHOW lc_collate; SHOW client_encoding;`
+   and compare with the test servers.
+2. `EXPLAIN` (not `EXPLAIN ANALYZE`, which executes the query) of the queries
+   generated for `index.php?year=<current>` (report), `action=all`,
+   `action=closed` and `action=transactions`, captured from the synthetic
+   harness with `log_statement=all`, to compare plans and spot sort or
+   hash-aggregate ordering that the pages rely on.
+3. `SELECT extname, extversion FROM pg_extension` fails on 8.4 (no
+   extensions); instead check `SELECT proname FROM pg_proc WHERE proname IN
+   ('crypt', 'gen_salt')` to confirm the contrib pgcrypto functions used by
+   login and `accounts.php`.
+
 ## Further array/input findings
 
 | Location | Trigger and evidence | Follow-up |

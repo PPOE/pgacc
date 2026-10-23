@@ -1,11 +1,14 @@
 -- Representative SQL contracts copied from the current application.
--- Any failed assertion aborts the test run.
+-- Any failed assertion aborts the test run. Comparisons use IS DISTINCT FROM,
+-- so an empty result (NULL from array_agg) fails instead of passing silently.
+-- Must stay valid on every PGACC_TEST_PG server (9.4 to 18).
 
 DO $test$
 DECLARE
   actual_tables text[];
   actual_sequences text[];
   actual_constraints text[];
+  actual_not_null text[];
 BEGIN
   SELECT array_agg(table_name::text ORDER BY table_name)
   INTO actual_tables
@@ -13,7 +16,7 @@ BEGIN
   WHERE table_schema = 'public'
     AND table_type = 'BASE TABLE';
 
-  IF actual_tables <> ARRAY[
+  IF actual_tables IS DISTINCT FROM ARRAY[
     'balance',
     'donation_type',
     'import',
@@ -32,7 +35,7 @@ BEGIN
   FROM information_schema.sequences
   WHERE sequence_schema = 'public';
 
-  IF actual_sequences <> ARRAY[
+  IF actual_sequences IS DISTINCT FROM ARRAY[
     'balance_id_seq',
     'donation_type_id_seq',
     'file_number',
@@ -50,10 +53,46 @@ BEGIN
   SELECT array_agg(conname::text ORDER BY conname)
   INTO actual_constraints
   FROM pg_constraint
-  WHERE connamespace = 'public'::regnamespace;
+  -- PostgreSQL 18 also records NOT NULL as constraints (contype 'n'); older
+  -- servers, including production 8.4, keep them only in attnotnull.
+  -- A pg_namespace lookup instead of 'public'::regnamespace (PostgreSQL 9.5+)
+  -- keeps this check valid on the 9.4 test server.
+  WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    AND contype <> 'n';
 
-  IF actual_constraints <> ARRAY['import_line_key', 'users_name_key']::text[] THEN
+  IF actual_constraints IS DISTINCT FROM ARRAY['import_line_key', 'users_name_key']::text[] THEN
     RAISE EXCEPTION 'Unexpected application constraints: %', actual_constraints;
+  END IF;
+
+  -- NOT NULL columns, read from attnotnull on every server version.
+  SELECT array_agg((c.relname || '.' || a.attname)::text ORDER BY c.relname, a.attname)
+  INTO actual_not_null
+  FROM pg_attribute AS a
+  JOIN pg_class AS c ON c.oid = a.attrelid
+  WHERE c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    AND c.relkind = 'r'
+    AND a.attnum > 0
+    AND NOT a.attisdropped
+    AND a.attnotnull;
+
+  IF actual_not_null IS DISTINCT FROM ARRAY[
+    'balance.id',
+    'donation_type.id',
+    'donation_type.name',
+    'lo.id',
+    'lo.name',
+    'oo.id',
+    'oo.lo',
+    'oo.name',
+    'person_type.id',
+    'type.id',
+    'type.name',
+    'type.used',
+    'users.id',
+    'vouchers.deleted',
+    'vouchers.id'
+  ]::text[] THEN
+    RAISE EXCEPTION 'Unexpected NOT NULL columns: %', actual_not_null;
   END IF;
 END
 $test$;
@@ -117,7 +156,7 @@ BEGIN
       AND (ack1 IS NULL OR ack2 IS NULL)
   ) AS open_vouchers;
 
-  IF actual_ids <> ARRAY[102, 105, 109, 110] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[102, 105, 109, 110] THEN
     RAISE EXCEPTION 'Unexpected open voucher IDs: %', actual_ids;
   END IF;
 END
@@ -148,7 +187,7 @@ BEGIN
       AND ack2 IS NOT NULL
   ) AS closed_vouchers;
 
-  IF actual_rows <> ARRAY[
+  IF actual_rows IS DISTINCT FROM ARRAY[
     '101:0',
     '103:1',
     '104:1',
@@ -172,7 +211,7 @@ BEGIN
     AND amount != 0
     AND date > timestamp '2011-12-31';
 
-  IF actual_ids <> ARRAY[101, 102, 103, 104, 105, 109, 110] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[101, 102, 103, 104, 105, 109, 110] THEN
     RAISE EXCEPTION 'Unexpected public transaction IDs: %', actual_ids;
   END IF;
 END
@@ -190,7 +229,7 @@ BEGIN
     AND (ack1 IS NOT NULL OR ack2 IS NOT NULL)
     AND amount < 0;
 
-  IF actual_ids <> ARRAY[103, 104] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[103, 104] THEN
     RAISE EXCEPTION 'Unexpected public spending IDs: %', actual_ids;
   END IF;
 END

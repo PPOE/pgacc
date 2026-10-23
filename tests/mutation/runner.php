@@ -94,6 +94,14 @@ function database_name()
     return $name;
 }
 
+function drop_database($connection, $name)
+{
+    $version = pg_fetch_result(sql($connection, 'SHOW server_version_num'), 0, 0);
+    foreach (pgacc_mutation_drop_database_sql($name, $version) as $query) {
+        sql($connection, $query);
+    }
+}
+
 // Builds the template once from the lane's fixtures (in one transaction, as
 // database-smoke.sh does). index.php connects to the fixed name "accounting",
 // so each run recreates that database from the template.
@@ -101,7 +109,7 @@ function create_template($app)
 {
     $template = database_name() . '_mutation_template';
     $maintenance = maintenance_connection();
-    sql($maintenance, "DROP DATABASE IF EXISTS $template WITH (FORCE)");
+    drop_database($maintenance, $template);
     sql($maintenance, "CREATE DATABASE $template");
     $connection = @pg_connect(sprintf(
         'host=%s port=%s dbname=%s user=%s password=%s',
@@ -126,13 +134,13 @@ function create_template($app)
 function reset_database($database)
 {
     $name = database_name();
-    sql($database['connection'], "DROP DATABASE IF EXISTS $name WITH (FORCE)");
+    drop_database($database['connection'], $name);
     sql($database['connection'], "CREATE DATABASE $name TEMPLATE {$database['template']}");
 }
 
 function drop_template($database)
 {
-    sql($database['connection'], "DROP DATABASE IF EXISTS {$database['template']} WITH (FORCE)");
+    drop_database($database['connection'], $database['template']);
 }
 
 // Copy of the application without vendor/ (linked) and runtime directories.

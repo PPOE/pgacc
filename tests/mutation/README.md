@@ -318,7 +318,8 @@ PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 --self-test            # runner 
 ```
 
 The lane is `5.6`, `7.4`, `8.0` or `8.5`; the target is the name of a file in
-`targets/`. Results go to `build/mutation/<target>-php<lane>/` (override with
+`targets/`. Results go to `build/mutation/<target>-php<lane>/` (with a
+`-pgNN` suffix for a non-default `PGACC_TEST_PG`; override with
 `PGACC_MUTATION_HOST_DIR`): `results.json`, `summary.txt`, and one test log and
 one server log per mutant. `PGACC_TEST_ID` isolates concurrent runs as for
 `tests/run.sh`; remove the tagged image with `docker rmi` afterwards.
@@ -351,7 +352,10 @@ same image, environment, internal network, read-only root, and `/tmp` tmpfs.
      killed;
    - recreates `accounting` from the template (`DROP DATABASE ... WITH (FORCE)`
      and `CREATE DATABASE ... TEMPLATE`): `index.php` connects to the fixed
-     name `accounting`, so the name is reused rather than varied;
+     name `accounting`, so the name is reused rather than varied. Servers
+     older than PostgreSQL 13 (`PGACC_TEST_PG=9.4`) have no `WITH (FORCE)`;
+     there the runner first terminates the database's other backends with
+     `pg_terminate_backend()` and then drops it;
    - for HTTP tests, starts a fresh `php -S 127.0.0.1:<port>` on the copy with
      the application service's settings (`output_buffering=4096` and the
      diagnostics recorder as `auto_prepend_file`, checked against

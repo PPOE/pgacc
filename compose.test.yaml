@@ -1,8 +1,11 @@
 name: pgacc-test
 
 services:
+  # PGACC_TEST_PG_* are set by tests/postgres-version.sh (PGACC_TEST_PG); the
+  # defaults are the PostgreSQL 17 server. database-test uses the same image so
+  # that psql matches the server version.
   database:
-    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    image: ${PGACC_TEST_PG_IMAGE:-postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0}
     environment:
       POSTGRES_DB: accounting
       POSTGRES_USER: pgacc_test
@@ -16,7 +19,7 @@ services:
     networks:
       - test
     tmpfs:
-      - /var/lib/postgresql/data
+      - ${PGACC_TEST_PG_DATA:-/var/lib/postgresql/data}
 
   php-lint:
     image: php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
@@ -30,7 +33,7 @@ services:
     working_dir: /app
 
   database-test:
-    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    image: ${PGACC_TEST_PG_IMAGE:-postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0}
     depends_on:
       database:
         condition: service_healthy
