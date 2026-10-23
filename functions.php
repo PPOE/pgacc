@@ -497,4 +497,66 @@ function vouchers_reset_ack($id, $rightssql) {
   pg_free_result($result);
 }
 
+/*
+ * Replacement for the removed mcrypt extension, byte-compatible with
+ * mcrypt_encrypt()/mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $data,
+ * MCRYPT_MODE_CBC, $iv): Rijndael with a 256-bit block (not AES), CBC mode,
+ * data zero-padded to whole 32-byte blocks (at least one), padding kept on
+ * decryption. Keys and IVs are 32-byte md5 hex strings. phpseclib uses the
+ * mcrypt extension where it is loaded and its own implementation elsewhere;
+ * both give the same bytes.
+ * Contract vectors: tests/fixtures/mcrypt/vectors.json.
+ */
+function rijndael256_cbc($key, $iv)
+{
+  $cipher = new \phpseclib\Crypt\Rijndael(\phpseclib\Crypt\Base::MODE_CBC);
+  $cipher->setBlockLength(256);
+  $cipher->setKey($key);
+  $cipher->setIV($iv);
+  $cipher->disablePadding();
+  return $cipher;
+}
+
+function rijndael256_zero_pad($data)
+{
+  $blocks = max(1, intval(ceil(strlen($data) / 32)));
+  return str_pad($data, $blocks * 32, "\0");
+}
+
+function rijndael256_encrypt($key, $data, $iv)
+{
+  return rijndael256_cbc($key, $iv)->encrypt(rijndael256_zero_pad($data));
+}
+
+function rijndael256_decrypt($key, $data, $iv)
+{
+  return rijndael256_cbc($key, $iv)->decrypt(rijndael256_zero_pad($data));
+}
+
+/*
+ * Receipt files (files/<n>.aes), keyed by the voucher ID. The callers pass
+ * their $key as it is; see the mcrypt item in tests/COMPATIBILITY_PLAN.md
+ * before changing the key derivation.
+ */
+function receipt_encrypt($id, $key, $data)
+{
+  return rijndael256_encrypt(md5($id . $key . $id), $data, md5($key . $id));
+}
+
+function receipt_decrypt($id, $key, $data)
+{
+  return rijndael256_decrypt(md5($id . $key . $id), $data, md5($key . $id));
+}
+
+// Membership-system exchange (getusers.php, mbapi.php).
+function membership_encrypt($datakey, $data)
+{
+  return rijndael256_encrypt(md5($datakey), $data, md5(md5($datakey)));
+}
+
+function membership_decrypt($datakey, $data)
+{
+  return rijndael256_decrypt(md5($datakey), $data, md5(md5($datakey)));
+}
+
 ?>

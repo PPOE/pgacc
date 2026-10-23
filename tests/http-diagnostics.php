@@ -106,8 +106,12 @@ function collect_response_diagnostics($requestId, $label, $response)
     foreach (displayed_body_diagnostics($response['body']) as $displayed) {
         $logged = false;
         foreach ($records as $record) {
-            if ($record['reported'] && $record['file'] === $displayed['file']
-                && $record['line'] === $displayed['line']) {
+            // The mutation runner serves a copy outside /app, so the
+            // displayed path may keep a directory prefix.
+            $suffix = '/' . $record['file'];
+            if ($record['reported'] && $record['line'] === $displayed['line']
+                && ($record['file'] === $displayed['file']
+                    || substr($displayed['file'], -strlen($suffix)) === $suffix)) {
                 $logged = true;
             }
         }

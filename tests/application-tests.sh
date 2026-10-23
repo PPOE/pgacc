@@ -31,6 +31,7 @@ php tests/http-donations.php
 XDEBUG_MODE=coverage php -d memory_limit="$phpunit_memory" vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result --coverage-text $phpunit_coverage
 php tests/show-uncovered-functions.php /tmp/functions-clover.xml
 php tests/write-workflows.php
+php tests/http-receipts.php
 
 if [ -n "$coverage_dir" ]; then
   XDEBUG_MODE=coverage php tests/coverage/merge.php "$coverage_dir" "$report_dir"

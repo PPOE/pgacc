@@ -8,11 +8,16 @@
     <testsuite name="functions.php">
       <file>tests/unit/FunctionsTest.php</file>
       <file>tests/unit/InfectionShimTest.php</file>
+      <file>tests/unit/CryptoTest.php</file>
+      <file>tests/unit/GetUsersTest.php</file>
+      <file>tests/unit/ReceiptImportTest.php</file>
     </testsuite>
   </testsuites>
   <coverage processUncoveredFiles="true">
     <include>
       <file>functions.php</file>
+      <file>getusers.php</file>
+      <file>import2.php</file>
     </include>
     <report>
       <clover outputFile="/tmp/functions-clover.xml"/>

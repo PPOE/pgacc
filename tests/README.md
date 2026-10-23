@@ -186,24 +186,31 @@ login redirect, and nothing changes in the database. The fixture users
 and `synthetic-no-rights` (empty rights) cover the organization scope: the
 default organization of vouchers created or revised without one, approvals
 and finalization of a voucher with rows in two organizations, approvals of
-finalized vouchers, and the approval reset. Receipt encryption/upload is deliberately excluded
-because the unchanged application requires the removed `mcrypt` extension;
-the tests use a synthetic receipt reference instead.
+finalized vouchers, and the approval reset. It uses a synthetic receipt reference;
+`tests/http-receipts.php` covers receipt upload, PDF import (PHP 5.6 only:
+the locked `smalot/pdfparser` does not load on 7.2+), download and the
+`mbapi.php` export against the mcrypt contract vectors in
+`tests/fixtures/mcrypt/` (see `tests/unit/CryptoTest.php`).
 
 `tests/unit/FunctionsTest.php` runs under PHPUnit 9.6 on PHP 7.4, PHP 8.0, and
 PHP 8.5, and PHPUnit 5.7.27 on PHP 5.6.40. The assertions and data providers are shared; only the
 runner bootstrap, lifecycle signature, and two string assertion aliases differ.
 Coverage is collected only on PHP 7.4, with Xdebug 3.1.6; the PHPUnit
-coverage is configured for `functions.php` and merged with the HTTP coverage
+coverage is configured for `functions.php`, `getusers.php` and `import2.php`
+and merged with the HTTP coverage
 (see [Coverage](#coverage)). All PHPUnit configurations set
 `error_reporting` to `-1` (E_ALL), so notices fail tests on every lane, also
 where the runtime's built-in default hides them (PHP 5.6 and 7.4 without
 `php.ini`). The same suite runs `tests/unit/InfectionShimTest.php`, the tests
-of the Infection class wrapper (see [mutation notes](mutation/README.md)). The suite exercises the utility and rendering helpers plus the
+of the Infection class wrapper (see [mutation notes](mutation/README.md)),
+and the mcrypt contract tests: `CryptoTest.php` (vectors from
+`tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php` (`getUsers()` with a
+stubbed `http://` stream wrapper, rolled back) and `ReceiptImportTest.php`
+(the receipt file `import2.php` writes). The suite exercises the utility and rendering helpers plus the
 two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
 printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
-inside the disposable test container. The current suite covers 334 of 335
-executable lines (99.70%). The remaining statement is `functions.php:74`,
+inside the disposable test container. The current suite covers 349 of 350
+executable lines (99.71%). The remaining statement is `functions.php:74`,
 behind a malformed regular expression on line 73 (`^*...`) that cannot match
 any input. A test records that current malformed-regex behavior; reaching the
 following statement requires a separate production fix. PHPUnit 9 and Xdebug
@@ -534,8 +541,8 @@ The copy also contains the synthetic `tests/runtime/test-constants.php` as
 - **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
   variables (levels 0/1), unknown functions, argument counts and types, invalid
   regular expressions. `phpVersion` is 7.1-8.5 because PHPStan cannot model PHP
-  below 7.1; PHPCompatibility covers the 5.3 floor. `stubs.php` declares the
-  removed `mcrypt` functions and constants.
+  below 7.1; PHPCompatibility covers the 5.3 floor. PHPStan reads the locked
+  `smalot/pdfparser` and `phpseclib` sources.
 
 The check fails on any finding that is not in a baseline. It also fails on a
 baseline entry that is no longer reported or occurs a different number of times.
@@ -615,13 +622,16 @@ same reason, with a separate runner configuration. The initial suite covers
 - [ ] Stub the membership lookup locally for import tests. The application
   fetches `http://mitglieder.piratenpartei.at/adm_api/adm_names.php` before
   processing imports, so tests must serve a synthetic response inside the
-  isolated test network and must not contact the live service. The current
-  decryption path depends on `mcrypt`; assess a pinned, test-only extension in
-  the PHP runtime so tests exercise the real code path with a synthetic key.
-- [ ] Add a contract test for `mbapi.php` using synthetic PostgreSQL rows and
+  isolated test network and must not contact the live service. Done for
+  PHPUnit: `tests/unit/GetUsersTest.php` replaces the `http://` stream wrapper
+  and decrypts a synthetic export with the mcrypt-compatible helpers; the HTTP
+  import pages still need a stub inside the test network.
+- [x] Add a contract test for `mbapi.php` using synthetic PostgreSQL rows and
   test-only encryption keys. Assert the checksum and response framing, decrypt
   the payload, and cover the amount threshold, date cutoff, acknowledgement,
-  deleted-voucher filtering, and per-member totals.
+  deleted-voucher filtering, and per-member totals. Done in
+  `tests/http-receipts.php` (the test `$datakey` is empty; the mcrypt vectors
+  use a synthetic key).
 - [ ] Document the `mbapi.php` output contract and verify it against the
   membership system's consumer implementation or an agreed sample. A local
   test can characterize this repository's output, but cannot by itself prove

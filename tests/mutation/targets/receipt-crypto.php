@@ -1,0 +1,104 @@
+<?php
+/*
+ * The mcrypt replacement in functions.php (Rijndael-256 CBC, zero padding)
+ * and its five call sites: receipt upload (new.php), PDF import
+ * (import2.php), receipt download (file.php), membership import
+ * (getusers.php) and export (mbapi.php). Killed by the mcrypt contract
+ * vectors (tests/unit/CryptoTest.php), getUsers() and import tests, and the
+ * HTTP receipt and export tests. See tests/mutation/README.md for the format.
+ */
+return array(
+    'description' => 'mcrypt-compatible Rijndael-256 helpers and their call sites',
+    'file' => 'functions.php',
+    'tests' => array(
+        array('type' => 'phpunit', 'filter' => 'CryptoTest', 'file' => 'tests/unit/CryptoTest.php'),
+        array('type' => 'phpunit', 'filter' => 'GetUsersTest', 'file' => 'tests/unit/GetUsersTest.php'),
+        array('type' => 'phpunit', 'filter' => 'ReceiptImportTest', 'file' => 'tests/unit/ReceiptImportTest.php'),
+        array('type' => 'http', 'script' => 'tests/http-receipts.php'),
+    ),
+    'timeout' => 180,
+    'mutations' => array(
+        // Cipher parameters.
+        array('id' => 'block-128-aes',
+            'search' => '$cipher->setBlockLength(256);', 'replace' => '$cipher->setBlockLength(128);',
+            'rationale' => 'MCRYPT_RIJNDAEL_256 has a 256-bit block; AES (128-bit) gives other bytes.'),
+        array('id' => 'block-192',
+            'search' => '$cipher->setBlockLength(256);', 'replace' => '$cipher->setBlockLength(192);',
+            'rationale' => 'Any other block length gives other bytes.'),
+        array('id' => 'mode-ecb',
+            'search' => 'Rijndael(\phpseclib\Crypt\Base::MODE_CBC)', 'replace' => 'Rijndael(\phpseclib\Crypt\Base::MODE_ECB)',
+            'rationale' => 'mcrypt used CBC mode.'),
+        array('id' => 'padding-enabled',
+            'search' => "  \$cipher->disablePadding();\n", 'replace' => "  true;\n",
+            'rationale' => 'phpseclib would add PKCS#7 padding; mcrypt only zero-pads.'),
+        array('id' => 'iv-not-set',
+            'search' => "  \$cipher->setIV(\$iv);\n", 'replace' => "  true;\n",
+            'rationale' => 'The IV is the second md5 string.'),
+
+        // Zero padding.
+        array('id' => 'empty-data-not-padded',
+            'search' => '$blocks = max(1, intval(ceil(strlen($data) / 32)));', 'replace' => '$blocks = max(0, intval(ceil(strlen($data) / 32)));',
+            'rationale' => 'mcrypt encrypts empty data as one zero block.'),
+        array('id' => 'padding-rounds-down',
+            'search' => '$blocks = max(1, intval(ceil(strlen($data) / 32)));', 'replace' => '$blocks = max(1, intval(floor(strlen($data) / 32)));',
+            'rationale' => 'Data is padded up to the next whole block.'),
+        array('id' => 'padding-16-byte-blocks',
+            'search' => 'return str_pad($data, $blocks * 32, "\0");', 'replace' => 'return str_pad($data, $blocks * 16, "\0");',
+            'rationale' => 'Padding is to 32-byte blocks.'),
+        array('id' => 'padding-not-zero',
+            'search' => 'return str_pad($data, $blocks * 32, "\0");', 'replace' => 'return str_pad($data, $blocks * 32, " ");',
+            'rationale' => 'mcrypt pads with NUL bytes.'),
+        array('id' => 'ciphertext-not-padded',
+            'search' => 'return rijndael256_cbc($key, $iv)->decrypt(rijndael256_zero_pad($data));', 'replace' => 'return rijndael256_cbc($key, $iv)->decrypt($data);',
+            'rationale' => 'mcrypt also zero-padded truncated or empty ciphertext before decrypting it.'),
+
+        // Key and IV derivation.
+        array('id' => 'receipt-key-order',
+            'search' => 'return rijndael256_encrypt(md5($id . $key . $id), $data, md5($key . $id));', 'replace' => 'return rijndael256_encrypt(md5($key . $id . $id), $data, md5($key . $id));',
+            'rationale' => 'The receipt key is md5(id . key . id); only the non-empty-key vector sees the order.'),
+        array('id' => 'receipt-iv-order',
+            'search' => 'return rijndael256_encrypt(md5($id . $key . $id), $data, md5($key . $id));', 'replace' => 'return rijndael256_encrypt(md5($id . $key . $id), $data, md5($id . $key));',
+            'rationale' => 'The receipt IV is md5(key . id).'),
+        array('id' => 'receipt-decrypt-iv-is-key',
+            'search' => 'return rijndael256_decrypt(md5($id . $key . $id), $data, md5($key . $id));', 'replace' => 'return rijndael256_decrypt(md5($id . $key . $id), $data, md5($id . $key . $id));',
+            'rationale' => 'Decryption uses the same IV as encryption.'),
+        array('id' => 'membership-key-not-hashed',
+            'search' => 'return rijndael256_encrypt(md5($datakey), $data, md5(md5($datakey)));', 'replace' => 'return rijndael256_encrypt(md5(md5($datakey)), $data, md5(md5($datakey)));',
+            'rationale' => 'The membership key is md5(datakey).'),
+        array('id' => 'membership-iv-hashed-once',
+            'search' => 'return rijndael256_decrypt(md5($datakey), $data, md5(md5($datakey)));', 'replace' => 'return rijndael256_decrypt(md5($datakey), $data, md5($datakey));',
+            'rationale' => 'The membership IV is md5(md5(datakey)).'),
+
+        // Call sites.
+        array('id' => 'download-keyed-by-file-number', 'file' => 'file.php',
+            'search' => '$data = receipt_decrypt($vid, $key, $data);', 'replace' => '$data = receipt_decrypt($file, $key, $data);',
+            'rationale' => 'Receipts are keyed by the voucher ID.'),
+        array('id' => 'download-not-decrypted', 'file' => 'file.php',
+            'search' => '$data = receipt_decrypt($vid, $key, $data);', 'replace' => '$data = $data;',
+            'rationale' => 'The download returns the plain receipt.'),
+        array('id' => 'upload-keyed-by-line', 'file' => 'new.php',
+            'search' => 'file_put_contents($targetpath,receipt_encrypt($id, $key, $data));', 'replace' => 'file_put_contents($targetpath,receipt_encrypt($bid, $key, $data));',
+            'rationale' => 'Uploads are keyed by the voucher ID, not the booking line.'),
+        array('id' => 'upload-not-encrypted', 'file' => 'new.php',
+            'search' => 'file_put_contents($targetpath,receipt_encrypt($id, $key, $data));', 'replace' => 'file_put_contents($targetpath,$data);',
+            'rationale' => 'Receipts are stored encrypted.'),
+        array('id' => 'import-keyed-by-line', 'file' => 'import2.php',
+            'search' => 'file_put_contents($targetpath,receipt_encrypt($id, $key, $data));', 'replace' => 'file_put_contents($targetpath,receipt_encrypt($bid, $key, $data));',
+            'rationale' => 'Imported receipts are keyed by the voucher ID.'),
+        array('id' => 'import-not-encrypted', 'file' => 'import2.php',
+            'search' => 'file_put_contents($targetpath,receipt_encrypt($id, $key, $data));', 'replace' => 'file_put_contents($targetpath,$data);',
+            'rationale' => 'Imported receipts are stored encrypted.'),
+        array('id' => 'members-padding-kept', 'file' => 'getusers.php',
+            'search' => '$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");', 'replace' => '$decrypted = membership_decrypt($datakey, base64_decode($sData));',
+            'rationale' => 'The zero padding is stripped before the lines are parsed.'),
+        array('id' => 'members-not-base64-decoded', 'file' => 'getusers.php',
+            'search' => '$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");', 'replace' => '$decrypted = rtrim(membership_decrypt($datakey, $sData), "\0");',
+            'rationale' => 'The membership system sends base64.'),
+        array('id' => 'export-not-base64', 'file' => 'mbapi.php',
+            'search' => '$encrypted = base64_encode(membership_encrypt($datakey, $text));', 'replace' => '$encrypted = membership_encrypt($datakey, $text);',
+            'rationale' => 'The export is base64.'),
+        array('id' => 'export-checksum-of-ciphertext', 'file' => 'mbapi.php',
+            'search' => 'echo sha1($text)."\n";', 'replace' => 'echo sha1(membership_encrypt($datakey, $text))."\n";',
+            'rationale' => 'The checksum is the SHA-1 of the plain text.'),
+    ),
+);

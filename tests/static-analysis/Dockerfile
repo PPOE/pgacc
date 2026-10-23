@@ -8,7 +8,7 @@ COPY tests/static-analysis/composer.json tests/static-analysis/composer.lock ./
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
       --no-interaction --no-progress --prefer-dist --classmap-authoritative
 
-# The application's locked runtime dependencies (smalot/pdfparser), so PHPStan
+# The application's locked runtime dependencies (smalot/pdfparser, phpseclib), so PHPStan
 # can resolve their classes. Never executed: PHPStan reads them statically.
 FROM composer:2.2.25@sha256:be23a9c3f73293f966a981be03896f9aaaade6c2cc9415f4cf828d1f39c5005c AS application-dependencies
 WORKDIR /dependencies

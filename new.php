@@ -249,7 +249,7 @@ pg_free_result($result);
 $sourcepath = $_FILES["file$file"]["tmp_name"];
 $targetpath = getcwd() . '/files/' . $file_number . ".aes";
 $data = file_get_contents($sourcepath);
-file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
+file_put_contents($targetpath,receipt_encrypt($id, $key, $data));
 
   vouchers_reset_ack($id, $rightssql);
 

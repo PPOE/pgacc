@@ -45,7 +45,7 @@ parameters:
 		-
 			message: '#^Undefined variable\: \$key$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: ../../file.php
 
 		-
@@ -81,7 +81,7 @@ parameters:
 		-
 			message: '#^Undefined variable\: \$key$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: ../../import2.php
 
 		-
@@ -135,7 +135,7 @@ parameters:
 		-
 			message: '#^Variable \$datakey might not be defined\.$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: ../../mbapi.php
 
 		-
@@ -153,7 +153,7 @@ parameters:
 		-
 			message: '#^Undefined variable\: \$key$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: ../../new.php
 
 		-

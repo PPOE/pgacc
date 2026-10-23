@@ -21,7 +21,9 @@ function test_client_error_handler($type, $message, $file, $line)
 error_reporting(E_ALL);
 set_error_handler('test_client_error_handler');
 
-function http_request($path, $method = 'GET', $form = array(), $cookies = array(), $baseUrl = null)
+// $files: field name => array('name' => ..., 'type' => ..., 'content' => ...),
+// sent with $form as multipart/form-data (POST only).
+function http_request($path, $method = 'GET', $form = array(), $cookies = array(), $baseUrl = null, $files = array())
 {
     if ($baseUrl === null) {
         $baseUrl = getenv('PGACC_TEST_BASE_URL');
@@ -47,7 +49,19 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     }
 
     $content = '';
-    if ($method === 'POST') {
+    if ($method === 'POST' && count($files) > 0) {
+        $boundary = 'pgacc-test-' . md5(uniqid('', true));
+        foreach ($form as $name => $value) {
+            $content .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";
+        }
+        foreach ($files as $name => $file) {
+            $content .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"; filename=\"{$file['name']}\"\r\n"
+                . "Content-Type: {$file['type']}\r\n\r\n{$file['content']}\r\n";
+        }
+        $content .= "--$boundary--\r\n";
+        $headers[] = 'Content-Type: multipart/form-data; boundary=' . $boundary;
+        $headers[] = 'Content-Length: ' . strlen($content);
+    } elseif ($method === 'POST') {
         $content = http_build_query($form, '', '&');
         $headers[] = 'Content-Type: application/x-www-form-urlencoded';
         $headers[] = 'Content-Length: ' . strlen($content);

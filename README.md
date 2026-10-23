@@ -22,10 +22,10 @@ Core concepts:
 ## Requirements
 
 - PHP with the `pgsql` extension and `short_open_tag` enabled (set in
-  `.htaccess`). Receipt upload/download and the membership integration also need
-  `mcrypt` (bundled up to PHP 7.1, PECL afterwards).
+  `.htaccess`). `mcrypt` is no longer needed: receipts and the membership
+  exchange use `phpseclib` (same ciphertext; used automatically if loaded).
 - PostgreSQL with the `pgcrypto` extension (passwords use `crypt()`).
-- Composer, for `smalot/pdfparser`.
+- Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
 
 Tested on PHP 5.6, 7.4, 8.0 and 8.5 and PostgreSQL 17. The PHP 8 lanes still

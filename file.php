@@ -16,7 +16,7 @@ if ($file == 0)
   return false;
 
 $data = file_get_contents(getcwd() . "/files/$file.aes");
-$data = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($vid . $key . $vid), $data, MCRYPT_MODE_CBC, md5($key . $vid));
+$data = receipt_decrypt($vid, $key, $data);
 if (substr($data,0,4) == '%PDF')
 {
   header("Content-Type: application/pdf");

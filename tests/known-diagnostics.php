@@ -30,4 +30,35 @@ return array(
         'reason' => 'the finalized-voucher check interpolates an unset $rightssql '
             . '(no organization restriction in that query)',
     ),
+    array(
+        'id' => 'KD-RECEIPT-KEY',
+        'php' => array('5.6', '7.4'),
+        'type' => 'E_NOTICE',
+        'file' => 'new.php',
+        'lines' => array(252),
+        'message' => '/^Undefined variable: key$/',
+        'reported' => false,
+        'reason' => 'receipt upload reads $key without global; the receipt key '
+            . 'derivation depends on it being empty (mcrypt item)',
+    ),
+    array(
+        'id' => 'KD-RECEIPT-KEY',
+        'php' => array('5.6', '7.4'),
+        'type' => 'E_NOTICE',
+        'file' => 'import2.php',
+        'lines' => array(189),
+        'message' => '/^Undefined variable: key$/',
+        'reported' => false,
+        'reason' => 'PDF import reads $key without global, as the receipt upload',
+    ),
+    array(
+        'id' => 'KD-RECEIPT-KEY',
+        'php' => array('5.6', '7.4'),
+        'type' => 'E_NOTICE',
+        'file' => 'file.php',
+        'lines' => array(19),
+        'message' => '/^Undefined variable: key$/',
+        'reported' => false,
+        'reason' => 'receipt download reads $key without global, as the receipt upload',
+    ),
 );

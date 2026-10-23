@@ -8,6 +8,9 @@
     <testsuite name="functions.php on PHP 5.6">
       <file>../unit/FunctionsTest.php</file>
       <file>../unit/InfectionShimTest.php</file>
+      <file>../unit/CryptoTest.php</file>
+      <file>../unit/GetUsersTest.php</file>
+      <file>../unit/ReceiptImportTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

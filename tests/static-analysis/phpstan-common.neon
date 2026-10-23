@@ -11,9 +11,9 @@ parameters:
     min: 70100
     max: 80599
   tmpDir: /tmp/phpstan
-  scanFiles:
-    - stubs.php
-  # The locked application dependencies (smalot/pdfparser), read statically.
+  # The locked application dependencies (smalot/pdfparser, phpseclib), read
+  # statically.
   scanDirectories:
     - ../../vendor/smalot/pdfparser/src
+    - ../../vendor/phpseclib/phpseclib/phpseclib
   reportUnmatchedIgnoredErrors: true

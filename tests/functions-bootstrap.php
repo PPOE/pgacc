@@ -25,6 +25,10 @@ if (function_exists('pg_connect') && getenv('PGHOST')) {
     }
 }
 
+// index.php loads the Composer autoloader before functions.php; the receipt
+// and membership encryption helpers need phpseclib from it.
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
 // tests/mutation/infection.sh substitutes a class-wrapped copy for Infection.
 $functionsFile = getenv('PGACC_FUNCTIONS_FILE');
 require_once $functionsFile ? $functionsFile : dirname(__DIR__) . '/functions.php';

@@ -186,7 +186,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   $sourcepath = $_FILES["upload"]["tmp_name"][$i];
   $targetpath = getcwd() . '/files/' . $file_number . ".aes";
   $data = file_get_contents($sourcepath);
-  file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
+  file_put_contents($targetpath,receipt_encrypt($id, $key, $data));
 
   vouchers_reset_ack($id, $rightssql);
 

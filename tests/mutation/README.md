@@ -187,6 +187,21 @@ a changed line, before or after. Infection has no operator that removes a
 null guard; the [`null-arguments` target](#null-arguments-phpunit-functionsphp)
 covers that.
 
+Rerun on 2026-10-23 after the mcrypt replacement (`rijndael256_*`,
+`receipt_*` and `membership_*` helpers, lines 499-560) with
+`tests/unit/CryptoTest.php` added to `infection/phpunit.xml` (before: the
+rerun above):
+
+| Lane | Mutants | Killed | Timed out | Escaped | Not covered | MSI | Covered MSI |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| PHP 7.4, Infection 0.26.6 | 692 | 437 | 1 | 245 | 9 | 63% | 64% |
+| PHP 8.5, Infection 0.35.8 | 727 | 498 | 1 | 221 | 7 | 68% | 69% |
+
+The one new escaped mutant (both lanes) is equivalent: `setBlockLength(257)`,
+which phpseclib rounds down to the same 256-bit block (`$length >> 5`). The
+[`receipt-crypto` target](#receipt-crypto-phpunit-and-http) covers the call
+sites, which Infection cannot mutate.
+
 Escaped mutants by function (PHP 7.4 / PHP 8.5):
 
 | Function | Mutants | Escaped | Notes |
@@ -790,6 +805,28 @@ fails on PHP 5.6 and 7.4 (exit 2, no mutant runs): the 2024 list reads the
 undefined `$donations`, and the warnings land between the header row and
 `</table>`. The test therefore detects the original defect on both lanes.
 
+#### `receipt-crypto` (PHPUnit and HTTP)
+
+The mcrypt replacement in `functions.php` and its five call sites (`file.php`,
+`new.php`, `import2.php`, `getusers.php`, `mbapi.php`): block length (128,
+192), ECB mode, phpseclib padding, missing IV, the zero padding (empty data,
+rounding, block size, pad byte, padding of ciphertext), receipt and membership
+key/IV derivation, and at each call site the voucher ID, the encryption
+itself, `rtrim()`, base64 and the SHA-1 framing. Tests: `CryptoTest`,
+`GetUsersTest`, `ReceiptImportTest` and `tests/http-receipts.php`.
+
+| Lane | Killed | Equivalent | Survived | Invalid |
+|---|---:|---:|---:|---:|
+| PHP 5.6.40 | 25 | 0 | 0 | 0 |
+| PHP 7.4.33 | 25 | 0 | 0 | 0 |
+
+The first run left `members-padding-kept` (no `rtrim()`) alive: the
+`getUsers()` export was a whole number of blocks, so it had no padding. The
+vector now ends 5 bytes short of a block. On PHP 5.6 the baseline first failed
+because displayed warnings name the runner's copy (`/tmp/pgacc-mutation/...`)
+instead of `/app`; `tests/http-diagnostics.php` now matches the logged
+diagnostic by path suffix.
+
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target must run that target on
@@ -800,4 +837,5 @@ change must not introduce survivors. CI runs the self-tests and the
 5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
 the `redirects` and `rights-checks` targets on PHP 5.6 and 7.4 (on PHP 8 their
 baseline fails on the write-workflow diagnostics that have no baseline entry
-there).
+there), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test fails
+on PHP 8; see `KD-RECEIPT-KEY` in `tests/COMPATIBILITY_PLAN.md`).
