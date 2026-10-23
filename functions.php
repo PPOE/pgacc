@@ -584,17 +584,34 @@ function receipt_decrypt($id, $key, $data)
 }
 
 /*
- * Receipt storage in files/: <n>.v2.aes is encrypted with the configured $key
- * of constants.php; the legacy <n>.aes with an empty key part (the callers
- * never read the configured key). migrate-receipt-key.php re-encrypts legacy
- * files. See the receipt key item in tests/COMPATIBILITY_PLAN.md.
+ * Receipt storage in files/. New receipts are <n>.v2.aes: keyed on the file
+ * number <n> and the configured $key of constants.php, AES-256-CBC with a
+ * random IV, authenticated with HMAC-SHA256 (see receipt_v2_encrypt()).
+ * Legacy receipts are <n>.aes: keyed on the voucher ID with an empty key part
+ * (receipt_encrypt(); the callers never read the configured key).
+ * migrate-receipt-key.php re-encrypts legacy files. See the receipt key item
+ * in tests/COMPATIBILITY_PLAN.md.
  */
+
+// At least 16 characters and not the CHANGE-ME placeholder of the README.
+function receipt_key_is_valid($key)
+{
+  return is_string($key) && strlen($key) >= 16 && strpos($key, 'CHANGE-ME') === false;
+}
+
+// The configured key, or '' without a valid one (receipts then fail closed).
 function receipt_configured_key()
 {
   // constants.php is required in global scope (index.php).
-  if (isset($GLOBALS['key']) && is_string($GLOBALS['key']))
+  if (isset($GLOBALS['key']) && receipt_key_is_valid($GLOBALS['key']))
     return $GLOBALS['key'];
   return '';
+}
+
+// Identifies a key in logs and in the migration's output without revealing it.
+function receipt_key_fingerprint($key)
+{
+  return substr(hash_hmac('sha256', 'pgacc-key-fingerprint', $key), 0, 8);
 }
 
 function receipt_v2_path($directory, $number)
@@ -607,34 +624,98 @@ function receipt_legacy_path($directory, $number)
   return $directory . '/' . $number . '.aes';
 }
 
-// PDF or JPEG: the receipt types that the download recognizes.
+// PDF and JPEG by their magic bytes; anything else is sent as a download.
+function receipt_content_type($plain)
+{
+  if (substr($plain, 0, 4) === '%PDF')
+    return 'application/pdf';
+  if (substr($plain, 0, 3) === "\xFF\xD8\xFF")
+    return 'image/jpeg';
+  return 'application/octet-stream';
+}
+
 function receipt_has_known_type($plain)
 {
-  return substr($plain, 0, 4) === '%PDF' || substr($plain, 0, 3) === "\xFF\xD8\xFF";
+  return receipt_content_type($plain) !== 'application/octet-stream';
+}
+
+// Encryption and MAC keys of one <n>.v2.aes file.
+function receipt_v2_keys($key, $number)
+{
+  return array(
+    hash_hmac('sha256', 'pgacc-receipt-v2-enc|' . $number, $key, true),
+    hash_hmac('sha256', 'pgacc-receipt-v2-mac|' . $number, $key, true),
+  );
+}
+
+function receipt_v2_cipher($encryptionKey, $iv)
+{
+  $cipher = new \phpseclib\Crypt\AES(\phpseclib\Crypt\Base::MODE_CBC);
+  $cipher->setKey($encryptionKey);
+  $cipher->setIV($iv);
+  return $cipher;
+}
+
+// Byte strings compared in constant time (hash_equals() needs PHP 5.6).
+function receipt_equals($known, $given)
+{
+  if (strlen($known) !== strlen($given))
+    return false;
+  $difference = 0;
+  for ($i = 0; $i < strlen($known); $i++)
+    $difference |= ord($known[$i]) ^ ord($given[$i]);
+  return $difference === 0;
+}
+
+/*
+ * The bytes of files/<number>.v2.aes: "PGR2", a 16-byte IV (random unless
+ * given, for test vectors), the AES-256-CBC ciphertext with PKCS#7 padding,
+ * and the HMAC-SHA256 of everything before it (encrypt-then-MAC).
+ */
+function receipt_v2_encrypt($key, $number, $data, $iv = null)
+{
+  if ($iv === null)
+    $iv = \phpseclib\Crypt\Random::string(16);
+  list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+  $body = 'PGR2' . $iv . receipt_v2_cipher($encryptionKey, $iv)->encrypt($data);
+  return $body . hash_hmac('sha256', $body, $macKey, true);
+}
+
+// The plain text of <number>.v2.aes bytes, or false: the MAC is checked first,
+// so a wrong key, another file number or a modified file is rejected.
+function receipt_v2_decrypt($key, $number, $file)
+{
+  if (!is_string($file) || strlen($file) < 68 || substr($file, 0, 4) !== 'PGR2')
+    return false;
+  list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+  $body = substr($file, 0, -32);
+  if (!receipt_equals(hash_hmac('sha256', $body, $macKey, true), substr($file, -32)))
+    return false;
+  return receipt_v2_cipher($encryptionKey, substr($body, 4, 16))->decrypt(substr($body, 20));
 }
 
 // Writes a temporary file next to $path and renames it over $path, so readers
-// never see a partly written file. Run one writer per file at a time.
+// never see a partly written file. Only the temporary file is ever removed.
 function receipt_write_file($path, $bytes)
 {
-  $temp = $path . '.tmp';
+  $temp = $path . '.tmp-' . getmypid() . '-' . str_replace('.', '', uniqid('', true));
   if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path))
     return true;
   @unlink($temp);
   return false;
 }
 
-// Stores a new receipt as <n>.v2.aes, encrypted with the configured key.
-// Fails closed: without a configured key nothing is written.
-function receipt_store($directory, $number, $id, $data)
+// Stores a new receipt as <number>.v2.aes. Fails closed: without a valid
+// configured key nothing is written.
+function receipt_store($directory, $number, $data)
 {
   $receiptKey = receipt_configured_key();
   if ($receiptKey === '')
   {
-    error_log('pgacc: receipt not stored: no receipt key ($key) configured');
+    error_log('pgacc: receipt not stored: no valid receipt key ($key) configured');
     return false;
   }
-  if (!receipt_write_file(receipt_v2_path($directory, $number), receipt_encrypt($id, $receiptKey, $data)))
+  if (!receipt_write_file(receipt_v2_path($directory, $number), receipt_v2_encrypt($receiptKey, $number, $data)))
   {
     error_log("pgacc: receipt $number.v2.aes could not be written");
     return false;
@@ -642,22 +723,21 @@ function receipt_store($directory, $number, $id, $data)
   return true;
 }
 
-// The plain text of a <n>.v2.aes file ($name), or false. Content that does not
-// decrypt to a PDF or JPEG with the configured key is tried with the legacy
-// scheme; both cases are logged.
-function receipt_decrypt_v2($id, $data, $name)
+// The plain text of files/<number>.v2.aes ($path), or false (logged with the
+// key fingerprint, to compare with the migration's output).
+function receipt_read_v2($path, $number)
 {
-  $plain = receipt_decrypt($id, receipt_configured_key(), $data);
-  if (receipt_has_known_type($plain))
-    return $plain;
-  $plain = receipt_decrypt($id, '', $data);
-  if (receipt_has_known_type($plain))
+  $receiptKey = receipt_configured_key();
+  if ($receiptKey === '')
   {
-    error_log("pgacc: receipt $name decrypted with the legacy scheme");
-    return $plain;
+    error_log("pgacc: receipt $number.v2.aes not decrypted: no valid receipt key (\$key) configured");
+    return false;
   }
-  error_log("pgacc: receipt $name could not be decrypted");
-  return false;
+  $plain = receipt_v2_decrypt($receiptKey, $number, @file_get_contents($path));
+  if ($plain === false)
+    error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file; key fingerprint "
+      . receipt_key_fingerprint($receiptKey) . ')');
+  return $plain;
 }
 
 // Membership-system exchange (getusers.php, mbapi.php): key and IV.

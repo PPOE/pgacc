@@ -3,9 +3,9 @@
      Not included: InfectionShimTest (PHP 7.4+ mutation tooling), and GetUsersTest and
      ReceiptImportTest, which rely on "finally" (PHP 5.5+; http-receipts.php covers those
      call sites against the PHP 5.3 server), ShortOpenTagTest (PHP_BINARY is PHP 5.4+;
-     production runs with short_open_tag On), and ReceiptStorageTest and
-     ReceiptMigrationTest, which use hex2bin() and PHP_BINARY (PHP 5.4+; http-receipts.php
-     covers receipt storage and the migration script's 404 on the PHP 5.3 server). -->
+     production runs with short_open_tag On), and ReceiptMigrationTest, which uses
+     PHP_BINARY (PHP 5.4+; http-receipts.php covers the migration script's 404 on the
+     PHP 5.3 server). ReceiptStorageTest checks the receipt v2 format on PHP 5.3. -->
 <phpunit bootstrap="bootstrap.php" colors="true">
   <php>
     <ini name="error_reporting" value="-1"/>
@@ -14,6 +14,7 @@
     <testsuite name="functions.php on PHP 5.3">
       <file>../unit/FunctionsTest.php</file>
       <file>../unit/CryptoTest.php</file>
+      <file>../unit/ReceiptStorageTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>
