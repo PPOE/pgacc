@@ -117,6 +117,38 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * @dataProvider nullTextTagProvider
+     */
+    public function testTagRendersNullTextLikeEmptyTextWithoutDiagnostics($tagName, $expectedHtml, $expectedCsv)
+    {
+        // Listings pass nullable columns (for example vouchers.name or
+        // vouchers.contra_account) to tag(), also in CSV mode.
+        $render = function () use ($tagName) {
+            return tag($tagName, null);
+        };
+        $GLOBALS['make_csv'] = false;
+        self::assertSame(
+            array('return' => $expectedHtml, 'output' => '', 'diagnostics' => array()),
+            self::callAndCaptureDiagnostics($render)
+        );
+        $GLOBALS['make_csv'] = true;
+        self::assertSame(
+            array('return' => $expectedCsv, 'output' => '', 'diagnostics' => array()),
+            self::callAndCaptureDiagnostics($render)
+        );
+        self::assertSame($expectedCsv, tag($tagName, ''));
+    }
+
+    public static function nullTextTagProvider()
+    {
+        return array(
+            'cell' => array('td', "<td></td>\n", "\t"),
+            'row' => array('tr', "<tr></tr>\n", "\n"),
+            'other tag' => array('b', "<b></b>\n", ''),
+        );
+    }
+
+    /**
      * @dataProvider headerPageProvider
      */
     public function testAccHeaderRendersEachPageTitle($page, $title)
@@ -189,6 +221,62 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * Runs $callback and returns its return value, its output and every PHP
+     * diagnostic it raised (including deprecations, which PHPUnit 9 only
+     * prints), so tests can assert that a call is diagnostic-free.
+     */
+    private static function callAndCaptureDiagnostics($callback)
+    {
+        $diagnostics = array();
+        set_error_handler(function ($type, $message, $file, $line) use (&$diagnostics) {
+            $diagnostics[] = $type . ' ' . basename($file) . ':' . $line . ' ' . $message;
+            return true;
+        });
+        ob_start();
+        try {
+            $return = call_user_func($callback);
+            $output = ob_get_contents();
+        } finally {
+            ob_end_clean();
+            restore_error_handler();
+        }
+        return array('return' => $return, 'output' => $output, 'diagnostics' => $diagnostics);
+    }
+
+    // The real checklogin('rights', false) returns null, not '', for visitors
+    // without a valid login cookie (index.php), so anonymous pages pass null.
+    public function testAccHeaderTreatsNullRightsLikeEmptyRights()
+    {
+        $render = function () {
+            acc_header(null, 'index', 2024);
+        };
+        $GLOBALS['functions_test_rights'] = '';
+        $emptyRights = self::callAndCaptureDiagnostics($render);
+        $GLOBALS['functions_test_rights'] = null;
+        $nullRights = self::callAndCaptureDiagnostics($render);
+
+        // Same output and the same diagnostics (on PHP 8.5 the implicit
+        // PostgreSQL connection of percent_of_bookings() is reported for both).
+        self::assertSame($emptyRights, $nullRights);
+        self::assertStringContainsString('<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>', $nullRights['output']);
+        self::assertStringNotContainsString('action=new', $nullRights['output']);
+        self::assertStringNotContainsString('action=accounts', $nullRights['output']);
+    }
+
+    public function testAccFooterTreatsNullRightsAsAnonymousWithoutDiagnostics()
+    {
+        $GLOBALS['functions_test_rights'] = null;
+        $footer = self::callAndCaptureDiagnostics('acc_footer');
+        self::assertSame(array(), $footer['diagnostics']);
+        self::assertNull($footer['return']);
+        self::assertStringContainsString('<a href="index.php?action=login">Login</a>', $footer['output']);
+        self::assertStringNotContainsString('action=logout', $footer['output']);
+
+        $GLOBALS['functions_test_rights'] = '';
+        self::assertSame($footer, self::callAndCaptureDiagnostics('acc_footer'));
+    }
+
+    /**
      * @dataProvider formatDateProvider
      */
     public function testFormatDate($input, $expected)
@@ -212,6 +300,16 @@ final class FunctionsTest extends FunctionsTestCase
     public function testRights2orgasql($rights, $expected)
     {
         self::assertSame($expected, rights2orgasql($rights));
+    }
+
+    public function testRights2orgasqlDeniesNullRightsWithoutDiagnostics()
+    {
+        // Listing pages such as page_all() receive checklogin('rights'),
+        // which is null for anonymous requests (after the login redirect header).
+        $result = self::callAndCaptureDiagnostics(function () {
+            return rights2orgasql(null);
+        });
+        self::assertSame(array('return' => ' AND false ', 'output' => '', 'diagnostics' => array()), $result);
     }
 
     public static function rightsProvider()

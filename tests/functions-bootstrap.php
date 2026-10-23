@@ -3,7 +3,9 @@
 if (!function_exists('checklogin')) {
     function checklogin($field, $redirect = false)
     {
-        return isset($GLOBALS['functions_test_rights'])
+        // array_key_exists, not isset: tests may set null, which is what the
+        // real checklogin() returns for visitors without a valid login cookie.
+        return array_key_exists('functions_test_rights', $GLOBALS)
             ? $GLOBALS['functions_test_rights']
             : '';
     }
