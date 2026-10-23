@@ -99,8 +99,13 @@ services:
         condition: service_healthy
     environment:
       PGACC_TEST_BASE_URL: http://application:8080
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: accounting
+      PGUSER: pgacc_test
+      PGPASSWORD: pgacc_test
       TZ: UTC
-    command: ["php", "tests/http-smoke.php"]
+    command: ["sh", "tests/application-tests.sh"]
     init: true
     networks:
       - test
