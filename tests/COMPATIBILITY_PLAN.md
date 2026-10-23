@@ -2,7 +2,7 @@
 
 Reviewed against the synthetic Docker harness on 2026-10-23. This list separates
 completed changes from reproducible failures and configuration-dependent risks.
-Application changes beyond the completed items below remain follow-up work.
+Application changes beyond the completed fixes listed below remain follow-up work.
 
 ## Completed and verified
 
@@ -13,10 +13,15 @@ Application changes beyond the completed items below remain follow-up work.
   exemptions and organization restrictions keep their existing behavior.
 - [x] Remove `@` from the rights assertions and expand them from four to 24
   cases. The full PHPUnit suite passes 115 tests and 138 assertions on PHP
-  5.6.40, 7.4.33, 8.0.30, and 8.5.12.
+  5.6.40, 7.4.33, 8.0.30, and 8.5.12 (121 and 157 after the null-argument
+  tests).
 - [x] Mutation-test the rights helper. The original four cases killed 13/30
   mutants. Expanded cases killed all 30; after the initialization fix, a new
   initialization-removal mutant is also killed (31/31 on PHP 7.4 and 8.5).
+- [x] Guard `strlen()`, `explode()` and `str_replace()` in `acc_header()`,
+  `acc_footer()`, `rights2orgasql()` and `tag()` against null arguments
+  (PHP 8.1+ deprecation), keeping the pre-8.1 results; see
+  [Null arguments](#null-arguments-to-internal-functions-php-81).
 - [x] Add separate Docker/GitHub Actions runtime lanes. PHP 5.6 and 7.4 pass
   the full HTTP/write harness, with the reviewed diagnostics baseline below.
   PHP 8.0 and 8.5 remain failing on unlisted diagnostics.
@@ -118,8 +123,38 @@ In addition to the PHP 8 forms of the issues above, they report:
 - PHP 8.5 only: "Automatic fetching of PostgreSQL connection is deprecated"
   for `pg_query()`, `pg_escape_string()`, and `pg_last_error()` in
   `functions.php:434`, `index.php:15-17/26`, `report.php`, `transactions.php`,
-  and `spendings.php`; `strlen(): Passing null to parameter #1` at
-  `functions.php:179/228/230`.
+  and `spendings.php`. The displayed deprecation at `index.php:15` starts the
+  output before the login headers.
+- [x] Fixed: `strlen(): Passing null to parameter #1` at
+  `functions.php:179/228/230` (see [Null arguments](#null-arguments-to-internal-functions-php-81)).
+  Before the fix this displayed deprecation in `acc_header()` started the
+  output on PHP 8.5, so logout also returned 200; logout now returns 302 on
+  PHP 8.5 (login still fails at `index.php:15`).
+
+## Null arguments to internal functions (PHP 8.1+)
+
+PHP 8.1 deprecates passing null to non-nullable parameters of internal
+functions. Every internal call in `functions.php` was reviewed for null input;
+reachability was checked with real requests on the PHP 8.5 lane (diagnostics
+recorder, synthetic database).
+
+| Location | Null source and reachability | Status |
+|---|---|---|
+| `functions.php:179` (`acc_header`), `:228`, `:230` (`acc_footer`): `strlen($rights)` | `checklogin('rights', false)` returns null, not `''`, when there is no valid login cookie (it falls through without a return). Every anonymous page, e.g. `GET /index.php?year=2024`; seen in the strict HTTP checks. | [x] Fixed |
+| `functions.php:259`, `:262` (`rights2orgasql`): `explode(",", $rights)` | The listing pages get `checklogin('rights')`, null for anonymous requests; the page keeps rendering after the login redirect header. Reproduced with an anonymous `GET /index.php?action=all&filter_date=2024`. | [x] Fixed |
+| `functions.php:102` (`tag`, CSV mode): `str_replace(..., $text)` | Listings pass nullable columns (`vouchers.name`, `contra_account`, `account`, `comment`, `street`, ...; no default in the schema). The fixtures set them all, so the HTTP tests do not see it. Reproduced with one synthetic voucher without these columns: public `GET /index.php?action=spendings&format=csv` and authenticated `?action=all&format=csv`. After `str_replace()`, `$text` is a string, so the `preg_match()` on line 103 is not affected. | [x] Fixed |
+| `functions.php:4-5` (`hex2ascii`), `:13` (`ascii2hex`) | Only called with `$_POST['target']` after `isset()` (`index.php:31`) and `$_SERVER['REQUEST_URI']`, which the web server always sets. Not reachable with null. | No change |
+| `functions.php:190` (`strpos($rights, ...)`) | Only reached when `strlen($rights) > 0`. | No change |
+| `functions.php:245`, `:250` (`format_date`) | Guarded by `$date != null`. | No change |
+| `getfilter()`, `getsort()`, `getoppsort()`, `eyes()` | `$_GET` values are read only after `isset()`, which is false for null; `getoppsort()` callers pass literals. | No change |
+
+Each fix replaces only null with `''` (`$x === null ? '' : $x`), which is what
+these functions did with null before PHP 8.1 (checked on PHP 5.6, 7.4 and
+8.0): the return values and output are unchanged for every input, including
+non-string ones (a `(string)` cast would have changed arrays and objects). The
+PHPUnit tests call the helpers with null, compare with the empty-string
+result, and capture all diagnostics; they failed on PHP 8.5 only before the
+fix. The `null-arguments` mutation target checks each guard.
 
 ## PostgreSQL version matrix
 

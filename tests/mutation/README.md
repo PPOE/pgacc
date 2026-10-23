@@ -11,7 +11,7 @@ Two mutation tools cover this repository:
   PHPUnit filters and/or the HTTP suites against a `php -S` server started
   from the mutated copy. It runs on every lane, including PHP 5.6. It replaces
   the former hand-picked `rights2orgasql.php` runner; its `rights2orgasql`
-  target keeps the same 31 mutations. See
+  target keeps the same 31 mutations, plus one for null rights. See
   [Target-driven runner](#target-driven-runner).
 
 Which tool when: use Infection for broad, generated coverage of helper
@@ -172,6 +172,20 @@ Rerun on 2026-10-23 on the unchanged `functions.php` (commit 20b5911), with
 The 11 PHP 7.4 mutants of the setup gap below are now killed; PHP 8.5 is
 unchanged because it already reported the warnings. The tables below describe
 the first run.
+
+Rerun on 2026-10-23 after the null-argument guards in `tag()`, `acc_header()`,
+`acc_footer()` and `rights2orgasql()` (lines 102, 179, 228, 230, 259, 262) and
+their six tests (before: the rerun above, with identical numbers):
+
+| Lane | Mutants | Killed | Timed out | Escaped | Not covered | MSI | Covered MSI |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| PHP 7.4, Infection 0.26.6 | 655 | 401 | 1 | 244 | 9 | 61.37% | 62.23% |
+| PHP 8.5, Infection 0.35.8 | 682 | 454 | 1 | 220 | 7 | 66.72% | 67.41% |
+
+All 12 (PHP 7.4) and 6 (PHP 8.5) new mutants are killed; no mutant escapes on
+a changed line, before or after. Infection has no operator that removes a
+null guard; the [`null-arguments` target](#null-arguments-phpunit-functionsphp)
+covers that.
 
 Escaped mutants by function (PHP 7.4 / PHP 8.5):
 
@@ -490,6 +504,34 @@ Earlier history: the original four rights cases killed 13 of the first 30
 mutants; the expanded 24 cases kill all 30, and the initialization-removal
 mutant was added with the initialization fix.
 
+After the null-argument guards (2026-10-23) the target has 32 mutations: the
+two delimiter mutations also accept the guarded `explode()` spelling, and
+`null-rights-fail-open` returns `""` for null rights. All 32 are killed on PHP
+5.6, 7.4, 8.0 and 8.5. `array-initialization-removed` is no longer an accepted
+equivalent on PHP 5.6: the null-rights test captures every diagnostic with its
+own error handler, which also receives the notice that the default
+`error_reporting` hides.
+
+#### `null-arguments` (PHPUnit, `functions.php`)
+
+The null guards that keep PHP 8.1+ from reporting "Passing null to parameter"
+in `tag()` (CSV mode), `acc_header()`, `acc_footer()` and both `explode()`
+calls of `rights2orgasql()`. For each of the six guards: removed, inverted
+(`!== null`), and null replaced by a non-empty value (which shows admin
+links, hides the login link, grants `bgf` or an organization, or fills a
+CSV cell).
+
+| Lane | Killed | Equivalent | Survived | Invalid |
+|---|---:|---:|---:|---:|
+| PHP 5.6.40 | 12 | 6 | 0 | 0 |
+| PHP 7.4.33 | 12 | 6 | 0 | 0 |
+| PHP 8.0.30 | 12 | 6 | 0 | 0 |
+| PHP 8.5.12 | 18 | 0 | 0 | 0 |
+
+The six guard removals are accepted equivalents on PHP 5.6, 7.4 and 8.0:
+before PHP 8.1 the internal functions accept null silently with the
+empty-string result, so only the deprecation differs. PHP 8.5 kills them.
+
 #### `login-logout` (HTTP, `index.php`, `login.php`, `new.php`)
 
 `login()` (`index.php:13-39`), the logout and `login_redirect()` blocks that
@@ -646,5 +688,5 @@ Fix pull requests that change code reached by a target must run that target on
 PHP 7.4 and 5.6 before and after the change and report both results. A new
 behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
-`rights2orgasql` target on every lane, and the `login-logout` target on PHP
+`rights2orgasql` and `null-arguments` targets on every lane, and the `login-logout` target on PHP
 5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above).

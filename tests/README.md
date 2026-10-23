@@ -181,8 +181,8 @@ platform requirements against the actual PHP 5.6 runtime, and runs a pinned
 PHPUnit PHAR outside the application document root. Its download is checked with
 a pinned SHA-256 digest. It uses the same public/authenticated HTTP scenarios and
 voucher creation, approval, finalization, revision, and recovery tests as PHP 7.4.
-PHP 5.6 and PHP 7.4 both pass 155 PHPUnit test cases and 237 assertions (115 and
-138 of them for `functions.php`, the rest for the Infection wrapper). PHP 5.6 has an
+PHP 5.6 and PHP 7.4 both pass 161 PHPUnit test cases and 256 assertions (121 and
+157 of them for `functions.php`, the rest for the Infection wrapper). PHP 5.6 has an
 explicit UTC PHP timezone setting, matching the fixture environment.
 
 `compose.php56.yaml` configures MD5 password authentication only for that lane's
@@ -200,15 +200,19 @@ one fails, then returns a failing exit status if any group failed. It does not
 change the shared assertions to accept PHP 8 incompatibilities. Coverage remains
 on PHP 7.4.
 
-All four runtimes pass the 115 PHPUnit tests and 138 assertions after explicitly
-initializing the rights helper's organization array. The rights assertions no
-longer suppress warnings. On both PHP 8 runtimes, the HTTP and write tests fail
-on diagnostics that have no known-diagnostics entry: undefined
-`$rights`/`$rightssql` and the closed-link error after `relocate()`. On PHP 8.0
-`http-login.php` passes and the write-workflow assertions pass up to the
-diagnostics check. PHP 8.5 adds implicit PostgreSQL connection and
-`strlen(null)` deprecations; displayed before the headers, they still break the
-login redirect without output buffering and the first approval redirect. See
+All four runtimes pass the 121 `functions.php` PHPUnit tests and 157 assertions
+after explicitly initializing the rights helper's organization array and
+guarding the helpers against null arguments. The rights assertions no
+longer suppress warnings. Tests that pass null (the anonymous `checklogin()`
+result, nullable columns) capture every diagnostic with their own error
+handler, because PHPUnit 9 only prints deprecations; they fail on PHP 8.1+ if
+a helper passes null to an internal function. On both PHP 8 runtimes, the HTTP
+and write tests fail on diagnostics that have no known-diagnostics entry:
+undefined `$rights`/`$rightssql` and the closed-link error after `relocate()`.
+On PHP 8.0 `http-login.php` passes and the write-workflow assertions pass up to
+the diagnostics check. PHP 8.5 adds implicit PostgreSQL connection
+deprecations; displayed before the headers, they still break the login
+redirect without output buffering and the first approval redirect. See
 `COMPATIBILITY_PLAN.md`. These failures remain visible in CI; they are not
 allowed failures. The test helper no longer uses `$http_response_header` on
 PHP 8.5.
@@ -232,7 +236,8 @@ covered too. The `login-logout` target mutates login/logout
 handling in `index.php` and `login.php` and the `page_new_buchung()` signature
 in `new.php`; on PHP 5.6 and 7.4 it kills 36 of 38 mutants and accepts two
 reviewed equivalents.
-CI runs the runner's self-tests and the `rights2orgasql` target on every lane,
+CI runs the runner's self-tests and the `rights2orgasql` and `null-arguments`
+targets on every lane,
 and the `login-logout` target on PHP 5.6, 7.4 and 8.0.
 See [the runner documentation](mutation/README.md).
 
