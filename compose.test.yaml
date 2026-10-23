@@ -1,0 +1,57 @@
+name: pgacc-test
+
+services:
+  database:
+    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    environment:
+      POSTGRES_DB: accounting
+      POSTGRES_USER: pgacc_test
+      POSTGRES_PASSWORD: pgacc_test
+      TZ: UTC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=pgacc_test --dbname=accounting"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks:
+      - test
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  php-lint:
+    image: php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
+    command: ["sh", "tests/lint.sh"]
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - .:/app:ro
+    working_dir: /app
+
+  database-test:
+    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: accounting
+      PGUSER: pgacc_test
+      PGPASSWORD: pgacc_test
+      TZ: UTC
+    command: ["sh", "tests/database-smoke.sh"]
+    init: true
+    networks:
+      - test
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - .:/app:ro
+    working_dir: /app
+
+networks:
+  test:
+    internal: true
