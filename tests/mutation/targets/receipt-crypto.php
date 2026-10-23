@@ -137,7 +137,9 @@ return array(
             'rationale' => 'Only PGR2 files are v2 receipts.'),
         array('id' => 'v2-short-file-accepted',
             'search' => 'strlen($file) < 68', 'replace' => 'strlen($file) < 67',
-            'rationale' => 'The shortest v2 file has 68 bytes.'),
+            'rationale' => 'The shortest v2 file has 68 bytes.',
+            'equivalent' => array('reason' => 'Defence in depth: a shorter file has no valid MAC without the key, '
+                . 'so the MAC check rejects it as well.')),
         array('id' => 'equals-length-ignored',
             'search' => "  if (strlen(\$known) !== strlen(\$given))\r\n    return false;\r\n", 'replace' => "  if (false)\r\n    return false;\r\n",
             'rationale' => 'Strings of different lengths differ.'),

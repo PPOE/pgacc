@@ -244,11 +244,20 @@ final class ReceiptStorageTest extends FunctionsTestCase
     public function testWriteFileReplacesTheTargetWithoutLeavingATemporaryFile()
     {
         $path = $this->directory . '/7.v2.aes';
-        list($written, $log, $diagnostics) = self::logged(function () use ($path) {
-            return receipt_write_file($path, 'first') && receipt_write_file($path, 'second');
+        $inodes = array();
+        list($written, $log, $diagnostics) = self::logged(function () use ($path, &$inodes) {
+            $first = receipt_write_file($path, 'first');
+            clearstatcache();
+            $inodes[] = fileinode($path);
+            $second = receipt_write_file($path, 'second');
+            clearstatcache();
+            $inodes[] = fileinode($path);
+            return $first && $second;
         });
         self::assertTrue($written);
         self::assertSame('second', file_get_contents($path));
+        // A new file was renamed into place; the old one was not rewritten.
+        self::assertNotSame($inodes[0], $inodes[1]);
         self::assertSame(array('7.v2.aes'), $this->names());
         self::assertSame('', $log);
         self::assertSame(array(), $diagnostics);
