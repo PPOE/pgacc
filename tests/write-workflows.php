@@ -695,6 +695,120 @@ assert_voucher_rows(
     'voucher after approval reset by a user without rights'
 );
 
+// Voucher IDs of the edit actions (approval, finalization, approval reset,
+// revision, receipt upload) are used in SQL. Only digits are accepted; any
+// other value gets "Buchung nicht gefunden" and changes nothing.
+$injectionTargetId = create_voucher($database, 'Synthetic injection target', '-11.00', 9008, $adminCookies);
+$injectionOtherId = create_voucher($database, 'Synthetic injection bystander', '-12.00', 9009, $adminCookies);
+assert_redirect(edit_request($injectionTargetId, $approveForm, $adminCookies), edit_location($injectionTargetId, 4), 'approval of the injection target');
+assert_redirect(edit_request($injectionOtherId, $approveForm, $adminCookies), edit_location($injectionOtherId, 4), 'approval of the injection bystander');
+$injectionState = array(voucher_row_state('2', 'synthetic-admin', null, 'f'));
+$injectedIds = array(
+    'condition' => $injectionTargetId . ' OR voucher_id = ' . $injectionOtherId,
+    'quote' => $injectionTargetId . "'",
+    'trailing newline' => $injectionTargetId . "\n",
+    'sign' => '+' . $injectionTargetId,
+);
+$injectionActions = array(
+    'approval' => array($approveForm, $reviewerCookies),
+    'finalization' => array($finalizeForm, $adminCookies),
+    'approval reset' => array(array('belegfehler' => 'Bestätigungen zurücksetzen!'), $noRightsCookies),
+    'revision' => array(revision_form('', 'Synthetic injected revision', '-13.00'), $adminCookies),
+);
+foreach ($injectionActions as $action => $request) {
+    foreach ($injectedIds as $kind => $injectedId) {
+        $label = "$action with an injected voucher ID ($kind)";
+        $response = edit_request($injectedId, $request[0], $request[1]);
+        assert_status($response, 200, $label);
+        assert_contains($response['body'], 'FEHLER: Buchung nicht gefunden.', $label);
+        assert_not_contains($response['body'], 'Abfrage fehlgeschlagen', $label);
+        assert_voucher_rows($database, $injectionTargetId, $injectionState, "target after $label");
+        assert_voucher_rows($database, $injectionOtherId, $injectionState, "bystander after $label");
+    }
+    $response = http_request('/index.php?action=edit', 'POST', array_merge($request[0], array('id' => array($injectionTargetId))), $request[1]);
+    assert_contains($response['body'], 'FEHLER: Buchung nicht gefunden.', "$action with an array as voucher ID");
+    $response = http_request('/index.php?action=edit', 'POST', $request[0], $request[1]);
+    assert_contains($response['body'], 'FEHLER: Buchung nicht gefunden.', "$action without a voucher ID");
+}
+assert_database_count($database, $commentQuery, array('Synthetic injected revision'), 0, 'revisions saved with injected voucher IDs');
+
+// The receipt upload checks the voucher ID before it stores the file.
+$syntheticReceipt = array('file0' => array('name' => 'synthetic-receipt.pdf', 'type' => 'application/pdf', 'content' => '%PDF-1.4 synthetic'));
+foreach ($injectedIds as $kind => $injectedId) {
+    $label = "receipt upload with an injected voucher ID ($kind)";
+    $response = http_request(
+        '/index.php?action=edit',
+        'POST',
+        array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => '1', 'id' => $injectedId),
+        $adminCookies,
+        null,
+        $syntheticReceipt
+    );
+    assert_status($response, 200, $label);
+    assert_contains($response['body'], 'FEHLER: Buchung nicht gefunden.', $label);
+    assert_not_contains($response['body'], 'Abfrage fehlgeschlagen', $label);
+}
+
+// Approval names posted with a revision are stored as the old approvals;
+// they are escaped (a quote failed the query before).
+$quotedRevisionId = create_voucher($database, 'Synthetic draft with a quoted approval', '-14.00', 0, $adminCookies);
+$quotedRevisionForm = revision_form($quotedRevisionId, 'Synthetic revision with a quoted approval', '-14.50');
+$quotedRevisionForm['ack1_old'] = "synthetic-o'reviewer";
+$quotedRevisionForm['ack2_old'] = "synthetic-reviewer'2";
+assert_redirect(edit_request($quotedRevisionId, $quotedRevisionForm, $adminCookies), edit_location($quotedRevisionId, 5), 'revision with quoted old approvals');
+$quotedRevision = database_row(
+    $database,
+    'SELECT ack1_old, ack2_old FROM vouchers WHERE comment = $1 AND NOT deleted',
+    array('Synthetic revision with a quoted approval'),
+    'revision with quoted old approvals'
+);
+assert_database_field($quotedRevision, 'ack1_old', "synthetic-o'reviewer", 'revision with quoted old approvals');
+assert_database_field($quotedRevision, 'ack2_old', "synthetic-reviewer'2", 'revision with quoted old approvals');
+
+// Dates are accepted only as a whole: D.M.20YY or 20YY-M-D. Other text is
+// treated as a missing date ("Kein Datum angegeben", saved as 1800-01-01).
+$dateForms = array(
+    '15.09.2024' => '2024-09-15 00:00:00',
+    '2024-9-5' => '2024-09-05 00:00:00',
+    "15.09.2024' x" => '1800-01-01 00:00:00',
+    "x' 2024-09-15" => '1800-01-01 00:00:00',
+);
+$dateIndex = 0;
+foreach ($dateForms as $date => $stored) {
+    $dateIndex++;
+    $dateComment = "Synthetic dated voucher $dateIndex";
+    $dateForm = voucher_form($dateComment, '-1.00', 0);
+    $dateForm['date0'] = $date;
+    $dateCreation = http_request('/index.php?action=new', 'POST', $dateForm, $adminCookies);
+    assert_contains($dateCreation['body'], 'Buchung erfasst', "creation with the date " . var_export($date, true));
+    assert_not_contains($dateCreation['body'], 'Abfrage fehlgeschlagen', "creation with the date " . var_export($date, true));
+    if ($stored === '1800-01-01 00:00:00') {
+        assert_contains($dateCreation['body'], 'Kein Datum angegeben', "creation with the date " . var_export($date, true));
+    }
+    $dated = database_row($database, 'SELECT date FROM vouchers WHERE comment = $1', array($dateComment), $dateComment);
+    assert_database_field($dated, 'date', $stored, $dateComment);
+}
+
+// The old-approval filter of the listings uses the approval filter's value
+// (filter_ack), escaped.
+pg_query_params($database, 'UPDATE vouchers SET ack1_old = $1 WHERE comment = $2', array('synthetic-old-approver', 'Synthetic injection target'));
+$filterCases = array(
+    'filter_ack=synthetic-old&filter_ack_old=any' => true,
+    'filter_ack_old=any' => true,
+    'filter_ack=' . rawurlencode("synthetic-old'") . '&filter_ack_old=any' => false,
+);
+foreach ($filterCases as $query => $listed) {
+    $listing = http_request('/index.php?action=all&' . $query, 'GET', array(), $adminCookies);
+    assert_status($listing, 200, "listing with $query");
+    assert_not_contains($listing['body'], 'Abfrage fehlgeschlagen', "listing with $query");
+    if ($listed) {
+        assert_contains($listing['body'], 'Synthetic injection target', "listing with $query");
+    } else {
+        assert_not_contains($listing['body'], 'Synthetic injection target', "listing with $query");
+        assert_contains($listing['body'], '</table>', "listing with $query");
+    }
+}
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

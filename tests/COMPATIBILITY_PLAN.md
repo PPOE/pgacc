@@ -27,6 +27,45 @@ Application changes beyond the completed fixes listed below remain follow-up wor
   PHP 8.0 and 8.5 remain failing on unlisted diagnostics.
   The runner attempts every lane and returns nonzero if any fails.
 
+## Security fixes (before `php5-last`)
+
+Hotfixes for the production server, each tested in `tests/write-workflows.php`
+with synthetic users and covered by a mutation target.
+
+- [x] Request values in SQL. Every top-level file was reviewed for request
+  values (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, posted form fields)
+  that reach SQL. Fixed (mutation target `sql-injection`):
+  - The voucher ID of approval, finalization, approval reset and revision
+    (`edit.php`) and of the receipt upload (`new.php`) was used unchecked.
+    It must now consist of digits only (`/^\d+$/D`, the same set that
+    `page_edit()` passes through `intval()`); anything else gets the existing
+    "Buchung nicht gefunden" error and nothing runs. Valid IDs behave as
+    before. Values that the database used to accept as well, such as a
+    leading `+`, surrounding whitespace or a final newline, are now refused.
+  - Old approval names posted with a revision (`ack1`/`ack2`,
+    `ack1_old`/`ack2_old`) are escaped before the insert in
+    `page_save_buchung()`. Names with a quote used to fail the query; they
+    are now stored as posted.
+  - The voucher date pattern in `get_voucher()` anchored each alternative at
+    one end only. It is grouped now, so only a whole `D.M.20YY` or
+    `20YY-M-D` is accepted; text before or after a date is treated like a
+    missing date ("Kein Datum angegeben", saved as 1800-01-01, the existing
+    handling) instead of being passed to the database.
+  - The old-approval listing filter (`getfilter()`, `filter_ack_old`) inserts
+    the value of `filter_ack` (an existing mix-up, kept), which is not
+    checked against a pattern there; it is escaped now. Without `filter_ack`
+    it no longer raises an undefined-index notice (same SQL as before).
+  Reviewed without change: `intval()`/digit-pattern values (`edit.php`
+  merge, `page_edit()`, `recover.php`, `search.php`, `donations.php`,
+  `index.php` hide and cookies, `file.php`), escaped values (`index.php`
+  login, `accounts.php`, the text fields of `get_voucher()`), pattern-checked
+  values without quotes (the other `getfilter()` filters, `kdonations.php`,
+  `spendings.php`, `tinyreport.php`, `vreport.php`, `check.php`,
+  `index.php` year), and whitelists (`getsort()`, `index.php` action).
+  Open: `import.php` inserts dates read from the uploaded bank CSV without
+  escaping (`format_date()` passes unrecognized text through); there is no
+  import test yet (see the import items below).
+
 ## Login and redirect failure: confirmed
 
 PHP 8 has not introduced a new rule prohibiting these redirects. The documented

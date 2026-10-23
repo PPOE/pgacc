@@ -23,7 +23,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -81,7 +81,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -111,7 +111,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -175,7 +175,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;

@@ -34,7 +34,7 @@ else if ($voucher['dir'] == 'bel')
     $part = $part - 1;
 }
 
-$voucher['date'] = format_date(get_param($part, 'date', null, '/^((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1)))$/'));
+$voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
 $default_lo = 10;
 $rights2 = explode(",", $rights);
@@ -155,8 +155,8 @@ VALUES
   '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
   '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
   {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},".
-  ($ack1_old == null ? "NULL" : "'" . $ack1_old . "'").",".
-  ($ack2_old == null ? "NULL" : "'" . $ack2_old . "'").
+  ($ack1_old == null ? "NULL" : "'" . pg_escape_string($ack1_old) . "'").",".
+  ($ack2_old == null ? "NULL" : "'" . pg_escape_string($ack2_old) . "'").
   ");";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -223,7 +223,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
