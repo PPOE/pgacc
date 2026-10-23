@@ -446,6 +446,254 @@ assert_database_count(
 assert_database_count($database, $voucherRowsQuery, array($visitorDraftId), 1, 'merge target after a visitor merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 2, 'merge source after a visitor merge');
 
+// Organization scope of voucher writes. Rights: synthetic-unit-one '1',
+// synthetic-unit-two '2', synthetic-reviewer 'bgf', synthetic-admin
+// 'root,bgf', synthetic-no-rights ''. Organization 10 is the default of
+// get_voucher() when the form posts no organization (lo).
+$unitTwoCookies = login_user('synthetic-unit-two', 'unit-two-password');
+$noRightsCookies = login_user('synthetic-no-rights', 'no-rights-password');
+
+function voucher_form_without_organization($comment, $amount, $file)
+{
+    $form = voucher_form($comment, $amount, $file);
+    unset($form['lo0']);
+    return $form;
+}
+
+// A voucher with one row in organization 1 and one in organization 2.
+function two_organization_form($comment, $file)
+{
+    $form = voucher_form($comment, '-1.00', $file);
+    $form['parts'] = '2';
+    $form['lo0'] = '1';
+    foreach (voucher_form($comment, '-2.00', $file) as $name => $value) {
+        if (substr($name, -1) === '0') {
+            $form[substr($name, 0, -1) . '1'] = $value;
+        }
+    }
+    $form['lo1'] = '2';
+    return $form;
+}
+
+function voucher_rows($database, $voucherId, $label)
+{
+    $result = @pg_query_params(
+        $database,
+        'SELECT orga, ack1, ack2, receipt_received FROM vouchers
+          WHERE voucher_id = $1 AND NOT deleted ORDER BY orga',
+        array($voucherId)
+    );
+    if ($result === false) {
+        fail_test("database query failed for $label: " . pg_last_error($database));
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows === false ? array() : $rows;
+}
+
+function assert_voucher_rows($database, $voucherId, $expected, $label)
+{
+    $actual = voucher_rows($database, $voucherId, $label);
+    if ($actual !== $expected) {
+        fail_test("$label rows were " . var_export($actual, true) . ', expected ' . var_export($expected, true));
+    }
+}
+
+function voucher_row_state($orga, $ack1, $ack2, $receiptReceived)
+{
+    return array('orga' => $orga, 'ack1' => $ack1, 'ack2' => $ack2, 'receipt_received' => $receiptReceived);
+}
+
+function edit_request($voucherId, $form, $cookies)
+{
+    $form['id'] = $voucherId;
+    $form['parts'] = '1';
+    return http_request('/index.php?action=edit&id=' . rawurlencode($voucherId), 'POST', $form, $cookies);
+}
+
+function create_voucher_from_form($database, $form, $cookies)
+{
+    $comment = $form['comment0'];
+    $response = http_request('/index.php?action=new', 'POST', $form, $cookies);
+    assert_status($response, 200, "creation of $comment");
+    assert_contains($response['body'], 'Buchung erfasst', "creation of $comment");
+    $row = database_row(
+        $database,
+        'SELECT DISTINCT voucher_id FROM vouchers WHERE comment = $1 AND NOT deleted',
+        array($comment),
+        "created $comment"
+    );
+    return $row['voucher_id'];
+}
+
+function voucher_by_comment($database, $comment)
+{
+    return database_row(
+        $database,
+        'SELECT voucher_id, orga FROM vouchers WHERE comment = $1 AND NOT deleted',
+        array($comment),
+        $comment
+    );
+}
+
+// Creation without an organization: the voucher is saved with a default
+// organization.
+$scopedComment = 'Synthetic voucher of organization two';
+$scopedCreation = http_request(
+    '/index.php?action=new',
+    'POST',
+    voucher_form_without_organization($scopedComment, '-5.00', 0),
+    $unitTwoCookies
+);
+assert_status($scopedCreation, 200, 'creation by an organization user');
+assert_contains($scopedCreation['body'], 'Buchung erfasst', 'creation by an organization user');
+$scopedVoucher = voucher_by_comment($database, $scopedComment);
+assert_database_field($scopedVoucher, 'orga', '10', 'voucher created by an organization user');
+
+$bgfComment = 'Synthetic voucher of the bgf reviewer';
+$bgfCreation = http_request(
+    '/index.php?action=new',
+    'POST',
+    voucher_form_without_organization($bgfComment, '-5.50', 0),
+    $reviewerCookies
+);
+assert_contains($bgfCreation['body'], 'Buchung erfasst', 'creation by a bgf user');
+assert_database_field(voucher_by_comment($database, $bgfComment), 'orga', '10', 'voucher created by a bgf user');
+
+// The posted organization is saved as given; it is not checked against the
+// user's rights.
+$explicitComment = 'Synthetic voucher with a posted organization';
+$explicitCreation = http_request(
+    '/index.php?action=new',
+    'POST',
+    voucher_form($explicitComment, '-6.50', 0),
+    $unitOneCookies
+);
+assert_contains($explicitCreation['body'], 'Buchung erfasst', 'creation with a posted organization');
+assert_database_field(
+    voucher_by_comment($database, $explicitComment),
+    'orga',
+    '2',
+    'voucher created with a posted organization'
+);
+
+// A revision without an organization keeps the user's organization.
+$scopedDraftId = create_voucher($database, 'Synthetic draft of organization two', '-7.50', 0, $adminCookies);
+// The voucher form (shared by the creation and edit pages) offers the
+// organization only for rights with several entries (here 'root,bgf'); a
+// user of one organization posts none.
+$scopedDraftUri = '/index.php?action=edit&id=' . rawurlencode($scopedDraftId);
+$unitTwoForm = http_request($scopedDraftUri, 'GET', array(), $unitTwoCookies);
+assert_status($unitTwoForm, 200, 'voucher form of an organization user');
+assert_contains($unitTwoForm['body'], 'name="date0"', 'voucher form of an organization user');
+assert_not_contains($unitTwoForm['body'], 'name="lo0"', 'voucher form of an organization user');
+$adminForm = http_request($scopedDraftUri, 'GET', array(), $adminCookies);
+assert_contains($adminForm['body'], 'name="lo0"', 'voucher form of an admin');
+$scopedRevisionForm = revision_form($scopedDraftId, 'Synthetic revision of organization two', '-8.50');
+unset($scopedRevisionForm['lo0']);
+$scopedRevision = edit_request($scopedDraftId, $scopedRevisionForm, $unitTwoCookies);
+assert_redirect($scopedRevision, edit_location($scopedDraftId, 5), 'revision by an organization user');
+assert_database_field(
+    voucher_by_comment($database, 'Synthetic revision of organization two'),
+    'orga',
+    '2',
+    'revision by an organization user'
+);
+
+// Approval of a finalized voucher is refused, also for a user of another
+// organization, who gets the same answer.
+$approveForm = array('ack' => 'Bestätigen');
+$finalizedId = create_voucher($database, 'Synthetic finalized draft', '-9.50', 9004, $adminCookies);
+$finalizeForm = array('beleg' => 'Beleg erhalten');
+assert_redirect(
+    edit_request($finalizedId, $finalizeForm, $adminCookies),
+    edit_location($finalizedId, 2),
+    'finalization without approvals'
+);
+$finalizedApproval = edit_request($finalizedId, $approveForm, $adminCookies);
+assert_status($finalizedApproval, 200, 'approval of a finalized voucher');
+assert_contains($finalizedApproval['body'], 'bereits finalisiert', 'approval of a finalized voucher');
+$crossFinalizedApproval = edit_request($finalizedId, $approveForm, $unitOneCookies);
+assert_status($crossFinalizedApproval, 200, 'cross-organization approval of a finalized voucher');
+assert_contains(
+    $crossFinalizedApproval['body'],
+    'bereits finalisiert',
+    'cross-organization approval of a finalized voucher'
+);
+assert_voucher_rows(
+    $database,
+    $finalizedId,
+    array(voucher_row_state('2', null, null, 't')),
+    'finalized voucher after approvals'
+);
+
+// Vouchers with rows in two organizations: approval and finalization change
+// only the rows of the user's organization.
+$mixedId = create_voucher_from_form($database, two_organization_form('Synthetic mixed voucher', 9005), $adminCookies);
+$mixedApproval = edit_request($mixedId, $approveForm, $unitTwoCookies);
+assert_redirect($mixedApproval, edit_location($mixedId, 4), 'approval of a mixed voucher');
+assert_voucher_rows(
+    $database,
+    $mixedId,
+    array(voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-unit-two', null, 'f')),
+    'mixed voucher after approval by organization two'
+);
+// Organization one's approval is the first one of its row; it does not count
+// as the second approval of organization two's row.
+$mixedApproval = edit_request($mixedId, $approveForm, $unitOneCookies);
+assert_redirect($mixedApproval, edit_location($mixedId, 4), 'approval of a mixed voucher by organization one');
+assert_voucher_rows(
+    $database,
+    $mixedId,
+    array(
+        voucher_row_state('1', 'synthetic-unit-one', null, 'f'),
+        voucher_row_state('2', 'synthetic-unit-two', null, 'f'),
+    ),
+    'mixed voucher after approval by organization one'
+);
+
+$mixedFinalizedId = create_voucher_from_form(
+    $database,
+    two_organization_form('Synthetic partly finalized voucher', 9006),
+    $adminCookies
+);
+assert_redirect(
+    edit_request($mixedFinalizedId, $finalizeForm, $unitOneCookies),
+    edit_location($mixedFinalizedId, 2),
+    'finalization by organization one'
+);
+assert_voucher_rows(
+    $database,
+    $mixedFinalizedId,
+    array(voucher_row_state('1', null, null, 't'), voucher_row_state('2', null, null, 'f')),
+    'mixed voucher after finalization by organization one'
+);
+// The finalized row of organization one blocks the approval by organization
+// two.
+$partlyFinalizedApproval = edit_request($mixedFinalizedId, $approveForm, $unitTwoCookies);
+assert_status($partlyFinalizedApproval, 200, 'approval of a partly finalized voucher');
+assert_contains($partlyFinalizedApproval['body'], 'bereits finalisiert', 'approval of a partly finalized voucher');
+assert_voucher_rows(
+    $database,
+    $mixedFinalizedId,
+    array(voucher_row_state('1', null, null, 't'), voucher_row_state('2', null, null, 'f')),
+    'partly finalized voucher after approval by organization two'
+);
+
+// Resetting the approvals ("Bestätigungen zurücksetzen!") by a user with
+// empty rights (see tests/COMPATIBILITY_PLAN.md, page_edit_drop_acks()).
+$resetId = create_voucher($database, 'Synthetic approved voucher', '-10.50', 9007, $adminCookies);
+assert_redirect(edit_request($resetId, $approveForm, $adminCookies), edit_location($resetId, 4), 'first approval before the reset');
+assert_redirect(edit_request($resetId, $approveForm, $reviewerCookies), edit_location($resetId, 4), 'second approval before the reset');
+$reset = edit_request($resetId, array('belegfehler' => 'Bestätigungen zurücksetzen!'), $noRightsCookies);
+assert_redirect($reset, edit_location($resetId, 3), 'approval reset by a user without rights');
+assert_voucher_rows(
+    $database,
+    $resetId,
+    array(voucher_row_state('2', null, null, 'f')),
+    'voucher after approval reset by a user without rights'
+);
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

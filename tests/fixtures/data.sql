@@ -46,7 +46,14 @@ VALUES
    timestamp '2024-01-01 12:00:00', 456789, 'root,bgf', '1,3,5,7,9,11,13,15,17'),
   (5, 'synthetic-hide-even',
    crypt('hide-even-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 567890, 'root,bgf', '2,4,6,8,10,12,14,16,18');
+   timestamp '2024-01-01 12:00:00', 567890, 'root,bgf', '2,4,6,8,10,12,14,16,18'),
+  -- Organization-scoped users for the cross-organization write workflows.
+  (6, 'synthetic-unit-two',
+   crypt('unit-two-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 678901, '2', ''),
+  (7, 'synthetic-no-rights',
+   crypt('no-rights-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 789012, '', '');
 
 INSERT INTO balance (id, value, orga, date)
 VALUES
