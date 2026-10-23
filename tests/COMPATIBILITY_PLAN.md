@@ -116,9 +116,9 @@ explains that dropping the unused default generally preserves behavior; see
     combined with `?action=search` for a logged-in user (the search now
     redirects before the hide block runs; previously the column was
     hidden, then redirected).
-  Not covered: the receipt upload redirect (`new.php:266`, PDF upload on
-  the edit page) is only reachable with `mcrypt` (PHP < 7.2) and is not
-  tested; `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
+  The receipt upload redirect (`new.php:266`, PDF upload on the edit page)
+  is tested in `tests/http-receipts.php` since the `mcrypt` replacement.
+  Not covered: `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
   reaches its redirect, because it passes `$rights` instead of the rights
   SQL to `vouchers_reset_ack()` and the query fails ("syntax error at or
   near ..."). [ ] Fix and test the reset separately; it is an existing

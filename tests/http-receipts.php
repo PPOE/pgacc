@@ -109,8 +109,11 @@ foreach ($uploads as $upload) {
         null,
         array('file0' => array('name' => $name, 'type' => $type, 'content' => $content))
     );
-    assert_contains($response['body'], "Upload erfolgreich - Buchung Nr. $voucherId - Buchungszeile Nr. $id", "$name upload");
-    assert_no_fatal_error($response['body'], "$name upload");
+    // relocate() discards the confirmation page and redirects to the voucher.
+    assert_no_problems(
+        redirect_problems($response, "index.php?action=edit&id=$voucherId&bid=$id&hint=1"),
+        "$name upload"
+    );
     $fileNumber = receipt_file_number($database, $id);
     assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, "$name download");
 }
