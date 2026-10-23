@@ -5,7 +5,11 @@
         ],
         "excludes": [
             "infection",
-            "results"
+            "results",
+            "targets",
+            "lib.php",
+            "runner.php",
+            "/^tests\\//"
         ]
     },
     "phpUnit": {
