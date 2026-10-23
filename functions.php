@@ -534,29 +534,43 @@ function rijndael256_decrypt($key, $data, $iv)
 }
 
 /*
- * Receipt files (files/<n>.aes), keyed by the voucher ID. The callers pass
- * their $key as it is; see the mcrypt item in tests/COMPATIBILITY_PLAN.md
- * before changing the key derivation.
+ * Receipt files (files/<n>.aes), keyed by the voucher ID: key and IV, shared
+ * by encryption and decryption. See the mcrypt items in
+ * tests/COMPATIBILITY_PLAN.md before changing the key derivation.
  */
+function receipt_cipher_params($id, $key)
+{
+  return array(md5($id . $key . $id), md5($key . $id));
+}
+
 function receipt_encrypt($id, $key, $data)
 {
-  return rijndael256_encrypt(md5($id . $key . $id), $data, md5($key . $id));
+  list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+  return rijndael256_encrypt($cipherKey, $data, $iv);
 }
 
 function receipt_decrypt($id, $key, $data)
 {
-  return rijndael256_decrypt(md5($id . $key . $id), $data, md5($key . $id));
+  list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+  return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
-// Membership-system exchange (getusers.php, mbapi.php).
+// Membership-system exchange (getusers.php, mbapi.php): key and IV.
+function membership_cipher_params($datakey)
+{
+  return array(md5($datakey), md5(md5($datakey)));
+}
+
 function membership_encrypt($datakey, $data)
 {
-  return rijndael256_encrypt(md5($datakey), $data, md5(md5($datakey)));
+  list($cipherKey, $iv) = membership_cipher_params($datakey);
+  return rijndael256_encrypt($cipherKey, $data, $iv);
 }
 
 function membership_decrypt($datakey, $data)
 {
-  return rijndael256_decrypt(md5($datakey), $data, md5(md5($datakey)));
+  list($cipherKey, $iv) = membership_cipher_params($datakey);
+  return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
 ?>
