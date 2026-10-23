@@ -53,7 +53,14 @@ VALUES
    timestamp '2024-01-01 12:00:00', 678901, '2', ''),
   (7, 'synthetic-no-rights',
    crypt('no-rights-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 789012, '', '');
+   timestamp '2024-01-01 12:00:00', 789012, '', ''),
+  -- Read-only bgf ("Rbgf", see accounts.php), alone and with organization 2.
+  (8, 'synthetic-read-only',
+   crypt('read-only-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 890123, 'Rbgf', ''),
+  (9, 'synthetic-read-only-two',
+   crypt('read-only-two-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 901234, 'Rbgf,2', '');
 
 INSERT INTO balance (id, value, orga, date)
 VALUES

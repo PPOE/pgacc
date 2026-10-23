@@ -120,6 +120,44 @@ with synthetic users and covered by a mutation target.
   rights are stored. **Flagged for the owner:** users created so far have
   the rights of their creator; review them in the user list. Mutation
   target `rights-checks`.
+- [x] Read-only `Rbgf` (**owner-approved**). `accounts.php` documents a
+  leading `R` as read-only access ("Rbgf"), but only the rights SQL knew
+  `Rbgf` (as unrestricted), so it could write everywhere. `write_rights()`
+  (`functions.php`) drops the `Rbgf` token for writes and returns false
+  when nothing else remains; rights without `Rbgf` are returned unchanged,
+  so `bgf` and all other users are unaffected. Write paths and their
+  checks:
+  - voucher creation (`page_new_save()`), receipt upload
+    (`page_new_file()`), revision (`page_edit_save()`) and approval
+    (`page_edit_ack()`): `write_rights()`, refused with "FEHLER: Keine
+    Zugriffsrechte.", otherwise run with the write rights;
+  - finalization and approval reset: exact `bgf`; merge: exact `root`
+    (fixes above); recovery: `root` (unchanged);
+  - user changes (`accounts.php`, also the own password): `write_rights()`,
+    with the page's existing error;
+  - bank import and receipt import (`index.php`, before `page_import()`,
+    which calls `getusers()` and rebuilds `ppmembers`, and
+    `page_import2()`): `write_rights()`;
+  - allowed as the user's own data: login cookie and the listing column
+    preferences (`?hide=`);
+  - unchanged: the member-fee page (`mb.php`) is a read page for `bgf`
+    and `Rbgf` that rebuilds the `ppmembers` cache through `getusers()`;
+    `?action=transfer` and the `ack` button of the new-voucher form call
+    undefined functions (fatal for everyone).
+  The menu hides "Erfassen", "Import" and "Belege Import", and the voucher
+  form (`end_of_form()`) shows no save, approval or reset buttons for
+  read-only users; the new-voucher form itself still renders. Reads are
+  unchanged (tested: ledger, CSV, open and old-revision listings, voucher
+  pages of two organizations). Behaviour differences for `Rbgf` alone:
+  every write above is refused. For `Rbgf` with organizations (e.g.
+  `Rbgf,2`): reads stay unrestricted, writes are restricted to those
+  organizations like an organization user (before: approval and revision
+  of every organization; a voucher without a posted organization now
+  defaults to organization 2 instead of 10). Tests in
+  `tests/write-workflows.php` (users `synthetic-read-only` and
+  `synthetic-read-only-two`) and `FunctionsTest`, mutation target
+  `read-only-rights` (the bank import check is not mutated, because its
+  removal would contact the membership system).
 
 ## Login and redirect failure: confirmed
 

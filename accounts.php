@@ -7,7 +7,8 @@ function page_accounts($rights)
     if (count($parts) == 3)
     {
       $id = intval($parts[1]);
-      if ($id != checklogin('id') && strpos($rights,'root') === false)
+      $rights = write_rights($rights);
+      if ($rights === false || $id != checklogin('id') && strpos($rights,'root') === false)
       {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;

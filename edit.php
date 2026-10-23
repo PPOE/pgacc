@@ -113,6 +113,12 @@ relocate("index.php?action=edit&id=$id&hint=3");
 }
 function page_edit_ack($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
@@ -189,6 +195,12 @@ relocate("index.php?action=edit&id=$id&hint=4");
 }
 function page_edit_save($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];

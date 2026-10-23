@@ -178,9 +178,13 @@ echo '<a href="donations"'.($page == "donations"?' class="selected"':'').'>Spend
 ';*/
 if (strlen($rights === null ? '' : $rights) > 0)
 {
-  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
-  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
-  echo '<a href="index.php?action=import2"'.($page == "import2"?' class="selected"':'').'>Belege Import</a>';
+  echo '<br />';
+  if (write_rights($rights) !== false)
+  {
+    echo '<a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
+    echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
+    echo '<a href="index.php?action=import2"'.($page == "import2"?' class="selected"':'').'>Belege Import</a>';
+  }
   echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offen</a>';
   echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossen</a>';
   echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alles</a>';
@@ -259,6 +263,24 @@ function format_date($date)
 function has_right($rights, $right)
 {
   return in_array($right, explode(",", $rights === null ? '' : $rights), true);
+}
+// Rights for changing data. The read-only right "Rbgf" (see accounts.php)
+// does not count: false for a user who has no other right, otherwise the
+// other rights. Rights without "Rbgf" are returned unchanged.
+function write_rights($rights)
+{
+  $tokens = explode(",", $rights === null ? '' : $rights);
+  if (!in_array('Rbgf', $tokens, true))
+    return $rights;
+  $rights_w = array();
+  foreach ($tokens as $right)
+  {
+    if ($right !== 'Rbgf' && $right !== '')
+      $rights_w[] = $right;
+  }
+  if (count($rights_w) == 0)
+    return false;
+  return implode(",", $rights_w);
 }
 function rights2orgasql($rights)
 {

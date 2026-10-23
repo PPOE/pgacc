@@ -181,6 +181,12 @@ return $voucher_number;
 }
 function page_new_save($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
@@ -206,6 +212,12 @@ for ($i = 0; $i < $parts; $i++)
 }
 function page_new_file($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = intval($_POST["parts"]);
@@ -636,7 +648,7 @@ end_of_form($parts,$rights,$bgfandack,$rights,true,false);
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)
 {
 $rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2)))
+if (write_rights($rights) !== false && (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2))))
 {
 if ($bgfandack)
 {

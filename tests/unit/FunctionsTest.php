@@ -188,6 +188,66 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringContainsString('action=open&filter_date=2024', $adminHtml);
     }
 
+    public function testAccHeaderOffersNoWritePagesToReadOnlyRights()
+    {
+        $GLOBALS['functions_test_rights'] = 'bgf';
+        ob_start();
+        acc_header(null, 'index', 2024);
+        $bgfHtml = ob_get_clean();
+        $GLOBALS['functions_test_rights'] = 'Rbgf';
+        ob_start();
+        acc_header(null, 'index', 2024);
+        $readOnlyHtml = ob_get_clean();
+        $GLOBALS['functions_test_rights'] = 'Rbgf,2';
+        ob_start();
+        acc_header(null, 'index', 2024);
+        $readOnlyTwoHtml = ob_get_clean();
+        $writeLinks = array('<br /><a href="index.php?action=new">Erfassen</a>', 'action=import"', 'action=import2"');
+        foreach ($writeLinks as $link) {
+            self::assertStringContainsString($link, $bgfHtml);
+            self::assertStringNotContainsString($link, $readOnlyHtml);
+            self::assertStringContainsString($link, $readOnlyTwoHtml);
+        }
+        // Apart from the write links, read-only bgf gets the menu of bgf.
+        self::assertSame(
+            str_replace(
+                '<a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a>'
+                    . '<a href="index.php?action=import2">Belege Import</a>',
+                '',
+                $bgfHtml
+            ),
+            $readOnlyHtml
+        );
+    }
+
+    /**
+     * @dataProvider writeRightsProvider
+     */
+    public function testWriteRights($rights, $expected)
+    {
+        $result = self::callAndCaptureDiagnostics(function () use ($rights) {
+            return write_rights($rights);
+        });
+        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+    }
+
+    public static function writeRightsProvider()
+    {
+        return array(
+            'read-only bgf' => array('Rbgf', false),
+            'read-only bgf with empty tokens' => array('Rbgf,', false),
+            'read-only bgf with an organization' => array('Rbgf,2', '2'),
+            'organization before read-only bgf' => array('1,Rbgf,2', '1,2'),
+            'read-only bgf with bgf' => array('bgf,Rbgf', 'bgf'),
+            'bgf unchanged' => array('bgf', 'bgf'),
+            'admin unchanged' => array('root,bgf', 'root,bgf'),
+            'organizations unchanged' => array('1,,2', '1,,2'),
+            'empty rights unchanged' => array('', ''),
+            'null rights unchanged' => array(null, null),
+            'substring is not read-only bgf' => array('xRbgf', 'xRbgf'),
+        );
+    }
+
     public function testBlockHelpersSuppressCsvAndRenderHtml()
     {
         ob_start();

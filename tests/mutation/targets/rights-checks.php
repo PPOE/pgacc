@@ -202,6 +202,20 @@ return array(
             'rationale' => 'bgf users finalize vouchers.',
         ),
         array(
+            'id' => 'finalize-bgf-substring',
+            'region' => $finalize,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => "if (strpos(\$rights, 'bgf') === false)",
+            'rationale' => 'Read-only bgf (Rbgf) does not finalize.',
+        ),
+        array(
+            'id' => 'drop-acks-bgf-substring',
+            'region' => $dropAcks,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => "if (strpos(\$rights, 'bgf') === false)",
+            'rationale' => 'Read-only bgf (Rbgf) does not reset approvals.',
+        ),
+        array(
             'id' => 'finalize-unscoped',
             'region' => $finalize,
             'search' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;',

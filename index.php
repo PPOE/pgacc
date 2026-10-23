@@ -318,12 +318,18 @@ else if ($page == "login")
 else if ($page == "import")
 {
   $rights = checklogin('rights');
-  page_import($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import($rights);
 }
 else if ($page == "import2")
 {
   $rights = checklogin('rights');
-  page_import2($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import2(write_rights($rights));
 }
 else if ($page == "statistics")
 {

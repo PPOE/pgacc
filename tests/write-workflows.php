@@ -926,6 +926,136 @@ foreach ($accountForms as $accountName => $accountRights) {
 }
 login_user('synthetic-created-unit', 'created-password');
 
+// Read-only bgf ("Rbgf", accounts.php: "Ein vorgestelltes R erzeugt einen
+// read only Zugang"): reads like bgf, every write is refused with "Keine
+// Zugriffsrechte" (merge and recovery with the root warning) and changes
+// nothing. Combined with an organization
+// ('Rbgf,2') the user writes like a user of that organization.
+$readOnlyCookies = login_user('synthetic-read-only', 'read-only-password');
+$readOnlyTwoCookies = login_user('synthetic-read-only-two', 'read-only-two-password');
+$readOnlyOneId = create_voucher_from_form(
+    $database,
+    array_merge(voucher_form('Synthetic read-only check one', '-15.00', 9011), array('lo0' => '1')),
+    $adminCookies
+);
+$readOnlyTwoId = create_voucher($database, 'Synthetic read-only check two', '-16.00', 9012, $adminCookies);
+$readOnlyDeletedId = create_voucher($database, 'Synthetic read-only deleted', '-17.00', 0, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET deleted = true WHERE voucher_id = $1', array($readOnlyDeletedId));
+
+// (The closed listing is left out: it reads columns it does not select, an
+// open finding in tests/COMPATIBILITY_PLAN.md.)
+$readPages = array(
+    'ledger' => array('/index.php?action=all&filter_date=2024', array('Synthetic read-only check one', 'Synthetic read-only check two')),
+    'ledger CSV' => array('/index.php?action=all&filter_date=2024&format=csv', array('Synthetic read-only check one', 'Synthetic read-only check two')),
+    'open vouchers' => array('/index.php?action=open&filter_date=2024', array('Synthetic read-only check one', 'Synthetic read-only check two')),
+    'old revisions' => array('/index.php?action=deleted&filter_date=2024', array('Synthetic read-only deleted')),
+    'voucher of organization one' => array('/index.php?action=edit&id=' . $readOnlyOneId, array('value="Synthetic read-only check one"')),
+    'voucher of organization two' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('value="Synthetic read-only check two"')),
+);
+foreach ($readPages as $pageLabel => $page) {
+    $bgfPage = http_request($page[0], 'GET', array(), $reviewerCookies);
+    $readOnlyPage = http_request($page[0], 'GET', array(), $readOnlyCookies);
+    assert_status($readOnlyPage, 200, "$pageLabel for read-only bgf");
+    foreach ($page[1] as $expected) {
+        assert_contains($bgfPage['body'], $expected, "$pageLabel for bgf");
+        assert_contains($readOnlyPage['body'], $expected, "$pageLabel for read-only bgf");
+    }
+}
+// The voucher form and the menu offer no writes to read-only bgf.
+$bgfForm = http_request('/index.php?action=edit&id=' . $readOnlyTwoId, 'GET', array(), $reviewerCookies);
+$readOnlyForm = http_request('/index.php?action=edit&id=' . $readOnlyTwoId, 'GET', array(), $readOnlyCookies);
+foreach (array('name="speichern"', 'name="ack"', 'name="addB"', 'href="index.php?action=new"', 'href="index.php?action=import"', 'href="index.php?action=import2"') as $control) {
+    assert_contains($bgfForm['body'], $control, "voucher page for bgf ($control)");
+    assert_not_contains($readOnlyForm['body'], $control, "voucher page for read-only bgf ($control)");
+}
+foreach (array('href="index.php?action=all', 'href="index.php?action=deleted', 'href="index.php?action=accounts"') as $link) {
+    assert_contains($readOnlyForm['body'], $link, "menu for read-only bgf ($link)");
+}
+
+$readOnlyStates = array(
+    $readOnlyOneId => array(voucher_row_state('1', null, null, 'f')),
+    $readOnlyTwoId => array(voucher_row_state('2', null, null, 'f')),
+);
+function assert_read_only_unchanged($database, $states, $label)
+{
+    foreach ($states as $voucherId => $state) {
+        assert_voucher_rows($database, $voucherId, $state, "voucher $voucherId after $label");
+    }
+}
+$readOnlyUpload = multipart_form_body(
+    array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => '1', 'id' => $readOnlyTwoId),
+    array('file0' => array('synthetic-receipt.pdf', '%PDF-1.4 synthetic'))
+);
+$readOnlyPassword = database_row($database, 'SELECT hash FROM users WHERE id = 8', array(), 'read-only password');
+$writeRequests = array(
+    'voucher creation' => array('/index.php?action=new', voucher_form('Synthetic voucher by read-only bgf', '-18.00', 0)),
+    'voucher creation without an organization' => array('/index.php?action=new', voucher_form_without_organization('Synthetic voucher by read-only bgf', '-18.00', 0)),
+    'revision' => array('/index.php?action=edit&id=' . $readOnlyTwoId, revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50')),
+    'revision without an organization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array_diff_key(revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50'), array('lo0' => true))),
+    'approval' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'ack' => 'Bestätigen')),
+    'finalization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'beleg' => 'Beleg erhalten')),
+    'approval reset' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'belegfehler' => 'Bestätigungen zurücksetzen!')),
+    'merge' => array('/index.php?action=merge&bid1=' . $readOnlyOneId . '&bid2=' . $readOnlyTwoId, null),
+    'receipt upload' => array('/index.php?action=edit', $readOnlyUpload),
+    'password change' => array('/index.php?action=accounts', array('submit' => 'Benutzer 8 aktualisieren', 'password8' => 'changed-password')),
+    'receipt import' => array('/index.php?action=import2', null),
+);
+foreach ($writeRequests as $writeLabel => $request) {
+    $label = "$writeLabel by read-only bgf";
+    if ($request[1] === null) {
+        $response = http_request($request[0], 'GET', array(), $readOnlyCookies);
+    } elseif ($writeLabel === 'receipt upload') {
+        $response = http_request($request[0], 'POST', $request[1][0], $readOnlyCookies, null, $request[1][1]);
+    } else {
+        $response = http_request($request[0], 'POST', $request[1], $readOnlyCookies);
+    }
+    assert_status($response, 200, $label);
+    assert_contains($response['body'], $writeLabel === 'merge' ? 'nur von Admins' : 'FEHLER: Keine Zugriffsrechte.', $label);
+    assert_read_only_unchanged($database, $readOnlyStates, $label);
+}
+assert_database_count($database, $commentQuery, array('Synthetic voucher by read-only bgf'), 0, 'voucher created by read-only bgf');
+assert_database_count($database, $commentQuery, array('Synthetic revision by read-only bgf'), 0, 'revision saved by read-only bgf');
+assert_database_field(
+    database_row($database, 'SELECT hash FROM users WHERE id = 8', array(), 'read-only password after the change'),
+    'hash',
+    $readOnlyPassword['hash'],
+    'read-only password after the change'
+);
+// Recovery stays root-only; the user's own column preferences may change.
+$readOnlyRecovery = http_request('/index.php?action=recover&id=1004&bid=105&doit=1', 'GET', array(), $readOnlyCookies);
+assert_contains($readOnlyRecovery['body'], 'nur von Admins', 'recovery by read-only bgf');
+http_request('/index.php?action=all&filter_date=2024&hide=3', 'GET', array(), $readOnlyCookies);
+assert_database_field(
+    database_row($database, 'SELECT hide FROM users WHERE id = 8', array(), 'read-only column preferences'),
+    'hide',
+    '3',
+    'read-only column preferences'
+);
+
+// 'Rbgf,2': reads everything, writes only in organization 2.
+$readOnlyTwoApproval = edit_request($readOnlyOneId, $approveForm, $readOnlyTwoCookies);
+assert_contains($readOnlyTwoApproval['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of organization one by Rbgf,2');
+assert_read_only_unchanged($database, $readOnlyStates, 'approval of organization one by Rbgf,2');
+assert_redirect(edit_request($readOnlyTwoId, $approveForm, $readOnlyTwoCookies), edit_location($readOnlyTwoId, 4), 'approval of organization two by Rbgf,2');
+assert_voucher_rows($database, $readOnlyTwoId, array(voucher_row_state('2', 'synthetic-read-only-two', null, 'f')), 'voucher approved by Rbgf,2');
+$readOnlyTwoMerge = http_request('/index.php?action=merge&bid1=' . $readOnlyTwoId . '&bid2=' . $readOnlyOneId, 'GET', array(), $readOnlyTwoCookies);
+assert_contains($readOnlyTwoMerge['body'], 'nur von Admins', 'merge by Rbgf,2');
+$readOnlyTwoFinalization = edit_request($readOnlyTwoId, $finalizeForm, $readOnlyTwoCookies);
+assert_contains($readOnlyTwoFinalization['body'], 'FEHLER: Keine Zugriffsrechte.', 'finalization by Rbgf,2');
+$foreignByReadOnlyTwo = http_request('/index.php?action=new', 'POST', array_merge(voucher_form('Synthetic voucher of Rbgf,2 in one', '-19.00', 0), array('lo0' => '1')), $readOnlyTwoCookies);
+assert_contains($foreignByReadOnlyTwo['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation in organization one by Rbgf,2');
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, voucher_form_without_organization('Synthetic voucher of Rbgf,2', '-19.50', 0), $readOnlyTwoCookies)),
+    'orga',
+    '2',
+    'voucher created without an organization by Rbgf,2'
+);
+// The bank import calls the external membership system (getusers()), which
+// tests must never contact: requested last, once everything else passed.
+$readOnlyImport = http_request('/index.php?action=import', 'GET', array(), $readOnlyCookies);
+assert_status($readOnlyImport, 200, 'bank import by read-only bgf');
+assert_contains($readOnlyImport['body'], 'FEHLER: Keine Zugriffsrechte.', 'bank import by read-only bgf');
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";
