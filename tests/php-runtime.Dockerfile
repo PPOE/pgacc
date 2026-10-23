@@ -15,6 +15,8 @@ RUN sed -i \
       libpq-dev=13.23-0+deb11u4 \
       unzip=6.0-26+deb11u2 \
     && docker-php-ext-install pgsql \
+    && pecl install https://pecl.php.net/get/xdebug-3.1.6.tgz \
+    && docker-php-ext-enable xdebug \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -22,7 +24,6 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
-      --no-dev \
       --no-interaction \
       --no-progress \
       --no-scripts \
