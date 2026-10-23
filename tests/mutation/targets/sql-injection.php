@@ -89,6 +89,18 @@ $mutations[] = array(
     'rationale' => 'Both columns of the old-approval filter use its own value.',
 );
 
+$view = array('start' => 'function page_edit($rights)', 'end' => '$hint = 0;');
+foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval($_POST["id"]);' => 'view-post-id-raw',
+    '$bid = intval($_GET["bid"]);' => 'view-get-bid-raw', '$bid = intval($_POST["bid"]);' => 'view-post-bid-raw') as $search => $id) {
+    $mutations[] = array(
+        'id' => $id,
+        'region' => $view,
+        'search' => $search,
+        'replace' => preg_replace('/intval\((.*)\);$/', '$1;', $search),
+        'rationale' => 'The voucher page echoes request IDs only as numbers (reflected markup otherwise).',
+    );
+}
+
 return array(
     'description' => 'Request values in the SQL of the voucher edit actions, the voucher form and '
         . 'the listing filter (write-workflow tests)',

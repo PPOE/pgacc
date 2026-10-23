@@ -298,11 +298,11 @@ function page_edit($rights)
 $id = -1;
 if (isset($_GET["id"]))
 {
-  $id = $_GET["id"];
+  $id = intval($_GET["id"]);
 }
 elseif (isset($_POST["id"]))
 {
-  $id = $_POST["id"];
+  $id = intval($_POST["id"]);
 }
 else
 {
@@ -312,11 +312,11 @@ else
 $bid = -1;
 if (isset($_GET["bid"]))
 {
-    $bid = $_GET["bid"];
+    $bid = intval($_GET["bid"]);
 }
 elseif (isset($_POST["bid"]))
 {
-    $bid = $_POST["bid"];
+    $bid = intval($_POST["bid"]);
 }
 $hint = 0;
 if (isset($_GET["hint"]))

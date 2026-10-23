@@ -865,6 +865,26 @@ foreach ($injectedIds as $kind => $injectedId) {
     assert_not_contains($response['body'], 'Abfrage fehlgeschlagen', $label);
 }
 
+// The voucher page shows the voucher and row IDs as numbers, as it uses them
+// (intval()), and does not echo other request text.
+$markup = '<b id="synthetic-markup">x</b>';
+foreach (array(1, 2, 3, 4, 5, 6) as $hint) {
+    $markupPage = http_request(
+        '/index.php?action=edit&id=' . rawurlencode($injectionTargetId . $markup) . '&bid=' . rawurlencode('7' . $markup) . '&hint=' . $hint,
+        'GET',
+        array(),
+        $adminCookies
+    );
+    assert_status($markupPage, 200, "voucher page with markup in the IDs (hint $hint)");
+    assert_not_contains($markupPage['body'], 'synthetic-markup', "voucher page with markup in the IDs (hint $hint)");
+    assert_contains($markupPage['body'], 'Buchung Nr. ' . $injectionTargetId, "voucher page with markup in the IDs (hint $hint)");
+    assert_contains($markupPage['body'], '<h1>Buchung ' . $injectionTargetId . ' bearbeiten</h1>', "voucher page with markup in the IDs (hint $hint)");
+}
+assert_contains($markupPage['body'], 'value="Synthetic injection target"', 'voucher page with markup in the IDs');
+$markupPost = http_request('/index.php?action=edit&hint=1', 'POST', array('id' => $injectionTargetId . $markup, 'bid' => '7' . $markup), $adminCookies);
+assert_not_contains($markupPost['body'], 'synthetic-markup', 'voucher page with markup in the posted IDs');
+assert_contains($markupPost['body'], 'Buchung Nr. ' . $injectionTargetId . ' - Buchungszeile Nr. 7<', 'voucher page with markup in the posted IDs');
+
 // Approval names posted with a revision are stored as the old approvals;
 // they are escaped (a quote failed the query before).
 $quotedRevisionId = create_voucher($database, 'Synthetic draft with a quoted approval', '-14.00', 0, $adminCookies);

@@ -177,9 +177,11 @@ Open security findings (not changed here; owner decisions):
 - [ ] No CSRF protection: every write action is a plain form POST or GET
   link authenticated by cookies.
 - [ ] Output is not HTML-escaped in several places, e.g. the user names in
-  the user list (`accounts.php`, root only), request values echoed by the
-  voucher page (`page_edit()`: voucher and row IDs in the notices and the
-  heading) and the listing filter fields (`closed.php`).
+  the user list (`accounts.php`, root only) and the listing filter fields
+  (`closed.php`). [x] Fixed: the voucher page (`page_edit()`) echoed the
+  request's voucher and row IDs in its notices and heading; it now uses
+  them as `intval()` numbers throughout, as its query already did (a
+  request such as `id=5abc` shows "Buchung 5" instead of "Buchung 5abc").
 - [ ] The default organization of a single-organization user
   (`get_voucher()`, `new.php`) uses `is_numeric()` and `intval()`, whose
   results differ between PHP versions for unusual rights values (hex,
