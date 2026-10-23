@@ -99,7 +99,7 @@ function tag($tag, $text)
   global $make_csv;
   if ($make_csv)
   {
-    $text = str_replace(array("\n"),array(' / '),$text);
+    $text = str_replace(array("\n"),array(' / '),$text === null ? '' : $text);
     if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
     {
       $text = str_replace(array("."),array(","),$text);
@@ -176,7 +176,7 @@ echo '<a href="donations"'.($page == "donations"?' class="selected"':'').'>Spend
 <a href="vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>
 ';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
 ';*/
-if (strlen($rights) > 0)
+if (strlen($rights === null ? '' : $rights) > 0)
 {
   echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
   echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
@@ -225,9 +225,9 @@ echo '
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
 ';
-if (strlen($rights) == 0)
+if (strlen($rights === null ? '' : $rights) == 0)
   echo '<a href="index.php?action=login">Login</a>';
-if (strlen($rights) != 0)
+if (strlen($rights === null ? '' : $rights) != 0)
   echo '<a href="index.php?action=logout">Logout</a>';
 echo '      </div>
     </div>
@@ -256,10 +256,10 @@ function format_date($date)
 }
 function rights2orgasql($rights)
 {
-  $rights_r = explode(",", $rights);
+  $rights_r = explode(",", $rights === null ? '' : $rights);
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-    $rights_r = explode(",", $rights);
+    $rights_r = explode(",", $rights === null ? '' : $rights);
     $rights2 = array();
     foreach ($rights_r as $right)
     {

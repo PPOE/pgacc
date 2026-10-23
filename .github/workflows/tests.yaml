@@ -100,12 +100,13 @@ jobs:
           path: build/coverage
           if-no-files-found: warn
 
-      - name: Mutation runner self-test and rights2orgasql mutations
+      - name: Mutation runner self-test, rights2orgasql and null-arguments mutations
         if: always()
         # Reuses the lane image built above; see tests/mutation/README.md.
         run: |
           sh tests/mutation/run.sh '${{ matrix.php }}' --self-test
           sh tests/mutation/run.sh '${{ matrix.php }}' rights2orgasql
+          sh tests/mutation/run.sh '${{ matrix.php }}' null-arguments
 
       - name: login-logout mutations
         # Not on PHP 8.5: the unmutated baseline fails there (implicit

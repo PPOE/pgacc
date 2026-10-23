@@ -21,13 +21,9 @@ return array(
             'id' => 'array-initialization-removed',
             'search' => array("    \$rights2 = array();\n", "    \$rights2 = [];\n"),
             'replace' => "\n",
+            // Formerly an accepted equivalent on PHP 5.6 (its E_NOTICE is hidden by
+            // the default error_reporting); the null-rights test captures it.
             'rationale' => 'Without the initialization, rights without numeric IDs count() an undefined variable.',
-            'equivalent' => array(
-                'php' => array('5.6'),
-                'reason' => 'PHP 5.6 count() of the undefined variable returns 0 with only an E_NOTICE, '
-                    . 'hidden by the default error_reporting; the result is the same " AND false ". '
-                    . 'PHP 7.2+ also warns, which the tests catch.',
-            ),
         ),
         array('id' => 'privilege-and-to-or', 'search' => " && !in_array('Rbgf',\$rights_r)", 'replace' => " || !in_array('Rbgf',\$rights_r)",
             'rationale' => 'Either privilege alone must exempt from the organization restriction.'),
@@ -83,15 +79,27 @@ return array(
             'rationale' => 'IDs with leading zeros (and 0) stay accepted.'),
         array('id' => 'privilege-delimiter-changed',
             // Old runner: 'explode(",", $rights)' (first of two occurrences).
-            'search' => "\$rights_r = explode(\",\", \$rights);\n  if (", 'replace' => "\$rights_r = explode(\";\", \$rights);\n  if (",
+            // Second spelling: after the null guard (PHP 8.1 null-argument deprecation).
+            'search' => array("\$rights_r = explode(\",\", \$rights);\n  if (", "\$rights_r = explode(\",\", \$rights === null ? '' : \$rights);\n  if ("),
+            'replace' => array("\$rights_r = explode(\";\", \$rights);\n  if (", "\$rights_r = explode(\";\", \$rights === null ? '' : \$rights);\n  if ("),
             'rationale' => 'Privileges are comma-separated.'),
         array('id' => 'organization-delimiter-changed',
-            'search' => array("\$rights_r = explode(\",\", \$rights);\n    \$rights2 = array();", "\$rights_r = explode(\",\", \$rights);\n    \$rights2 = [];"),
-            'replace' => array("\$rights_r = explode(\";\", \$rights);\n    \$rights2 = array();", "\$rights_r = explode(\";\", \$rights);\n    \$rights2 = [];"),
+            'search' => array(
+                "\$rights_r = explode(\",\", \$rights);\n    \$rights2 = array();",
+                "\$rights_r = explode(\",\", \$rights);\n    \$rights2 = [];",
+                "\$rights_r = explode(\",\", \$rights === null ? '' : \$rights);\n    \$rights2 = array();",
+            ),
+            'replace' => array(
+                "\$rights_r = explode(\";\", \$rights);\n    \$rights2 = array();",
+                "\$rights_r = explode(\";\", \$rights);\n    \$rights2 = [];",
+                "\$rights_r = explode(\";\", \$rights === null ? '' : \$rights);\n    \$rights2 = array();",
+            ),
             'rationale' => 'Organization IDs are comma-separated.'),
         array('id' => 'mixed-roles-drop-valid-ids', 'search' => "preg_match('/^\\d+$/', \$right) == 1", 'replace' => "preg_match('/^\\d+(,\\d+)*$/', \$rights) == 1 && preg_match('/^\\d+$/', \$right) == 1",
             'rationale' => 'Valid IDs are kept when other roles are present.'),
         array('id' => 'empty-rights-fail-open', 'search' => 'return " AND false ";', 'replace' => 'return $rights === "" ? "" : " AND false ";',
             'rationale' => 'Empty rights must deny everything.'),
+        array('id' => 'null-rights-fail-open', 'search' => 'return " AND false ";', 'replace' => 'return $rights === null ? "" : " AND false ";',
+            'rationale' => 'Null rights (anonymous requests) must deny everything.'),
     ),
 );
