@@ -2,8 +2,10 @@
 <!-- PHPUnit 4.8 on the production-like PHP 5.3 image (tests/php53/runtime.Dockerfile).
      Not included: InfectionShimTest (PHP 7.4+ mutation tooling), and GetUsersTest and
      ReceiptImportTest, which rely on "finally" (PHP 5.5+; http-receipts.php covers those
-     call sites against the PHP 5.3 server), and ShortOpenTagTest (PHP_BINARY is PHP 5.4+;
-     production runs with short_open_tag On). -->
+     call sites against the PHP 5.3 server), ShortOpenTagTest (PHP_BINARY is PHP 5.4+;
+     production runs with short_open_tag On), and ReceiptStorageTest and
+     ReceiptMigrationTest, which use hex2bin() and PHP_BINARY (PHP 5.4+; http-receipts.php
+     covers receipt storage and the migration script's 404 on the PHP 5.3 server). -->
 <phpunit bootstrap="bootstrap.php" colors="true">
   <php>
     <ini name="error_reporting" value="-1"/>
