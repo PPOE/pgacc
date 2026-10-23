@@ -135,6 +135,9 @@ same reason, with a separate runner configuration. The initial suite covers
 
 ### Planned slices
 
+- [ ] Evaluate [Rector](https://github.com/rectorphp/rector) for PHP-version
+  upgrade assistance, starting with selected rules and dry runs whose proposed
+  changes are checked against the supported runtime matrix.
 - [ ] Evaluate a mutation testing framework, such as Infection, to replace the
   handpicked mutation runner with broader generated mutations and reporting.
   Check compatibility with the legacy PHP lanes, establish a passing baseline,

@@ -108,6 +108,10 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
 - [ ] Review existing findings before establishing a baseline, then prevent new
   findings in CI. Static analysis complements the HTTP cookie/redirect tests;
   it does not establish their runtime behavior.
+- [ ] Evaluate [Rector](https://github.com/rectorphp/rector) for PHP-version
+  upgrades and automated refactoring. Start with selected rules and `--dry-run`,
+  review the proposed diffs, and verify them against the runtime matrix before
+  applying changes. Keep the minimum supported PHP version explicit.
 - [ ] Evaluate a mutation framework such as Infection for broader generated
   mutations, reviewed equivalent mutants, and CI reporting. Keep the targeted
   mutation cases as evidence while deciding how to replace the custom runner.
