@@ -900,6 +900,32 @@ foreach ($filterCases as $query => $listed) {
     }
 }
 
+// A user created by root gets the entered rights (before, the creator's own
+// rights were stored); quotes in them are escaped.
+pg_query($database, "SELECT setval('users_id_seq', 100)");
+$accountForms = array(
+    'synthetic-created-unit' => '2',
+    'synthetic-created-quoted' => "2,o'clock",
+);
+foreach ($accountForms as $accountName => $accountRights) {
+    $accountCreation = http_request(
+        '/index.php?action=accounts',
+        'POST',
+        array(
+            'submit' => 'Benutzer -1 erstellen',
+            'name-1' => $accountName,
+            'password-1' => 'created-password',
+            'rights-1' => $accountRights,
+        ),
+        $adminCookies
+    );
+    assert_status($accountCreation, 200, "creation of $accountName");
+    assert_contains($accountCreation['body'], '<tr><td>' . $accountName . '</td>', "creation of $accountName");
+    $createdAccount = database_row($database, 'SELECT rights FROM users WHERE name = $1', array($accountName), $accountName);
+    assert_database_field($createdAccount, 'rights', $accountRights, $accountName);
+}
+login_user('synthetic-created-unit', 'created-password');
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

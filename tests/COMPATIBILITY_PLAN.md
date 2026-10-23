@@ -114,6 +114,12 @@ with synthetic users and covered by a mutation target.
   der Beleg!" first when the user sees no row of the voucher; see the
   [diagnostics table](#diagnostics-surfaced-by-the-strict-http-checks).
   No approval outcome changes.
+- [x] New users (`accounts.php`, "Benutzer -1 erstellen", root only) were
+  stored with the creating root user's rights instead of the entered ones
+  (the update path used the entered rights). Bug fix: the entered, escaped
+  rights are stored. **Flagged for the owner:** users created so far have
+  the rights of their creator; review them in the user list. Mutation
+  target `rights-checks`.
 
 ## Login and redirect failure: confirmed
 

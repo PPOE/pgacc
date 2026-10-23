@@ -17,7 +17,7 @@ function page_accounts($rights)
       $nrights = isset($_POST["rights$id"]) ? pg_escape_string($_POST["rights$id"]) : '';
       if (strpos($rights,'root') !== false && $id == -1)
         if ($pass != "******")
-          $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('md5')), '$rights');";
+          $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('md5')), '$nrights');";
         else
           $query = "SELECT 1";
       else if (strpos($rights,'root') === false && $pass != "******")

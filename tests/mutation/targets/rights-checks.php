@@ -102,6 +102,20 @@ return array(
             'rationale' => 'Without a posted organization the default applies and is not refused.',
         ),
         array(
+            'id' => 'new-account-creator-rights',
+            'file' => 'accounts.php',
+            'search' => "crypt('\$pass', gen_salt('md5')), '\$nrights');",
+            'replace' => "crypt('\$pass', gen_salt('md5')), '\$rights');",
+            'rationale' => 'A new user gets the entered rights, not those of the creating root user.',
+        ),
+        array(
+            'id' => 'new-account-rights-unescaped',
+            'file' => 'accounts.php',
+            'search' => '? pg_escape_string($_POST["rights$id"]) :',
+            'replace' => '? $_POST["rights$id"] :',
+            'rationale' => 'Removed escape: entered rights are inserted as SQL.',
+        ),
+        array(
             'id' => 'ack-finalized-check-removed',
             'region' => $ack,
             'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id',
