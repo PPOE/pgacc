@@ -535,7 +535,7 @@ empty-string result, so only the deprecation differs. PHP 8.5 kills them.
 #### `login-logout` (HTTP, `index.php`, `login.php`, `new.php`)
 
 `login()` (`index.php:13-39`), the logout and `login_redirect()` blocks that
-`index.php` answers before `acc_header()` (lines 175-187), `login_redirect()`
+`index.php` answers before `acc_header()` (lines 196-208; 175-187 before the early redirects of the [`redirects`](#redirects-http-indexphp-editphp-searchphp) target moved them), `login_redirect()`
 and `page_login()` in `login.php`, and the `page_new_buchung()` signature
 (`new.php:450`, compiled on every request), tested with `tests/http-login.php`
 only. Since the login/logout header fix the target has 38 mutations: the 15
@@ -563,17 +563,17 @@ meaningful mutants of the former manual list `login-headers.json` (see
 | `login-username-not-escaped` | 15 | killed | killed | killed | quote in user name logs in (SQL injection) |
 | `login-password-not-escaped` | 16 | killed | killed | killed | quote in password: SQL error, no form |
 | `login-raises-hidden-notice` | 25 | killed | killed | killed | new hidden `E_NOTICE` (diagnostics check) |
-| `logout-login-cookie-kept` | 177 | killed | killed | killed | `pp_pgacc_login` not cleared |
-| `logout-login-cookie-renamed` | 177 | killed | killed | killed | `pp_pgacc_login` not cleared |
-| `logout-id-cookie-kept` | 178 | killed | killed | killed | `pp_pgacc_id` not cleared |
-| `logout-id-cookie-not-cleared` | 178 | killed | killed | killed | `pp_pgacc_id` set to `0` |
-| `logout-redirect-removed` | 179 | killed | killed | killed | 200 instead of 302 |
-| `logout-redirect-target-changed` | 179 | killed | killed | killed | wrong `Location` |
-| `logout-continues` | 180 | killed | killed | killed | redirect body not empty |
-| `logout-cookie-expiry-in-future` | 177 | equivalent | equivalent | equivalent | `setcookie()` ignores the expiry for an empty value |
-| `logout-after-output` | 175 | killed | killed | killed | body not empty; unbuffered logout 200 without cookies |
-| `login-continues` | 185 | killed | killed | killed | redirect body not empty |
-| `login-after-output` | 183 | killed | killed | killed | body not empty; unbuffered login 200 without cookies |
+| `logout-login-cookie-kept` | 198 | killed | killed | killed | `pp_pgacc_login` not cleared |
+| `logout-login-cookie-renamed` | 198 | killed | killed | killed | `pp_pgacc_login` not cleared |
+| `logout-id-cookie-kept` | 199 | killed | killed | killed | `pp_pgacc_id` not cleared |
+| `logout-id-cookie-not-cleared` | 199 | killed | killed | killed | `pp_pgacc_id` set to `0` |
+| `logout-redirect-removed` | 200 | killed | killed | killed | 200 instead of 302 |
+| `logout-redirect-target-changed` | 200 | killed | killed | killed | wrong `Location` |
+| `logout-continues` | 201 | killed | killed | killed | redirect body not empty |
+| `logout-cookie-expiry-in-future` | 198 | equivalent | equivalent | equivalent | `setcookie()` ignores the expiry for an empty value |
+| `logout-after-output` | 196 | killed | killed | killed | body not empty; unbuffered logout 200 without cookies |
+| `login-continues` | 206 | killed | killed | killed | redirect body not empty |
+| `login-after-output` | 204 | killed | killed | killed | body not empty; unbuffered login 200 without cookies |
 | `logged-in-guard-removed` | `login.php:7` | killed | killed | killed | logged-in target redirect |
 | `logged-in-target-check-removed` | `login.php:9` | killed | killed | killed | logged-in page without target |
 | `logged-in-target-not-decoded` | `login.php:11` | killed | killed | killed | hex target not decoded |
@@ -682,11 +682,69 @@ at the first call both survived on PHP 5.6 and 7.4. With `KD-REPORT-PREVCOND`
 in the baseline the tests could not see whether the variable was defined; after
 removing the entry, reintroducing the undefined variable is killed.
 
+#### `redirects` (HTTP, `index.php`, `edit.php`, `search.php`)
+
+The redirects sent before any output: the login check of the protected pages
+and the member search redirect that `index.php` answers before the CSV block
+and `acc_header()` (lines 129-143), the `ob_start()` for edit and merge
+requests (line 191), `relocate()` (`edit.php:2-10`) and the targets of its
+callers, tested with `tests/http-redirects.php` and `tests/write-workflows.php`.
+29 mutations: 18 listed in the target and one `unprotected-<page>` mutant per
+protected page except `import` (an unprotected import page would call the
+external membership system; the test requests it only after every other
+page has passed).
+
+| Mutant | Line | 5.6 | 7.4 | Killed by |
+|---|---:|---|---|---|
+| `login-check-removed` | 132 | killed | killed | `http-redirects.php` |
+| `login-check-inverted` | 132 | killed | killed | `http-redirects.php` |
+| `login-redirect-continues` | 134 | killed | killed | `http-redirects.php` |
+| `login-redirect-after-csv-bom` | 132 | killed | killed | `http-redirects.php` |
+| `search-block-removed` | 137 | killed | killed | `http-redirects.php` |
+| `search-continues` | 141 | killed | killed | `http-redirects.php` |
+| `search-member-ignored` | `search.php:5` | killed | killed | `http-redirects.php` |
+| `edit-merge-buffer-removed` | 191 | killed | killed | `write-workflows.php` |
+| `edit-buffer-missing` | 191 | killed | killed | `write-workflows.php` |
+| `merge-buffer-missing` | 191 | killed | killed | `write-workflows.php` |
+| `relocate-page-kept` | `edit.php:6` | killed | killed | `write-workflows.php` |
+| `relocate-continues` | `edit.php:9` | killed | killed | `write-workflows.php` |
+| `relocate-redirect-removed` | `edit.php:8` | killed | killed | `write-workflows.php` |
+| `finalization-target` | `edit.php:44` | killed | killed | `write-workflows.php` |
+| `merge-target` | `edit.php:67` | killed | killed | `write-workflows.php` |
+| `approval-target` | `edit.php:161` | killed | killed | `write-workflows.php` |
+| `revision-target` | `edit.php:232` | killed | killed | `write-workflows.php` |
+| `search-requires-login` | 139 | equivalent | equivalent | `page_search()` replaces the login `Location` |
+| `unprotected-<page>` (11: all, mb, open, merge, edit, new, closed, deleted, recover, accounts, import2) | 132 | killed | killed | `http-redirects.php` |
+
+PHP 5.6 and 7.4: 28 killed, 1 accepted equivalent; both runs exit 0 (a mutant
+takes 2-20 s, a run about 4 minutes on PHP 7.4).
+
+Before the fix, an uncommitted counterpart of the target for the code at the
+test-first commit (`4544994`, with the known failures still in place) had 20
+mutations: the four relocate targets, the `relocate()` redirect and
+`pg_close()`, the `checklogin()` login redirect, the search target, the search
+equivalent, and `checklogin('rights',false)` in each of the 11 dispatch
+branches. On PHP 7.4: 5 killed (the relocate targets and redirect, by the 302
+and `Location` assertions of `write-workflows.php`), 1 equivalent, 14 survived:
+the login redirect, the search target, every dispatch branch, and
+`pg_close()` in `relocate()`; the checks that would catch them were known
+failures. On PHP 5.6 that baseline did not pass in the runner: the old
+`relocate()` displays its closed-connection warnings (then
+`KD-EDIT-RELOCATE-CLOSED-LINK`), and the body cross-check of
+`http-diagnostics.php` only strips `/app/` from displayed paths, so under the
+runner's `/tmp/pgacc-mutation/...` copy they did not match the logged
+diagnostics. After the fix no redirect displays anything, so the baseline
+passes on both lanes. The `login-logout` target gives the same result before
+(at `5fe1c62`) and after the fix: 36 killed, 2 accepted equivalents on PHP 5.6
+and 7.4.
+
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target must run that target on
 PHP 7.4 and 5.6 before and after the change and report both results. A new
 behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
-`rights2orgasql` and `null-arguments` targets on every lane, and the `login-logout` target on PHP
-5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above).
+`rights2orgasql` and `null-arguments` targets on every lane, the `login-logout` target on PHP
+5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
+the `redirects` target on PHP 5.6 and 7.4 (on PHP 8 its baseline fails on the
+write-workflow diagnostics that have no baseline entry there).

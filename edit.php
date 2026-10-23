@@ -2,8 +2,11 @@
 function relocate($loc)
 {
   global $dbconn;
+  // Discard the page buffered by index.php and end the request.
+  ob_end_clean();
   pg_close($dbconn);
   header("Location: " . $loc);
+  exit;
 }
 function page_edit_finalize($rights)
 {

@@ -114,6 +114,12 @@ jobs:
         if: always() && matrix.php != '8.5'
         run: sh tests/mutation/run.sh '${{ matrix.php }}' login-logout
 
+      - name: redirects mutations
+        # Only on PHP 5.6 and 7.4: on PHP 8 the unmutated baseline fails
+        # (write-workflows.php fails on PHP 8 diagnostics without entries).
+        if: always() && (matrix.php == '5.6' || matrix.php == '7.4')
+        run: sh tests/mutation/run.sh '${{ matrix.php }}' redirects
+
       - name: Upload mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

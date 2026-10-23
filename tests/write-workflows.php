@@ -93,15 +93,7 @@ function create_voucher($database, $comment, $amount, $file, $cookies)
 // edit page with a hint for the message, answered before any output.
 function assert_redirect($response, $location, $label)
 {
-    assert_status($response, 302, $label);
-    assert_location($response, $location, $label);
-    assert_no_problems(known_failure_problems(
-        'KF-REDIRECT-AFTER-OUTPUT',
-        "$label redirect body",
-        function () use ($response, $location) {
-            return redirect_problems($response, $location);
-        }
-    ), $label);
+    assert_no_problems(redirect_problems($response, $location), $label);
 }
 
 function edit_location($voucherId, $hint)
@@ -121,15 +113,6 @@ function revision_form($voucherId, $comment, $amount)
     $form['ack1_old'] = '';
     $form['ack2_old'] = '';
     return $form;
-}
-
-function database_count_problems($database, $query, $parameters, $expected, $label)
-{
-    $row = database_row($database, $query, $parameters, $label);
-    if ($row['count'] !== strval($expected)) {
-        return array("$label: count was {$row['count']}, expected $expected");
-    }
-    return array();
 }
 
 $database = database_connection();
@@ -397,16 +380,10 @@ $unbufferedSteps = array(
     ),
 );
 foreach ($unbufferedSteps as $label => $step) {
-    assert_no_problems(known_failure_problems(
-        'KF-REDIRECT-UNBUFFERED',
-        "$label with output_buffering=0",
-        function () use ($step, $unbufferedUrl) {
-            $method = $step[1] === null ? 'GET' : 'POST';
-            $form = $step[1] === null ? array() : $step[1];
-            $response = http_request($step[0], $method, $form, $step[2], $unbufferedUrl);
-            return redirect_problems($response, $step[3]);
-        }
-    ), "$label with output_buffering=0");
+    $method = $step[1] === null ? 'GET' : 'POST';
+    $form = $step[1] === null ? array() : $step[1];
+    $response = http_request($step[0], $method, $form, $step[2], $unbufferedUrl);
+    assert_redirect($response, $step[3], "$label with output_buffering=0");
 }
 $unbuffered = database_row(
     $database,
@@ -449,38 +426,25 @@ $visitorRequests = array(
     'revision' => array($visitorEditUri, revision_form($visitorDraftId, 'Synthetic visitor revision', '-8.00')),
     'merge' => array($visitorMergeUri, null),
 );
-assert_no_problems(known_failure_problems(
-    'KF-REDIRECT-AFTER-OUTPUT',
-    'write actions when not logged in',
-    function () use ($database, $visitorRequests, $visitorDraftId, $mergeTargetId, $voucherRowsQuery) {
-        $problems = array();
-        foreach ($visitorRequests as $label => $request) {
-            $method = $request[1] === null ? 'GET' : 'POST';
-            $form = $request[1] === null ? array() : $request[1];
-            $response = http_request($request[0], $method, $form);
-            foreach (redirect_problems($response, login_redirect_location($request[0])) as $problem) {
-                $problems[] = "$label: $problem";
-            }
-        }
-        $commentQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1';
-        $draftQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted'
-            . ' AND ack1 IS NULL AND NOT receipt_received AND comment = $2';
-        return array_merge(
-            $problems,
-            database_count_problems($database, $commentQuery, array('Synthetic visitor voucher'), 0, 'visitor voucher'),
-            database_count_problems($database, $commentQuery, array('Synthetic visitor revision'), 0, 'visitor revision'),
-            database_count_problems(
-                $database,
-                $draftQuery,
-                array($visitorDraftId, 'Synthetic draft for visitors'),
-                1,
-                'draft after visitor writes'
-            ),
-            database_count_problems($database, $voucherRowsQuery, array($visitorDraftId), 1, 'visitor merge target'),
-            database_count_problems($database, $voucherRowsQuery, array($mergeTargetId), 2, 'visitor merge source')
-        );
-    }
-), 'write actions when not logged in');
+foreach ($visitorRequests as $label => $request) {
+    $method = $request[1] === null ? 'GET' : 'POST';
+    $form = $request[1] === null ? array() : $request[1];
+    $response = http_request($request[0], $method, $form);
+    assert_redirect($response, login_redirect_location($request[0]), "$label when not logged in");
+}
+$commentQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1';
+assert_database_count($database, $commentQuery, array('Synthetic visitor voucher'), 0, 'voucher created by a visitor');
+assert_database_count($database, $commentQuery, array('Synthetic visitor revision'), 0, 'revision saved by a visitor');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted'
+        . ' AND ack1 IS NULL AND NOT receipt_received AND comment = $2',
+    array($visitorDraftId, 'Synthetic draft for visitors'),
+    1,
+    'draft after visitor writes'
+);
+assert_database_count($database, $voucherRowsQuery, array($visitorDraftId), 1, 'merge target after a visitor merge');
+assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 2, 'merge source after a visitor merge');
 
 pg_close($database);
 assert_no_unexpected_diagnostics();

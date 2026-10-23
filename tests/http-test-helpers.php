@@ -242,21 +242,6 @@ function login_redirect_location($uri)
     return 'index.php?action=login&target=' . strtoupper(bin2hex($uri));
 }
 
-// Test-first known failure: $callback returns the problems of a check that
-// fails until its fix lands, and the diagnostics of its requests are
-// attributed to $id. Returns no problem while it still fails, and one when
-// it passes: the fixed check must then become a regular check.
-function known_failure_problems($id, $label, $callback)
-{
-    $problems = with_known_failure($id, $callback);
-    if (count($problems) > 0) {
-        echo "known failure $id: $label " . implode('; ', $problems) . "\n";
-        return array();
-    }
-    fwrite(STDERR, "UNEXPECTED PASS: $id $label\n");
-    return array("$label unexpectedly passed; known failure $id is fixed: move it to the regular checks");
-}
-
 // Starts a second application server on $port without output buffering
 // (otherwise like the application service: same document root and
 // diagnostics recorder), so that tests can check that headers do not

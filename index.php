@@ -126,6 +126,22 @@ if (isset($_GET["print_empty"]))
   $print_empty = true;
 }
 
+// Before any output (the CSV byte order mark or acc_header()): protected
+// pages send visitors who are not logged in the login redirect (checklogin()
+// then returns nothing), and the member search sends its redirect.
+if (in_array($page,array("all","mb","open","merge","edit","new","closed","deleted","recover","accounts","import","import2")) && checklogin('id') === null)
+{
+  pg_close($dbconn);
+  return;
+}
+if ($page == "search")
+{
+  $rights = checklogin('rights',false);
+  page_search($rights);
+  pg_close($dbconn);
+  return;
+}
+
 global $make_csv;
 $make_csv = false;
 if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"],array("search","all","open","transactions","spendings","closed","deleted")))
@@ -169,6 +185,11 @@ if (isset($_GET["hide"]))
   $data = pg_query("UPDATE users SET hide = '$cols' WHERE id = $id") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   pg_free_result($data);
 }
+
+// relocate() (edit.php) answers edit and merge requests with a redirect
+// instead of the page: buffer the page so that it can be discarded.
+if ($page == "edit" || $page == "merge")
+  ob_start();
 
 // Login and logout send cookies and redirects: answer them before
 // acc_header() starts the page.
@@ -214,11 +235,6 @@ else if ($page == "open")
 {
   $rights = checklogin('rights');
   page_open($rights);
-}
-else if ($page == "search")
-{
-  $rights = checklogin('rights');
-  page_search($rights);
 }
 else if ($page == "merge")
 {

@@ -97,30 +97,10 @@ function search_problems($cookies, $searchLocation, $baseUrl)
 
 $unbufferedUrl = start_unbuffered_server(8082);
 foreach (array('' => null, ' with output_buffering=0' => $unbufferedUrl) as $suffix => $baseUrl) {
-    $id = $baseUrl === null ? 'KF-REDIRECT-AFTER-OUTPUT' : 'KF-REDIRECT-UNBUFFERED';
-    $pageProblems = array();
-    check("protected pages when not logged in$suffix", known_failure_problems(
-        $id,
-        "protected pages when not logged in$suffix",
-        function () use ($protectedUris, $baseUrl, &$pageProblems) {
-            $pageProblems = protected_page_problems($protectedUris, $baseUrl);
-            return $pageProblems;
-        }
-    ));
-    check("import page when not logged in$suffix", known_failure_problems(
-        $id,
-        "import page when not logged in$suffix",
-        function () use ($baseUrl, $pageProblems) {
-            return import_page_problems($baseUrl, $pageProblems);
-        }
-    ));
-    check("member search$suffix", known_failure_problems(
-        $id,
-        "member search$suffix",
-        function () use ($adminCookies, $searchLocation, $baseUrl) {
-            return search_problems($adminCookies, $searchLocation, $baseUrl);
-        }
-    ));
+    $pageProblems = protected_page_problems($protectedUris, $baseUrl);
+    check("protected pages when not logged in$suffix", $pageProblems);
+    check("import page when not logged in$suffix", import_page_problems($baseUrl, $pageProblems));
+    check("member search$suffix", search_problems($adminCookies, $searchLocation, $baseUrl));
 }
 
 if (count($problems) > 0) {

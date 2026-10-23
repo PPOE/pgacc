@@ -34,33 +34,10 @@ return array(
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',
         'file' => 'edit.php',
-        'lines' => array(117),
+        'lines' => array(120),
         'message' => '/^Undefined variable: rightssql$/',
         'reported' => false,
         'reason' => 'the finalized-voucher check interpolates an unset $rightssql '
             . '(no organization restriction in that query)',
-    ),
-    array(
-        'id' => 'KD-EDIT-RELOCATE-CLOSED-LINK',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_WARNING',
-        'file' => 'index.php',
-        'lines' => array(78),
-        'message' => '/^pg_query\\(\\): No PostgreSQL link opened yet$/',
-        'reported' => true,
-        'reason' => 'edit.php relocate() closes the connection and returns; the '
-            . 'request continues and checklogin() queries without a link. '
-            . 'Displayed in the redirect body',
-    ),
-    array(
-        'id' => 'KD-EDIT-RELOCATE-CLOSED-LINK',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_WARNING',
-        'file' => 'index.php',
-        'lines' => array(338),
-        'message' => '/^pg_close\\(\\): (supplied resource|\\d+) is not a valid PostgreSQL link resource$/',
-        'reported' => true,
-        'reason' => 'after relocate() closed the connection, index.php closes it '
-            . 'again. Displayed in the redirect body',
     ),
 );

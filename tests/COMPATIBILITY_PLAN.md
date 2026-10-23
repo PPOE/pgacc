@@ -70,26 +70,60 @@ explains that dropping the unused default generally preserves behavior; see
   assertions and pass on PHP 5.6, 7.4, and 8.0. On PHP 8.5 the login redirect
   still needs the buffer because the implicit-connection deprecations in
   `login()`/`checklogin()` (`index.php:15-17/26/78`) are displayed first.
-- [ ] Other headers still sent after `acc_header()` has rendered, so they still
-  depend on output buffering: `checklogin()`'s login redirect
-  (`index.php:109`) for every protected page, including CSV listings after the
-  BOM; `relocate()` (`edit.php:6`) after voucher creation, approval,
-  finalization, merge, and revision saves (fails on PHP 8.5 in the first
-  approval); and `page_search()` (`search.php:5`). The receipt download
-  (`file.php`) and the CSV headers are sent before any output.
-  Characterized test-first by `tests/http-redirects.php` (protected pages
-  and CSV listings when not logged in, member search) and
-  `tests/write-workflows.php` (approval, finalization, revision and merge
-  redirects, and write actions when not logged in), against the normal and
-  an `output_buffering=0` server. Known failures until the fix:
-  `KF-REDIRECT-AFTER-OUTPUT` (the 302 responses carry the rendered page, a
-  CSV byte order mark and header row, or displayed diagnostics; for visitors
-  who are not logged in the page code still runs: a voucher POST to
-  `?action=new` creates the voucher, a revision POST adds a row to the
-  voucher, and the merge sends the merge redirect instead of the login
-  redirect) and `KF-REDIRECT-UNBUFFERED` (HTTP 200 without `Location`,
-  "headers already sent" at `index.php:109`, `edit.php:6` and
-  `search.php:5`).
+- [x] Send the remaining redirects before any output. Before the fix they
+  were sent after `acc_header()` had rendered and depended on output
+  buffering: `checklogin()`'s login redirect (`index.php:109`) for every
+  protected page, including CSV listings after the byte order mark;
+  `relocate()` (`edit.php:6`) after approval, finalization, merge and
+  revision saves (it also closed the connection while the request went on,
+  `KD-EDIT-RELOCATE-CLOSED-LINK`); and `page_search()` (`search.php:5`).
+  Characterized test-first by `tests/http-redirects.php` and
+  `tests/write-workflows.php` against the normal and an `output_buffering=0`
+  server, with the known failures `KF-REDIRECT-AFTER-OUTPUT` (302 responses
+  carrying the page, a CSV byte order mark and header row, or displayed
+  warnings) and `KF-REDIRECT-UNBUFFERED` (HTTP 200 without `Location`,
+  "headers already sent" at `index.php:109`, `edit.php:6`, `search.php:5`).
+  The fix (both are regular checks now; every redirect has an empty body):
+  - `index.php` checks the login of the protected pages (all, mb, open,
+    merge, edit, new, closed, deleted, recover, accounts, import, import2)
+    before the CSV block and `acc_header()`, and returns after
+    `checklogin()` has sent the login redirect. Logged-in users are
+    unaffected.
+  - The member search redirects there too, before any output. Visitors who
+    are not logged in keep getting the search redirect, not the login
+    redirect: `page_search()`'s `Location` replaced the login one before.
+    The dispatch branch for search is removed.
+  - `index.php` buffers the edit and merge pages (`ob_start()`), and
+    `relocate()` discards that buffer, closes the connection, sends the
+    `Location` and exits, so nothing runs on the closed connection.
+    Redirect targets and database effects are unchanged.
+  Behaviour changes for review:
+  - Security: before the fix the page code still ran for visitors who were
+    not logged in (behind the login `Location`): a voucher POST to
+    `?action=new` created the voucher, a revision POST added a row to an
+    existing voucher, and `?action=import` called the membership system
+    (`getusers()`, which then drops and rebuilds `ppmembers`). Now nothing
+    but the redirect runs. Tested on the protected pages and on the write
+    actions (create, approve, finalize, revise, merge).
+  - Redirect bodies are empty (they carried the page before).
+  - Visitors who are not logged in requesting a CSV listing no longer get
+    the CSV headers (`Content-Type: text/csv`, `Content-Disposition`) and
+    byte order mark with the login redirect; the member search as CSV no
+    longer sends them with its redirect either.
+  - `?hide=` on a protected page by a visitor who is not logged in now gets
+    the login redirect instead of a failing `UPDATE users` ("Abfrage
+    fehlgeschlagen"). On public pages it still fails, and so does `?hide=`
+    combined with `?action=search` for a logged-in user (the search now
+    redirects before the hide block runs; previously the column was
+    hidden, then redirected).
+  Not covered: the receipt upload redirect (`new.php:266`, PDF upload on
+  the edit page) is only reachable with `mcrypt` (PHP < 7.2) and is not
+  tested; `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
+  reaches its redirect, because it passes `$rights` instead of the rights
+  SQL to `vouchers_reset_ack()` and the query fails ("syntax error at or
+  near ..."). [ ] Fix and test the reset separately; it is an existing
+  failure, not a header problem. The receipt download (`file.php`) and the
+  CSV headers were already sent before any output.
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.
   The only caller (`new.php:610`) passes all four arguments; the `$part = 0`
   default is dropped and the `new.php:450` deprecation is gone on PHP 8.
@@ -112,8 +146,7 @@ lanes keep passing only through these entries:
 | `KD-REPORT-PREVCOND` | `report.php:340`, `347`, `374`, `381` | Hidden notice: undefined `$prevcond` (warning on PHP 8). | [x] Fixed: `page_report()` sets `$prevcond = null` before the calls. `unit_report()` has never read its first parameter (in every revision of `report.php` its only occurrence is the parameter list), so it keeps receiving the value it always got, and the report cannot change: the 2012, 2024, 2025, current-year and `print_empty` reports were byte-identical before and after on PHP 7.4. The similarly named `$prev_cond` (`AND date < '<year>-01-01'`) was deliberately not passed; it would be output-identical too, but suggests a use that does not exist. Removing the unused parameter (and the unused `$prev_cond`/`$precond` variables) is left to a later cleanup. Entry and PHPStan baseline entry (8 sites) removed; mutation target `report-prevcond`. |
 | `KD-PREFS-HIDE` | `closed.php` 37 lines | Hidden notices: `$user_prefs_hide[$n]` undefined offsets for users without hide preferences (54 distinct line/offset pairs per ledger request). | [x] Fixed together with the `emptytag()` crash (`closed.php:158` under [Static-analysis findings](#static-analysis-findings)): every read goes through `listing_column_hidden($col)`, `isset(...) && ... == 1`, which is what the undefined offset (`null == 1`) evaluated to, so listings without hide preferences are byte-identical (ledger, CSV, open, deleted, search, closed, compared on PHP 7.4). `tests/http-listing-prefs.php` covers stored preferences and `?hide=N`/`?hide=-N` (see the static-analysis row). Mutation target `listing-columns`. |
 | `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [ ] Determine the intended rights argument; test scoped users. |
-| `KD-EDIT-RIGHTSSQL` | `edit.php:117` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] Review the authorization intent before changing it. |
-| `KD-EDIT-RELOCATE-CLOSED-LINK` | `index.php:78`, `index.php:338` | Displayed warnings in approval/revision redirect bodies: `relocate()` in `edit.php` closes the connection and returns, so `checklogin()` queries without a link and the final `pg_close()` fails. | [ ] Stop processing after the redirect; assert the redirect body is diagnostic-free. |
+| `KD-EDIT-RIGHTSSQL` | `edit.php:120` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] Review the authorization intent before changing it. |
 
 `KD-NEW-RIGHTS` and `KD-EDIT-RIGHTSSQL` (and the fixed `KD-REPORT-PREVCOND`) are also PHPStan
 baseline findings ("Undefined variables in function scope" under
@@ -125,14 +158,20 @@ PHP 8.0 and 8.5 have no baseline entries; every diagnostic fails the lane.
 In addition to the PHP 8 forms of the issues above, they report:
 
 - PHP 8.0 and 8.5: undefined `$rights` (`new.php:184`) and `$rightssql`
-  (`edit.php:117`) as warnings, and an uncaught `Error` "No PostgreSQL link
-  opened yet" at `index.php:78` (from `acc_footer()` after `relocate()`).
-  The `new.php:450` deprecation (also a former PHPCompatibility baseline
-  finding) and the login/logout "headers already sent"
-  warnings are fixed.
+  (`edit.php:120`) as warnings. The `new.php:450` deprecation (also a former
+  PHPCompatibility baseline finding), the login/logout "headers already sent"
+  warnings, and the uncaught `Error` "No PostgreSQL link opened yet" at
+  `index.php:78` (from `acc_footer()` after `relocate()`) are fixed. A
+  targeted PHP 8.0 run after the redirect fix: `http-login.php` and
+  `http-redirects.php` pass (also unbuffered), `write-workflows.php` fails
+  only on the two warnings above.
 - PHP 8.5 only: "headers already sent" at `index.php:27/28/31/33` (login on the
-  unbuffered server, output started by the `index.php:15` deprecation) and
-  `edit.php:6` (approval redirect).
+  unbuffered server, output started by the `index.php:15` deprecation). Before
+  the redirect fix also at `edit.php:6` (approval redirect); not re-run on
+  PHP 8.5 since. The implicit-connection deprecation of the early
+  `checklogin()` call (`index.php:78`) is displayed before any redirect, so
+  the unbuffered redirect checks are expected to fail on PHP 8.5 until that
+  deprecation is fixed.
 - PHP 8.5 only: "Automatic fetching of PostgreSQL connection is deprecated"
   for `pg_query()`, `pg_escape_string()`, and `pg_last_error()` in
   `functions.php:434`, `index.php:15-17/26`, `report.php`, `transactions.php`,
@@ -394,17 +433,17 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 |---|---|---|
 | Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. |
 | Malformed regular expression | `functions.php:73` | Known |
-| Extra arguments to functions without parameters | `index.php:248`, `:273`, `:305`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
+| Extra arguments to functions without parameters | `index.php:264`, `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **New.** Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
-| Undefined functions | `index.php:250` `page_new_ack()`, `index.php:269` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
-| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`), `edit.php:117` (`$rightssql` in `page_edit_ack()`), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
+| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
+| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`), `edit.php:120` (`$rightssql` in `page_edit_ack()`), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:17` (`$datakey`, 2) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
-| Whitespace after the final `?>` | `check.php:64`, `index.php:340` | **New**, low. Emitted after page output. |
+| Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |
 
 ### Not detected by either tool
 
@@ -415,7 +454,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
   either tool; the runtime lanes report it.
 - Of the strict-HTTP diagnostics, `KD-REPORT-SQL-PG15` (SQL text, now fixed),
   `KD-PREFS-HIDE` (undefined offsets of a query-built array, now fixed) and
-  `KD-EDIT-RELOCATE-CLOSED-LINK` (closed connection) are runtime behavior that
+  `KD-EDIT-RELOCATE-CLOSED-LINK` (closed connection, now fixed) are runtime behavior that
   neither tool reports at the configured levels.
 - The login header-ordering failure was runtime behavior. The tools only
   flagged its trigger, the optional-before-required parameter at

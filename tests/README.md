@@ -83,9 +83,10 @@ contracts from the current PHP application.
 login, successful login, and an authenticated ledger request. The runtime uses
 test-only constants and the locked Composer dependencies. It has no published
 host port, cannot reach external networks, and receives only synthetic data.
-The test server enables `output_buffering=4096`. Login and logout no longer
-depend on it (they send their headers before `acc_header()` renders), but other
-redirects still do; see `COMPATIBILITY_PLAN.md`.
+The test server enables `output_buffering=4096`. No redirect depends on it:
+login, logout, the login redirect of protected pages, the member search and the
+voucher write redirects are all sent before any output (see `http-login.php`,
+`http-redirects.php` and `write-workflows.php`).
 
 `http-login.php` checks login and logout responses directly: a valid login
 returns 302 with an empty body and `Location: index.php` (or the hex-decoded
@@ -114,6 +115,15 @@ in the stored preference. Before the fix, the first hidden column crashed the
 page with `ArgumentCountError` on PHP 7.1+ and displayed a warning per hidden
 cell on PHP 5.6.
 
+`http-redirects.php` checks the other redirects that must precede any output,
+on the normal and on a second `output_buffering=0` server: every protected page
+(including CSV listings and `?hide=`) answers visitors who are not logged in
+with exactly a 302 to `index.php?action=login&target=<hex of the request URI>`
+and an empty body, and the member search answers with a 302 to the filtered
+ledger, logged in, as CSV, and not logged in. The import page is requested only
+after every other protected page has passed, so a missing login check never
+makes the test reach its call to the external membership system.
+
 ### PHP diagnostics are failures
 
 Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
@@ -130,7 +140,7 @@ same as without the recorder. Diagnostics that PHP 5.6/7.4 hide by default
 the recorder did not reach its completion marker for that request, and also
 cross-checks the body for displayed diagnostics missing from the log.
 
-`http-smoke.php`, `http-login.php`, and `write-workflows.php` print every
+`http-smoke.php`, `http-login.php`, `http-redirects.php`, and `write-workflows.php` print every
 diagnostic they saw (type, file:line, message, requests) and fail on any that is
 not listed in `tests/known-diagnostics.php`. That list is a reviewed baseline:
 each entry matches an exact PHP minor version, type, file, line set, message
@@ -152,7 +162,12 @@ because PHP 8.5 deprecates that variable at compile time.
 `write-workflows.php` exercises real HTTP mutations and verifies their database
 effects: voucher creation, organization-scoped approval, distinct first and
 second reviewers, finalization, the finalized-entry edit lock, revision history,
-and root-only recovery. Receipt encryption/upload is deliberately excluded
+merges (including one by a user of another organization), and root-only
+recovery. The approval, finalization, revision and merge redirects must be a
+302 to the voucher's edit page with the exact hint and an empty body, also on
+an `output_buffering=0` server. Visitors who are not logged in posting a new
+voucher, an approval, a finalization, a revision, or a merge get only the
+login redirect, and nothing changes in the database. Receipt encryption/upload is deliberately excluded
 because the unchanged application requires the removed `mcrypt` extension;
 the tests use a synthetic receipt reference instead.
 
@@ -208,11 +223,12 @@ result, nullable columns) capture every diagnostic with their own error
 handler, because PHPUnit 9 only prints deprecations; they fail on PHP 8.1+ if
 a helper passes null to an internal function. On both PHP 8 runtimes, the HTTP
 and write tests fail on diagnostics that have no known-diagnostics entry:
-undefined `$rights`/`$rightssql` and the closed-link error after `relocate()`.
-On PHP 8.0 `http-login.php` passes and the write-workflow assertions pass up to
-the diagnostics check. PHP 8.5 adds implicit PostgreSQL connection
-deprecations; displayed before the headers, they still break the login
-redirect without output buffering and the first approval redirect. See
+undefined `$rights`/`$rightssql` (the closed-link error after `relocate()` is
+fixed). On PHP 8.0 `http-login.php` and `http-redirects.php` pass and the
+write-workflow assertions pass up to the diagnostics check. PHP 8.5 adds
+implicit PostgreSQL connection deprecations; displayed before the headers, they
+still break the login redirect without output buffering (and are expected to
+break the other unbuffered redirects the same way). See
 `COMPATIBILITY_PLAN.md`. These failures remain visible in CI; they are not
 allowed failures. The test helper no longer uses `$http_response_header` on
 PHP 8.5.
@@ -391,8 +407,9 @@ diagnostics checks work unchanged. Test files under `tests/` are excluded from
 coverage. `compose.coverage.yaml` replaces the whole application command, so
 keep it identical to the command in `compose.test.yaml` apart from the
 `auto_prepend_file`. The second, `output_buffering=0` server that
-`http-login.php` starts inside the test container only loads the diagnostics
-recorder; its requests are not included in the coverage.
+`http-login.php`, `http-redirects.php` and `write-workflows.php` start inside the
+test container only load the diagnostics recorder; their requests are not
+included in the coverage.
 
 Limitations: coverage is measured on PHP 7.4 only; code that behaves
 differently on other runtimes is not measured there. Line coverage shows that a
@@ -531,14 +548,20 @@ same reason, with a separate runner configuration. The initial suite covers
   that the header-ordering fix must flip.
 - [x] Send the login/logout cookies and redirects before rendering and turn
   the `output_buffering=0` known failures into regular checks.
+- [x] Characterize the remaining redirects sent after output (protected
+  pages for visitors, member search, voucher write redirects) with
+  `output_buffering=0` known failures, then send them before any output and
+  turn the known failures into regular checks (`http-redirects.php`,
+  `write-workflows.php`).
 - [x] Read HTTP response headers with `http_get_last_response_headers()` when
   available, falling back to `$http_response_header` on PHP 5.6-8.3.
 - [ ] Apply the same strictness to the PHPUnit process: PHP 8.5 currently
   prints implicit-connection deprecations from `functions.php:434` and `:494`
   during the PHPUnit run without failing it.
 - [ ] Shrink `tests/known-diagnostics.php` to empty as the application issues
-  are fixed, and then report unused entries as failures. `KD-PREFS-HIDE` and
-  `KD-REPORT-PREVCOND` are fixed and removed; see `COMPATIBILITY_PLAN.md`.
+  are fixed, and then report unused entries as failures. `KD-PREFS-HIDE`,
+  `KD-REPORT-PREVCOND` and `KD-EDIT-RELOCATE-CLOSED-LINK` are fixed and removed;
+  see `COMPATIBILITY_PLAN.md`.
 - [x] Test listings with hidden columns (`http-listing-prefs.php`) and fix the
   `emptytag()` `ArgumentCountError` on PHP 7.1+ and the undefined
   `$user_prefs_hide` offsets, with output unchanged for users without hide
