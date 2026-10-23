@@ -39,7 +39,8 @@ no longer needed.
 
 GitHub Actions runs the four application lanes as parallel matrix jobs,
 alongside a separate syntax compatibility job. A failure in any application
-lane fails CI; it does not cancel the other lanes.
+lane fails CI; it does not cancel the other lanes. A separate, non-blocking `mutation`
+job runs Infection on PHP 7.4 and PHP 8.5 and uploads its reports.
 
 The runner currently performs four checks:
 
@@ -143,7 +144,11 @@ PHP 8.5, and PHPUnit 5.7.27 on PHP 5.6.40. The assertions and data providers are
 runner bootstrap, lifecycle signature, and two string assertion aliases differ.
 Coverage is collected only on PHP 7.4, with Xdebug 3.1.6; the PHPUnit
 coverage is configured for `functions.php` and merged with the HTTP coverage
-(see [Coverage](#coverage)). The suite exercises the utility and rendering helpers plus the
+(see [Coverage](#coverage)). All PHPUnit configurations set
+`error_reporting` to `-1` (E_ALL), so notices fail tests on every lane, also
+where the runtime's built-in default hides them (PHP 5.6 and 7.4 without
+`php.ini`). The same suite runs `tests/unit/InfectionShimTest.php`, the tests
+of the Infection class wrapper (see [mutation notes](mutation/README.md)). The suite exercises the utility and rendering helpers plus the
 two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
 printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
 inside the disposable test container. The current suite covers 334 of 335
@@ -159,7 +164,8 @@ platform requirements against the actual PHP 5.6 runtime, and runs a pinned
 PHPUnit PHAR outside the application document root. Its download is checked with
 a pinned SHA-256 digest. It uses the same public/authenticated HTTP scenarios and
 voucher creation, approval, finalization, revision, and recovery tests as PHP 7.4.
-PHP 5.6 and PHP 7.4 both pass 115 PHPUnit test cases and 138 assertions. PHP 5.6 has an
+PHP 5.6 and PHP 7.4 both pass 155 PHPUnit test cases and 237 assertions (115 and
+138 of them for `functions.php`, the rest for the Infection wrapper). PHP 5.6 has an
 explicit UTC PHP timezone setting, matching the fixture environment.
 
 `compose.php56.yaml` configures MD5 password authentication only for that lane's
@@ -194,6 +200,9 @@ mutations. The original four cases killed 13 mutants; the expanded cases kill
 all original 30. With the initialization fix applied, PHP 7.4 and PHP 8.5 also
 kill a new mutation that removes the initialization: 31/31 valid mutations
 killed. See [mutation results and reproduction steps](mutation/README.md).
+The suite also passes in random order, as Infection runs it: the
+acknowledgement-reset test no longer closes the shared default PostgreSQL
+connection that later database helper tests use.
 
 ## Coverage
 
@@ -358,10 +367,20 @@ same reason, with a separate runner configuration. The initial suite covers
 - [ ] Evaluate [Rector](https://github.com/rectorphp/rector) for PHP-version
   upgrade assistance, starting with selected rules and dry runs whose proposed
   changes are checked against the supported runtime matrix.
-- [ ] Evaluate a mutation testing framework, such as Infection, to replace the
-  handpicked mutation runner with broader generated mutations and reporting.
-  Check compatibility with the legacy PHP lanes, establish a passing baseline,
-  and review surviving/equivalent mutants before choosing a CI threshold.
+- [x] Evaluate Infection for broader generated mutations and reporting.
+  `sh tests/mutation/infection.sh 7.4|8.5` runs Infection 0.26.6 (PHP 7.4)
+  or 0.35.8 (PHP 8.5) on `functions.php` through a class wrapper, because
+  Infection never mutates global functions. Baseline: MSI 58.94% (PHP 7.4)
+  and 66.42% (PHP 8.5); escaped mutants are classified in
+  [the mutation notes](mutation/README.md). PHP 5.6 cannot run Infection, so
+  the targeted runner stays. A non-blocking CI job uploads the reports.
+- [ ] Close the real Infection test gaps listed in the mutation notes (mainly
+  `acc_header` output and `getfilter` validation), then gate CI on no new
+  escaped mutants.
+- [x] Report notices in PHPUnit on PHP 5.6 and 7.4 (`error_reporting=-1`).
+- [x] Test the Infection class wrapper (100% lines and branches; mutated with
+  `PGACC_INFECTION_TARGET=shim`).
+- [ ] Generalize the targeted mutation runner to HTTP-tested code and PHP 5.6.
 - [x] Add PHPUnit to the isolated test environment and begin PHPUnit coverage
   with `functions.php`. Keep `tests/run.sh` as the single entry point for
   syntax, database, and application checks; existing shell and HTTP checks

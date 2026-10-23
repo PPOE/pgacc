@@ -23,4 +23,6 @@ if (function_exists('pg_connect') && getenv('PGHOST')) {
     }
 }
 
-require_once dirname(__DIR__) . '/functions.php';
+// tests/mutation/infection.sh substitutes a class-wrapped copy for Infection.
+$functionsFile = getenv('PGACC_FUNCTIONS_FILE');
+require_once $functionsFile ? $functionsFile : dirname(__DIR__) . '/functions.php';

@@ -369,8 +369,9 @@ final class FunctionsTest extends FunctionsTestCase
                 pg_fetch_assoc($result)
             );
         } finally {
+            // pg_connect() returned the shared default link; keep it open
+            // for helpers in later tests, whatever the execution order.
             pg_query($connection, 'ROLLBACK');
-            pg_close($connection);
         }
     }
 }

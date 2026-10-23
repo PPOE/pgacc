@@ -85,3 +85,33 @@ jobs:
       - name: Clean up containers
         if: always()
         run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
+
+  mutation:
+    # Report only: Infection results are not a required gate yet. See
+    # tests/mutation/README.md for the baseline and threshold plan.
+    name: Infection mutation report (${{ matrix.target }}, PHP ${{ matrix.php }}, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.5']
+        # functions: functions.php through the class wrapper; shim: the wrapper itself.
+        target: [functions, shim]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Run Infection
+        env:
+          PGACC_INFECTION_TARGET: ${{ matrix.target }}
+        run: sh tests/mutation/infection.sh '${{ matrix.php }}'
+
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: infection-${{ matrix.target }}-php${{ matrix.php }}
+          path: tests/mutation/results/
+          if-no-files-found: ignore

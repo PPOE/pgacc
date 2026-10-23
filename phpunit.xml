@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="tests/phpunit-bootstrap.php" colors="true" beStrictAboutTestsThatDoNotTestAnything="true">
+  <php>
+    <!-- E_ALL on every lane: without php.ini, PHP 7.4 hides notices from PHPUnit. -->
+    <ini name="error_reporting" value="-1"/>
+  </php>
   <testsuites>
     <testsuite name="functions.php">
       <file>tests/unit/FunctionsTest.php</file>
+      <file>tests/unit/InfectionShimTest.php</file>
     </testsuite>
   </testsuites>
   <coverage processUncoveredFiles="true">

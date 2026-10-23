@@ -1,0 +1,29 @@
+{
+    "source": {
+        "directories": [
+            "/app/tests/mutation"
+        ],
+        "excludes": [
+            "infection",
+            "results"
+        ]
+    },
+    "phpUnit": {
+        "configDir": "/app/tests/mutation/infection/shim",
+        "customPath": "/app/vendor/bin/phpunit"
+    },
+    "bootstrap": "/app/tests/mutation/InfectionShim.php",
+    "initialTestsPhpOptions": "-d xdebug.mode=coverage",
+    "timeout": 20,
+    "tmpDir": "/tmp/infection",
+    "logs": {
+        "text": "/results/infection.log",
+        "summary": "/results/summary.log",
+        "json": "/results/infection.json",
+        "perMutator": "/results/per-mutator.md",
+        "html": "/results/infection.html"
+    },
+    "mutators": {
+        "@default": true
+    }
+}

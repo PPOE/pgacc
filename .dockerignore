@@ -5,3 +5,4 @@ files
 proxy
 vendor
 build
+tests/mutation/results
