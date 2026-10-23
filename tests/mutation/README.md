@@ -729,10 +729,10 @@ page has passed).
 | `relocate-page-kept` | `edit.php:6` | killed | killed | `write-workflows.php` |
 | `relocate-continues` | `edit.php:9` | killed | killed | `write-workflows.php` |
 | `relocate-redirect-removed` | `edit.php:8` | killed | killed | `write-workflows.php` |
-| `finalization-target` | `edit.php:44` | killed | killed | `write-workflows.php` |
-| `merge-target` | `edit.php:67` | killed | killed | `write-workflows.php` |
-| `approval-target` | `edit.php:161` | killed | killed | `write-workflows.php` |
-| `revision-target` | `edit.php:232` | killed | killed | `write-workflows.php` |
+| `finalization-target` | `edit.php:49` | killed | killed | `write-workflows.php` |
+| `merge-target` | `edit.php:77` | killed | killed | `write-workflows.php` |
+| `approval-target` | `edit.php:194` | killed | killed | `write-workflows.php` |
+| `revision-target` | `edit.php:276` | killed | killed | `write-workflows.php` |
 | `search-requires-login` | 139 | equivalent | equivalent | `page_search()` replaces the login `Location` |
 | `unprotected-<page>` (11: all, mb, open, merge, edit, new, closed, deleted, recover, accounts, import2) | 132 | killed | killed | `http-redirects.php` |
 
@@ -758,36 +758,95 @@ passes on both lanes. The `login-logout` target gives the same result before
 (at `5fe1c62`) and after the fix: 36 killed, 2 accepted equivalents on PHP 5.6
 and 7.4.
 
-#### `rights-checks` (HTTP, `new.php`, `edit.php`)
+#### `rights-checks` (HTTP, `new.php`, `edit.php`, `accounts.php`)
 
-The organization scope of voucher writes, tested with
-`tests/write-workflows.php` (users of organizations 1 and 2, `bgf`, admin and
-empty rights; vouchers with rows in two organizations): the rights that
-creation (`page_new_save()`) and revision pass to `get_voucher()`, its default
-organization, and the rights SQL of approval and finalization.
+The organization scope and rights checks of voucher writes, tested with
+`tests/write-workflows.php` (users of organizations 1 and 2, `bgf`, admin,
+empty rights and `Rbgf`; vouchers with rows in two organizations): the rights
+that creation (`page_new_save()`) and revision pass to `get_voucher()`, its
+default organization, the check of posted organizations, the rights SQL and
+the visibility check of approval, the exact `bgf`/`root` checks of
+finalization, approval reset and merge, and the rights of new users.
 
 | Mutant | Line | 5.6 | 7.4 | Killed by |
 |---|---:|---|---|---|
-| `new-save-rights-dropped` | `new.php:170` | killed | killed | voucher of an organization user saved in organization 10 |
-| `new-save-rights-null` | `new.php:184` | killed | killed | same |
+| `new-save-rights-dropped` | `new.php:182` | killed | killed | voucher of an organization user saved in organization 10 |
+| `new-save-rights-null` | `new.php:210` | killed | killed | same |
 | `default-organization-fixed` | `new.php:43` | killed | killed | creation and revision by an organization user |
 | `default-organization-for-any-rights` | `new.php:41` | killed | killed | `bgf` voucher saved in organization 0 |
 | `posted-organization-ignored` | `new.php:45` | killed | killed | posted organization not saved |
-| `ack-finalized-check-removed` | `edit.php:120` | killed | killed | finalized voucher approved |
-| `ack-receipt-check-unscoped` | `edit.php:132` | killed | killed | cross-organization approval redirects |
-| `ack1-update-unscoped` | `edit.php:145` | killed | killed | first approval of the other organization's row |
-| `ack2-update-unscoped` | `edit.php:156` | killed | killed | second approval of the other organization's row |
-| `ack2-same-user` | `edit.php:156` | killed | killed | duplicate approval by the first approver |
-| `finalize-unscoped` | `edit.php:39` | killed | killed | the other organization's row finalized |
-| `drop-acks-reset-removed` | `edit.php:96` | killed | killed | approvals not reset |
+| `new-posted-organization-unchecked` | `new.php:194` | killed | killed | voucher saved in a foreign organization |
+| `revision-posted-organization-unchecked` | `edit.php:256` | killed | killed | revision saved in a foreign organization |
+| `posted-organization-bgf-exemption-removed` | `new.php:69` | killed | killed | `bgf` voucher in organization 1 refused |
+| `posted-organization-first-part-only` | `new.php:72` | killed | killed | foreign second part saved |
+| `posted-organization-loose-comparison` | `new.php:75` | killed | killed | organization `01` accepted |
+| `posted-organization-default-checked` | `new.php:75` | killed | killed | voucher without organization refused |
+| `new-account-creator-rights` | `accounts.php:21` | killed | killed | new user gets the creator's rights |
+| `new-account-rights-unescaped` | `accounts.php:18` | killed | killed | quoted rights fail the insert |
+| `ack-visibility-check-removed` | `edit.php:146` | killed | killed | foreign user told "bereits finalisiert" |
+| `ack-visibility-check-unscoped` | `edit.php:144` | killed | killed | same |
+| `ack-finalized-check-removed` | `edit.php:155` | killed | killed | finalized voucher approved |
+| `ack-finalized-check-scoped` | `edit.php:155` | killed | killed | own rows of a partly finalized voucher approved |
+| `ack-receipt-check-unscoped` | `edit.php:165` | killed | killed | approved row without receipt approved again |
+| `ack1-update-unscoped` | `edit.php:178` | killed | killed | first approval of the other organization's row |
+| `ack2-update-unscoped` | `edit.php:189` | killed | killed | second approval of the other organization's row |
+| `ack2-same-user` | `edit.php:189` | killed | killed | duplicate approval by the first approver |
+| `merge-root-check-removed` | `edit.php:64` | killed | killed | merge by an organization user |
+| `merge-root-substring` | `edit.php:64` | killed | killed | merge by `bgf` without `root` |
+| `finalize-bgf-check-removed` | `edit.php:32` | killed | killed | finalization by organization users |
+| `finalize-bgf-check-closed` | `edit.php:32` | killed | killed | finalization by `bgf` refused |
+| `finalize-bgf-substring` | `edit.php:32` | killed | killed | finalization by `Rbgf` |
+| `finalize-unscoped` | `edit.php:44` | equivalent | equivalent | only `bgf` finalizes; its rights SQL is empty |
+| `drop-acks-bgf-check-removed` | `edit.php:100` | killed | killed | reset by a user without rights |
+| `drop-acks-bgf-check-fail-closed-for-bgf` | `edit.php:100` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
+| `drop-acks-bgf-substring` | `edit.php:100` | killed | killed | reset by `Rbgf` |
+| `drop-acks-reset-removed` | `edit.php:111` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
 
-PHP 5.6 and 7.4: 12 killed; both runs exit 0 (about 1 minute on PHP 7.4).
+PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0.
+
+Before the security fixes (`d564754`) the target had the first five and the
+`ack-*`, `finalize-unscoped` and `drop-acks-reset-removed` mutants: 12 killed
+on PHP 5.6 and 7.4.
 
 Before the fix of `page_new_save()` (the test-first commit, `9d0e753`), the
 11 mutations that apply to that code (all but `new-save-rights-dropped`) gave
 10 killed and 1 survivor on PHP 5.6 and 7.4: `new-save-rights-null` survived,
 because creation passed no rights to `get_voucher()` at all (the undefined
 variable is `null`).
+
+#### `sql-injection` (HTTP, `edit.php`, `new.php`, `functions.php`)
+
+Request values in SQL, tested with `tests/write-workflows.php`: the voucher ID
+check of approval, finalization, approval reset, revision and receipt upload
+(injected conditions, quotes, a final newline, a sign, an array, no ID), the
+escaped old approval names of a revision, the grouped date pattern, and the
+escaped old-approval listing filter.
+
+| Mutants | Lines | 5.6 | 7.4 |
+|---|---|---|---|
+| `<action>-id-unchecked`, `<action>-id-trailing-newline` for finalize, drop-acks, ack, save; `ack-id-array` | `edit.php` (one per handler) | 9 killed | 9 killed |
+| `upload-id-unchecked`, `upload-id-trailing-newline` | `new.php:226` at the fix | 2 killed | 2 killed |
+| `old-ack1-unescaped`, `old-ack2-unescaped`, `date-pattern-ungrouped` | `new.php:158/159/37` at the fix | 3 killed | 3 killed |
+| `old-ack-filter-unescaped`, `old-ack2-filter-unescaped`, `old-ack-filter-unset` | `functions.php:88` at the fix | 3 killed | 3 killed |
+
+PHP 5.6 and 7.4: 17 killed; both runs exit 0. The target is new with the fix;
+before it, the tests failed on the unfixed code (the first injected approval
+got the approval instead of "Buchung nicht gefunden").
+
+#### `read-only-rights` (HTTP and PHPUnit, `edit.php`, `new.php`, `accounts.php`, `index.php`, `functions.php`)
+
+Read-only `Rbgf`, tested with `tests/write-workflows.php` (users
+`synthetic-read-only` and `synthetic-read-only-two`) and the `write_rights()`
+and menu PHPUnit tests: the `write_rights()` checks of voucher creation,
+receipt upload, revision and approval (`<path>-read-only-allowed`), the write
+rights of `Rbgf,2` for approval and creation (`<path>-read-only-rights-kept`),
+the user page, the receipt import, `write_rights()` itself, and the hidden
+menu links and form buttons. The bank import check is not mutated: without it
+the page would call the external membership system.
+
+PHP 5.6 and 7.4: 13 killed; both runs exit 0. New with the change; before it,
+the tests failed on the unfixed code (the voucher form showed the save button
+to `Rbgf`; voucher creation by `Rbgf` succeeded).
 
 #### `donations` (HTTP, `donations.php`)
 

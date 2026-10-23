@@ -159,6 +159,25 @@ with synthetic users and covered by a mutation target.
   `read-only-rights` (the bank import check is not mutated, because its
   removal would contact the membership system).
 
+Open security findings (not changed here; owner decisions):
+
+- [ ] No CSRF protection: every write action is a plain form POST or GET
+  link authenticated by cookies.
+- [ ] Output is not HTML-escaped in several places, e.g. the user names in
+  the user list (`accounts.php`, root only), request values echoed by the
+  voucher page (`page_edit()`: voucher and row IDs in the notices and the
+  heading) and the listing filter fields (`closed.php`).
+- [ ] The default organization of a single-organization user
+  (`get_voucher()`, `new.php`) uses `is_numeric()` and `intval()`, whose
+  results differ between PHP versions for unusual rights values (hex,
+  exponent notation, surrounding whitespace). Rights are entered by root.
+- [ ] The login `target` is redirected to without a check
+  (`login_redirect()`, `login()`).
+- [ ] Old approval names posted with a revision are stored as given
+  (`page_edit_save()`); they are only displayed as former approvals.
+- [ ] `edit.php` still shows the approval reset button to `bgf` via
+  `strpos()` (`$bgfandack`); it is hidden for `Rbgf` by `end_of_form()`.
+
 ## Login and redirect failure: confirmed
 
 PHP 8 has not introduced a new rule prohibiting these redirects. The documented
