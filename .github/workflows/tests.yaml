@@ -34,19 +34,44 @@ jobs:
         include:
           - php: '7.4'
             project: pgacc-test-php74
+            compose_files: -f compose.test.yaml -f compose.coverage.yaml
           - php: '5.6'
             project: pgacc-test-php56
+            compose_files: -f compose.test.yaml
           - php: '8.0'
             project: pgacc-test-php80
+            compose_files: -f compose.test.yaml
           - php: '8.5'
             project: pgacc-test-php85
+            compose_files: -f compose.test.yaml
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # The PHP 7.4 lane compares pull requests with their base branch.
+          fetch-depth: 0
 
       - name: Run application checks
+        env:
+          # PHP 7.4 lane only: fail if a changed executable line is uncovered.
+          PGACC_COVERAGE_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
         run: sh tests/run.sh '${{ matrix.php }}'
+
+      - name: Publish coverage summary
+        if: always() && matrix.php == '7.4'
+        run: |
+          if [ -f build/coverage/summary.txt ]; then
+            { echo '```'; cat build/coverage/summary.txt; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report
+        if: always() && matrix.php == '7.4'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-php74
+          path: build/coverage
+          if-no-files-found: warn
 
       - name: Clean up containers
         if: always()
-        run: docker compose --project-name '${{ matrix.project }}' -f compose.test.yaml down --volumes --remove-orphans
+        run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans

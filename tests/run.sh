@@ -44,7 +44,8 @@ compose()
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php85" \
       -f compose.test.yaml -f compose.php85.yaml "$@"
   else
-    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php74" -f compose.test.yaml "$@"
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php74" \
+      -f compose.test.yaml -f compose.coverage.yaml "$@"
   fi
 }
 
@@ -54,6 +55,22 @@ cleanup()
 }
 
 trap cleanup EXIT INT TERM
+
+if [ "$php_version" = 7.4 ]; then
+  # Merged PHPUnit + HTTP coverage report (see tests/README.md, "Coverage").
+  repo_root=$(cd "$(dirname "$0")/.." && pwd)
+  PGACC_COVERAGE_HOST_DIR=${PGACC_COVERAGE_HOST_DIR:-$repo_root/build/coverage}
+  PGACC_COVERAGE_OWNER=$(id -u):$(id -g)
+  PGACC_COVERAGE_BRANCHES=${PGACC_COVERAGE_BRANCHES:-1}
+  export PGACC_COVERAGE_HOST_DIR PGACC_COVERAGE_OWNER PGACC_COVERAGE_BRANCHES
+  mkdir -p "$PGACC_COVERAGE_HOST_DIR"
+  rm -f "$PGACC_COVERAGE_HOST_DIR/changed-lines.txt"
+  if [ -n "${PGACC_COVERAGE_BASE:-}" ]; then
+    # Every changed executable line must be covered (tests/README.md, "Coverage").
+    sh "$repo_root/tests/coverage/changed-lines.sh" "$PGACC_COVERAGE_BASE" \
+      >"$PGACC_COVERAGE_HOST_DIR/changed-lines.txt"
+  fi
+fi
 
 echo "Running application tests on PHP $php_version"
 compose up --detach --wait database

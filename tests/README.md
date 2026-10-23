@@ -54,8 +54,10 @@ The runner currently performs four checks:
    exercises real HTTP routes and login/logout responses, runs the shared
    PHPUnit helper tests, and exercises voucher write workflows. The HTTP checks
    fail on any PHP diagnostic the application raises that is not in the
-   reviewed `tests/known-diagnostics.php` baseline. The PHP 7.4 lane additionally collects
-   and checks `functions.php` line coverage.
+   reviewed `tests/known-diagnostics.php` baseline. The PHP 7.4 lane additionally
+   collects coverage of the PHPUnit run and of the application server during the
+   HTTP and write-workflow tests, and merges both into one report (see
+   [Coverage](#coverage)).
 
 PHP 5.6, 7.4, and 8.0 are historical characterization runtimes, not supported
 deployment targets. PHP 8.5.12 is also tested as an upgrade target. Passing syntax
@@ -96,7 +98,8 @@ before rendering must also move these checks to the regular assertions.
 ### PHP diagnostics are failures
 
 Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
-`auto_prepend_file`. It installs an error handler for all diagnostic types and
+`auto_prepend_file` (on the PHP 7.4 lane the main server's coverage prepend
+includes it; see [Coverage](#coverage)). It installs an error handler for all diagnostic types and
 a shutdown check for fatal errors, writes each one to a per-request JSON-lines
 file on a tmpfs volume shared with the test container
 (`PGACC_TEST_DIAGNOSTICS_DIR`), and then returns `false`, so PHP's own handling
@@ -138,8 +141,9 @@ the tests use a synthetic receipt reference instead.
 `tests/unit/FunctionsTest.php` runs under PHPUnit 9.6 on PHP 7.4, PHP 8.0, and
 PHP 8.5, and PHPUnit 5.7.27 on PHP 5.6.40. The assertions and data providers are shared; only the
 runner bootstrap, lifecycle signature, and two string assertion aliases differ.
-Coverage is collected only on PHP 7.4, for `functions.php`, with Xdebug 3.1.6.
-The suite exercises the utility and rendering helpers plus the
+Coverage is collected only on PHP 7.4, with Xdebug 3.1.6; the PHPUnit
+coverage is configured for `functions.php` and merged with the HTTP coverage
+(see [Coverage](#coverage)). The suite exercises the utility and rendering helpers plus the
 two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
 printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
 inside the disposable test container. The current suite covers 334 of 335
@@ -191,6 +195,93 @@ all original 30. With the initialization fix applied, PHP 7.4 and PHP 8.5 also
 kill a new mutation that removes the initialization: 31/31 valid mutations
 killed. See [mutation results and reproduction steps](mutation/README.md).
 
+## Coverage
+
+The PHP 7.4 lane measures coverage of all 29 top-level application files, not
+only the PHPUnit-tested `functions.php`. `tests/run.sh 7.4` adds
+`compose.coverage.yaml`, which only exists for that lane; the other lanes are
+unchanged.
+
+- The application server starts with
+  `auto_prepend_file=tests/coverage/prepend.php` and `XDEBUG_MODE=develop,coverage`
+  (`develop` is the Xdebug default the server already used, so error output is
+  unchanged). For each request the prepend starts Xdebug line and branch
+  coverage, and after the application and its own shutdown functions have run
+  it writes the raw data to a project-scoped Docker volume. It prints nothing,
+  sends no headers, and defines no global variables. Writing the data happens
+  after the application finished and lifts `memory_limit` for that step only.
+- PHPUnit additionally writes its coverage in php-code-coverage's serialized
+  format, with branch data (`--path-coverage`, run with an unlimited
+  `memory_limit` in the PHPUnit process only).
+- `tests/coverage/merge.php` merges PHPUnit and all request data with the
+  already locked php-code-coverage 9.2 (no new dependency), prints a per-file
+  line/branch table in the lane log, and writes the report to
+  `build/coverage/` in the checkout (override with `PGACC_COVERAGE_HOST_DIR`):
+  `summary.txt`, `clover.xml`, `html/index.html`, `coverage.cov`, and
+  `uncovered-branches.txt`. Files that no test reaches are included with zero
+  coverage; they are statically analysed, never executed. The test-only
+  `constants.php` is excluded.
+- CI publishes the summary on the job page and uploads `build/coverage` as the
+  `coverage-php74` artifact.
+
+Branch coverage makes each request several seconds slower, because Xdebug
+analyses every path of the large legacy functions. Run
+`PGACC_COVERAGE_BRANCHES=0 sh tests/run.sh 7.4` for faster line-only coverage.
+Path coverage is discarded: the legacy functions have too many paths for it to
+be meaningful (8341 in `functions.php` alone). The branch totals in the summary
+count branches inside functions only; script-level code outside functions is
+covered by the line numbers and listed in `uncovered-branches.txt` as
+`{main}`.
+
+### Proving coverage of changed lines
+
+Application changes must cover every changed executable line. Run the lane
+with a base revision:
+
+```bash
+PGACC_TEST_ID=mine PGACC_COVERAGE_BASE=origin/main sh tests/run.sh 7.4
+```
+
+`tests/coverage/changed-lines.sh <base>` lists the lines added or changed since
+the merge base with `<base>`, including uncommitted and untracked `*.php`
+files, as `file:start-end` ranges. After the merged report is written,
+`tests/coverage/check-changed-lines.php` fails the lane if any of those lines is
+executable and was not executed by any test. Non-executable lines (comments,
+blank lines, inline HTML, declarations) are ignored, and paths outside the
+coverage scope (`tests/`, non-PHP files) are skipped. A changed top-level PHP
+file missing from the report is an error. Uncovered branches that overlap a
+changed line are printed as warnings; `PGACC_COVERAGE_STRICT_BRANCHES=1` makes
+them fail too. On pull requests, CI runs the check against the base branch.
+
+The checker also runs on its own (PHP 5.6 or newer with SimpleXML) against an
+existing report, with any list of ranges:
+
+```bash
+sh tests/coverage/changed-lines.sh origin/main >changes.txt
+php tests/coverage/check-changed-lines.php \
+  --branches=build/coverage/uncovered-branches.txt \
+  build/coverage/clover.xml changes.txt
+printf 'functions.php:12-40\nindex.php:27,31-33\n' |
+  php tests/coverage/check-changed-lines.php build/coverage/clover.xml -
+```
+
+Only one `auto_prepend_file` is possible. `compose.coverage.yaml` therefore
+replaces the diagnostics recorder in the application command with the coverage
+prepend and names the recorder in `PGACC_COVERAGE_CHAINED_PREPEND`; the coverage
+prepend includes it after starting coverage, and its shutdown functions
+(including the request-complete marker) run before coverage is written, so the
+diagnostics checks work unchanged. Test files under `tests/` are excluded from
+coverage. `compose.coverage.yaml` replaces the whole application command, so
+keep it identical to the command in `compose.test.yaml` apart from the
+`auto_prepend_file`. The second, `output_buffering=0` server that
+`http-login.php` starts inside the test container only loads the diagnostics
+recorder; its known-failure requests are not included in the coverage.
+
+Limitations: coverage is measured on PHP 7.4 only; code that behaves
+differently on other runtimes is not measured there. Line coverage shows that a
+line ran, not that its result was asserted; mutation testing remains the check
+for assertion strength.
+
 ## Test improvement plan
 
 The [compatibility findings and fix list](COMPATIBILITY_PLAN.md) records completed
@@ -235,9 +326,11 @@ same reason, with a separate runner configuration. The initial suite covers
   test can characterize this repository's output, but cannot by itself prove
   compatibility with the external consumer.
 - [x] Add Xdebug coverage reporting for the PHPUnit process and print the
-  `functions.php` report in CI. The existing HTTP checks run in a separate
-  server process and are not included in this report. Add remote-process
-  coverage and a CI artifact when coverage is extended to those checks.
+  `functions.php` report in CI.
+- [x] Measure application-server coverage during the HTTP and write-workflow
+  tests on PHP 7.4, merge it with the PHPUnit coverage, print a per-file
+  line/branch summary, upload the HTML/Clover report as a CI artifact, and
+  check that changed executable lines are covered (see [Coverage](#coverage)).
 - [x] Record every PHP diagnostic raised while serving HTTP test requests
   (including ones hidden by the PHP 5.6/7.4 default `error_reporting` or `@`)
   without changing runtime error settings, and fail on any diagnostic outside
