@@ -204,6 +204,18 @@ The suite also passes in random order, as Infection runs it: the
 acknowledgement-reset test no longer closes the shared default PostgreSQL
 connection that later database helper tests use.
 
+`tests/mutation/run.sh <lane> <target>` is a target-driven mutation runner for
+any lane, including PHP 5.6. Targets in `tests/mutation/targets/` list exact,
+reviewable mutations and the tests that must kill them: PHPUnit filters and/or
+HTTP suites. HTTP mutants each get a disposable copy of the application, a
+fresh `php -S` with the application service's settings, and a fresh database
+from a template, so top-level page code that Infection cannot mutate is
+covered too. The `login-logout` target mutates `index.php` login/logout
+handling; on PHP 5.6 and 7.4 it kills 12 of 15 mutants, accepts one
+equivalent, and shows two test gaps (login cookie expiry, user-name escaping).
+CI runs the runner's self-tests and the `rights2orgasql` target on every lane.
+See [the runner documentation](mutation/README.md).
+
 ## Coverage
 
 The PHP 7.4 lane measures coverage of all 29 top-level application files, not
@@ -373,14 +385,19 @@ same reason, with a separate runner configuration. The initial suite covers
   Infection never mutates global functions. Baseline: MSI 58.94% (PHP 7.4)
   and 66.42% (PHP 8.5); escaped mutants are classified in
   [the mutation notes](mutation/README.md). PHP 5.6 cannot run Infection, so
-  the targeted runner stays. A non-blocking CI job uploads the reports.
+  the target-driven runner covers that lane. A non-blocking CI job uploads the
+  reports.
 - [ ] Close the real Infection test gaps listed in the mutation notes (mainly
   `acc_header` output and `getfilter` validation), then gate CI on no new
   escaped mutants.
 - [x] Report notices in PHPUnit on PHP 5.6 and 7.4 (`error_reporting=-1`).
 - [x] Test the Infection class wrapper (100% lines and branches; mutated with
   `PGACC_INFECTION_TARGET=shim`).
-- [ ] Generalize the targeted mutation runner to HTTP-tested code and PHP 5.6.
+- [x] Generalize the hand-picked `rights2orgasql` runner into a target-driven
+  runner (`tests/mutation/run.sh`) that also mutates code reached only through
+  the HTTP tests, on every lane including PHP 5.6.
+- [ ] Close the `login-logout` survivors: assert login cookie expiry and add a
+  rejected login with a user name that needs SQL escaping.
 - [x] Add PHPUnit to the isolated test environment and begin PHPUnit coverage
   with `functions.php`. Keep `tests/run.sh` as the single entry point for
   syntax, database, and application checks; existing shell and HTTP checks

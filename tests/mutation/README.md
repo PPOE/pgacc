@@ -1,13 +1,27 @@
 # Mutation testing
 
-Two mutation tools cover the PHPUnit-tested helpers in `functions.php`:
+Two mutation tools cover this repository:
 
-- [Infection](https://infection.github.io/) generates mutants for the whole
-  file and reports a mutation score. It runs on the PHP 7.4 and PHP 8.5 lanes.
-  It is a report, not a required CI gate yet.
-- `rights2orgasql.php` applies 31 hand-picked, security-focused mutations to
-  `rights2orgasql()`. It is described below. It runs on PHP 7.4 and 8.5;
-  PHP 5.6 needs the changes listed under its results.
+- [Infection](https://infection.github.io/) generates mutants for the
+  PHPUnit-tested helpers in `functions.php` (through a class wrapper) and
+  reports a mutation score. It runs on the PHP 7.4 and PHP 8.5 lanes. It is a
+  report, not a required CI gate yet. See [Infection](#infection).
+- `run.sh`, the target-driven runner, applies hand-written, reviewable
+  mutations from `targets/` and runs the test suites that must kill them:
+  PHPUnit filters and/or the HTTP suites against a `php -S` server started
+  from the mutated copy. It runs on every lane, including PHP 5.6. It replaces
+  the former hand-picked `rights2orgasql.php` runner; its `rights2orgasql`
+  target keeps the same 31 mutations. See
+  [Target-driven runner](#target-driven-runner).
+
+Which tool when: use Infection for broad, generated coverage of helper
+functions that PHPUnit tests call directly, and to find unasserted behavior.
+Use the target-driven runner for code that only the HTTP tests reach
+(top-level page code such as `index.php`, which Infection cannot mutate), for
+security-relevant, domain-specific mutations that Infection's operators do not
+generate (fail-open returns, `IN` to `NOT IN`, widened ID patterns), and for
+PHP 5.6, where Infection does not run. Fix pull requests use the runner's
+targets (see [Required step for fixes](#required-step-for-fixes)).
 
 ## Infection
 
@@ -246,7 +260,8 @@ mutations: fail-open returns (`" AND false "` to `""`), `IN` to `OR`/`NOT IN`,
 changed delimiters, removed or added privilege exemptions, substring or
 case-insensitive role matching, widened ID patterns (`\d*`, negative,
 decimal), `> 1`, keeping only the last organization, and removing the array
-initialization. Keep the targeted runner for security-relevant helpers.
+initialization. Keep the runner's `rights2orgasql` target for this
+security-relevant helper.
 
 ### HTTP-tested code
 
@@ -259,17 +274,16 @@ Infection cannot mutate code that is exercised only through the HTTP tests:
 - the page scripts are top-level code, which Infection never mutates, and the
   wrapper above cannot convert.
 
+The [target-driven runner](#target-driven-runner) covers this code instead.
+
 ### Recommendations
 
-- Generalize `rights2orgasql.php` into a target-driven runner that stays
-  PHP 5.6-compatible: a mutation list per target (file, region, name, from,
-  to), applied to a disposable copy of the whole application; a per-target
-  test command (a PHPUnit filter, or the HTTP suites against a `php -S`
-  server started from the mutated copy); a fresh database per mutant (for
-  example `CREATE DATABASE ... TEMPLATE` from the fixture database, because
-  the write workflows change data); per-mutant timeouts; and the existing
-  baseline, lint, and JSON reporting. Run it on PHP 5.6 as well as 7.4/8.5.
-- Feed it generated mutants: use Infection's JSON diffs for helper functions,
+- Done: `rights2orgasql.php` was generalized into the
+  [target-driven runner](#target-driven-runner) (per-target mutation lists on
+  a disposable application copy, PHPUnit or HTTP test commands, a fresh
+  database per mutant, timeouts, baseline, lint, and JSON reports), which runs
+  on PHP 5.6 as well as 7.4-8.5.
+- Feed the runner generated mutants: use Infection's JSON diffs for helper functions,
   and a small `nikic/php-parser` generator (run on PHP 7.4 or 8.5; the parser
   reads PHP 5.6 syntax) for top-level page code. Select the HTTP checks per
   mutant from server-process coverage once that is available.
@@ -286,81 +300,241 @@ Infection cannot mutate code that is exercised only through the HTTP tests:
 - Longer term, moving the helpers into a class (keeping thin global wrappers)
   would remove the need for the wrapper and allow Infection's `--git-diff-lines`.
 
-## Targeted mutation test: rights2orgasql
+## Target-driven runner
 
-`rights2orgasql.php` runs the existing `testRights2orgasql` data provider against
-31 deliberately chosen changes to `rights2orgasql()`. It copies the current
-source and test files into a disposable workspace, syntax-checks every mutant,
-and invokes PHPUnit separately for each one. The baseline must pass first;
-existing runtime errors cannot be mistaken for mutation kills.
+`run.sh` mutation-tests code against the existing test suites on any lane,
+including PHP 5.6. It works for code that only the HTTP tests reach, such as
+the top-level page code in `index.php`, `edit.php` or `new.php`, which
+Infection cannot mutate. Each target is a reviewable file of hand-written
+mutations; this is a targeted check of assertion strength, not a generated
+mutation score.
 
-The mutations cover privilege checks, exact role matching, numeric validation,
-single-organization handling, SQL restrictions, and fail-open behavior. They
-are a targeted set, not an exhaustive generated mutation score. They remain
-useful next to Infection: most of them are domain-specific changes that
-Infection's operators do not generate (see the comparison above), and the
-runner, unlike Infection, can be made to run on PHP 5.6 (see below).
+```sh
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 5.6 rights2orgasql
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --only=login-target-ignored,logout-redirect-removed
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --check   # definitions only
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 --self-test            # runner unit tests
+```
+
+The lane is `5.6`, `7.4`, `8.0` or `8.5`; the target is the name of a file in
+`targets/`. Results go to `build/mutation/<target>-php<lane>/` (override with
+`PGACC_MUTATION_HOST_DIR`): `results.json`, `summary.txt`, and one test log and
+one server log per mutant. `PGACC_TEST_ID` isolates concurrent runs as for
+`tests/run.sh`; remove the tagged image with `docker rmi` afterwards.
+
+Exit status: 0 when every valid mutant is killed, timed out, or an accepted
+equivalent; 1 for any unaccepted survivor, invalid mutant, or stale
+equivalent; 2 for a definition error, a setup error, or a failing baseline.
+
+### How a run works
+
+`run.sh` builds the lane's application image and starts the lane's isolated
+PostgreSQL service in its own Compose project (`pgacc-mutation[-ID]-phpXX`,
+from `compose.test.yaml` plus the lane file, without `compose.coverage.yaml`).
+It then runs `runner.php` in a one-off container of the application service:
+same image, environment, internal network, read-only root, and `/tmp` tmpfs.
+
+`runner.php`:
+
+1. Validates the target and applies every mutation to the source in memory.
+   Any definition error aborts before anything runs.
+2. Copies the image's `/app` to `/tmp` once (vendor/ linked, not copied), and
+   creates the database `accounting_mutation_template` from the same fixture
+   files, in the same order, as `tests/database-smoke.sh`.
+3. Runs the unmutated baseline exactly like a mutant. If it does not pass, the
+   run stops with exit 2 and prints the baseline log. No mutant is tested.
+4. For each mutant:
+   - copies the pristine tree to a disposable directory and writes the mutated
+     file there (the image's `/app` and the repository are never modified);
+   - runs `php -l` on it: a syntax error makes the mutant **invalid**, not
+     killed;
+   - recreates `accounting` from the template (`DROP DATABASE ... WITH (FORCE)`
+     and `CREATE DATABASE ... TEMPLATE`): `index.php` connects to the fixed
+     name `accounting`, so the name is reused rather than varied;
+   - for HTTP tests, starts a fresh `php -S 127.0.0.1:<port>` on the copy with
+     the application service's settings (`output_buffering=4096` and the
+     diagnostics recorder as `auto_prepend_file`, checked against
+     `compose.test.yaml` by the self-tests) and a fresh diagnostics directory;
+   - runs the target's test commands from the copy in order, stopping at the
+     first failure. The second, `output_buffering=0` server that
+     `tests/http-login.php` starts therefore also serves the mutant;
+   - classifies the result, stops the server, and deletes the copy.
+
+Every command runs in its own process group with `setsid`; on timeout (or when
+a command exits and leaves children behind) the whole group is killed, so a
+hung mutant cannot leave a server holding a port for the next one.
+
+Outcomes:
+
+| Status | Meaning |
+|---|---|
+| `killed` | a test command exited nonzero. The HTTP suites fail on any PHP diagnostic outside `tests/known-diagnostics.php`, so a mutant that only raises a new diagnostic is killed too. |
+| `timeout` | the test commands exceeded the target's per-mutant `timeout`; counted as detected. |
+| `survived` | every test command passed. Fails the run. |
+| `equivalent` | survived, and the mutation is listed as an accepted equivalent for this PHP version. |
+| `stale-equivalent` | listed as equivalent, but killed or timed out. Fails the run, so the list stays accurate. |
+| `invalid` | `php -l` failed on the mutant. Fails the run (fix the definition). |
+
+### Target format
+
+A target is a PHP file in `targets/` that returns an array:
+
+```php
+return array(
+    'description' => 'index.php login() and logout branch',
+    'file' => 'index.php',                    // default for every mutation
+    'region' => array('start' => '...', 'end' => '...'),   // optional default
+    'tests' => array(                         // run in order, stop at first failure
+        array('type' => 'http', 'script' => 'tests/http-login.php'),
+        array('type' => 'phpunit', 'filter' => 'testRights2orgasql'),  // 'file' defaults to tests/unit/FunctionsTest.php
+    ),
+    'timeout' => 60,                          // seconds per mutant, all commands together (default 120)
+    'mutations' => array(
+        array(
+            'id' => 'login-target-ignored',   // letters, digits, '-', '_'; unique
+            'region' => array('start' => 'function login($user, $pass)', 'end' => 'require("constants.php");'),
+            'search' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'replace' => 'header("Location: index.php");',
+            'rationale' => 'A login with a target returns to that page.',
+            // Optional, only after review:
+            // 'equivalent' => array('reason' => '...', 'php' => array('5.6')),
+        ),
+    ),
+);
+```
+
+Pick the HTTP suites that reach the code: `tests/http-smoke.php`,
+`tests/http-login.php`, `tests/write-workflows.php`, or any other script that
+uses `tests/http-test-helpers.php`. Selecting only the relevant scripts keeps a
+target fast; a mutant takes about one to three seconds with one suite.
+
+Matching rules, enforced for every mutation before anything runs:
+
+- `search` must occur **exactly once** in the file, or inside `region` when
+  one is given. Zero or several matches are an error: add surrounding context
+  or a region instead of relying on the first match.
+- Region `start` and `end` markers must each occur exactly once in the file,
+  `end` after `start`. The mutation must lie between them. A target-level
+  region applies to mutations of the target-level `file` only.
+- Equivalent spellings (for example `array()` and `[]`) are tolerated only when
+  listed: `search` may be a list, and exactly one listed spelling may match.
+  `replace` is then a string, or a list with one replacement per spelling.
+- Write strings with `"\n"`. In CRLF files (most application files) they match
+  CRLF line endings, and the mutant keeps CRLF, so only the mutated bytes
+  differ. Files with mixed line endings are rejected.
+- `replace` must keep the number of lines. Shifted lines would move
+  diagnostics that `tests/known-diagnostics.php` lists by `file:line`, and the
+  mutant would be "killed" by the baseline check rather than by the tests.
+  Remove a statement by replacing it with `true;` or an empty line.
+- `equivalent` needs a `reason` and is optionally limited to PHP minor
+  versions. Only list a mutant after confirming that no test could distinguish
+  it; a survivor that a test should catch is a missing test.
+
+The self-tests also load every committed target and apply all of its
+mutations to the current sources, so an application change that breaks a
+definition fails there first.
+
+### Runner tests
+
+`lib.php` holds target validation, mutation application, exact-match
+enforcement, outcome classification, the summaries, and the process runner;
+`runner.php` is the orchestration (copies, database, servers). The PHPUnit
+tests in `tests/` run on PHPUnit 5.7 (PHP 5.6) and 9.6 (PHP 7.4-8.5):
+
+```sh
+sh tests/mutation/run.sh 7.4 --self-test
+```
+
+On PHP 7.4 they also report line and branch coverage of `lib.php` and fail on
+anything uncovered: all executable lines and branches are covered. `runner.php` itself is exercised end
+to end by the target runs below, not by unit tests.
 
 ### Results
 
-| Test set | Rights cases | Killed | Survived | Invalid syntax |
-|---|---:|---:|---:|---:|
-| Original PHP 7.4 tests | 4 | 13 | 17 | 0 |
-| Expanded PHP 7.4 tests | 24 | 30 | 0 | 0 |
-| Candidate initialization fix on PHP 8.5, without warning suppression | 24 | 30 | 0 | 0 |
-| Applied initialization fix on PHP 7.4, without warning suppression | 24 | 31 | 0 | 0 |
-| Applied initialization fix on PHP 8.5, without warning suppression | 24 | 31 | 0 | 0 |
+#### `rights2orgasql` (PHPUnit, `functions.php`)
 
-The original cases missed privilege substrings, mixed privilege tokens, a
-newly granted root exemption, single IDs, empty rights, numeric prefixes and
-suffixes, negative/decimal IDs, zero IDs, and mixed valid/invalid tokens. The
-expanded data provider kills the same previously surviving mutants.
+Ported from the former hand-picked runner `rights2orgasql.php` with the same
+31 mutations. Two search strings needed extra context because they occurred
+twice in the function (the old runner silently mutated the first occurrence),
+and removing the initialization now leaves an empty line instead of deleting
+it; the mutants are otherwise identical.
 
-The array initialization fix is now applied, and the rights assertions no longer
-use `@`. All 24 cases pass without warning suppression on PHP 7.4 and PHP 8.5.
-The runner now also mutates away the initialization: both runtimes kill that
-regression, along with the original 30 mutations. The earlier candidate result
-was measured in a disposable copy before the production fix was applied.
+| Lane | Killed | Equivalent | Survived | Invalid | Seconds per mutant |
+|---|---:|---:|---:|---:|---:|
+| PHP 5.6.40 | 30 | 1 | 0 | 0 | 0.5-2.7 |
+| PHP 7.4.33 | 31 | 0 | 0 | 0 | 0.5-1.0 |
+| PHP 8.0.30 | 31 | 0 | 0 | 0 | 0.3-0.6 |
+| PHP 8.5.12 | 31 | 0 | 0 | 0 | 0.2-0.3 |
 
-PHP 5.6 (checked 2026-10-23): the runner does not start there unchanged. It
-uses the `redirect` descriptor of `proc_open()` (PHP 7.4+), PHPUnit 9's
-`--do-not-cache-result` option, and the PHPUnit 9 bootstrap
-(`FunctionsTestCase` with `: void`). It also passes `--no-configuration`, so
-the `error_reporting` setting in `phpunit.xml` does not reach it. In a
-disposable copy with a shell redirect, without that option, and with
-`tests/php56/bootstrap.php`, PHPUnit 5.7.27 on PHP 5.6.40 killed 30 of 31:
-`array-initialization-removed` survived, because PHP 5.6's built-in default
-`error_reporting` (no `php.ini`) hides the `Undefined variable: rights2`
-notice. With `php -d error_reporting=-1` for each PHPUnit process as well, all
-31 were killed (13 of the 24 cases fail on that notice). Making the runner
-itself PHP 5.6-compatible and passing `-d error_reporting=-1` is a follow-up.
+On PHP 5.6 `array-initialization-removed` is an accepted equivalent: `count()`
+of the undefined variable returns 0 with only an `E_NOTICE`, hidden by the
+default `error_reporting`, so the function still returns `" AND false "`. PHP
+7.2+ adds a warning that the tests catch. The runner calls PHPUnit with
+`--no-configuration`, so the `error_reporting=-1` setting of
+`tests/php56/phpunit.xml` does not apply to its runs.
 
-### Run
+The former `rights2orgasql.php` runner did not start on PHP 5.6 (it used the
+`redirect` descriptor of `proc_open()`, PHPUnit 9's `--do-not-cache-result`,
+and the PHPUnit 9 bootstrap). In a manually adapted copy, PHPUnit 5.7.27 on
+PHP 5.6.40 killed 30 of 31, with the same survivor; with
+`php -d error_reporting=-1` all 31 were killed (13 of the 24 cases fail on the
+notice). The new runner starts on PHP 5.6 unchanged and reports 30 killed and
+1 accepted equivalent.
 
-Build the existing PHP 7.4 image and verify the full baseline first:
+Earlier history: the original four rights cases killed 13 of the first 30
+mutants; the expanded 24 cases kill all 30, and the initialization-removal
+mutant was added with the initialization fix.
 
-```sh
-sh tests/run.sh 7.4
-```
+#### `login-logout` (HTTP, `index.php`)
 
-Then run the targeted mutations without database or network access:
+`login()` (lines 13-37) and the logout branch (lines 286-291), tested with
+`tests/http-login.php` only.
 
-```sh
-repo_dir=$(pwd -P)
-mkdir -p /tmp/pgacc-rights-mutations
-docker run --rm --network none --read-only --tmpfs /tmp \
-  --env XDEBUG_MODE=off \
-  --volume "$repo_dir:/workspace:ro" \
-  --volume /tmp/pgacc-rights-mutations:/results \
-  pgacc-test-application \
-  php /workspace/tests/mutation/rights2orgasql.php \
-    /workspace /results /app/vendor/bin/phpunit
-```
+| Mutant | Line | PHP 5.6 | PHP 7.4 | Killed by |
+|---|---:|---|---|---|
+| `login-password-check-inverted` | 22 | killed | killed | valid login not 302; wrong password accepted |
+| `login-password-check-removed` | 22 | killed | killed | wrong password accepted |
+| `login-session-not-stored` | 26 | killed | killed | cookies do not authenticate |
+| `login-cookie-renamed` | 27 | killed | killed | missing `pp_pgacc_login` |
+| `login-id-cookie-removed` | 28 | killed | killed | missing `pp_pgacc_id` |
+| `login-cookie-expires-immediately` | 27 | **survived** | **survived** | - |
+| `login-target-ignored` | 31 | killed | killed | wrong `Location` for target |
+| `login-default-redirect-removed` | 32 | killed | killed | 200 instead of 302 |
+| `login-username-not-escaped` | 15 | **survived** | **survived** | - |
+| `login-raises-hidden-notice` | 25 | killed | killed | new hidden `E_NOTICE` (diagnostics check) |
+| `logout-login-cookie-kept` | 288 | killed | killed | `pp_pgacc_login` not cleared |
+| `logout-id-cookie-kept` | 289 | killed | killed | `pp_pgacc_id` not cleared |
+| `logout-redirect-removed` | 290 | killed | killed | 200 instead of 302 |
+| `logout-redirect-target-changed` | 290 | killed | killed | wrong `Location` |
+| `logout-cookie-expiry-in-future` | 288 | equivalent | equivalent | `setcookie()` ignores the expiry for an empty value |
 
-`results.json` records the source SHA-256, runtime, exact mutations, and outcome.
-Each mutation has a PHPUnit log. The runner exits nonzero if the baseline fails,
-any mutant has invalid syntax, or any valid mutant survives.
+Both lanes: 12 killed, 2 survived, 1 accepted equivalent; the run exits 1.
+The two survivors are real gaps in `tests/http-login.php`, not equivalents:
 
-To run the same mutations under PHP 8.5, use the already-built
-`pgacc-test-application-php85` image and a different output directory. The
-mutation runner always changes only its copies, never the repository.
+- `login-cookie-expires-immediately`: the tests read cookie values but never
+  their expiry, so a login cookie that browsers would discard immediately
+  passes. Assert that both login cookies expire in the future (about 24 hours).
+- `login-username-not-escaped`: no test uses a user name that needs escaping.
+  A rejected login for a name such as `synthetic'admin` would fail with an SQL
+  error (and a new diagnostic) without the escaping.
+
+On PHP 8.0 and 8.5 the runner refuses the target, as intended: the baseline
+fails because login and logout return 200 instead of 302 and raise unlisted
+diagnostics (see `tests/COMPATIBILITY_PLAN.md`), so no mutant is run (exit 2).
+
+A mutant takes 0.6-0.8 s on PHP 5.6 and 0.4-1.0 s on PHP 7.4 with
+`tests/http-login.php`, including copy, lint, database reset, and server
+start (up to 3 s on a busy host). A surviving mutant that runs all four suites
+(smoke, login, write workflows, and a PHPUnit filter) takes about 1.5 s on PHP
+7.4. A whole run, including the image build check and database start, takes
+about 20-50 s for these targets.
+
+### Required step for fixes
+
+Fix pull requests that change code reached by a target must run that target on
+PHP 7.4 and 5.6 before and after the change and report both results. A new
+behavior needs a mutation in the relevant target (or a new target), and the
+change must not introduce survivors. CI runs the self-tests and the
+`rights2orgasql` target on every lane; `login-logout` is not in CI while it
+has the two survivors above.
