@@ -121,8 +121,11 @@ on the normal and on a second `output_buffering=0` server: every protected page
 with exactly a 302 to `index.php?action=login&target=<hex of the request URI>`
 and an empty body, and the member search answers with a 302 to the filtered
 ledger, logged in, as CSV, and not logged in. The import page is requested only
-after every other protected page has passed, so a missing login check never
-makes the test reach its call to the external membership system.
+after every other protected page has passed. Its call to the membership system
+(`getusers()`) never leaves the test network: `compose.test.yaml` runs the
+reference stub (`tests/reference/membership/router.php`) under the alias
+`mitglieder.piratenpartei.at`, and `tests/runtime/test-constants.php` sets the
+synthetic `$datakey` of its member list.
 
 `http-donations.php` covers the public donation list (`?action=donations`,
 `donations.php`). It reads the captcha operands and the hidden value from the
