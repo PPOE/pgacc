@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Pull test images
-        run: docker compose -f compose.test.yaml pull
+        run: docker compose -f compose.test.yaml pull database php-lint database-test
 
       - name: Run baseline checks
         run: sh tests/run.sh
