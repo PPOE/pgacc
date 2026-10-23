@@ -3,11 +3,11 @@ services:
     image: php:8.0-cli@sha256:0569e384b9064c04dec55dc6e41be41b494a878dfbb6577a7d76bd50cfd5bc00
 
   application:
-    image: pgacc-test-application-php80
+    image: pgacc-test-application-php80${PGACC_TEST_SUFFIX:-}
     build:
       args:
         PHP_IMAGE: php:8.0-cli@sha256:0569e384b9064c04dec55dc6e41be41b494a878dfbb6577a7d76bd50cfd5bc00
 
   application-test:
-    image: pgacc-test-application-php80
+    image: pgacc-test-application-php80${PGACC_TEST_SUFFIX:-}
     command: ["sh", "tests/php8/application-tests.sh"]

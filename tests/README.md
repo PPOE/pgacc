@@ -22,6 +22,21 @@ sh tests/run.sh 8.0
 sh tests/run.sh 8.5
 ```
 
+To run several harnesses at the same time on one Docker host, for example from
+separate Git worktrees, give each run its own ID:
+
+```bash
+PGACC_TEST_ID=worktree-a sh tests/run.sh 7.4
+PGACC_TEST_ID=worktree-b sh tests/run.sh 7.4
+```
+
+The ID (lowercase letters, digits, `_` and `-`) is appended to the Compose
+project names and the locally built application image tags, so concurrent runs
+do not share containers, networks, databases, or images. Without an ID the
+names are unchanged (`pgacc-test-php74`, `pgacc-test-application`, ...). Runs
+with an ID leave their tagged images behind; remove them with `docker rmi` when
+no longer needed.
+
 GitHub Actions runs the four application lanes as parallel matrix jobs,
 alongside a separate syntax compatibility job. A failure in any application
 lane fails CI; it does not cancel the other lanes.
