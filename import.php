@@ -303,6 +303,17 @@ function page_import()
           }
           if ($voucher['amount'] < 0) { $voucher['type'] = 28; }
           
+          if (preg_match('/[A-Z]{2}\/\d{9}/g', $voucher['comment'], $matches) == 1) {
+            $bawagVoucherId = $matches[0];
+            $query = "SELECT 1 FROM import WHERE date = '{$voucher['date']}' AND amount = {$voucher['amount']} AND contra_account = '{$voucher['gegenkonto']}' AND account = '{$voucher['konto']}' AND comment LIKE '%{$bawagVoucherId}%';";
+            $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+            if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
+              pg_free_result($result);
+              continue;
+            }
+            pg_free_result($result);
+          }
+
           echo "Buchung $voucher_number erstellt!<br />\n";
           //print_r($voucher);
           

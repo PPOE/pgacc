@@ -140,6 +140,7 @@ echo "<a href=\"index.php?year=$i\">$i</a> ";
 }
 echo'</div>';
 echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs '.$year.$months.'</h1><br>';
+echo '<h2>F&uuml;r Piraten Steiermark & Graz <a href="https://transparenz.piraten-graz.at/">hier entlang</a>.</h2><br/>';
 echo '
 <h2>Finanzübersicht (ohne Sachspenden, ohne interne Umbuchungen)</h2>
 <table id="financeOverview"><th><td width="150px">Einnahmen</td><td width="150px">Ausgaben</td></th>
