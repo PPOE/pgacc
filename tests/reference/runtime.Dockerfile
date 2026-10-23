@@ -6,10 +6,12 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 ARG PGACC_REFERENCE_MCRYPT=0
+# Pinned per lane distribution by tests/reference/run.sh.
+ARG PGACC_REFERENCE_FAKETIME
 RUN apt-get -o Acquire::Retries=3 update \
-    && apt-get -o Acquire::Retries=3 install --yes --no-install-recommends libfaketime \
+    && apt-get -o Acquire::Retries=3 install --yes --no-install-recommends "libfaketime=$PGACC_REFERENCE_FAKETIME" \
     && if [ "$PGACC_REFERENCE_MCRYPT" = 1 ]; then \
-         apt-get -o Acquire::Retries=3 install --yes --no-install-recommends libmcrypt-dev \
+         apt-get -o Acquire::Retries=3 install --yes --no-install-recommends libmcrypt-dev=2.5.8-3.3 \
          && docker-php-ext-install mcrypt; \
        fi \
     && ln -s "$(dpkg -L libfaketime | grep '/libfaketime\.so\.1$')" /usr/local/lib/pgacc-libfaketime.so.1 \

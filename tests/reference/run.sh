@@ -46,11 +46,16 @@ PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
 export PGACC_TEST_SUFFIX
 
 lane_tag=php$(echo "$lane" | tr -d .)
+# libfaketime of the lane image's Debian release (stretch, bullseye, trixie).
 case "$lane" in
-  5.6) lane_files="-f compose.test.yaml -f compose.php56.yaml"; base_image=pgacc-test-application-php56 ;;
-  7.4) lane_files="-f compose.test.yaml"; base_image=pgacc-test-application ;;
-  8.0) lane_files="-f compose.test.yaml -f compose.php80.yaml"; base_image=pgacc-test-application-php80 ;;
-  8.5) lane_files="-f compose.test.yaml -f compose.php85.yaml"; base_image=pgacc-test-application-php85 ;;
+  5.6) lane_files="-f compose.test.yaml -f compose.php56.yaml"; base_image=pgacc-test-application-php56
+    PGACC_REFERENCE_FAKETIME=0.9.6-7+b1 ;;
+  7.4) lane_files="-f compose.test.yaml"; base_image=pgacc-test-application
+    PGACC_REFERENCE_FAKETIME=0.9.8-9 ;;
+  8.0) lane_files="-f compose.test.yaml -f compose.php80.yaml"; base_image=pgacc-test-application-php80
+    PGACC_REFERENCE_FAKETIME=0.9.8-9 ;;
+  8.5) lane_files="-f compose.test.yaml -f compose.php85.yaml"; base_image=pgacc-test-application-php85
+    PGACC_REFERENCE_FAKETIME=0.9.10+2024-06-05+gba9ed5b2-0.6 ;;
 esac
 project="pgacc-reference${PGACC_TEST_SUFFIX}-$lane_tag"
 
@@ -69,7 +74,7 @@ if [ "$mode" = record ]; then
 else
   PGACC_REFERENCE_OUT=$repo_root/build/reference/$lane_tag
 fi
-export PGACC_REFERENCE_BASE_IMAGE PGACC_REFERENCE_IMAGE PGACC_REFERENCE_MCRYPT \
+export PGACC_REFERENCE_BASE_IMAGE PGACC_REFERENCE_IMAGE PGACC_REFERENCE_MCRYPT PGACC_REFERENCE_FAKETIME \
   PGACC_REFERENCE_MODE PGACC_REFERENCE_LANE PGACC_REFERENCE_OWNER PGACC_REFERENCE_OUT
 
 # The recording is replaced as a whole, so removed steps do not linger.

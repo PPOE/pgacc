@@ -15,6 +15,7 @@ services:
       args:
         BASE_IMAGE: ${PGACC_REFERENCE_BASE_IMAGE:?}
         PGACC_REFERENCE_MCRYPT: ${PGACC_REFERENCE_MCRYPT:-0}
+        PGACC_REFERENCE_FAKETIME: ${PGACC_REFERENCE_FAKETIME:?}
     environment:
       # A fixed, ticking "now" for the application process only (date(),
       # time(), cookie expiry). PostgreSQL keeps the real clock; columns it
