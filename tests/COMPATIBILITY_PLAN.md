@@ -587,6 +587,11 @@ differences above are only visible for out-of-range input.
     downloads, the error cases, merges, the script over HTTP; it shares the
     server's `files/` through a Compose volume). Mutation target
     `receipt-crypto`; Infection also runs `ReceiptStorageTest`.
+  - [ ] `KD-PHPSECLIB-OPENSSL-53` (PHP 5.3 only, hidden): phpseclib's AES-CBC
+    decryption on PHP 5.3 (no `OPENSSL_RAW_DATA`) encrypts one ECB block
+    under `@` (`Crypt/Base.php:1159`), which warns about the empty IV that
+    ECB never uses. Harmless; `ReceiptStorageTest` checks the v2 vectors on
+    the 32-bit PHP 5.3 image. Gone with PHP 5.4+ (`php5-last`).
   - [ ] Known bug `KB-RECEIPT-LEGACY-MERGE`, not changed: a legacy `<n>.aes`
     is keyed on the voucher ID, so after a merge (which changes the merged
     rows' voucher ID) its download sends unreadable bytes as `image/jpeg`,
