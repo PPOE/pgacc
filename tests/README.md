@@ -51,8 +51,10 @@ The runner currently performs four checks:
 3. It installs a data-free copy of the pgacc schema and synthetic fixtures in
    PostgreSQL, then runs database characterization assertions with `psql`.
 4. Each lane starts the application with the PostgreSQL extension,
-   exercises real HTTP routes, runs the shared PHPUnit helper tests, and
-   exercises voucher write workflows. The PHP 7.4 lane additionally collects
+   exercises real HTTP routes and login/logout responses, runs the shared
+   PHPUnit helper tests, and exercises voucher write workflows. The HTTP checks
+   fail on any PHP diagnostic the application raises that is not in the
+   reviewed `tests/known-diagnostics.php` baseline. The PHP 7.4 lane additionally collects
    and checks `functions.php` line coverage.
 
 PHP 5.6, 7.4, and 8.0 are historical characterization runtimes, not supported
@@ -77,6 +79,54 @@ test-only constants and the locked Composer dependencies. It has no published
 host port, cannot reach external networks, and receives only synthetic data.
 The test server enables `output_buffering=4096` because the current login flow
 sends redirect and cookie headers after page rendering has started.
+
+`http-login.php` checks login and logout responses directly: a valid login
+returns 302 with `Location: index.php` (or the hex-decoded `target`), numeric
+`pp_pgacc_login` and `pp_pgacc_id` cookies for the right user, and cookies that
+authenticate a follow-up request; rejected logins (wrong password, unknown
+user) return 200 with the form, no `Location`, and no cookies; logout returns
+302 to `index.php` and clears both cookies. It then starts a second built-in
+server inside the test container with `output_buffering=0` and repeats the
+valid login and logout there. Those two checks are **known failures**
+(`KF-LOGIN-UNBUFFERED`, `KF-LOGOUT-UNBUFFERED`): they document that the current
+redirects only work because of the 4,096-byte buffer. The script fails if a
+known failure starts passing, so the fix that moves header-setting actions
+before rendering must also move these checks to the regular assertions.
+
+### PHP diagnostics are failures
+
+Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
+`auto_prepend_file`. It installs an error handler for all diagnostic types and
+a shutdown check for fatal errors, writes each one to a per-request JSON-lines
+file on a tmpfs volume shared with the test container
+(`PGACC_TEST_DIAGNOSTICS_DIR`), and then returns `false`, so PHP's own handling
+continues unchanged. The runtime's `error_reporting`, `display_errors`, and
+output buffering are not modified: response bodies and header timing are the
+same as without the recorder. Diagnostics that PHP 5.6/7.4 hide by default
+(notices, deprecations) or that `@` silences are still recorded and marked
+"hidden". Each request carries an `X-Pgacc-Test-Request` ID; the client fails if
+the recorder did not reach its completion marker for that request, and also
+cross-checks the body for displayed diagnostics missing from the log.
+
+`http-smoke.php`, `http-login.php`, and `write-workflows.php` print every
+diagnostic they saw (type, file:line, message, requests) and fail on any that is
+not listed in `tests/known-diagnostics.php`. That list is a reviewed baseline:
+each entry matches an exact PHP minor version, type, file, line set, message
+pattern, and whether it was reported or hidden, with an ID and reason. It
+currently contains only issues observed on PHP 5.6 and 7.4, the lanes that
+passed before diagnostics were checked, so those lanes keep passing while the
+issues stay visible. PHP 8.0 and 8.5 have no entries, so every diagnostic there
+fails the lane. Requests made inside a known-failure check (the unbuffered
+server) are attributed to that known failure instead. Remove entries when the
+application is fixed; do not add entries to make a lane green without review.
+On PHP 8.5, OPcache is active in the built-in server, so compile-time
+deprecations appear only on the first request that compiles a file.
+
+The test client itself also fails on its own unsilenced diagnostics. It reads
+response headers with `http_get_last_response_headers()` when available (PHP
+8.4+) and otherwise falls back to `$http_response_header` in
+`tests/http-legacy-headers.php`, which is only included on older runtimes
+because PHP 8.5 deprecates that variable at compile time.
 
 `write-workflows.php` exercises real HTTP mutations and verifies their database
 effects: voucher creation, organization-scoped approval, distinct first and
@@ -125,10 +175,15 @@ on PHP 7.4.
 
 All four runtimes pass the 115 PHPUnit tests and 138 assertions after explicitly
 initializing the rights helper's organization array. The rights assertions no
-longer suppress warnings. On both PHP 8 runtimes, HTTP/write tests still stop
-when login returns 200 instead of the expected 302. PHP 8.5 also reports deprecations for implicit
-PostgreSQL connections and the HTTP test helper's `$http_response_header` use.
-These failures remain visible in CI; they are not allowed failures.
+longer suppress warnings. On both PHP 8 runtimes, the HTTP and write tests fail:
+login and logout return 200 instead of 302 (no `Location`, no cookies), and
+every request reports diagnostics that have no known-diagnostics entry — the
+`new.php:450` parameter-order deprecation, undefined `$prevcond`, the
+PostgreSQL 15+ report query error, and "headers already sent" warnings; PHP 8.5
+adds implicit PostgreSQL connection and `strlen(null)` deprecations. See
+`COMPATIBILITY_PLAN.md`. These failures remain visible in CI; they are not
+allowed failures. The test helper no longer uses `$http_response_header` on
+PHP 8.5.
 
 The rights helper has 24 authorization cases, strengthened using targeted
 mutations. The original four cases killed 13 mutants; the expanded cases kill
@@ -183,6 +238,20 @@ same reason, with a separate runner configuration. The initial suite covers
   `functions.php` report in CI. The existing HTTP checks run in a separate
   server process and are not included in this report. Add remote-process
   coverage and a CI artifact when coverage is extended to those checks.
+- [x] Record every PHP diagnostic raised while serving HTTP test requests
+  (including ones hidden by the PHP 5.6/7.4 default `error_reporting` or `@`)
+  without changing runtime error settings, and fail on any diagnostic outside
+  the reviewed `tests/known-diagnostics.php` baseline.
+- [x] Add login/logout response regressions (302, `Location`, both cookies,
+  rejected logins without cookies) and `output_buffering=0` known failures
+  that the header-ordering fix must flip.
+- [x] Read HTTP response headers with `http_get_last_response_headers()` when
+  available, falling back to `$http_response_header` on PHP 5.6-8.3.
+- [ ] Apply the same strictness to the PHPUnit process: PHP 8.5 currently
+  prints implicit-connection deprecations from `functions.php:434` and `:494`
+  during the PHPUnit run without failing it.
+- [ ] Shrink `tests/known-diagnostics.php` to empty as the application issues
+  are fixed, and then report unused entries as failures.
 - [x] Replace the removed curly-brace string-offset syntax with square brackets.
   All 29 top-level application PHP files now pass syntax checks on PHP 5.5,
   5.6, 7.4, 8.0, and 8.5. The fix preserves compatibility with the older runtimes.

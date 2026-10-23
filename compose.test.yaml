@@ -66,11 +66,14 @@ services:
       PGDATABASE: accounting
       PGUSER: pgacc_test
       PGPASSWORD: pgacc_test
+      PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       TZ: UTC
     command:
       - php
       - -d
       - output_buffering=4096
+      - -d
+      - auto_prepend_file=/app/tests/runtime/diagnostics-prepend.php
       - -S
       - 0.0.0.0:8080
       - -t
@@ -91,6 +94,8 @@ services:
     tmpfs:
       - /tmp
       - /app/files
+    volumes:
+      - diagnostics:/diagnostics
 
   application-test:
     image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
@@ -104,6 +109,7 @@ services:
       PGDATABASE: accounting
       PGUSER: pgacc_test
       PGPASSWORD: pgacc_test
+      PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       TZ: UTC
     command: ["sh", "tests/application-tests.sh"]
     init: true
@@ -112,7 +118,17 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - diagnostics:/diagnostics
 
 networks:
   test:
     internal: true
+
+volumes:
+  # Per-request PHP diagnostics written by tests/runtime/diagnostics-prepend.php
+  # on the test servers and read by the HTTP tests. Removed with the project.
+  diagnostics:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
