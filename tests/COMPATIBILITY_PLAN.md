@@ -341,6 +341,21 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
   before modernizing the `mcrypt` dependency. Do not change ciphertext formats
   without checking consumers.
 
+## Planned security follow-ups
+
+- [ ] CSRF protection, before the `php5-last` tag. A stateless token per login:
+  `hash_hmac('sha256', <login cookie value>, $csrf_secret)` with an optional new
+  `$csrf_secret` in `constants.php`; when it is not set, fall back to a token
+  derived from the login cookie alone, so deploys without the new value keep
+  working. Add the token to every form and every link that changes data, and
+  verify it centrally in `index.php` before any state-changing action runs.
+  Test both modes, plus missing, wrong and other-user tokens with no database
+  change. A separate, droppable commit adds `SameSite=Lax` to the login cookies.
+- [ ] Later (behavior change, after the CSRF token): perform state-changing
+  actions only on POST. Several actions are currently triggered by GET links
+  (for example merge); convert those links to small forms and refuse GET for
+  them. Until then, those links carry the CSRF token in the query string.
+
 ## Dependencies
 
 Audited on 2026-10-23 against `composer.lock` (report only; nothing was
