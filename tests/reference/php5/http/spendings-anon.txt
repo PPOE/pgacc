@@ -1,0 +1,118 @@
+# step: spendings-anon
+# request: GET /index.php?action=spendings as anon
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (4251 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Ausgaben - Piratenpartei Österreichs</title>
+  <meta name="description" content="Liste aller Ausgaben welche die Piratenpartei Österreichs getätigt hat" />
+  <meta name="keywords" content="ausgaben, ausgabenliste" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page spendings">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings" class="selected">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+</div><br />
+<h1>Ausgabenliste der Piratenpartei Österreichs</h1>
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<table><tr><td><b><a href="index.php?action=spendings&sort=idd">Buchung</a></b>
+</td>
+<td><b><a href="index.php?action=spendings&sort=datea">Datum</a></b>
+</td>
+<td><b><a href="index.php?action=spendings&sort=typea">Art</a></b>
+</td>
+<td><b><a href="index.php?action=spendings&sort=loa">LO</a></b>
+</td>
+<td><b><a href="index.php?action=spendings&sort=ama">Betrag</a></b>
+</td>
+<td><b><a href="index.php?action=spendings&sort=ama">Name</a></b>
+</td>
+</tr>
+<tr><td>2008</td>
+<td>2012-10-15</td>
+<td>Synthetic expense</td>
+<td>Synthetic Piratenpartei Six</td>
+<td>-1234.56€</td>
+<td>Synthetic Campaign Printer</td>
+</tr><tr><td>2007</td>
+<td>2012-12-31</td>
+<td>Synthetic expense</td>
+<td>Synthetic National Unit</td>
+<td>-0.01€</td>
+<td>Synthetic Supplier 2012</td>
+</tr><tr><td>2010</td>
+<td>2013-07-01</td>
+<td>Synthetic legacy expense</td>
+<td>Synthetic Federal Unit</td>
+<td>-21474836.47€</td>
+<td>Synthetic Agency</td>
+</tr><tr><td>2014</td>
+<td>2024-03-31</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>-7.50€</td>
+<td>Bank</td>
+</tr><tr><td>1003</td>
+<td>2024-04-01</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>-50.00€</td>
+<td>Synthetic Supplier</td>
+</tr><tr><td>1003</td>
+<td>2024-04-01</td>
+<td>Synthetic legacy expense</td>
+<td>Synthetic Regional Unit</td>
+<td>-15.00€</td>
+<td>Synthetic Supplier</td>
+</tr><tr><td>2015</td>
+<td>2024-11-11</td>
+<td>Synthetic private refund</td>
+<td>Synthetic Regional Unit</td>
+<td>-42.00€</td>
+<td><i>Privatperson</i></td>
+</tr><tr><td>2016</td>
+<td>2024-12-01</td>
+<td>Synthetic internal transfer out</td>
+<td>Synthetic Regional Unit</td>
+<td>-1000.00€</td>
+<td>Intern</td>
+</tr><tr><td>2019</td>
+<td>2026-05-31</td>
+<td>Synthetic expense</td>
+<td>Synthetic Ünit Vier</td>
+<td>-0.99€</td>
+<td>Synthetic Supplier</td>
+</tr></table>
+</div>
+<br style="clear: both;" /><center><a href="/index.php?action=spendings&format=csv">Als CSV Datei herunterladen</a></center>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=login">Login</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

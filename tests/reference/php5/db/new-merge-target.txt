@@ -1,0 +1,7 @@
+## (sequences)
+- voucher_number	5006	t
++ voucher_number	5007	t
+- vouchers_id_seq	1006	t
++ vouchers_id_seq	1009	t
+## vouchers
++ 1009	5007	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-100	TESTACCOUNT2	Reference merge target	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N

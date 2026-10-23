@@ -1,0 +1,9 @@
+# step: receipt-download-missing-file
+# request: GET /index.php?action=file&id=103 as admin
+status: 200
+header: Content-Type: image/jpeg
+header: Content-Transfer-Encoding: binary
+header: Content-Length: 
+header: Accept-Ranges: bytes
+--- body (binary, 32 bytes, sha256 6bbf77a287c0ef716d8e9c8935379788d2a874ce21d5bcb9af78794a8117eb3a) ---
+YN471EobFIsLIUPmon0ygTa73KQkepXUEoJS04+KHRk=

@@ -1,0 +1,55 @@
+# step: accounts-norights
+# request: GET /index.php?action=accounts as norights
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (2689 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page accounts">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+</div><br />
+<h1>Benutzerverwaltung:</h1><br>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<form action="index.php?action=accounts" method="POST"><table>
+<tr><td><b>Name</b></td><td><b>Passwort</b></td></tr>
+<tr><td>synthetic-norights</td><td><input type="password" name="password8" value="******"></td><td><input type="submit" name="submit" value="Benutzer 8 aktualisieren" /></td></tr>
+
+</table></form>
+
+</div>
+
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=login">Login</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

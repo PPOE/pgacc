@@ -1,0 +1,7 @@
+## (sequences)
+- voucher_number	5005	t
++ voucher_number	5006	t
+- vouchers_id_seq	1005	t
++ vouchers_id_seq	1006	t
+## vouchers
++ 1006	5006	20	2	f	0	SYNTHETICREF	Jörg Ä. Österreicher	Test Street 1	0000	Test City	0	TESTACCOUNT2	Reference Ümlaut "Zitat" O'Brien\nZeile 2	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N

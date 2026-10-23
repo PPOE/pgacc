@@ -1,0 +1,4 @@
+E_NOTICE edit.php:254 (hidden): Undefined offset: 1
+E_WARNING edit.php:255: pg_query(): Query failed: ERROR:  syntax error at end of input
+LINE 1: SELECT income FROM type WHERE id = 
+                                           ^

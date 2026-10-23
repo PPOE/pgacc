@@ -1,0 +1,6 @@
+# step: new-anon
+# request: GET /index.php?action=new as anon
+status: 302
+header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D6E6577
+header: Content-type: text/html; charset=UTF-8
+--- body (0 bytes) ---

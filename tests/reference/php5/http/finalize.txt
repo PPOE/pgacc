@@ -1,0 +1,7 @@
+# step: finalize
+# request: POST /index.php?action=edit&id=5000 as admin
+# form: id=5000&parts=1&beleg=Beleg+erhalten
+status: 302
+header: Location: index.php?action=edit&id=5000&hint=2
+header: Content-type: text/html; charset=UTF-8
+--- body (0 bytes) ---

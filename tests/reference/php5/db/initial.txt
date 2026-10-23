@@ -1,0 +1,105 @@
+## balance (3 rows)
+id	value	orga	date
+1	100000	1	2023-12-31 00:00:00
+2	109500	1	2024-12-31 00:00:00
+3	-2147483648	2	2025-12-31 00:00:00
+## donation_type (1 rows)
+id	name
+1	Synthetic monetary donation
+## import (1 rows)
+line
+synthetic-import-line
+## lo (9 rows)
+id	name
+1	Synthetic National Unit
+10	Synthetic Federal Unit
+2	Synthetic Regional Unit
+3	Synthetic Unit Three
+4	Synthetic Ünit Vier
+5	Synthetic Unit Five
+6	Synthetic Piratenpartei Six
+8	Synthetic Unit Eight
+9	Synthetic Unit Nine
+## oo (2 rows)
+id	name	lo
+1	Synthetic Local Unit	2
+2	Synthetic Piratenpartei Local	6
+## person_type (5 rows)
+id	name	description	used	public
+1	Synthetic organization	Test-only legal entity	1	t
+2	Synthetic person	Test-only private person	2	f
+3	Synthetic association	Test-only association	3	t
+4	Synthetic company	Test-only company	4	t
+5	Synthetic public body	Test-only public body	5	t
+## type (14 rows)
+id	name	used	income	realtype
+1	Synthetic membership fee	20	1	1
+1029	Synthetic private refund	0	-1	20
+11	Synthetic in-kind donation	1	1	11
+12	Synthetic in-kind service	1	1	12
+13	Synthetic member credit	0	1	13
+14	Synthetic other income	3	1	14
+18	Synthetic legacy donation	5	1	8
+20	Synthetic expense	10	-1	20
+21	Synthetic legacy expense	5	-1	20
+23	Synthetic member credit offset	0	-1	23
+28	Synthetic bank charges	2	-1	28
+29	Synthetic internal transfer in	0	1	29
+30	Synthetic internal transfer out	0	-1	30
+8	Synthetic donation	10	1	8
+## users (8 rows)
+id	name	hash	login	cookie	rights	hide
+1	synthetic-admin	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	
+2	synthetic-reviewer	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	bgf	
+3	synthetic-unit-one	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	1	
+4	synthetic-hide-odd	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	1,3,5,7,9,11,13,15,17
+5	synthetic-hide-even	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	2,4,6,8,10,12,14,16,18
+6	synthetic-unit-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	2	
+7	synthetic-readonly	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
+8	synthetic-norights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		\N
+## vouchers (32 rows)
+id	voucher_id	type	orga	member	member_id	contra_account	name	street	plz	city	amount	account	comment	committed	receipt_received	deleted	date	ack1	ack2	person_type	file	save_date	save_user	commentgf	refund	vaccount	ack1_old	ack2_old	ack_rp1	ack_rp2	ack_rp1_old	ack_rp2_old
+101	1001	8	1	f	\N	SYNTHETIC-001	Synthetic Donor	\N	\N	\N	12000	TEST-ACCOUNT-1	Closed donation	t	t	f	2024-02-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+102	1002	18	1	f	\N	SYNTHETIC-002	Synthetic Donor	\N	\N	\N	3000	TEST-ACCOUNT-1	Partially reviewed legacy donation	t	t	f	2024-03-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+103	1003	20	2	f	\N	SYNTHETIC-003	Synthetic Supplier	\N	\N	\N	-5000	TEST-ACCOUNT-2	Closed expense with attachment	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	42	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+104	1003	21	2	f	\N	SYNTHETIC-004	Synthetic Supplier	\N	\N	\N	-1500	TEST-ACCOUNT-2	Second row of attached voucher	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+105	1004	20	2	f	\N	SYNTHETIC-005	Synthetic Draft	\N	\N	\N	-2500	TEST-ACCOUNT-2	Unreviewed expense	t	f	f	2024-05-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+106	1005	8	1	f	\N	SYNTHETIC-006	Synthetic Donor	\N	\N	\N	9000	TEST-ACCOUNT-1	Deleted donation	t	t	t	2024-06-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+107	1006	8	1	f	\N	SYNTHETIC-007	Synthetic Donor	\N	\N	\N	0	TEST-ACCOUNT-1	Zero-value closed voucher	t	t	f	2024-07-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+108	1007	8	1	f	\N	SYNTHETIC-008	Synthetic Donor	\N	\N	\N	5000	TEST-ACCOUNT-1	Voucher before public transaction cutoff	t	t	f	2011-12-31 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+109	1008	8	1	f	\N	SYNTHETIC-009	Synthetic Future Donor	\N	\N	\N	2500	TEST-ACCOUNT-1	Different reporting year	t	t	f	2025-01-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+110	1009	8	1	f	\N	SYNTHETIC-010	Synthetic Donor	\N	\N	\N	1000	TEST-ACCOUNT-1	Partially reviewed donation	t	t	f	2024-08-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+201	2001	1	2	t	9001	AT000000000000009001	Anna Synthetisch-Müller	Teststraße 1	1010	Wien	2400	TEST-ACCOUNT-1	MB 2026	t	t	f	2025-11-03 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+202	2002	1	2	t	9004		Dieter Synthetisch				1999	TEST-ACCOUNT-1	Mitgliedsbeitrag knapp	t	t	f	2026-01-15 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+203	2003	1	10	t	9031		Testa Mitglied				1	TEST-ACCOUNT-1	MB Teil 1	t	f	f	2026-02-01 00:00:00	\N	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+204	2003	1	10	t	9031		Testa Mitglied				1999	TEST-ACCOUNT-1	MB Teil 2	t	f	f	2026-02-01 00:00:00	\N	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+205	2005	8	1	f	\N	SYNTHETIC-205	Synthetic Donor 2012				333	TEST-ACCOUNT-1	Year 2012 a	t	t	f	2012-03-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+206	2006	8	1	f	\N	SYNTHETIC-206	Synthetic Donor 2012				667	TEST-ACCOUNT-1	Year 2012 b	t	t	f	2012-03-02 00:00:00	\N	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+207	2007	20	1	f	\N	SYNTHETIC-207	Synthetic Supplier 2012				-1	TEST-ACCOUNT-1	Year 2012 c	t	t	f	2012-12-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+208	2008	20	6	f	\N	SYNTHETIC-208	Synthetic Campaign Printer				-123456	TEST-ACCOUNT-6	Plakate Graz	t	t	f	2012-10-15 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+209	2009	8	6	f	\N	SYNTHETIC-209	Synthetic Campaign Donor				50005	TEST-ACCOUNT-6	Wahlkampfspende	t	t	f	2012-11-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+210	2010	21	10	f	\N	SYNTHETIC-210	Synthetic Agency				-2147483647	TEST-ACCOUNT-10	NRW 2013 int4 limit	t	t	f	2013-07-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-10	\N	\N	\N	\N	\N	\N
+211	2011	11	6	f	\N	SYNTHETIC-211	Synthetic In-Kind Donor				2147483647	TEST-ACCOUNT-6	NRW 2013 Sachspende	t	t	f	2013-08-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+212	2012	11	2	f	\N	BG/123456789 12	Jörg "Quote" O'Brien	Gasse 2	8010	Graz	9999	TEST-ACCOUNT-2	Sachspende Österreich\nzweite Zeile BG/123456789 12	t	t	f	2024-10-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1	Kommentar <b>GF</b>	f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+213	2013	12	1	f	\N	SYNTHETIC-213	Synthetic Service Donor				5	TEST-ACCOUNT-1	Dienstleistung	t	t	f	2024-10-02 00:00:00	reviewer-a	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+214	2014	28	2	f	\N		Bank				-750	TEST-ACCOUNT-2	Entgelt für Kontoführung	t	t	f	2024-03-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+215	2015	1029	2	f	\N	AT000000000000000215	Private Person				-4200	TEST-ACCOUNT-2	Rückerstattung	t	t	f	2024-11-11 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		t	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+216	2016	29	1	f	\N		Intern				100000	TEST-ACCOUNT-1	Umbuchung	t	t	f	2024-12-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+217	2016	30	2	f	\N		Intern				-100000	TEST-ACCOUNT-2	Umbuchung	t	t	f	2024-12-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+218	2018	14	4	f	\N	SYNTHETIC-218	Synthetic Other Income				10	TEST-ACCOUNT-4	Zinsen	f	f	f	2026-06-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-4	\N	\N	\N	\N	\N	\N
+219	2019	20	4	f	\N	SYNTHETIC-219	Synthetic Supplier				-99	TEST-ACCOUNT-4	Büromaterial	t	t	f	2026-05-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-4	\N	\N	\N	\N	\N	\N
+220	2020	20	2	f	\N	SYNTHETIC-220	Synthetic Statement Supplier				-1234	AT606000050110117300	Lastschrift BG/000000220	t	f	f	2024-03-15 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+221	2021	28	2	f	\N		Bank				-50	AT606000050110117300	Zinsen BG/000000221	t	f	f	2024-03-31 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+222	2022	28	2	f	\N		Bank				-700	AT606000050110117300	Entgelt für Kontoführung	t	f	f	2024-06-30 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+## (sequences) (10 rows)
+sequence	last_value	is_called
+balance_id_seq	1	f
+donation_type_id_seq	1	f
+file_number	100	f
+lo_id_seq	1	f
+oo_id_seq	1	f
+person_type_id_seq	1	f
+type_id_seq	1	f
+users_id_seq	100	f
+voucher_number	5000	f
+vouchers_id_seq	1000	f

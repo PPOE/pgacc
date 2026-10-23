@@ -1,0 +1,6 @@
+# step: merge-reviewer
+# request: GET /index.php?action=merge&bid1=5007&bid2=5008 as reviewer
+status: 302
+header: Location: index.php?action=edit&id=5007&hint=6
+header: Content-type: text/html; charset=UTF-8
+--- body (0 bytes) ---

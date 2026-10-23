@@ -1,0 +1,46 @@
+# step: new-merge-target
+# request: POST /index.php?action=new as admin
+# form: speichern=Speichern&parts=1&bid0=0&dir0=out&in_type0=8&out_type0=20&wk_type0=21&date0=15.09.2024&person_type0=1&lo0=2&amount0=-1&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+merge+target&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (2890 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 24 Buchungszeilen, 9 (37.5 %) abgeschlossen, 6 (25 %) bearbeitet, 9 (37.5 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page new">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new" class="selected">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+<h1>Buchung erfasst - Buchung Nr. 5007 - AUF BELEG NOTIEREN!</h1>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=logout">Logout</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

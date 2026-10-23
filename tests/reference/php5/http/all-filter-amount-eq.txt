@@ -1,0 +1,10 @@
+# step: all-filter-amount-eq
+# request: GET /index.php?action=all&format=csv&filter_amount=%3D120 as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (374 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+1001	101	2024-02-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-001	TEST-ACCOUNT-1	TEST-VIRTUAL-1	120,00€	Closed donation		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+
