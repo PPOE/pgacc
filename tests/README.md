@@ -102,6 +102,18 @@ cookies. It then starts a second
 built-in server inside the test container with `output_buffering=0` and repeats
 the redirects there, so they cannot regress to depending on the buffer.
 
+`http-listing-prefs.php` covers the ledger listing (`?action=all`, rendered by
+`closed.php`) with hidden columns. The fixture users `synthetic-hide-odd` and
+`synthetic-hide-even` store hidden odd and even columns, so each of the 18
+columns is hidden once and shown once. Against the output for
+`synthetic-admin` (no preferences), the header, filter row, every voucher row
+and the CSV export must show exactly the expected cells: an add icon instead
+of the column header, no filter input, an empty cell in HTML, and no field in
+CSV. `?hide=-3` and `?hide=1` then show and hide a column for the request and
+in the stored preference. Before the fix, the first hidden column crashed the
+page with `ArgumentCountError` on PHP 7.1+ and displayed a warning per hidden
+cell on PHP 5.6.
+
 ### PHP diagnostics are failures
 
 Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
@@ -191,9 +203,8 @@ on PHP 7.4.
 All four runtimes pass the 115 PHPUnit tests and 138 assertions after explicitly
 initializing the rights helper's organization array. The rights assertions no
 longer suppress warnings. On both PHP 8 runtimes, the HTTP and write tests fail
-on diagnostics that have no known-diagnostics entry: undefined `$prevcond`,
-`$user_prefs_hide` offsets, the PostgreSQL 15+ report query error, undefined
-`$rights`/`$rightssql`, and the closed-link error after `relocate()`. On PHP 8.0
+on diagnostics that have no known-diagnostics entry: undefined
+`$rights`/`$rightssql` and the closed-link error after `relocate()`. On PHP 8.0
 `http-login.php` passes and the write-workflow assertions pass up to the
 diagnostics check. PHP 8.5 adds implicit PostgreSQL connection and
 `strlen(null)` deprecations; displayed before the headers, they still break the
@@ -521,7 +532,12 @@ same reason, with a separate runner configuration. The initial suite covers
   prints implicit-connection deprecations from `functions.php:434` and `:494`
   during the PHPUnit run without failing it.
 - [ ] Shrink `tests/known-diagnostics.php` to empty as the application issues
-  are fixed, and then report unused entries as failures.
+  are fixed, and then report unused entries as failures. `KD-PREFS-HIDE` and
+  `KD-REPORT-PREVCOND` are fixed and removed; see `COMPATIBILITY_PLAN.md`.
+- [x] Test listings with hidden columns (`http-listing-prefs.php`) and fix the
+  `emptytag()` `ArgumentCountError` on PHP 7.1+ and the undefined
+  `$user_prefs_hide` offsets, with output unchanged for users without hide
+  preferences.
 - [x] Replace the removed curly-brace string-offset syntax with square brackets.
   All 29 top-level application PHP files now pass syntax checks on PHP 5.5,
   5.6, 7.4, 8.0, and 8.5. The fix preserves compatibility with the older runtimes.

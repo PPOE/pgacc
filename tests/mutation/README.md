@@ -596,6 +596,50 @@ mutants are in the target, some under the earlier target's ID
 move mutants keep the line count (`true;` placeholders, and one search that
 spans the moved block and `acc_header()`).
 
+#### `listing-columns` (HTTP, `closed.php`)
+
+The listing column preferences: `listing_column_hidden()`, its calls in
+`gentab()`, the filter row and `page_listing_line()`, and `emptytag()`.
+Tested with `tests/http-listing-prefs.php` only. 50 mutants: the helper's key
+and value checks (5), `emptytag()` (4, including the original one-argument
+`tag()` call), the CSV and HTML header checks (3, including the original
+direct `$user_prefs_hide` read in CSV), a non-incremented column counter in
+the filter row and in a voucher row (2), and one inverted check per column for
+the filter row (18) and the voucher rows (18).
+
+| Lane | Killed | Equivalent | Survived | Invalid | Seconds per mutant |
+|---|---:|---:|---:|---:|---:|
+| PHP 5.6.40 | 50 | 0 | 0 | 0 | 0.6-3.0 |
+| PHP 7.4.33 | 50 | 0 | 0 | 0 | 1.5-9.7 |
+
+The inverted check for column 12 (`commentgf`, empty in every fixture row)
+gives the same `<td></td>` in HTML whether shown or hidden; it is killed by the
+CSV comparison, where a hidden column has no field.
+
+Before the fix: run on a copy of the original application (`git archive
+14e81a6`) with only the new fixtures, test and drivers added, the target's
+baseline fails, so no mutant runs (exit 2): on PHP 7.4 the first hidden column
+ends the page with `ArgumentCountError` (`closed.php:158`); on PHP 5.6 every
+hidden cell displays "Missing argument 2 for tag()". The new test therefore
+detects the original defect on both lanes.
+
+#### `report-prevcond` (HTTP, `report.php`)
+
+The `$prevcond = null;` initialization in `page_report()`, tested with
+`tests/http-smoke.php`.
+
+| Mutant | PHP 5.6 | PHP 7.4 | Notes |
+|---|---|---|---|
+| `prevcond-initialization-removed` | killed | killed | the undefined-variable notice is no longer a known diagnostic |
+| `prevcond-passes-prev-cond` | equivalent | equivalent | `unit_report()` never reads its first parameter |
+
+Before the fix (same original copy, with the original
+`tests/known-diagnostics.php`): a line-preserving form of the fix
+(`$precond = "";` replaced by `$prevcond = null;`) and passing `$prev_cond`
+at the first call both survived on PHP 5.6 and 7.4. With `KD-REPORT-PREVCOND`
+in the baseline the tests could not see whether the variable was defined; after
+removing the entry, reintroducing the undefined variable is killed.
+
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target must run that target on
