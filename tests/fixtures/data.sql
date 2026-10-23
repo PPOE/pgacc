@@ -31,7 +31,7 @@ VALUES (
   crypt('correct-password', gen_salt('md5')),
   timestamp '2024-01-01 12:00:00',
   123456,
-  'root',
+  'root,bgf',
   ''
 );
 

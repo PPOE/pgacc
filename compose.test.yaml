@@ -52,6 +52,62 @@ services:
       - .:/app:ro
     working_dir: /app
 
+  application:
+    image: pgacc-test-application
+    build:
+      context: .
+      dockerfile: tests/php-runtime.Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: accounting
+      PGUSER: pgacc_test
+      PGPASSWORD: pgacc_test
+      TZ: UTC
+    command:
+      - php
+      - -d
+      - output_buffering=4096
+      - -S
+      - 0.0.0.0:8080
+      - -t
+      - /app
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - "exit(@fsockopen('127.0.0.1', 8080) ? 0 : 1);"
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    init: true
+    networks:
+      - test
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/files
+
+  application-test:
+    image: pgacc-test-application
+    depends_on:
+      application:
+        condition: service_healthy
+    environment:
+      PGACC_TEST_BASE_URL: http://application:8080
+      TZ: UTC
+    command: ["php", "tests/http-smoke.php"]
+    init: true
+    networks:
+      - test
+    read_only: true
+    tmpfs:
+      - /tmp
+
 networks:
   test:
     internal: true
