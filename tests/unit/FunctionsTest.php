@@ -455,7 +455,7 @@ final class FunctionsTest extends FunctionsTestCase
     public function testVouchersResetAckMovesCurrentAcknowledgementsToOldFields()
     {
         $voucherId = 987654321;
-        $connection = pg_connect('host=' . getenv('PGHOST') . ' port=' . getenv('PGPORT') . ' dbname=' . getenv('PGDATABASE') . ' user=' . getenv('PGUSER') . ' password=' . getenv('PGPASSWORD'));
+        $connection = pg_connect(pgacc_test_connection_string());
         self::assertNotFalse($connection);
         pg_query($connection, 'BEGIN');
         try {

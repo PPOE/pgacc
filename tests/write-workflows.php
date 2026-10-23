@@ -3,15 +3,7 @@ require __DIR__ . '/http-test-helpers.php';
 
 function database_connection()
 {
-    $connectionString = sprintf(
-        'host=%s port=%s dbname=%s user=%s password=%s',
-        getenv('PGHOST'),
-        getenv('PGPORT'),
-        getenv('PGDATABASE'),
-        getenv('PGUSER'),
-        getenv('PGPASSWORD')
-    );
-    $database = @pg_connect($connectionString);
+    $database = @pg_connect(pgacc_test_connection_string());
     if ($database === false) {
         fail_test('could not connect to the fixture database');
     }

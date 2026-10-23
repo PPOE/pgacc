@@ -2,6 +2,7 @@
 // Shared HTTP test helpers. Must stay compatible with PHP 5.6.
 
 require_once __DIR__ . '/http-diagnostics.php';
+require_once __DIR__ . '/db-helpers.php';
 
 function fail_test($message)
 {

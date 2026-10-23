@@ -8,20 +8,14 @@
  * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
-// The membership export is decrypted with the application's helper.
+// The membership export is decrypted, and downloads padded, with the
+// application's helpers (pinned by the mcrypt vectors).
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/functions.php';
 
 function receipts_database()
 {
-    $database = @pg_connect(sprintf(
-        'host=%s port=%s dbname=%s user=%s password=%s',
-        getenv('PGHOST'),
-        getenv('PGPORT'),
-        getenv('PGDATABASE'),
-        getenv('PGUSER'),
-        getenv('PGPASSWORD')
-    ));
+    $database = @pg_connect(pgacc_test_connection_string());
     if ($database === false) {
         fail_test('could not connect to the fixture database');
     }
@@ -67,7 +61,7 @@ function assert_receipt_download($cookies, $id, $plain, $contentType, $fileNumbe
 {
     $response = http_request('/index.php?action=file&id=' . $id, 'GET', array(), $cookies);
     assert_status($response, 200, $label);
-    $padded = str_pad($plain, intval(ceil(strlen($plain) / 32)) * 32, "\0");
+    $padded = rijndael256_zero_pad($plain);
     if ($response['body'] !== $padded) {
         fail_test("$label returned " . strlen($response['body']) . ' bytes that differ from the uploaded receipt');
     }
