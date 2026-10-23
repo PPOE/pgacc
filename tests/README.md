@@ -455,11 +455,12 @@ The copy also contains the synthetic `tests/runtime/test-constants.php` as
 `PGACC_TEST_ID` suffixes the image name, as for `tests/run.sh`.
 
 - **PHPCompatibility** through PHP_CodeSniffer (`phpcs.xml`): `testVersion`
-  5.6-8.5 plus `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
+  5.3-8.5 (production runs PHP 5.3.3; the oldest runtime lane is 5.6) plus
+  `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
 - **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
   variables (levels 0/1), unknown functions, argument counts and types, invalid
   regular expressions. `phpVersion` is 7.1-8.5 because PHPStan cannot model PHP
-  below 7.1; PHPCompatibility covers the 5.6 floor. `stubs.php` declares the
+  below 7.1; PHPCompatibility covers the 5.3 floor. `stubs.php` declares the
   removed `mcrypt` functions and constants.
 
 The check fails on any finding that is not in a baseline. It also fails on a
@@ -478,8 +479,8 @@ A canary self-test runs first. `tests/static-analysis/canaries/` holds minimal
 synthetic copies of the bug classes already found: `$ascii{$i}`, the uninitialized
 `$rights2` array, the result-loop arrays at `edit.php:345`/`donations.php:116`,
 a function reading `$key` without `global`, the optional-before-required
-parameter and a short open tag. A PHP 7-only `??` canary guards the 5.6 floor
-of `testVersion`. `canaries/expected.txt` names the finding each tool must
+parameter and a short open tag. A short-array `[]` (PHP 5.4) and a `??`
+(PHP 7.0) canary guard the 5.3 floor of `testVersion`. `canaries/expected.txt` names the finding each tool must
 report for them. A weakened configuration (for example, a lower PHPStan
 level or a narrower `testVersion`) fails this step even if the baselines are
 regenerated.

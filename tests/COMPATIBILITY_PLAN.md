@@ -423,7 +423,9 @@ Recommendation (owner decision):
   rule and configurable version ranges; see
   [PHPCompatibility](https://github.com/PHPCompatibility/PHPCompatibility).
   10.0.0-alpha2, the latest tag and the first with PHP 8.x sniffs, runs on
-  PHP_CodeSniffer 4.0.4 with `testVersion` 5.6-8.5. The `develop` branch at
+  PHP_CodeSniffer 4.0.4 with `testVersion` 5.6-8.5, since widened to 5.3-8.5
+  (production runs PHP 5.3.3 until the `php5-last` tag; no new findings, a
+  short-array canary guards the floor). The `develop` branch at
   `4b1ac83` (2026-09-21) gave identical results on these files. The 9.3.5
   stable release predates PHP 8 support.
 - [x] Enable `Generic.PHP.DisallowShortOpenTag` explicitly. Start with correctness

@@ -6,9 +6,12 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## Compatibility contract
 
-- Code must run on PHP 5.6 through 8.5. Use no PHP 7+ syntax or functions: no `??`, `<=>`, `match`,
-  typed parameters/returns/properties, arrow functions, nullsafe `?->`, `str_contains`/`str_starts_with`, etc.
-  Short arrays `[]` are allowed (5.4+). Existing code uses `array()`; match the surrounding code.
+- Production runs PHP 5.3.3 until the `php5-last` tag, so code must run on PHP 5.3 through 8.5.
+  No PHP 5.4+ syntax: no short arrays `[]`, no `f()[0]`, no traits, no `::class`, no `$this` in closures.
+  No PHP 7+ syntax or functions either: no `??`, `<=>`, `match`, typed parameters/returns/properties,
+  arrow functions, nullsafe `?->`, `str_contains`/`str_starts_with`, etc. Use `array()`.
+- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`), but the oldest runnable lane is
+  PHP 5.6: runtime behaviour on 5.3 is not tested.
 - PostgreSQL: production runs a very old server; the schema was reconstructed from 8.4 (`tests/fixtures/schema.sql`).
   Tests use PostgreSQL 17. Write SQL that works on both.
 - Test files must stay PHP 5.6-compatible too (`tests/known-diagnostics.php`, mutation targets, helpers).
