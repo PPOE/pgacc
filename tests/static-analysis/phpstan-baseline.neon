@@ -43,12 +43,6 @@ parameters:
 			path: ../../edit.php
 
 		-
-			message: '#^Undefined variable\: \$key$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../file.php
-
-		-
 			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
@@ -77,12 +71,6 @@ parameters:
 			identifier: regexp.pattern
 			count: 1
 			path: ../../import.php
-
-		-
-			message: '#^Undefined variable\: \$key$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../import2.php
 
 		-
 			message: '#^Variable \$file_number might not be defined\.$#'
@@ -146,12 +134,6 @@ parameters:
 
 		-
 			message: '#^Undefined variable\: \$bgfandack$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../new.php
-
-		-
-			message: '#^Undefined variable\: \$key$#'
 			identifier: variable.undefined
 			count: 1
 			path: ../../new.php

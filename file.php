@@ -16,7 +16,7 @@ if ($file == 0)
   return false;
 
 $data = file_get_contents(getcwd() . "/files/$file.aes");
-$data = receipt_decrypt($vid, $key, $data);
+$data = receipt_decrypt($vid, '', $data); // '' as before (an unset local $key): owner decision on the receipt key, see tests/COMPATIBILITY_PLAN.md
 if (substr($data,0,4) == '%PDF')
 {
   header("Content-Type: application/pdf");
