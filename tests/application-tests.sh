@@ -34,7 +34,7 @@ php tests/write-workflows.php
 php tests/http-receipts.php
 
 if [ -n "$coverage_dir" ]; then
-  XDEBUG_MODE=coverage php tests/coverage/merge.php "$coverage_dir" "$report_dir"
+  XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir"
   if [ -f "$report_dir/changed-lines.txt" ]; then
     set -- "$report_dir/clover.xml" "$report_dir/changed-lines.txt"
     if [ -f "$report_dir/uncovered-branches.txt" ]; then
