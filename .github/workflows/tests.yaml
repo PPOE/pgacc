@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-harness:
+    name: Docker characterization harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Pull test images
+        run: docker compose -f compose.test.yaml pull
+
+      - name: Run baseline checks
+        run: sh tests/run.sh
+
+      - name: Clean up containers
+        if: always()
+        run: docker compose -f compose.test.yaml down --volumes --remove-orphans
