@@ -3,7 +3,7 @@
 # form: submit=Anmeldung&name=synthetic-norights&pass=norights-password
 status: 302
 header: Set-Cookie: pp_pgacc_login={{cookie}}; expires=Tue, 16-Jun-2026 {{time}} GMT; Max-Age=86400
-header: Set-Cookie: pp_pgacc_id=8; expires=Tue, 16-Jun-2026 {{time}} GMT; Max-Age=86400
+header: Set-Cookie: pp_pgacc_id=9; expires=Tue, 16-Jun-2026 {{time}} GMT; Max-Age=86400
 header: Location: index.php
 header: Content-type: text/html; charset=UTF-8
 --- body (0 bytes) ---

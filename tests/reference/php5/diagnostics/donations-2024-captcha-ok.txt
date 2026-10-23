@@ -1,4 +1,0 @@
-E_NOTICE donations.php:116 (hidden): Undefined variable: donations
-E_WARNING donations.php:116: Invalid argument supplied for foreach()
-E_WARNING donations.php:122: array_multisort(): Argument #1 is expected to be an array or a sort flag
-E_WARNING donations.php:124: Invalid argument supplied for foreach()

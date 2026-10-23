@@ -504,8 +504,8 @@ the normalizations before every run. The CI job `PHP 5 reference comparison`
 runs `compare` on all four lanes and uploads the reports.
 
 Re-record (and review the diff) when an intended behaviour change lands; the
-reference is to be re-recorded after the authorization, mcrypt and donations
-changes. Production runs PHP 5.3.3, which cannot be tested here; 5.6 is the
+reference was re-recorded after the rights and donations fixes and is to be
+re-recorded after the mcrypt change. Production runs PHP 5.3.3, which cannot be tested here; 5.6 is the
 oldest available stand-in.
 
 ## Static analysis

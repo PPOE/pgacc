@@ -33,7 +33,7 @@ header: Content-type: text/html; charset=UTF-8
 <div class="wiki use_terms">
 <form action="index.php?action=accounts" method="POST"><table>
 <tr><td><b>Name</b></td><td><b>Passwort</b></td></tr>
-<tr><td>synthetic-readonly</td><td><input type="password" name="password7" value="******"></td><td><input type="submit" name="submit" value="Benutzer 7 aktualisieren" /></td></tr>
+<tr><td>synthetic-readonly</td><td><input type="password" name="password8" value="******"></td><td><input type="submit" name="submit" value="Benutzer 8 aktualisieren" /></td></tr>
 
 </table></form>
 

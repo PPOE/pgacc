@@ -1,2 +1,0 @@
-E_NOTICE new.php:184 (hidden): Undefined variable: rights
-E_NOTICE new.php:184 (hidden): Undefined variable: rights
