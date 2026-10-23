@@ -736,19 +736,31 @@ assert_voucher_rows(
     'partly finalized voucher after approval by organization two'
 );
 
-// Resetting the approvals ("Bestätigungen zurücksetzen!") by a user with
-// empty rights (see tests/COMPATIBILITY_PLAN.md, page_edit_drop_acks()).
+// Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
+// users) needs the exact bgf right; other users are refused and nothing
+// changes (before, empty rights reset any voucher). For bgf users the reset
+// still fails, a known failure (see tests/COMPATIBILITY_PLAN.md,
+// page_edit_drop_acks()).
 $resetId = create_voucher($database, 'Synthetic approved voucher', '-10.50', 9007, $adminCookies);
 assert_redirect(edit_request($resetId, $approveForm, $adminCookies), edit_location($resetId, 4), 'first approval before the reset');
 assert_redirect(edit_request($resetId, $approveForm, $reviewerCookies), edit_location($resetId, 4), 'second approval before the reset');
-$reset = edit_request($resetId, array('belegfehler' => 'Bestätigungen zurücksetzen!'), $noRightsCookies);
-assert_redirect($reset, edit_location($resetId, 3), 'approval reset by a user without rights');
-assert_voucher_rows(
-    $database,
-    $resetId,
-    array(voucher_row_state('2', null, null, 'f')),
-    'voucher after approval reset by a user without rights'
-);
+$approvedState = array(voucher_row_state('2', 'synthetic-admin', 'synthetic-reviewer', 'f'));
+$resetForm = array('belegfehler' => 'Bestätigungen zurücksetzen!');
+foreach (array('without rights' => $noRightsCookies, 'of organization two' => $unitTwoCookies) as $userLabel => $cookies) {
+    $reset = edit_request($resetId, $resetForm, $cookies);
+    assert_status($reset, 200, "approval reset by a user $userLabel");
+    assert_contains($reset['body'], 'FEHLER: Keine Zugriffsrechte.', "approval reset by a user $userLabel");
+    assert_voucher_rows($database, $resetId, $approvedState, "voucher after approval reset by a user $userLabel");
+}
+function known_failure_reset($voucherId, $form, $cookies)
+{
+    return with_known_failure('KF-DROP-ACKS-BGF', function () use ($voucherId, $form, $cookies) {
+        return edit_request($voucherId, $form, $cookies);
+    });
+}
+$bgfReset = known_failure_reset($resetId, $resetForm, $reviewerCookies);
+assert_contains($bgfReset['body'], 'Abfrage fehlgeschlagen: ERROR:  syntax error', 'approval reset by a bgf user (KF-DROP-ACKS-BGF)');
+assert_voucher_rows($database, $resetId, $approvedState, 'voucher after approval reset by a bgf user (KF-DROP-ACKS-BGF)');
 
 // Voucher IDs of the edit actions (approval, finalization, approval reset,
 // revision, receipt upload) are used in SQL. Only digits are accepted; any

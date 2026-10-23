@@ -85,6 +85,17 @@ with synthetic users and covered by a mutation target.
   Admins"), changing nothing. Behaviour difference: `bgf` and organization
   users without `root` could merge by a direct request before (within their
   rights SQL). Mutation target `rights-checks`.
+- [x] Approval reset (`page_edit_drop_acks()`). The button is shown only to
+  `bgf` users, but the server did not check it, and the query appended the
+  rights instead of the rights SQL: with empty rights it reset the
+  approvals of any voucher, other rights failed with an SQL error. It now
+  requires the exact `bgf` right; other users get "FEHLER: Keine
+  Zugriffsrechte." and nothing changes. The argument is deliberately not
+  corrected, because that would enable a reset that has never worked for
+  `bgf` users. [ ] **Known bug for the owner** (`KF-DROP-ACKS-BGF` in
+  `tests/write-workflows.php`): for `bgf` users the reset still fails with
+  "Abfrage fehlgeschlagen" (syntax error); passing `$rightssql` would make
+  it work. Mutation target `rights-checks`.
 
 ## Login and redirect failure: confirmed
 
@@ -177,17 +188,11 @@ explains that dropping the unused default generally preserves behavior; see
     hidden, then redirected).
   The receipt upload redirect (`new.php:266`, PDF upload on the edit page)
   is tested in `tests/http-receipts.php` since the `mcrypt` replacement.
-  Not covered: `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
-  reaches its redirect, because it passes `$rights` instead of the rights
-  SQL to `vouchers_reset_ack()` and the query fails ("syntax error at or
-  near ..."). [ ] Fix and test the reset separately; it is an existing
-  failure, not a header problem. **Owner decision:** the query only works
-  for empty (or null) rights, and then has no organization restriction: a
-  user with empty rights can reset the approvals of any voucher (tested in
-  `tests/write-workflows.php`). Passing `$rightssql` would stop that, but
-  would also let every user of an organization reset the approvals of that
-  organization's vouchers, which fails for all of them now; the page has no
-  `bgf` check (the button is only shown to `bgf` users). The receipt download (`file.php`) and the
+  `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
+  reaches its redirect for `bgf` users, because it passes `$rights` instead
+  of the rights SQL to `vouchers_reset_ack()` and the query fails ("syntax
+  error at or near ..."; known failure `KF-DROP-ACKS-BGF`, see
+  [Security fixes](#security-fixes-before-php5-last)). The receipt download (`file.php`) and the
   CSV headers were already sent before any output.
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.
   The only caller (`new.php:610`) passes all four arguments; the `$part = 0`

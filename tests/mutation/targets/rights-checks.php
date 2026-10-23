@@ -163,7 +163,23 @@ return array(
             'region' => $dropAcks,
             'search' => 'vouchers_reset_ack($id, $rights);',
             'replace' => 'true;',
-            'rationale' => 'The approval reset clears ack1 and ack2.',
+            'rationale' => 'The approval reset of a bgf user runs the reset query (which still fails: '
+                . 'known failure KF-DROP-ACKS-BGF).',
+        ),
+        array(
+            'id' => 'drop-acks-bgf-check-removed',
+            'region' => $dropAcks,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => 'if (false)',
+            'rationale' => 'Fail-open: users without bgf reset approvals (with empty rights of any '
+                . 'organization).',
+        ),
+        array(
+            'id' => 'drop-acks-bgf-check-fail-closed-for-bgf',
+            'region' => $dropAcks,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => 'if (true)',
+            'rationale' => 'bgf users still reach the reset (characterized by KF-DROP-ACKS-BGF).',
         ),
     ),
 );
