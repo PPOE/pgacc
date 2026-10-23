@@ -11,7 +11,7 @@ function hex2ascii($hex){
 function ascii2hex($ascii) {
         $hex = '';
         for ($i = 0; $i < strlen($ascii); $i++) {
-                $byte = strtoupper(dechex(ord($ascii{$i})));
+                $byte = strtoupper(dechex(ord($ascii[$i])));
                 $byte = str_repeat('0', 2 - strlen($byte)).$byte;
                 $hex.=$byte." ";
                 }
@@ -260,6 +260,7 @@ function rights2orgasql($rights)
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
     $rights_r = explode(",", $rights);
+    $rights2 = array();
     foreach ($rights_r as $right)
     {
       if (preg_match('/^\d+$/', $right) == 1)

@@ -5,14 +5,16 @@ php_version=${1:-all}
 
 case "$php_version" in
   all)
-    sh tests/php-syntax-matrix.sh
-    sh tests/run.sh 7.4
-    sh tests/run.sh 5.6
-    exit
+    matrix_status=0
+    sh tests/php-syntax-matrix.sh || matrix_status=1
+    for test_php in 7.4 5.6 8.0 8.5; do
+      sh tests/run.sh "$test_php" || matrix_status=1
+    done
+    exit "$matrix_status"
     ;;
-  7.4|5.6) ;;
+  7.4|5.6|8.0|8.5) ;;
   *)
-    echo "Usage: sh tests/run.sh [all|7.4|5.6]" >&2
+    echo "Usage: sh tests/run.sh [all|7.4|5.6|8.0|8.5]" >&2
     exit 2
     ;;
 esac
@@ -22,6 +24,12 @@ compose()
   if [ "$php_version" = 5.6 ]; then
     docker compose --project-name pgacc-test-php56 \
       -f compose.test.yaml -f compose.php56.yaml "$@"
+  elif [ "$php_version" = 8.0 ]; then
+    docker compose --project-name pgacc-test-php80 \
+      -f compose.test.yaml -f compose.php80.yaml "$@"
+  elif [ "$php_version" = 8.5 ]; then
+    docker compose --project-name pgacc-test-php85 \
+      -f compose.test.yaml -f compose.php85.yaml "$@"
   else
     docker compose --project-name pgacc-test-php74 -f compose.test.yaml "$@"
   fi

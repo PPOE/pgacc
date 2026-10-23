@@ -211,7 +211,7 @@ final class FunctionsTest extends FunctionsTestCase
      */
     public function testRights2orgasql($rights, $expected)
     {
-        self::assertSame($expected, @rights2orgasql($rights));
+        self::assertSame($expected, rights2orgasql($rights));
     }
 
     public static function rightsProvider()
@@ -221,6 +221,26 @@ final class FunctionsTest extends FunctionsTestCase
             'capitalized bgf' => array('Rbgf', ''),
             'organization ids' => array('4,5', " AND orga IN ('4','5') "),
             'no organization ids' => array('reviewer', ' AND false '),
+            'single organization' => array('4', " AND orga IN ('4') "),
+            'empty rights deny access' => array('', ' AND false '),
+            'empty tokens deny access' => array(',', ' AND false '),
+            'root is not an exemption in this helper' => array('root', ' AND false '),
+            'mixed role and organization' => array('reviewer,4', " AND orga IN ('4') "),
+            'mixed valid and invalid IDs' => array('reviewer,4,5x,7', " AND orga IN ('4','7') "),
+            'empty tokens do not add organizations' => array('reviewer,,4,', " AND orga IN ('4') "),
+            'bgf token among other rights' => array('reviewer,bgf,4', ''),
+            'Rbgf token among other rights' => array('reviewer,Rbgf,4', ''),
+            'bgf substring does not grant access' => array('notbgf', ' AND false '),
+            'Rbgf substring does not grant access' => array('notRbgf', ' AND false '),
+            'bgf matching is case sensitive' => array('BGF', ' AND false '),
+            'Rbgf matching is case sensitive' => array('rbgf', ' AND false '),
+            'numeric suffix is not an ID' => array('role4', ' AND false '),
+            'numeric prefix is not an ID' => array('4role', ' AND false '),
+            'SQL-like token does not grant access' => array('4 OR 1=1', ' AND false '),
+            'negative ID is rejected' => array('-4', ' AND false '),
+            'decimal ID is rejected' => array('4.5', ' AND false '),
+            'zero ID stays restricted' => array('0', " AND orga IN ('0') "),
+            'leading zero ID stays restricted' => array('04', " AND orga IN ('04') "),
         );
     }
 
