@@ -24,7 +24,7 @@ return array(
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',
         'file' => 'edit.php',
-        'lines' => array(120),
+        'lines' => array(125),
         'message' => '/^Undefined variable: rightssql$/',
         'reported' => false,
         'reason' => 'the finalized-voucher check interpolates an unset $rightssql '

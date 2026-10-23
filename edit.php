@@ -56,6 +56,11 @@ if ($bid1 == 0 || $bid2 == 0)
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div><br /><br /><br />';
   return;
 }
+if (!has_right($rights, 'root'))
+{
+  echo '<div class="slot_error" id="slot_error">WARNUNG: Diese Funktion sollte nur von Admins verwendet um Fehlerfälle zu beheben. Bitte kontaktiere einen der Admins.</div><br /><br /><br />';
+  return;
+}
 $rightssql = rights2orgasql($rights);
 
 $name = pg_escape_string(checklogin('name'));

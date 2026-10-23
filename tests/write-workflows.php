@@ -288,12 +288,18 @@ $mergeSourceId = create_voucher($database, 'Synthetic merge source', '-2.00', 0,
 $mergeUrl = '/index.php?action=merge&bid1=' . rawurlencode($mergeTargetId) . '&bid2=' . rawurlencode($mergeSourceId);
 $voucherRowsQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1';
 
-// A user restricted to another organization gets the same redirect, but no
-// row moves.
+// Merging needs the exact root right (the edit page offers it only to root):
+// other users get the warning of the recovery page, and no row moves.
 $unauthorizedMerge = http_request($mergeUrl, 'GET', array(), $unitOneCookies);
-assert_redirect($unauthorizedMerge, edit_location($mergeTargetId, 6), 'cross-organization merge');
+assert_status($unauthorizedMerge, 200, 'cross-organization merge');
+assert_contains($unauthorizedMerge['body'], 'nur von Admins', 'cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after cross-organization merge');
+$bgfMerge = http_request($mergeUrl, 'GET', array(), $reviewerCookies);
+assert_status($bgfMerge, 200, 'merge by a bgf user without root');
+assert_contains($bgfMerge['body'], 'nur von Admins', 'merge by a bgf user without root');
+assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after a merge by a bgf user');
+assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after a merge by a bgf user');
 
 $merge = http_request($mergeUrl, 'GET', array(), $adminCookies);
 assert_redirect($merge, edit_location($mergeTargetId, 6), 'voucher merge');

@@ -140,6 +140,18 @@ return array(
             'rationale' => 'Four-eyes principle: the first approver cannot give the second approval.',
         ),
         array(
+            'id' => 'merge-root-check-removed',
+            'search' => "if (!has_right(\$rights, 'root'))",
+            'replace' => 'if (false)',
+            'rationale' => 'Fail-open: users without root merge vouchers.',
+        ),
+        array(
+            'id' => 'merge-root-substring',
+            'search' => "if (!has_right(\$rights, 'root'))",
+            'replace' => "if (strpos(\$rights, 'bgf') === false && !has_right(\$rights, 'root'))",
+            'rationale' => 'bgf without root may not merge.',
+        ),
+        array(
             'id' => 'finalize-unscoped',
             'region' => $finalize,
             'search' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;',

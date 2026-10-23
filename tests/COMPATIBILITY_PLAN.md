@@ -78,6 +78,13 @@ with synthetic users and covered by a mutation target.
   rights SQL exempts `Rbgf`, but neither may now post an organization
   outside their numeric rights; an organization such as `01` is refused.
   Mutation target `rights-checks`.
+- [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
+  server-side check; the edit page offers it only to `root`
+  (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`
+  right and otherwise shows the warning of the recovery page ("nur von
+  Admins"), changing nothing. Behaviour difference: `bgf` and organization
+  users without `root` could merge by a direct request before (within their
+  rights SQL). Mutation target `rights-checks`.
 
 ## Login and redirect failure: confirmed
 
