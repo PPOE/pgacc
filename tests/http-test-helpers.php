@@ -215,6 +215,89 @@ function logout_response_problems($response)
     return $problems;
 }
 
+// Problems of a redirect that is answered before any output: HTTP 302,
+// exactly this Location, and an empty body (no page, byte order mark or
+// displayed diagnostic before or after the header).
+function redirect_problems($response, $expectedLocation)
+{
+    $problems = array();
+    if ($response['status'] !== 302) {
+        $problems[] = "returned HTTP {$response['status']}, expected 302";
+    }
+    $location = response_header($response, 'Location');
+    if ($location !== $expectedLocation) {
+        $problems[] = 'Location was ' . var_export($location, true)
+            . ', expected ' . var_export($expectedLocation, true);
+    }
+    if ($response['body'] !== '') {
+        $problems[] = 'redirect body was not empty: ' . substr($response['body'], 0, 200);
+    }
+    return $problems;
+}
+
+// The redirect that checklogin() sends to visitors who are not logged in:
+// the login page, with the requested URI hex-encoded as its target.
+function login_redirect_location($uri)
+{
+    return 'index.php?action=login&target=' . strtoupper(bin2hex($uri));
+}
+
+// Test-first known failure: $callback returns the problems of a check that
+// fails until its fix lands, and the diagnostics of its requests are
+// attributed to $id. Returns no problem while it still fails, and one when
+// it passes: the fixed check must then become a regular check.
+function known_failure_problems($id, $label, $callback)
+{
+    $problems = with_known_failure($id, $callback);
+    if (count($problems) > 0) {
+        echo "known failure $id: $label " . implode('; ', $problems) . "\n";
+        return array();
+    }
+    fwrite(STDERR, "UNEXPECTED PASS: $id $label\n");
+    return array("$label unexpectedly passed; known failure $id is fixed: move it to the regular checks");
+}
+
+// Starts a second application server on $port without output buffering
+// (otherwise like the application service: same document root and
+// diagnostics recorder), so that tests can check that headers do not
+// depend on output buffering. Returns its base URL; the server is stopped
+// when the test script ends.
+function start_unbuffered_server($port)
+{
+    $log = '/tmp/unbuffered-server-' . $port . '.log';
+    $command = 'exec php -d output_buffering=0'
+        . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/runtime/diagnostics-prepend.php')
+        . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__));
+    $server = proc_open(
+        $command,
+        array(
+            0 => array('file', '/dev/null', 'r'),
+            1 => array('file', $log, 'a'),
+            2 => array('file', $log, 'a'),
+        ),
+        $pipes
+    );
+    if (!is_resource($server)) {
+        fail_test('could not start the output_buffering=0 server');
+    }
+    register_shutdown_function('stop_unbuffered_server', $server);
+    for ($attempt = 0; $attempt < 50; $attempt++) {
+        $socket = @fsockopen('127.0.0.1', $port);
+        if ($socket !== false) {
+            fclose($socket);
+            return 'http://127.0.0.1:' . $port;
+        }
+        usleep(100000);
+    }
+    fail_test('output_buffering=0 server did not start: ' . @file_get_contents($log));
+}
+
+function stop_unbuffered_server($server)
+{
+    proc_terminate($server);
+    proc_close($server);
+}
+
 function assert_no_problems($problems, $label)
 {
     if (count($problems) > 0) {

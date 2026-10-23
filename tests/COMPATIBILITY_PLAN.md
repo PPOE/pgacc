@@ -77,6 +77,19 @@ explains that dropping the unused default generally preserves behavior; see
   finalization, merge, and revision saves (fails on PHP 8.5 in the first
   approval); and `page_search()` (`search.php:5`). The receipt download
   (`file.php`) and the CSV headers are sent before any output.
+  Characterized test-first by `tests/http-redirects.php` (protected pages
+  and CSV listings when not logged in, member search) and
+  `tests/write-workflows.php` (approval, finalization, revision and merge
+  redirects, and write actions when not logged in), against the normal and
+  an `output_buffering=0` server. Known failures until the fix:
+  `KF-REDIRECT-AFTER-OUTPUT` (the 302 responses carry the rendered page, a
+  CSV byte order mark and header row, or displayed diagnostics; for visitors
+  who are not logged in the page code still runs: a voucher POST to
+  `?action=new` creates the voucher, a revision POST adds a row to the
+  voucher, and the merge sends the merge redirect instead of the login
+  redirect) and `KF-REDIRECT-UNBUFFERED` (HTTP 200 without `Location`,
+  "headers already sent" at `index.php:109`, `edit.php:6` and
+  `search.php:5`).
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.
   The only caller (`new.php:610`) passes all four arguments; the `$part = 0`
   default is dropped and the `new.php:450` deprecation is gone on PHP 8.

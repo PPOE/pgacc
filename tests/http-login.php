@@ -314,37 +314,7 @@ check('logout', array_merge(logout_response_problems($logout), redirect_body_pro
 check('logout cookie attributes', logout_cookie_attribute_problems($logout));
 
 // Same login and logout against a server without output buffering.
-$port = 8081;
-$command = 'exec php -d output_buffering=0'
-    . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/runtime/diagnostics-prepend.php')
-    . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__));
-$server = proc_open(
-    $command,
-    array(
-        0 => array('file', '/dev/null', 'r'),
-        1 => array('file', '/tmp/unbuffered-server.log', 'a'),
-        2 => array('file', '/tmp/unbuffered-server.log', 'a'),
-    ),
-    $pipes
-);
-if (!is_resource($server)) {
-    fail_test('could not start the output_buffering=0 server');
-}
-$ready = false;
-for ($attempt = 0; $attempt < 50 && !$ready; $attempt++) {
-    $socket = @fsockopen('127.0.0.1', $port);
-    if ($socket !== false) {
-        fclose($socket);
-        $ready = true;
-    } else {
-        usleep(100000);
-    }
-}
-if (!$ready) {
-    proc_terminate($server);
-    fail_test('output_buffering=0 server did not start: ' . @file_get_contents('/tmp/unbuffered-server.log'));
-}
-$unbufferedUrl = 'http://127.0.0.1:' . $port;
+$unbufferedUrl = start_unbuffered_server(8081);
 
 $unbufferedLogin = login_request('synthetic-admin', 'correct-password', null, $unbufferedUrl);
 check('valid login with output_buffering=0', array_merge(
@@ -372,9 +342,6 @@ check('logout with output_buffering=0', array_merge(
     logout_cookie_attribute_problems($unbufferedLogout),
     redirect_body_problems($unbufferedLogout)
 ));
-
-proc_terminate($server);
-proc_close($server);
 
 if (count($problems) > 0) {
     print_diagnostics_summary();

@@ -89,6 +89,49 @@ function create_voucher($database, $comment, $amount, $file, $cookies)
     return $row['voucher_id'];
 }
 
+// Voucher write redirects (relocate() in edit.php): 302 to the voucher's
+// edit page with a hint for the message, answered before any output.
+function assert_redirect($response, $location, $label)
+{
+    assert_status($response, 302, $label);
+    assert_location($response, $location, $label);
+    assert_no_problems(known_failure_problems(
+        'KF-REDIRECT-AFTER-OUTPUT',
+        "$label redirect body",
+        function () use ($response, $location) {
+            return redirect_problems($response, $location);
+        }
+    ), $label);
+}
+
+function edit_location($voucherId, $hint)
+{
+    return "index.php?action=edit&id=$voucherId&hint=$hint";
+}
+
+// The form of a revision ("Speichern" on the edit page) of a voucher that has
+// no approvals.
+function revision_form($voucherId, $comment, $amount)
+{
+    $form = voucher_form($comment, $amount, 0);
+    $form['id'] = $voucherId;
+    $form['changed'] = '1';
+    $form['ack1'] = '';
+    $form['ack2'] = '';
+    $form['ack1_old'] = '';
+    $form['ack2_old'] = '';
+    return $form;
+}
+
+function database_count_problems($database, $query, $parameters, $expected, $label)
+{
+    $row = database_row($database, $query, $parameters, $label);
+    if ($row['count'] !== strval($expected)) {
+        return array("$label: count was {$row['count']}, expected $expected");
+    }
+    return array();
+}
+
 $database = database_connection();
 $adminCookies = login_user('synthetic-admin', 'correct-password');
 $reviewerCookies = login_user('synthetic-reviewer', 'reviewer-password');
@@ -146,7 +189,7 @@ $firstApproval = http_request(
     array('id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'),
     $adminCookies
 );
-assert_status($firstApproval, 302, 'first approval');
+assert_redirect($firstApproval, edit_location($createdVoucherId, 4), 'first approval');
 $created = database_row(
     $database,
     'SELECT id, ack1, ack2 FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
@@ -162,7 +205,7 @@ $duplicateApproval = http_request(
     array('id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'),
     $adminCookies
 );
-assert_status($duplicateApproval, 302, 'duplicate approval');
+assert_redirect($duplicateApproval, edit_location($createdVoucherId, 4), 'duplicate approval');
 $created = database_row(
     $database,
     'SELECT id, ack1, ack2 FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
@@ -178,7 +221,7 @@ $secondApproval = http_request(
     array('id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'),
     $reviewerCookies
 );
-assert_status($secondApproval, 302, 'second approval');
+assert_redirect($secondApproval, edit_location($createdVoucherId, 4), 'second approval');
 $created = database_row(
     $database,
     'SELECT id, ack1, ack2, receipt_received FROM vouchers
@@ -196,7 +239,7 @@ $finalization = http_request(
     array('id' => $createdVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
     $adminCookies
 );
-assert_status($finalization, 302, 'voucher finalization');
+assert_redirect($finalization, edit_location($createdVoucherId, 2), 'voucher finalization');
 $created = database_row(
     $database,
     'SELECT id, receipt_received, deleted FROM vouchers
@@ -244,7 +287,7 @@ $revision = http_request(
     $revisionForm,
     $adminCookies
 );
-assert_status($revision, 302, 'voucher revision');
+assert_redirect($revision, edit_location('1004', 5), 'voucher revision');
 
 $oldRevision = database_row(
     $database,
@@ -273,14 +316,12 @@ $voucherRowsQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $
 // A user restricted to another organization gets the same redirect, but no
 // row moves.
 $unauthorizedMerge = http_request($mergeUrl, 'GET', array(), $unitOneCookies);
-assert_status($unauthorizedMerge, 302, 'cross-organization merge');
-assert_location($unauthorizedMerge, "index.php?action=edit&id=$mergeTargetId&hint=6", 'cross-organization merge');
+assert_redirect($unauthorizedMerge, edit_location($mergeTargetId, 6), 'cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after cross-organization merge');
 
 $merge = http_request($mergeUrl, 'GET', array(), $adminCookies);
-assert_status($merge, 302, 'voucher merge');
-assert_location($merge, "index.php?action=edit&id=$mergeTargetId&hint=6", 'voucher merge');
+assert_redirect($merge, edit_location($mergeTargetId, 6), 'voucher merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 2, 'merge target');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 0, 'merge source');
 
@@ -315,6 +356,131 @@ $oldRevision = database_row(
     'revision after authorized recovery'
 );
 assert_database_field($oldRevision, 'deleted', 'f', 'revision after authorized recovery');
+
+// The same write redirects against a server without output buffering.
+$unbufferedUrl = start_unbuffered_server(8083);
+$unbufferedVoucherId = create_voucher($database, 'Synthetic unbuffered expense', '-3.21', 9002, $adminCookies);
+$unbufferedRevisionId = create_voucher($database, 'Synthetic unbuffered draft', '-4.00', 0, $adminCookies);
+$unbufferedMergeTargetId = create_voucher($database, 'Synthetic unbuffered merge target', '-1.50', 0, $adminCookies);
+$unbufferedMergeSourceId = create_voucher($database, 'Synthetic unbuffered merge source', '-2.50', 0, $adminCookies);
+$unbufferedSteps = array(
+    'first approval' => array(
+        '/index.php?action=edit&id=' . rawurlencode($unbufferedVoucherId),
+        array('id' => $unbufferedVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'),
+        $adminCookies,
+        edit_location($unbufferedVoucherId, 4),
+    ),
+    'second approval' => array(
+        '/index.php?action=edit&id=' . rawurlencode($unbufferedVoucherId),
+        array('id' => $unbufferedVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'),
+        $reviewerCookies,
+        edit_location($unbufferedVoucherId, 4),
+    ),
+    'finalization' => array(
+        '/index.php?action=edit&id=' . rawurlencode($unbufferedVoucherId),
+        array('id' => $unbufferedVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
+        $adminCookies,
+        edit_location($unbufferedVoucherId, 2),
+    ),
+    'revision' => array(
+        '/index.php?action=edit&id=' . rawurlencode($unbufferedRevisionId),
+        revision_form($unbufferedRevisionId, 'Synthetic unbuffered revision', '-4.50'),
+        $adminCookies,
+        edit_location($unbufferedRevisionId, 5),
+    ),
+    'merge' => array(
+        '/index.php?action=merge&bid1=' . rawurlencode($unbufferedMergeTargetId)
+            . '&bid2=' . rawurlencode($unbufferedMergeSourceId),
+        null,
+        $adminCookies,
+        edit_location($unbufferedMergeTargetId, 6),
+    ),
+);
+foreach ($unbufferedSteps as $label => $step) {
+    assert_no_problems(known_failure_problems(
+        'KF-REDIRECT-UNBUFFERED',
+        "$label with output_buffering=0",
+        function () use ($step, $unbufferedUrl) {
+            $method = $step[1] === null ? 'GET' : 'POST';
+            $form = $step[1] === null ? array() : $step[1];
+            $response = http_request($step[0], $method, $form, $step[2], $unbufferedUrl);
+            return redirect_problems($response, $step[3]);
+        }
+    ), "$label with output_buffering=0");
+}
+$unbuffered = database_row(
+    $database,
+    'SELECT ack1, ack2, receipt_received FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
+    array($unbufferedVoucherId),
+    'voucher after unbuffered approvals and finalization'
+);
+assert_database_field($unbuffered, 'ack1', 'synthetic-admin', 'voucher after unbuffered approvals');
+assert_database_field($unbuffered, 'ack2', 'synthetic-reviewer', 'voucher after unbuffered approvals');
+assert_database_field($unbuffered, 'receipt_received', 't', 'voucher after unbuffered finalization');
+$unbufferedRevision = database_row(
+    $database,
+    'SELECT voucher_id, amount, deleted FROM vouchers WHERE comment = $1',
+    array('Synthetic unbuffered revision'),
+    'unbuffered replacement revision'
+);
+assert_database_field($unbufferedRevision, 'voucher_id', $unbufferedRevisionId, 'unbuffered replacement revision');
+assert_database_field($unbufferedRevision, 'amount', '-450', 'unbuffered replacement revision');
+assert_database_field($unbufferedRevision, 'deleted', 'f', 'unbuffered replacement revision');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1 AND deleted',
+    array('Synthetic unbuffered draft'),
+    1,
+    'unbuffered original revision'
+);
+assert_database_count($database, $voucherRowsQuery, array($unbufferedMergeTargetId), 2, 'unbuffered merge target');
+assert_database_count($database, $voucherRowsQuery, array($unbufferedMergeSourceId), 0, 'unbuffered merge source');
+
+// Visitors who are not logged in get the login redirect for every write
+// action, and nothing changes.
+$visitorDraftId = create_voucher($database, 'Synthetic draft for visitors', '-6.00', 9003, $adminCookies);
+$visitorEditUri = '/index.php?action=edit&id=' . rawurlencode($visitorDraftId);
+$visitorMergeUri = '/index.php?action=merge&bid1=' . rawurlencode($visitorDraftId)
+    . '&bid2=' . rawurlencode($mergeTargetId);
+$visitorRequests = array(
+    'voucher creation' => array('/index.php?action=new', voucher_form('Synthetic visitor voucher', '-7.00', 0)),
+    'approval' => array($visitorEditUri, array('id' => $visitorDraftId, 'parts' => '1', 'ack' => 'Bestätigen')),
+    'finalization' => array($visitorEditUri, array('id' => $visitorDraftId, 'parts' => '1', 'beleg' => 'Beleg erhalten')),
+    'revision' => array($visitorEditUri, revision_form($visitorDraftId, 'Synthetic visitor revision', '-8.00')),
+    'merge' => array($visitorMergeUri, null),
+);
+assert_no_problems(known_failure_problems(
+    'KF-REDIRECT-AFTER-OUTPUT',
+    'write actions when not logged in',
+    function () use ($database, $visitorRequests, $visitorDraftId, $mergeTargetId, $voucherRowsQuery) {
+        $problems = array();
+        foreach ($visitorRequests as $label => $request) {
+            $method = $request[1] === null ? 'GET' : 'POST';
+            $form = $request[1] === null ? array() : $request[1];
+            $response = http_request($request[0], $method, $form);
+            foreach (redirect_problems($response, login_redirect_location($request[0])) as $problem) {
+                $problems[] = "$label: $problem";
+            }
+        }
+        $commentQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1';
+        $draftQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted'
+            . ' AND ack1 IS NULL AND NOT receipt_received AND comment = $2';
+        return array_merge(
+            $problems,
+            database_count_problems($database, $commentQuery, array('Synthetic visitor voucher'), 0, 'visitor voucher'),
+            database_count_problems($database, $commentQuery, array('Synthetic visitor revision'), 0, 'visitor revision'),
+            database_count_problems(
+                $database,
+                $draftQuery,
+                array($visitorDraftId, 'Synthetic draft for visitors'),
+                1,
+                'draft after visitor writes'
+            ),
+            database_count_problems($database, $voucherRowsQuery, array($visitorDraftId), 1, 'visitor merge target'),
+            database_count_problems($database, $voucherRowsQuery, array($mergeTargetId), 2, 'visitor merge source')
+        );
+    }
+), 'write actions when not logged in');
 
 pg_close($database);
 assert_no_unexpected_diagnostics();
