@@ -185,7 +185,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
 
   $sourcepath = $_FILES["upload"]["tmp_name"][$i];
   $data = file_get_contents($sourcepath);
-  if (!receipt_store(getcwd() . '/files', $file_number, $id, $data)) {
+  if (!receipt_store(getcwd() . '/files', $file_number, $data)) {
     echo "Beleg konnte nicht gespeichert werden.<br />";
     return;
   }

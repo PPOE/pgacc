@@ -280,7 +280,7 @@ pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
 $data = file_get_contents($sourcepath);
-if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
+if (!receipt_store(getcwd() . '/files', $file_number, $data))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
   return;
