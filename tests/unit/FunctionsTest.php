@@ -1,17 +1,8 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
-
-final class FunctionsTest extends TestCase
+final class FunctionsTest extends FunctionsTestCase
 {
-    protected function setUp(): void
-    {
-        $_GET = array();
-        $GLOBALS['make_csv'] = false;
-        $GLOBALS['functions_test_rights'] = '';
-    }
-
-    public function testHexAndAsciiConversion(): void
+    public function testHexAndAsciiConversion()
     {
         self::assertSame("A\0Z", hex2ascii('41 00 5a'));
         self::assertSame('', hex2ascii(''));
@@ -19,7 +10,7 @@ final class FunctionsTest extends TestCase
         self::assertSame('', ascii2hex(''));
     }
 
-    public function testCsvDownloadLinkOutputAndSuppression(): void
+    public function testCsvDownloadLinkOutputAndSuppression()
     {
         $_SERVER['REQUEST_URI'] = '/index.php?action=all';
         ob_start();
@@ -43,13 +34,13 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider filterProvider
      */
-    public function testGetfilterBuildsExpectedConditions(array $get, string $expected): void
+    public function testGetfilterBuildsExpectedConditions(array $get, $expected)
     {
         $_GET = $get;
         self::assertSame($expected, getfilter());
     }
 
-    public static function filterProvider(): array
+    public static function filterProvider()
     {
         return array(
             'empty' => array(array(), ''),
@@ -97,7 +88,7 @@ final class FunctionsTest extends TestCase
         );
     }
 
-    public function testGetfilterSuppressesMalformedLegacyNumericRegex(): void
+    public function testGetfilterSuppressesMalformedLegacyNumericRegex()
     {
         $_GET = array('filter_amount' => '150');
         self::assertSame('', @getfilter());
@@ -106,16 +97,16 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider tagProvider
      */
-    public function testTagRendersHtmlAndCsv(array $args, string $expectedHtml, string $expectedCsv): void
+    public function testTagRendersHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
     {
-        [$tagName, $text] = $args;
+        list($tagName, $text) = $args;
         $GLOBALS['make_csv'] = false;
         self::assertSame($expectedHtml, tag($tagName, $text));
         $GLOBALS['make_csv'] = true;
         self::assertSame($expectedCsv, tag($tagName, $text));
     }
 
-    public static function tagProvider(): array
+    public static function tagProvider()
     {
         return array(
             'row and newline flattening' => array(array('tr', "line 1\nline 2"), "<tr>line 1\nline 2</tr>\n", "line 1 / line 2\n"),
@@ -128,7 +119,7 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider headerPageProvider
      */
-    public function testAccHeaderRendersEachPageTitle(string $page, string $title): void
+    public function testAccHeaderRendersEachPageTitle($page, $title)
     {
         ob_start();
         acc_header(null, $page, 2024);
@@ -136,7 +127,7 @@ final class FunctionsTest extends TestCase
         self::assertStringContainsString('<title>' . $title . '</title>', $html);
     }
 
-    public static function headerPageProvider(): array
+    public static function headerPageProvider()
     {
         return array(
             'default' => array('index', 'Rechenschaftsbericht - Piratenpartei Österreichs'),
@@ -148,7 +139,7 @@ final class FunctionsTest extends TestCase
         );
     }
 
-    public function testAccHeaderHidesAdminLinksWithoutRightsAndShowsDeletedLinkToBgf(): void
+    public function testAccHeaderHidesAdminLinksWithoutRightsAndShowsDeletedLinkToBgf()
     {
         ob_start();
         acc_header(null, 'index', 2024);
@@ -165,7 +156,7 @@ final class FunctionsTest extends TestCase
         self::assertStringContainsString('action=open&filter_date=2024', $adminHtml);
     }
 
-    public function testBlockHelpersSuppressCsvAndRenderHtml(): void
+    public function testBlockHelpersSuppressCsvAndRenderHtml()
     {
         ob_start();
         block_start('test');
@@ -181,7 +172,7 @@ final class FunctionsTest extends TestCase
         self::assertSame('', ob_get_clean());
     }
 
-    public function testAccFooterShowsLoginOrLogoutLink(): void
+    public function testAccFooterShowsLoginOrLogoutLink()
     {
         ob_start();
         acc_footer();
@@ -200,12 +191,12 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider formatDateProvider
      */
-    public function testFormatDate(string $input, string $expected): void
+    public function testFormatDate($input, $expected)
     {
         self::assertSame($expected, format_date($input));
     }
 
-    public static function formatDateProvider(): array
+    public static function formatDateProvider()
     {
         return array(
             'day month year' => array('1.2.2024', '2024-2-1'),
@@ -218,12 +209,12 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider rightsProvider
      */
-    public function testRights2orgasql(string $rights, string $expected): void
+    public function testRights2orgasql($rights, $expected)
     {
         self::assertSame($expected, @rights2orgasql($rights));
     }
 
-    public static function rightsProvider(): array
+    public static function rightsProvider()
     {
         return array(
             'bgf' => array('bgf', ''),
@@ -236,12 +227,12 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider accountProvider
      */
-    public function testKonto2lo(string $account, $expected): void
+    public function testKonto2lo($account, $expected)
     {
         self::assertSame($expected, konto2lo($account));
     }
 
-    public static function accountProvider(): array
+    public static function accountProvider()
     {
         return array(
             array('50110117270', 1), array('50110117300', 2), array('50110117318', 3),
@@ -254,13 +245,13 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider sortProvider
      */
-    public function testGetsort(string $sort, string $expected): void
+    public function testGetsort($sort, $expected)
     {
         $_GET['sort'] = $sort;
         self::assertSame($expected, getsort());
     }
 
-    public static function sortProvider(): array
+    public static function sortProvider()
     {
         $default = 'date ASC, voucher_id DESC, vouchers.id ASC';
         return array(
@@ -304,13 +295,13 @@ final class FunctionsTest extends TestCase
     /**
      * @dataProvider oppositeSortProvider
      */
-    public function testGetoppsort(string $current, string $requested, string $expected): void
+    public function testGetoppsort($current, $requested, $expected)
     {
         $_GET['sort'] = $current;
         self::assertSame($expected, getoppsort($requested));
     }
 
-    public static function oppositeSortProvider(): array
+    public static function oppositeSortProvider()
     {
         return array(
             'ascending to descending' => array('namea', 'namea', 'named'),
@@ -321,21 +312,21 @@ final class FunctionsTest extends TestCase
         );
     }
 
-    public function testPercentOfBookingsUsesSyntheticDatabaseRows(): void
+    public function testPercentOfBookingsUsesSyntheticDatabaseRows()
     {
         $text = percent_of_bookings();
         self::assertStringContainsString('2024: 7 Buchungszeilen, 4 (57.14 %) abgeschlossen, 2 (28.57 %) bearbeitet, 1 (14.29 %) unbearbeitet.', $text);
         self::assertStringNotContainsString('2023: ', $text);
     }
 
-    public function testEyesWithAndWithoutNoeyesFlag(): void
+    public function testEyesWithAndWithoutNoeyesFlag()
     {
         self::assertSame(' NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ', eyes());
         $_GET['noeyes'] = '1';
         self::assertSame(' NOT deleted ', eyes());
     }
 
-    public function testWhitelistKeepsOnlyPresentWhitelistedKeys(): void
+    public function testWhitelistKeepsOnlyPresentWhitelistedKeys()
     {
         self::assertSame(
             array('name' => 'Alice', 'zero' => 0),
@@ -343,7 +334,7 @@ final class FunctionsTest extends TestCase
         );
     }
 
-    public function testVouchersResetAckMovesCurrentAcknowledgementsToOldFields(): void
+    public function testVouchersResetAckMovesCurrentAcknowledgementsToOldFields()
     {
         $voucherId = 987654321;
         $connection = pg_connect('host=' . getenv('PGHOST') . ' port=' . getenv('PGPORT') . ' dbname=' . getenv('PGDATABASE') . ' user=' . getenv('PGUSER') . ' password=' . getenv('PGPASSWORD'));

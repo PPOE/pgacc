@@ -14,20 +14,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  syntax:
+    name: PHP syntax compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Run syntax compatibility matrix
+        run: sh tests/php-syntax-matrix.sh
+
   docker-harness:
-    name: Docker characterization harness
+    name: PHP ${{ matrix.php }} characterization harness
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.4'
+            project: pgacc-test-php74
+          - php: '5.6'
+            project: pgacc-test-php56
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - name: Pull test images
-        run: docker compose -f compose.test.yaml pull database php-lint database-test
-
-      - name: Run baseline checks
-        run: sh tests/run.sh
+      - name: Run application checks
+        run: sh tests/run.sh '${{ matrix.php }}'
 
       - name: Clean up containers
         if: always()
-        run: docker compose -f compose.test.yaml down --volumes --remove-orphans
+        run: docker compose --project-name '${{ matrix.project }}' -f compose.test.yaml down --volumes --remove-orphans

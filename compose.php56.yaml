@@ -1,0 +1,20 @@
+services:
+  database:
+    # libpq 9.6 predates SCRAM. Only this isolated synthetic database uses MD5.
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: --auth-host=md5
+    command: ["postgres", "-c", "password_encryption=md5"]
+
+  php-lint:
+    image: php:5.6-cli@sha256:6ce95208609dc66df163ab936c970b3b34cd901b85c747102c5999f08ade9143
+
+  application:
+    image: pgacc-test-application-php56
+    build:
+      context: .
+      dockerfile: tests/php56/runtime.Dockerfile
+
+  application-test:
+    image: pgacc-test-application-php56
+    command: ["sh", "tests/php56/application-tests.sh"]

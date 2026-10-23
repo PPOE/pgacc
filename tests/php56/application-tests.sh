@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+php --version
+php tests/http-smoke.php
+php /opt/test-tools/phpunit-5.7.27.phar --configuration tests/php56/phpunit.xml
+php tests/write-workflows.php
