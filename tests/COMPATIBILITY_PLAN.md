@@ -57,10 +57,11 @@ with synthetic users and covered by a mutation target.
     `20YY-M-D` is accepted; text before or after a date is treated like a
     missing date ("Kein Datum angegeben", saved as 1800-01-01, the existing
     handling) instead of being passed to the database.
-  - The old-approval listing filter (`getfilter()`, `filter_ack_old`) inserts
-    the value of `filter_ack` (an existing mix-up, kept), which is not
-    checked against a pattern there; it is escaped now. Without `filter_ack`
-    it no longer raises an undefined-index notice (same SQL as before).
+  - The old-approval listing filter (`getfilter()`, `filter_ack_old`)
+    inserted the value of `filter_ack`, which is not checked against a
+    pattern there. First escaped; since the review fix it uses its own
+    value, which its pattern checks (bug fix: the filter now filters by the
+    entered old approver; without a valid `filter_ack_old` it is not applied).
   Reviewed without change: `intval()`/digit-pattern values (`edit.php`
   merge, `page_edit()`, `recover.php`, `search.php`, `donations.php`,
   `index.php` hide and cookies, `file.php`), escaped values (`index.php`

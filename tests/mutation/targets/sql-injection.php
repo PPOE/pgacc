@@ -2,7 +2,8 @@
 /*
  * Request values used in SQL: the voucher ID of the edit actions (approval,
  * approval reset, revision, receipt upload) accepts digits
- * only, old approval names and the old-approval filter are escaped, and the
+ * only, old approval names are escaped, the old-approval filter uses its own
+ * (pattern-checked) value, and the
  * voucher date must match its pattern as a whole. Tested with
  * tests/write-workflows.php. See tests/mutation/README.md for the format.
  */
@@ -73,27 +74,19 @@ $mutations[] = array(
         . 'after a date reaches the SQL.',
 );
 $mutations[] = array(
-    'id' => 'old-ack-filter-unescaped',
+    'id' => 'old-ack-filter-wrong-value',
     'file' => 'functions.php',
-    'search' => "LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '') . \"%' OR ack2_old",
-    'replace' => "LIKE '%\" . (isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '') . \"%' OR ack2_old",
-    'rationale' => 'Removed escape: the old-approval filter inserts filter_ack, which is not '
-        . 'checked against a pattern there, as SQL.',
+    'search' => "ack1_old LIKE '%\" . \$_GET['filter_ack_old'] . \"%'",
+    'replace' => "ack1_old LIKE '%\" . \$_GET['filter_ack'] . \"%'",
+    'rationale' => 'The old-approval filter uses its own value, which its pattern checks (before the '
+        . 'fix it used filter_ack, which is not checked there).',
 );
 $mutations[] = array(
-    'id' => 'old-ack2-filter-unescaped',
+    'id' => 'old-ack2-filter-wrong-value',
     'file' => 'functions.php',
-    'search' => "ack2_old LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'replace' => "ack2_old LIKE '%\" . (isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'rationale' => 'Removed escape in the second column of the old-approval filter.',
-);
-$mutations[] = array(
-    'id' => 'old-ack-filter-unset',
-    'file' => 'functions.php',
-    'search' => "ack1_old LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'replace' => "ack1_old LIKE '%\" . pg_escape_string(\$_GET['filter_ack'])",
-    'rationale' => 'Without filter_ack the old-approval filter matches every old approval, without '
-        . 'an undefined-index diagnostic.',
+    'search' => "ack2_old LIKE '%\" . \$_GET['filter_ack_old'] . \"%'",
+    'replace' => "ack2_old LIKE '%\" . \$_GET['filter_ack'] . \"%'",
+    'rationale' => 'Both columns of the old-approval filter use its own value.',
 );
 
 return array(

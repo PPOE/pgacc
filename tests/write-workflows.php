@@ -890,13 +890,15 @@ foreach ($dateForms as $date => $stored) {
     assert_database_field($dated, 'date', $stored, $dateComment);
 }
 
-// The old-approval filter of the listings uses the approval filter's value
-// (filter_ack), escaped.
+// The old-approval filter of the listings (filter_ack_old) filters by its own
+// value (before the fix it used filter_ack's); values outside its pattern
+// are ignored like those of the other filters.
 pg_query_params($database, 'UPDATE vouchers SET ack1_old = $1 WHERE comment = $2', array('synthetic-old-approver', 'Synthetic injection target'));
 $filterCases = array(
-    'filter_ack=synthetic-old&filter_ack_old=any' => true,
-    'filter_ack_old=any' => true,
-    'filter_ack=' . rawurlencode("synthetic-old'") . '&filter_ack_old=any' => false,
+    'filter_ack_old=synthetic-old' => true,
+    'filter_ack_old=any' => false,
+    'filter_ack=synthetic-old&filter_ack_old=any' => false,
+    'filter_ack_old=' . rawurlencode("synthetic-old'") => true,
 );
 foreach ($filterCases as $query => $listed) {
     $listing = http_request('/index.php?action=all&' . $query, 'GET', array(), $adminCookies);

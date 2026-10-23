@@ -78,7 +78,11 @@ final class FunctionsTest extends FunctionsTestCase
             ),
             'acknowledgements' => array(
                 array('filter_ack' => 'Peter', 'filter_ack_old' => 'Old'),
-                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Peter%' OR ack2_old LIKE '%Peter%') "
+                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
+            ),
+            'old acknowledgements alone' => array(
+                array('filter_ack_old' => 'Old'),
+                " AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
             ),
             'voucher name' => array(array('filter_name' => 'Anna'), " AND lower(vouchers.name) LIKE lower('%Anna%')"),
             'invalid values are ignored' => array(
