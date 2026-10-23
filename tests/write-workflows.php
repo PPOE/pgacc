@@ -282,4 +282,5 @@ $oldRevision = database_row(
 assert_database_field($oldRevision, 'deleted', 'f', 'revision after authorized recovery');
 
 pg_close($database);
+assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

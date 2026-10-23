@@ -1,4 +1,7 @@
 <?php
+// Shared HTTP test helpers. Must stay compatible with PHP 5.6.
+
+require_once __DIR__ . '/http-diagnostics.php';
 
 function fail_test($message)
 {
@@ -6,17 +9,33 @@ function fail_test($message)
     exit(1);
 }
 
-function http_request($path, $method = 'GET', $form = array(), $cookies = array())
+// Test-client diagnostics (not the application's) are failures too, unless
+// deliberately silenced with "@".
+function test_client_error_handler($type, $message, $file, $line)
 {
-    $baseUrl = getenv('PGACC_TEST_BASE_URL');
+    if ((error_reporting() & $type) === 0) {
+        return false;
+    }
+    fail_test("PHP diagnostic in test client: $message in $file:$line");
+}
+error_reporting(E_ALL);
+set_error_handler('test_client_error_handler');
+
+function http_request($path, $method = 'GET', $form = array(), $cookies = array(), $baseUrl = null)
+{
+    if ($baseUrl === null) {
+        $baseUrl = getenv('PGACC_TEST_BASE_URL');
+    }
     if ($baseUrl === false || $baseUrl === '') {
         fail_test('PGACC_TEST_BASE_URL is not configured');
     }
 
+    $requestId = next_diagnostics_request_id();
     $headers = array(
         'X-Forwarded-Proto: https',
         'Host: pgacc.test',
         'Connection: close',
+        'X-Pgacc-Test-Request: ' . $requestId,
     );
 
     if (count($cookies) > 0) {
@@ -45,8 +64,18 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
         ),
     ));
 
-    $body = @file_get_contents(rtrim($baseUrl, '/') . $path, false, $context);
-    $responseHeaders = isset($http_response_header) ? $http_response_header : array();
+    $url = rtrim($baseUrl, '/') . $path;
+    if (function_exists('http_get_last_response_headers')) {
+        // PHP 8.4+; PHP 8.5 deprecates the magic $http_response_header local.
+        $body = @file_get_contents($url, false, $context);
+        $responseHeaders = http_get_last_response_headers();
+    } else {
+        require_once __DIR__ . '/http-legacy-headers.php';
+        list($body, $responseHeaders) = legacy_file_get_contents_with_headers($url, $context);
+    }
+    if (!is_array($responseHeaders)) {
+        $responseHeaders = array();
+    }
 
     if ($body === false || count($responseHeaders) === 0) {
         fail_test("request failed for $method $path");
@@ -56,11 +85,24 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
         fail_test("could not parse status for $method $path");
     }
 
-    return array(
+    $response = array(
         'status' => intval($matches[1]),
         'headers' => $responseHeaders,
         'body' => $body,
     );
+    collect_response_diagnostics($requestId, "$method $path", $response);
+    return $response;
+}
+
+function response_header($response, $name)
+{
+    $prefix = strtolower($name) . ':';
+    foreach ($response['headers'] as $header) {
+        if (strpos(strtolower($header), $prefix) === 0) {
+            return trim(substr($header, strlen($prefix)));
+        }
+    }
+    return null;
 }
 
 function response_cookies($response)
@@ -106,23 +148,75 @@ function assert_no_fatal_error($body, $label)
     assert_not_contains($body, 'Parse error', $label);
 }
 
+function login_request($name, $password, $target = null, $baseUrl = null)
+{
+    $form = array(
+        'submit' => 'Anmeldung',
+        'name' => $name,
+        'pass' => $password,
+    );
+    if ($target !== null) {
+        $form['target'] = strtoupper(bin2hex($target));
+    }
+    return http_request('/index.php?action=login', 'POST', $form, array(), $baseUrl);
+}
+
+// Returns a list of problems (empty when the response is a valid login
+// redirect), so callers can assert it or record it as a known failure.
+function login_response_problems($response, $expectedLocation, $expectedUserId = null)
+{
+    $problems = array();
+    if ($response['status'] !== 302) {
+        $problems[] = "returned HTTP {$response['status']}, expected 302";
+    }
+    $location = response_header($response, 'Location');
+    if ($location !== $expectedLocation) {
+        $problems[] = 'Location was ' . var_export($location, true)
+            . ', expected ' . var_export($expectedLocation, true);
+    }
+    $cookies = response_cookies($response);
+    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
+        if (!isset($cookies[$cookie]) || preg_match('/^-?\d+$/', $cookies[$cookie]) !== 1) {
+            $problems[] = "missing or non-numeric $cookie cookie";
+        }
+    }
+    if ($expectedUserId !== null && isset($cookies['pp_pgacc_id'])
+        && $cookies['pp_pgacc_id'] !== strval($expectedUserId)) {
+        $problems[] = "pp_pgacc_id cookie was {$cookies['pp_pgacc_id']}, expected $expectedUserId";
+    }
+    return $problems;
+}
+
+function logout_response_problems($response)
+{
+    $problems = array();
+    if ($response['status'] !== 302) {
+        $problems[] = "returned HTTP {$response['status']}, expected 302";
+    }
+    $location = response_header($response, 'Location');
+    if ($location !== 'index.php') {
+        $problems[] = 'Location was ' . var_export($location, true) . ", expected 'index.php'";
+    }
+    $cookies = response_cookies($response);
+    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
+        // PHP sends a cleared cookie as "deleted" with an expiry in the past.
+        if (!isset($cookies[$cookie]) || !in_array($cookies[$cookie], array('', 'deleted'), true)) {
+            $problems[] = "did not clear the $cookie cookie";
+        }
+    }
+    return $problems;
+}
+
+function assert_no_problems($problems, $label)
+{
+    if (count($problems) > 0) {
+        fail_test("$label " . implode('; ', $problems));
+    }
+}
+
 function login_user($name, $password)
 {
-    $response = http_request(
-        '/index.php?action=login',
-        'POST',
-        array(
-            'submit' => 'Anmeldung',
-            'name' => $name,
-            'pass' => $password,
-        )
-    );
-    assert_status($response, 302, "login for $name");
-
-    $cookies = response_cookies($response);
-    if (!isset($cookies['pp_pgacc_login']) || !isset($cookies['pp_pgacc_id'])) {
-        fail_test("login for $name did not issue both authentication cookies");
-    }
-
-    return $cookies;
+    $response = login_request($name, $password);
+    assert_no_problems(login_response_problems($response, 'index.php'), "login for $name");
+    return response_cookies($response);
 }

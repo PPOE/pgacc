@@ -51,4 +51,5 @@ assert_contains($ledger['body'], 'Synthetic Draft', 'authenticated ledger');
 assert_not_contains($ledger['body'], 'Deleted donation', 'authenticated ledger');
 assert_no_fatal_error($ledger['body'], 'authenticated ledger');
 
+assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL HTTP characterization tests passed\n";
