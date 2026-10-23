@@ -11,3 +11,4 @@ php tests/http-listing-prefs.php
 php tests/http-redirects.php
 php tests/http-donations.php
 php tests/write-workflows.php
+php tests/http-receipts.php

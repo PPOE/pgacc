@@ -263,7 +263,10 @@ deployed there:
 - `vendor/` comes from the locked `composer.lock` in a Composer build stage
   (squeeze's OpenSSL 0.9.8 cannot reach Packagist); the build checks it on 5.3
   with `composer check-platform-reqs` and `tests/php53/vendor-check.php` (TCPDF
-  writes a PDF, smalot/pdfparser reads it back; phpseclib once it is locked).
+  writes a PDF, smalot/pdfparser reads it back; phpseclib 2.0.55 reproduces all
+  21 mcrypt contract vectors of `tests/fixtures/mcrypt/vectors.json` through the
+  `functions.php` helpers, with its default engine (mcrypt, as production has
+  `php5-mcrypt`) and with its pure-PHP engine, on 32-bit PHP 5.3).
 
 PHP 5.3 has no built-in server, and the HTTP/write-workflow scripts use PHP 5.4+
 syntax, so `application-test` runs them from the PHP 5.6 lane image as clients of
@@ -273,9 +276,10 @@ version-dependent expectations chosen by the server's PHP version).
 `PHP/5.3.3-7+squeeze19` on `lighttpd/1.4.28`, that the recorder ran under 5.3,
 and that a request without `X-Forwarded-Proto: https` is redirected to
 `https://<Host><REQUEST_URI>` as behind the TLS proxy. `application-phpunit`
-runs `FunctionsTest.php` with PHPUnit 4.8.36 (PHAR, SHA-256 pinned; the last
-PHPUnit for PHP 5.3) on the 5.3 CLI with its stock `php.ini`, before the write
-workflows; the Infection wrapper tests are not run there. Differences from
+runs `FunctionsTest.php` and `CryptoTest.php` with PHPUnit 4.8.36 (PHAR, SHA-256
+pinned; the last PHPUnit for PHP 5.3) on the 5.3 CLI with its stock `php.ini`,
+before the write workflows (`tests/php53/phpunit.xml` lists the tests left out
+and why; `http-receipts.php` covers the receipt call sites on the 5.3 server). Differences from
 PHP 5.6 seen by the tests: `setcookie()` sends no `Max-Age` before PHP 5.5, and
 a cleared cookie expires one year (plus one second) before the request instead
 of at 1970-01-01; notices are reported (logged, not displayed) because of
