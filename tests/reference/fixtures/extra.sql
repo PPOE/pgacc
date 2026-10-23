@@ -30,16 +30,17 @@ VALUES
 INSERT INTO oo (id, name, lo)
 VALUES (2, 'Synthetic Piratenpartei Local', 6);
 
--- Ids 6 and 7 (synthetic-unit-two, synthetic-no-rights) are in data.sql;
+-- Ids 1 to 9 are in data.sql (users.id has no unique constraint, so a
+-- duplicate id would silently log in as the other user);
 -- synthetic-norights differs from synthetic-no-rights by its NULL hide.
 INSERT INTO users (id, name, hash, login, cookie, rights, hide)
 VALUES
-  (8, 'synthetic-readonly',
+  (10, 'synthetic-readonly',
    crypt('readonly-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 890123, 'Rbgf', ''),
-  (9, 'synthetic-norights',
+   timestamp '2024-01-01 12:00:00', 101234, 'Rbgf', ''),
+  (11, 'synthetic-norights',
    crypt('norights-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 901234, '', NULL);
+   timestamp '2024-01-01 12:00:00', 111234, '', NULL);
 
 INSERT INTO balance (id, value, orga, date)
 VALUES (3, -2147483648, 2, timestamp '2025-12-31 00:00:00');
