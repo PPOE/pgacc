@@ -982,9 +982,9 @@ function assert_read_only_unchanged($database, $states, $label)
         assert_voucher_rows($database, $voucherId, $state, "voucher $voucherId after $label");
     }
 }
-$readOnlyUpload = multipart_form_body(
+$readOnlyUpload = array(
     array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => '1', 'id' => $readOnlyTwoId),
-    array('file0' => array('synthetic-receipt.pdf', '%PDF-1.4 synthetic'))
+    $syntheticReceipt
 );
 $readOnlyPassword = database_row($database, 'SELECT hash FROM users WHERE id = 8', array(), 'read-only password');
 $writeRequests = array(
