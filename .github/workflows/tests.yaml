@@ -24,6 +24,16 @@ jobs:
       - name: Run syntax compatibility matrix
         run: sh tests/php-syntax-matrix.sh
 
+  static-analysis:
+    name: Static analysis (PHPCompatibility, PHPStan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Run static analysis against the reviewed baselines
+        run: sh tests/static-analysis.sh
+
   docker-harness:
     name: PHP ${{ matrix.php }} characterization harness
     runs-on: ubuntu-latest

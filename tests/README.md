@@ -282,6 +282,65 @@ differently on other runtimes is not measured there. Line coverage shows that a
 line ran, not that its result was asserted; mutation testing remains the check
 for assertion strength.
 
+## Static analysis
+
+```bash
+sh tests/static-analysis.sh                     # CI check against the baselines
+sh tests/static-analysis.sh --report            # every finding, baselines ignored
+sh tests/static-analysis.sh --update-baselines  # rewrite both baselines
+```
+
+This runs in its own image (`tests/static-analysis/Dockerfile`), separate from the
+legacy runtime images: pinned `php:8.5-cli` with tools installed from
+`tests/static-analysis/composer.lock` (PHP_CodeSniffer 4.0.4, PHPCompatibility
+10.0.0-alpha2, PHPCSUtils 1.2.3, PHPStan 2.3.1; the PHPStan PHAR is also checked
+against a SHA-256 digest). Network access is needed only to build the image. The
+analysis container has no network, a read-only repository mount and a read-only
+root filesystem. It analyses a temporary copy of the tracked top-level application
+PHP files (currently 29), excluding `vendor/`, `tests/`, `files/` and `proxy/`.
+The copy also contains the synthetic `tests/runtime/test-constants.php` as
+`constants.php` and the locked application `vendor/` directory, so `require()` paths resolve.
+`PGACC_TEST_ID` suffixes the image name, as for `tests/run.sh`.
+
+- **PHPCompatibility** through PHP_CodeSniffer (`phpcs.xml`): `testVersion`
+  5.6-8.5 plus `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
+- **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
+  variables (levels 0/1), unknown functions, argument counts and types, invalid
+  regular expressions. `phpVersion` is 7.1-8.5 because PHPStan cannot model PHP
+  below 7.1; PHPCompatibility covers the 5.6 floor. `stubs.php` declares the
+  removed `mcrypt` functions and constants.
+
+The check fails on any finding that is not in a baseline. It also fails on a
+baseline entry that is no longer reported or occurs a different number of times.
+A fix therefore has to remove its entry, and the finding cannot come back
+unnoticed later. `phpcs-baseline.txt` lists one line per finding: file, sniff and message.
+`phpstan-baseline.neon` is PHPStan's own format: message, identifier, count and
+path. Neither uses line numbers, so unrelated edits do not churn them. Every
+entry is listed and explained in
+[COMPATIBILITY_PLAN.md](COMPATIBILITY_PLAN.md#static-analysis-findings). Review
+the diff of any `--update-baselines` run like a code change. Some findings are
+also `tests/known-diagnostics.php` entries; fixing one of those removes both
+entries (see [PHP diagnostics are failures](#php-diagnostics-are-failures)).
+
+A canary self-test runs first. `tests/static-analysis/canaries/` holds minimal
+synthetic copies of the bug classes already found: `$ascii{$i}`, the uninitialized
+`$rights2` array, the result-loop arrays at `edit.php:345`/`donations.php:116`,
+a function reading `$key` without `global`, the optional-before-required
+parameter and a short open tag. A PHP 7-only `??` canary guards the 5.6 floor
+of `testVersion`. `canaries/expected.txt` names the finding each tool must
+report for them. A weakened configuration (for example, a lower PHPStan
+level or a narrower `testVersion`) fails this step even if the baselines are
+regenerated.
+
+Against the pre-fix `functions.php` (commit `8bbeb63`), PHPCompatibility reports
+`$ascii{$i}` (`RemovedCurlyBraceArrayAccess`) and PHPStan reports
+`Variable $rights2 might not be defined` (level 1 and above). Each tool catches
+only one of the two: PHPStan's parser accepts the curly-brace offset, and
+PHP_CodeSniffer has no data-flow analysis. The missing-upload `count()` crashes at
+`import.php:27` and `import2.php:24` are only reported at PHPStan level 9, as
+`count(mixed)`, among about 700 findings. The HTTP tests remain the check for
+those. Neither tool reports PHP 8.5's implicit PostgreSQL connection deprecation.
+
 ## Test improvement plan
 
 The [compatibility findings and fix list](COMPATIBILITY_PLAN.md) records completed

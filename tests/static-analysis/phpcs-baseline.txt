@@ -1,0 +1,30 @@
+# PHP_CodeSniffer baseline: reviewed existing findings, one per line.
+# file<TAB>sniff<TAB>message; duplicates are separate findings.
+# A finding missing here fails CI; an entry no longer reported fails
+# CI until it is removed. Regenerate with:
+#   sh tests/static-analysis.sh --update-baselines
+file.php	Generic.PHP.DisallowShortOpenTag.Found	Short PHP opening tag used; expected "<?php" but found "<?"
+file.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_mode_cbcDeprecatedRemoved	The constant "MCRYPT_MODE_CBC" is deprecated since PHP 7.1 and removed since PHP 7.2
+file.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_rijndael_256DeprecatedRemoved	The constant "MCRYPT_RIJNDAEL_256" is deprecated since PHP 7.1 and removed since PHP 7.2
+file.php	PHPCompatibility.Extensions.RemovedExtensions.mcryptDeprecatedRemoved	Extension 'mcrypt' is deprecated since PHP 7.1 and removed since PHP 7.2; Use openssl (preferred) or pecl/mcrypt once available instead
+file.php	PHPCompatibility.FunctionUse.RemovedFunctions.mcrypt_decryptDeprecatedRemoved	Function mcrypt_decrypt() is deprecated since PHP 7.1 and removed since PHP 7.2; Use OpenSSL instead
+getusers.php	Generic.PHP.DisallowShortOpenTag.Found	Short PHP opening tag used; expected "<?php" but found "<?"
+getusers.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_mode_cbcDeprecatedRemoved	The constant "MCRYPT_MODE_CBC" is deprecated since PHP 7.1 and removed since PHP 7.2
+getusers.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_rijndael_256DeprecatedRemoved	The constant "MCRYPT_RIJNDAEL_256" is deprecated since PHP 7.1 and removed since PHP 7.2
+getusers.php	PHPCompatibility.Extensions.RemovedExtensions.mcryptDeprecatedRemoved	Extension 'mcrypt' is deprecated since PHP 7.1 and removed since PHP 7.2; Use openssl (preferred) or pecl/mcrypt once available instead
+getusers.php	PHPCompatibility.FunctionUse.RemovedFunctions.mcrypt_decryptDeprecatedRemoved	Function mcrypt_decrypt() is deprecated since PHP 7.1 and removed since PHP 7.2; Use OpenSSL instead
+import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling fgetcsv() as its default value will change in a future PHP version.
+import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling str_getcsv() as its default value will change in a future PHP version.
+import2.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_mode_cbcDeprecatedRemoved	The constant "MCRYPT_MODE_CBC" is deprecated since PHP 7.1 and removed since PHP 7.2
+import2.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_rijndael_256DeprecatedRemoved	The constant "MCRYPT_RIJNDAEL_256" is deprecated since PHP 7.1 and removed since PHP 7.2
+import2.php	PHPCompatibility.Extensions.RemovedExtensions.mcryptDeprecatedRemoved	Extension 'mcrypt' is deprecated since PHP 7.1 and removed since PHP 7.2; Use openssl (preferred) or pecl/mcrypt once available instead
+import2.php	PHPCompatibility.FunctionUse.RemovedFunctions.mcrypt_encryptDeprecatedRemoved	Function mcrypt_encrypt() is deprecated since PHP 7.1 and removed since PHP 7.2; Use OpenSSL instead
+mbapi.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_mode_cbcDeprecatedRemoved	The constant "MCRYPT_MODE_CBC" is deprecated since PHP 7.1 and removed since PHP 7.2
+mbapi.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_rijndael_256DeprecatedRemoved	The constant "MCRYPT_RIJNDAEL_256" is deprecated since PHP 7.1 and removed since PHP 7.2
+mbapi.php	PHPCompatibility.Extensions.RemovedExtensions.mcryptDeprecatedRemoved	Extension 'mcrypt' is deprecated since PHP 7.1 and removed since PHP 7.2; Use openssl (preferred) or pecl/mcrypt once available instead
+mbapi.php	PHPCompatibility.FunctionUse.RemovedFunctions.mcrypt_encryptDeprecatedRemoved	Function mcrypt_encrypt() is deprecated since PHP 7.1 and removed since PHP 7.2; Use OpenSSL instead
+new.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_mode_cbcDeprecatedRemoved	The constant "MCRYPT_MODE_CBC" is deprecated since PHP 7.1 and removed since PHP 7.2
+new.php	PHPCompatibility.Constants.RemovedConstants.mcrypt_rijndael_256DeprecatedRemoved	The constant "MCRYPT_RIJNDAEL_256" is deprecated since PHP 7.1 and removed since PHP 7.2
+new.php	PHPCompatibility.Extensions.RemovedExtensions.mcryptDeprecatedRemoved	Extension 'mcrypt' is deprecated since PHP 7.1 and removed since PHP 7.2; Use openssl (preferred) or pecl/mcrypt once available instead
+new.php	PHPCompatibility.FunctionDeclarations.RemovedOptionalBeforeRequiredParam.Deprecated80	Declaring an optional parameter before a required parameter is deprecated since PHP 8.0. Parameter $part is optional, while parameter $part_to_remove is required. The $part parameter is implicitly treated as a required parameter.
+new.php	PHPCompatibility.FunctionUse.RemovedFunctions.mcrypt_encryptDeprecatedRemoved	Function mcrypt_encrypt() is deprecated since PHP 7.1 and removed since PHP 7.2; Use OpenSSL instead
