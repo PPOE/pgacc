@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/phpunit-bootstrap.php" colors="true" beStrictAboutTestsThatDoNotTestAnything="true">
+  <testsuites>
+    <testsuite name="functions.php">
+      <file>tests/unit/FunctionsTest.php</file>
+    </testsuite>
+  </testsuites>
+  <coverage processUncoveredFiles="true">
+    <include>
+      <file>functions.php</file>
+    </include>
+    <report>
+      <clover outputFile="/tmp/functions-clover.xml"/>
+    </report>
+  </coverage>
+</phpunit>

@@ -10,7 +10,10 @@ fi
 
 linted=0
 for php_file in $php_files; do
-  php -l "$php_file" >/dev/null
+  if ! php -l "$php_file" >/dev/null; then
+    php -l "$php_file"
+    exit 1
+  fi
   linted=$((linted + 1))
 done
 

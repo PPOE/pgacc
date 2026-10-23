@@ -11,6 +11,7 @@ cleanup()
 trap cleanup EXIT INT TERM
 
 docker compose -f "$compose_file" up --detach --wait database
+sh tests/php-syntax-matrix.sh
 docker compose -f "$compose_file" run --rm php-lint
 docker compose -f "$compose_file" run --rm database-test
 docker compose -f "$compose_file" up --build --detach --wait application
