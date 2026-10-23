@@ -78,7 +78,7 @@ return array(
         'php' => array('5.6', '7.4'),
         'type' => 'E_WARNING',
         'file' => 'index.php',
-        'lines' => array(328),
+        'lines' => array(338),
         'message' => '/^pg_close\\(\\): (supplied resource|\\d+) is not a valid PostgreSQL link resource$/',
         'reported' => true,
         'reason' => 'after relocate() closed the connection, index.php closes it '

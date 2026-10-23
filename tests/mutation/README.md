@@ -538,3 +538,27 @@ behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
 `rights2orgasql` target on every lane; `login-logout` is not in CI while it
 has the two survivors above.
+
+## Targeted mutation test: login/logout headers
+
+`login-headers.json` lists 26 mutants of the login/logout code changed to send
+cookies and redirects before `acc_header()` (`index.php`, `login.php`) and of the
+`page_new_buchung()` signature (`new.php`). "before" edits apply to the original
+code (20b5911), "after" edits to the fixed code; mutants that only exist in the
+fixed structure have no "before" edits. Each mutant was run manually against
+`tests/http-login.php` (both test servers) on the PHP 7.4 image, and the
+signature mutant on PHP 8.0, with mutated files bind-mounted over `/app` and a
+fresh synthetic database per run. The generalized HTTP mutation runner is
+expected to replace this manual run.
+
+| Code | Tests | Mutants | Killed | Survived |
+|---|---|---:|---:|---:|
+| Original (before) | `http-login.php` test-first version, with the unbuffered known failures | 19 | 18 | 1 |
+| Fixed (after) | final `http-login.php` | 26 | 25 | 1 |
+
+The survivor in both runs is `logout-expiry-in-future`, an equivalent mutant:
+for an empty cookie value PHP always sends `deleted` with a 1970 expiry and
+`Max-Age=0`, whatever expiry is passed. With the `http-login.php` at 20b5911,
+`login-cookie-expires-immediately` and `login-username-not-escaped` survived
+(reported by the HTTP mutation runner work); the cookie attribute and quoted
+credential checks kill them now.

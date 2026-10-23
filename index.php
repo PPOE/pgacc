@@ -170,6 +170,22 @@ if (isset($_GET["hide"]))
   pg_free_result($data);
 }
 
+// Login and logout send cookies and redirects: answer them before
+// acc_header() starts the page.
+if ($page == "logout")
+{
+  setcookie("pp_pgacc_login", "", time() - 3600);
+  setcookie("pp_pgacc_id", "", time() - 3600);
+  header("Location: index.php");
+  pg_close($dbconn);
+  return;
+}
+if ($page == "login" && login_redirect())
+{
+  pg_close($dbconn);
+  return;
+}
+
 $year = date('Y');
 
 if (!$make_csv)
@@ -282,12 +298,6 @@ else if ($page == "accounts")
 else if ($page == "login")
 {
   page_login();
-}
-else if ($page == "logout")
-{
-  setcookie("pp_pgacc_login", "", time() - 3600);
-  setcookie("pp_pgacc_id", "", time() - 3600);
-  header("Location: index.php");
 }
 else if ($page == "import")
 {

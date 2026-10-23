@@ -80,21 +80,24 @@ contracts from the current PHP application.
 login, successful login, and an authenticated ledger request. The runtime uses
 test-only constants and the locked Composer dependencies. It has no published
 host port, cannot reach external networks, and receives only synthetic data.
-The test server enables `output_buffering=4096` because the current login flow
-sends redirect and cookie headers after page rendering has started.
+The test server enables `output_buffering=4096`. Login and logout no longer
+depend on it (they send their headers before `acc_header()` renders), but other
+redirects still do; see `COMPATIBILITY_PLAN.md`.
 
 `http-login.php` checks login and logout responses directly: a valid login
-returns 302 with `Location: index.php` (or the hex-decoded `target`), numeric
-`pp_pgacc_login` and `pp_pgacc_id` cookies for the right user, and cookies that
-authenticate a follow-up request; rejected logins (wrong password, unknown
-user) return 200 with the form, no `Location`, and no cookies; logout returns
-302 to `index.php` and clears both cookies. It then starts a second built-in
-server inside the test container with `output_buffering=0` and repeats the
-valid login and logout there. Those two checks are **known failures**
-(`KF-LOGIN-UNBUFFERED`, `KF-LOGOUT-UNBUFFERED`): they document that the current
-redirects only work because of the 4,096-byte buffer. The script fails if a
-known failure starts passing, so the fix that moves header-setting actions
-before rendering must also move these checks to the regular assertions.
+returns 302 with an empty body and `Location: index.php` (or the hex-decoded
+`target`, including spaced/lowercase hex and the empty target the real form
+posts), numeric `pp_pgacc_login` and `pp_pgacc_id` cookies for the right user
+with a 24-hour expiry and no other attributes, the same cookie value in
+`users.cookie` with a fresh `users.login`, and cookies that authenticate a
+follow-up request. An already logged-in user gets "Login erfolgreich!", or a
+redirect to a posted target, without a new login. Rejected logins (wrong
+password, unknown user, quotes in user name or password) return 200 with the
+form (carrying the URL `target`), no `Location`, no cookies, and no database
+change; logout returns 302 with an empty body to `index.php` and clears both
+cookies. It then starts a second
+built-in server inside the test container with `output_buffering=0` and repeats
+the redirects there, so they cannot regress to depending on the buffer.
 
 ### PHP diagnostics are failures
 
@@ -120,8 +123,7 @@ pattern, and whether it was reported or hidden, with an ID and reason. It
 currently contains only issues observed on PHP 5.6 and 7.4, the lanes that
 passed before diagnostics were checked, so those lanes keep passing while the
 issues stay visible. PHP 8.0 and 8.5 have no entries, so every diagnostic there
-fails the lane. Requests made inside a known-failure check (the unbuffered
-server) are attributed to that known failure instead. Remove entries when the
+fails the lane, including on the unbuffered server. Remove entries when the
 application is fixed; do not add entries to make a lane green without review.
 On PHP 8.5, OPcache is active in the built-in server, so compile-time
 deprecations appear only on the first request that compiles a file.
@@ -185,12 +187,14 @@ on PHP 7.4.
 
 All four runtimes pass the 115 PHPUnit tests and 138 assertions after explicitly
 initializing the rights helper's organization array. The rights assertions no
-longer suppress warnings. On both PHP 8 runtimes, the HTTP and write tests fail:
-login and logout return 200 instead of 302 (no `Location`, no cookies), and
-every request reports diagnostics that have no known-diagnostics entry — the
-`new.php:450` parameter-order deprecation, undefined `$prevcond`, the
-PostgreSQL 15+ report query error, and "headers already sent" warnings; PHP 8.5
-adds implicit PostgreSQL connection and `strlen(null)` deprecations. See
+longer suppress warnings. On both PHP 8 runtimes, the HTTP and write tests fail
+on diagnostics that have no known-diagnostics entry: undefined `$prevcond`,
+`$user_prefs_hide` offsets, the PostgreSQL 15+ report query error, undefined
+`$rights`/`$rightssql`, and the closed-link error after `relocate()`. On PHP 8.0
+`http-login.php` passes and the write-workflow assertions pass up to the
+diagnostics check. PHP 8.5 adds implicit PostgreSQL connection and
+`strlen(null)` deprecations; displayed before the headers, they still break the
+login redirect without output buffering and the first approval redirect. See
 `COMPATIBILITY_PLAN.md`. These failures remain visible in CI; they are not
 allowed failures. The test helper no longer uses `$http_response_header` on
 PHP 8.5.
@@ -296,7 +300,7 @@ coverage. `compose.coverage.yaml` replaces the whole application command, so
 keep it identical to the command in `compose.test.yaml` apart from the
 `auto_prepend_file`. The second, `output_buffering=0` server that
 `http-login.php` starts inside the test container only loads the diagnostics
-recorder; its known-failure requests are not included in the coverage.
+recorder; its requests are not included in the coverage.
 
 Limitations: coverage is measured on PHP 7.4 only; code that behaves
 differently on other runtimes is not measured there. Line coverage shows that a
@@ -433,6 +437,8 @@ same reason, with a separate runner configuration. The initial suite covers
 - [x] Add login/logout response regressions (302, `Location`, both cookies,
   rejected logins without cookies) and `output_buffering=0` known failures
   that the header-ordering fix must flip.
+- [x] Send the login/logout cookies and redirects before rendering and turn
+  the `output_buffering=0` known failures into regular checks.
 - [x] Read HTTP response headers with `http_get_last_response_headers()` when
   available, falling back to `$http_response_header` on PHP 5.6-8.3.
 - [ ] Apply the same strictness to the PHPUnit process: PHP 8.5 currently

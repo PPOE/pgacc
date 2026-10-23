@@ -1,0 +1,467 @@
+{
+  "description": "Targeted mutants for the login/logout header ordering fix (index.php, login.php, new.php). Each mutant lists textual edits for the fixed code ('after') and, where the mutated code exists before the fix, for the original code at 20b5911 ('before'). Each edit replaces exactly one occurrence of 'from' with 'to' in 'file' (LF-normalized; index.php and new.php use CRLF). Killed means tests/http-login.php fails; 'lane' is the PHP lane the mutant is run on.",
+  "mutants": [
+    {
+      "id": "logout-login-cookie-name",
+      "lane": "7.4",
+      "description": "logout clears a differently named login cookie",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_logon\", \"\", time() - 3600);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_logon\", \"\", time() - 3600);"
+        }
+      ]
+    },
+    {
+      "id": "logout-id-cookie-not-cleared",
+      "lane": "7.4",
+      "description": "logout sets the id cookie to a value instead of clearing it",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_id\", \"0\", time() - 3600);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_id\", \"0\", time() - 3600);"
+        }
+      ]
+    },
+    {
+      "id": "logout-expiry-in-future",
+      "lane": "7.4",
+      "description": "logout cookie expiry in the future (expected equivalent: PHP always sends 'deleted' with a 1970 expiry for an empty value)",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_login\", \"\", time() + 3600);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);",
+          "to": "  setcookie(\"pp_pgacc_login\", \"\", time() + 3600);"
+        }
+      ]
+    },
+    {
+      "id": "logout-location",
+      "lane": "7.4",
+      "description": "logout redirects elsewhere",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");",
+          "to": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php?action=login\");"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");",
+          "to": "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php?action=login\");"
+        }
+      ]
+    },
+    {
+      "id": "logout-return-removed",
+      "lane": "7.4",
+      "description": "logout no longer ends the request (falls through to rendering the report page)",
+      "before": null,
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  header(\"Location: index.php\");\n  pg_close($dbconn);\n  return;\n",
+          "to": "  header(\"Location: index.php\");\n"
+        }
+      ]
+    },
+    {
+      "id": "logout-after-output",
+      "lane": "7.4",
+      "description": "logout block moved after acc_header() (the original ordering)",
+      "before": null,
+      "after": [
+        {
+          "file": "index.php",
+          "from": "if ($page == \"logout\")\n{\n  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);\n  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");\n  pg_close($dbconn);\n  return;\n}\n",
+          "to": ""
+        },
+        {
+          "file": "index.php",
+          "from": "  acc_header($dbconn,$page,$year);\n",
+          "to": "  acc_header($dbconn,$page,$year);\nif ($page == \"logout\")\n{\n  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);\n  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");\n  pg_close($dbconn);\n  return;\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "login-after-output",
+      "lane": "7.4",
+      "description": "login_redirect() called after acc_header() (the original ordering)",
+      "before": null,
+      "after": [
+        {
+          "file": "index.php",
+          "from": "if ($page == \"login\" && login_redirect())\n{\n  pg_close($dbconn);\n  return;\n}\n",
+          "to": ""
+        },
+        {
+          "file": "index.php",
+          "from": "  acc_header($dbconn,$page,$year);\n",
+          "to": "  acc_header($dbconn,$page,$year);\nif ($page == \"login\" && login_redirect())\n{\n  pg_close($dbconn);\n  return;\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "login-return-removed",
+      "lane": "7.4",
+      "description": "a completed login redirect no longer ends the request (page renders after the redirect)",
+      "before": null,
+      "after": [
+        {
+          "file": "index.php",
+          "from": "if ($page == \"login\" && login_redirect())\n{\n  pg_close($dbconn);\n  return;\n}\n",
+          "to": "if ($page == \"login\" && login_redirect())\n{\n  pg_close($dbconn);\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "login-id-cookie-name",
+      "lane": "7.4",
+      "description": "login sets a differently named id cookie",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_uid\", $id, time()+86400);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_uid\", $id, time()+86400);"
+        }
+      ]
+    },
+    {
+      "id": "login-cookie-value",
+      "lane": "7.4",
+      "description": "login cookie value differs from the stored users.cookie",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand + 1, time()+86400);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand + 1, time()+86400);"
+        }
+      ]
+    },
+    {
+      "id": "login-id-cookie-value",
+      "lane": "7.4",
+      "description": "login id cookie is always 1",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_id\", 1, time()+86400);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_id\", 1, time()+86400);"
+        }
+      ]
+    },
+    {
+      "id": "login-cookie-expiry",
+      "lane": "7.4",
+      "description": "login cookie lasts one hour instead of 24",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand, time()+3600);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand, time()+3600);"
+        }
+      ]
+    },
+    {
+      "id": "login-cookie-path",
+      "lane": "7.4",
+      "description": "login cookie gains a path attribute",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_id\", $id, time()+86400, \"/\");"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_id\", $id, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_id\", $id, time()+86400, \"/\");"
+        }
+      ]
+    },
+    {
+      "id": "login-target-not-decoded",
+      "lane": "7.4",
+      "description": "login redirects to the raw hex target",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "        header(\"Location: \" . hex2ascii($_POST['target']));",
+          "to": "        header(\"Location: \" . $_POST['target']);"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "        header(\"Location: \" . hex2ascii($_POST['target']));",
+          "to": "        header(\"Location: \" . $_POST['target']);"
+        }
+      ]
+    },
+    {
+      "id": "login-default-location",
+      "lane": "7.4",
+      "description": "login without target redirects elsewhere",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "        header(\"Location: index.php\");",
+          "to": "        header(\"Location: index.php?action=all\");"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "        header(\"Location: index.php\");",
+          "to": "        header(\"Location: index.php?action=all\");"
+        }
+      ]
+    },
+    {
+      "id": "login-password-check-removed",
+      "lane": "7.4",
+      "description": "any password logs in a known user",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "    if ($line['success'] == 't')",
+          "to": "    if (true)"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "    if ($line['success'] == 't')",
+          "to": "    if (true)"
+        }
+      ]
+    },
+    {
+      "id": "login-database-update-removed",
+      "lane": "7.4",
+      "description": "login does not store the cookie and login time",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "      pg_query(\"UPDATE users SET cookie = $rand, login = now() WHERE id = $id\");",
+          "to": ""
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "      pg_query(\"UPDATE users SET cookie = $rand, login = now() WHERE id = $id\");",
+          "to": ""
+        }
+      ]
+    },
+    {
+      "id": "login-submit-check-negated",
+      "lane": "7.4",
+      "description": "credentials are processed only without the submit button value",
+      "before": [
+        {
+          "file": "login.php",
+          "from": "  if ($submit == \"Anmeldung\")",
+          "to": "  if ($submit != \"Anmeldung\")"
+        }
+      ],
+      "after": [
+        {
+          "file": "login.php",
+          "from": "  if ($submit == \"Anmeldung\")",
+          "to": "  if ($submit != \"Anmeldung\")"
+        }
+      ]
+    },
+    {
+      "id": "logged-in-guard-removed",
+      "lane": "7.4",
+      "description": "an already logged-in user's posted credentials are processed (no target redirect, re-login)",
+      "before": [
+        {
+          "file": "login.php",
+          "from": "  if (checklogin('id',false) > 0)\n  {\n    if (isset($_POST['target']))",
+          "to": "  if (false)\n  {\n    if (isset($_POST['target']))"
+        }
+      ],
+      "after": [
+        {
+          "file": "login.php",
+          "from": "  if (checklogin('id',false) > 0)\n  {\n    if (isset($_POST['target']))",
+          "to": "  if (false)\n  {\n    if (isset($_POST['target']))"
+        }
+      ]
+    },
+    {
+      "id": "logged-in-target-not-decoded",
+      "lane": "7.4",
+      "description": "an already logged-in user is redirected to the raw hex target",
+      "before": [
+        {
+          "file": "login.php",
+          "from": "      header(\"Location: \" . hex2ascii($_POST['target']));",
+          "to": "      header(\"Location: \" . $_POST['target']);"
+        }
+      ],
+      "after": [
+        {
+          "file": "login.php",
+          "from": "      header(\"Location: \" . hex2ascii($_POST['target']));",
+          "to": "      header(\"Location: \" . $_POST['target']);"
+        }
+      ]
+    },
+    {
+      "id": "logged-in-target-continues",
+      "lane": "7.4",
+      "description": "an already logged-in target redirect does not end the request",
+      "before": null,
+      "after": [
+        {
+          "file": "login.php",
+          "from": "      header(\"Location: \" . hex2ascii($_POST['target']));\n      return true;",
+          "to": "      header(\"Location: \" . hex2ascii($_POST['target']));\n      return false;"
+        }
+      ]
+    },
+    {
+      "id": "rejected-login-ends-request",
+      "lane": "7.4",
+      "description": "a rejected login ends the request without rendering the form",
+      "before": null,
+      "after": [
+        {
+          "file": "login.php",
+          "from": "    return login($name, $pass) > 0;",
+          "to": "    return login($name, $pass) >= 0;"
+        }
+      ]
+    },
+    {
+      "id": "page-new-buchung-default-restored",
+      "lane": "8.0",
+      "description": "the optional-before-required $part = 0 default is restored (PHP 8 deprecation on every request)",
+      "before": null,
+      "after": [
+        {
+          "file": "new.php",
+          "from": "function page_new_buchung($part, $part_to_remove,$rights,$add)",
+          "to": "function page_new_buchung($part = 0, $part_to_remove,$rights,$add)"
+        }
+      ]
+    },
+    {
+      "id": "login-username-not-escaped",
+      "lane": "7.4",
+      "description": "pg_escape_string() removed from the user name (SQL injection / SQL error on a quote)",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  $user = pg_escape_string($user);\n",
+          "to": ""
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  $user = pg_escape_string($user);\n",
+          "to": ""
+        }
+      ]
+    },
+    {
+      "id": "login-password-not-escaped",
+      "lane": "7.4",
+      "description": "pg_escape_string() removed from the password",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "  $pass = pg_escape_string($pass);\n",
+          "to": ""
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "  $pass = pg_escape_string($pass);\n",
+          "to": ""
+        }
+      ]
+    },
+    {
+      "id": "login-cookie-expires-immediately",
+      "lane": "7.4",
+      "description": "login cookie expiry is the current time (expires immediately)",
+      "before": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand, time());"
+        }
+      ],
+      "after": [
+        {
+          "file": "index.php",
+          "from": "setcookie(\"pp_pgacc_login\", $rand, time()+86400);",
+          "to": "setcookie(\"pp_pgacc_login\", $rand, time());"
+        }
+      ]
+    }
+  ]
+}

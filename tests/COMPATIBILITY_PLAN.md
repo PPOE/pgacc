@@ -2,7 +2,7 @@
 
 Reviewed against the synthetic Docker harness on 2026-10-23. This list separates
 completed changes from reproducible failures and configuration-dependent risks.
-Application changes beyond the two completed helper fixes remain follow-up work.
+Application changes beyond the completed items below remain follow-up work.
 
 ## Completed and verified
 
@@ -19,7 +19,7 @@ Application changes beyond the two completed helper fixes remain follow-up work.
   initialization-removal mutant is also killed (31/31 on PHP 7.4 and 8.5).
 - [x] Add separate Docker/GitHub Actions runtime lanes. PHP 5.6 and 7.4 pass
   the full HTTP/write harness, with the reviewed diagnostics baseline below.
-  PHP 8.0 and 8.5 remain failing on login headers and unlisted diagnostics.
+  PHP 8.0 and 8.5 remain failing on unlisted diagnostics.
   The runner attempts every lane and returns nonzero if any fails.
 
 ## Login and redirect failure: confirmed
@@ -50,17 +50,30 @@ explains that dropping the unused default generally preserves behavior; see
 
 - [x] Add response-level regressions for valid login, rejected login, both
   cookies, redirect destination, and behavior with buffering disabled/small.
-  `tests/http-login.php` passes on PHP 5.6/7.4 and fails on 8.0/8.5 (login,
-  login with target, and logout return 200 without `Location` or cookies).
-  With `output_buffering=0` login and logout fail on every lane; these are the
-  known failures `KF-LOGIN-UNBUFFERED` and `KF-LOGOUT-UNBUFFERED`, reported as
-  "headers already sent by (output started at functions.php:118/122)". The
-  script fails when either starts passing, so the fix below must flip them.
-- [ ] Process login and other header-setting actions before rendering HTML.
-  Verify logout and receipt/download redirects as well. Then move
-  `KF-LOGIN-UNBUFFERED`/`KF-LOGOUT-UNBUFFERED` to regular assertions.
-- [ ] Review every `page_new_buchung()` call and remove the ineffective default
-  or otherwise correct the signature without changing positional arguments.
+  Before the fix below, `tests/http-login.php` passed on PHP 5.6/7.4 and
+  failed on 8.0/8.5 (login, login with target, and logout returned 200 without
+  `Location` or cookies). With `output_buffering=0` login and logout failed on
+  every lane ("headers already sent by (output started at
+  functions.php:118/122)"), recorded as the known failures
+  `KF-LOGIN-UNBUFFERED` and `KF-LOGOUT-UNBUFFERED` until the fix below.
+- [x] Process login and logout before rendering HTML. `index.php` answers
+  logout and `login_redirect()` (successful login, or an already logged-in
+  user posting a `target`) before `acc_header()`, then closes the connection
+  and returns; rejected logins and the form render as before. Redirect bodies
+  are now empty. `KF-LOGIN-UNBUFFERED`/`KF-LOGOUT-UNBUFFERED` are regular
+  assertions and pass on PHP 5.6, 7.4, and 8.0. On PHP 8.5 the login redirect
+  still needs the buffer because the implicit-connection deprecations in
+  `login()`/`checklogin()` (`index.php:15-17/26/78`) are displayed first.
+- [ ] Other headers still sent after `acc_header()` has rendered, so they still
+  depend on output buffering: `checklogin()`'s login redirect
+  (`index.php:109`) for every protected page, including CSV listings after the
+  BOM; `relocate()` (`edit.php:6`) after voucher creation, approval,
+  finalization, merge, and revision saves (fails on PHP 8.5 in the first
+  approval); and `page_search()` (`search.php:5`). The receipt download
+  (`file.php`) and the CSV headers are sent before any output.
+- [x] Review every `page_new_buchung()` call and remove the ineffective default.
+  The only caller (`new.php:610`) passes all four arguments; the `$part = 0`
+  default is dropped and the `new.php:450` deprecation is gone on PHP 8.
 - [x] Keep runtime diagnostics visible in tests. A larger buffer or suppressed
   errors alone must not be treated as the application fix. The HTTP tests now
   record every diagnostic per request without changing error settings and fail
@@ -81,7 +94,7 @@ lanes keep passing only through these entries:
 | `KD-PREFS-HIDE` | `closed.php` 37 lines | Hidden notices: `$user_prefs_hide[$n]` undefined offsets for users without hide preferences (54 distinct line/offset pairs per ledger request). | [ ] Use `isset()`/defaults; output must stay identical. |
 | `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [ ] Determine the intended rights argument; test scoped users. |
 | `KD-EDIT-RIGHTSSQL` | `edit.php:117` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] Review the authorization intent before changing it. |
-| `KD-EDIT-RELOCATE-CLOSED-LINK` | `index.php:78`, `index.php:328` | Displayed warnings in approval/revision redirect bodies: `relocate()` in `edit.php` closes the connection and returns, so `checklogin()` queries without a link and the final `pg_close()` fails. | [ ] Stop processing after the redirect; assert the redirect body is diagnostic-free. |
+| `KD-EDIT-RELOCATE-CLOSED-LINK` | `index.php:78`, `index.php:338` | Displayed warnings in approval/revision redirect bodies: `relocate()` in `edit.php` closes the connection and returns, so `checklogin()` queries without a link and the final `pg_close()` fails. | [ ] Stop processing after the redirect; assert the redirect body is diagnostic-free. |
 
 `KD-REPORT-PREVCOND`, `KD-NEW-RIGHTS` and `KD-EDIT-RIGHTSSQL` are also PHPStan
 baseline findings ("Undefined variables in function scope" under
@@ -90,14 +103,17 @@ must remove both its entry here and its PHPStan baseline entry; the static
 check fails until the stale baseline entry is gone.
 
 PHP 8.0 and 8.5 have no baseline entries; every diagnostic fails the lane.
-In addition to the PHP 8 forms of the issues above (seen before the run stops
-at login), they report:
+In addition to the PHP 8 forms of the issues above, they report:
 
-- PHP 8.0 and 8.5: `new.php:450` deprecation for required parameters after the
-  optional `$part` (on every request that compiles `new.php`; also a
-  PHPCompatibility baseline finding), and
-  "Cannot modify header information - headers already sent" at
-  `index.php:27/28/31/33` (login) and `index.php:288-290` (logout).
+- PHP 8.0 and 8.5: undefined `$rights` (`new.php:184`) and `$rightssql`
+  (`edit.php:117`) as warnings, and an uncaught `Error` "No PostgreSQL link
+  opened yet" at `index.php:78` (from `acc_footer()` after `relocate()`).
+  The `new.php:450` deprecation (also a former PHPCompatibility baseline
+  finding) and the login/logout "headers already sent"
+  warnings are fixed.
+- PHP 8.5 only: "headers already sent" at `index.php:27/28/31/33` (login on the
+  unbuffered server, output started by the `index.php:15` deprecation) and
+  `edit.php:6` (approval redirect).
 - PHP 8.5 only: "Automatic fetching of PostgreSQL connection is deprecated"
   for `pg_query()`, `pg_escape_string()`, and `pg_last_error()` in
   `functions.php:434`, `index.php:15-17/26`, `report.php`, `transactions.php`,

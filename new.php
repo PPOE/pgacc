@@ -447,7 +447,7 @@ echo '
 block_end();
 }
 
-function page_new_buchung($part = 0, $part_to_remove,$rights,$add)
+function page_new_buchung($part, $part_to_remove,$rights,$add)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
 	$voucher = get_voucher($part+1,$rights);
