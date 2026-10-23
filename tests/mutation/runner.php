@@ -63,13 +63,21 @@ function shell($command)
 
 function maintenance_connection()
 {
-    $connection = @pg_connect(sprintf(
-        'host=%s port=%s dbname=postgres user=%s password=%s',
-        getenv('PGHOST'),
-        getenv('PGPORT'),
-        getenv('PGUSER'),
-        getenv('PGPASSWORD')
-    ), PGSQL_CONNECT_FORCE_NEW);
+    // Older server images (e.g. 9.4) report healthy while their init-time
+    // server still listens on the Unix socket only, so retry TCP briefly.
+    for ($attempt = 0; $attempt < 30; $attempt++) {
+        $connection = @pg_connect(sprintf(
+            'host=%s port=%s dbname=postgres user=%s password=%s',
+            getenv('PGHOST'),
+            getenv('PGPORT'),
+            getenv('PGUSER'),
+            getenv('PGPASSWORD')
+        ), PGSQL_CONNECT_FORCE_NEW);
+        if ($connection !== false) {
+            break;
+        }
+        sleep(1);
+    }
     if ($connection === false) {
         pgacc_mutation_fail('cannot connect to the PostgreSQL maintenance database');
     }
