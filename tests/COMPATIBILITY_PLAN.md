@@ -167,10 +167,10 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
   checks rather than a formatting rewrite; see
   [PHP_CodeSniffer usage](https://github.com/PHPCSStandards/PHP_CodeSniffer/wiki/Usage).
   It reports `getusers.php:1` and `file.php:1`.
-- [ ] Review existing findings before establishing a baseline, then prevent new
+- [x] Review existing findings before establishing a baseline, then prevent new
   findings in CI. Static analysis complements the HTTP cookie/redirect tests;
-  it does not establish their runtime behavior. *Proposed, pending owner
-  review:* `phpcs-baseline.txt` (25 entries) and `phpstan-baseline.neon` (91
+  it does not establish their runtime behavior. Approved by the owner:
+  `phpcs-baseline.txt` (25 entries) and `phpstan-baseline.neon` (91
   findings in 41 entries) list every current finding (see
   [below](#static-analysis-findings)). The CI `static-analysis` job fails on new
   findings and on baseline entries that are no longer reported. Canary files
@@ -179,9 +179,33 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
   upgrades and automated refactoring. Start with selected rules and `--dry-run`,
   review the proposed diffs, and verify them against the runtime matrix before
   applying changes. Keep the minimum supported PHP version explicit.
-- [ ] Evaluate a mutation framework such as Infection for broader generated
-  mutations, reviewed equivalent mutants, and CI reporting. Keep the targeted
-  mutation cases as evidence while deciding how to replace the custom runner.
+- [x] Evaluate a mutation framework such as Infection for broader generated
+  mutations, reviewed equivalent mutants, and CI reporting. Infection runs on
+  the PHPUnit-tested helpers (PHP 7.4/8.5); the target-driven runner covers
+  HTTP-tested code, security-relevant mutations and PHP 5.6. See the
+  [mutation README](mutation/README.md).
+- [ ] Add coding-standard checks with PHP_CodeSniffer, which is already pinned
+  in the static-analysis container for PHPCompatibility. PHP_CodeSniffer is
+  the usual choice for long-lived legacy PHP code: WordPress (WordPress Coding
+  Standards, PHPCompatibilityWP) and MediaWiki (mediawiki-codesniffer) both use
+  it. Prefer it over PHP-CS-Fixer while PHP 5.6 is supported, because several
+  PHP-CS-Fixer rules introduce newer syntax. Target the neutral
+  [PER Coding Style](https://www.php-fig.org/per/coding-style/), not a
+  project-specific style. Stages:
+  1. Add `.editorconfig` (line endings, indentation, final newline; the files
+     currently mix CRLF and LF) and correctness-oriented sniffs that report
+     without reformatting, with a reviewed baseline like the PHPStan one.
+  2. "Format on touch": enforce PER style only on changed lines in CI, by
+     filtering the `phpcs` report through `tests/coverage/changed-lines.sh`.
+  3. Later (after the PHP 8 migration, with higher coverage, possibly after
+     dropping PHP 5.6): one formatting-only commit for the whole codebase,
+     proven behavior-neutral by comparing compiled opcodes before and after,
+     listed in `.git-blame-ignore-revs`, with the line-based diagnostics
+     baseline and mutation targets regenerated. PHP-CS-Fixer becomes an
+     option at that point.
+  Do not reformat the whole codebase before then: it would rewrite nearly every
+  line, break `git blame`, and shift the line numbers that the diagnostics
+  baseline and mutation targets depend on.
 
 ## Static-analysis findings
 
