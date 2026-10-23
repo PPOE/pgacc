@@ -38,7 +38,15 @@ VALUES
    timestamp '2024-01-01 12:00:00', 234567, 'bgf', ''),
   (3, 'synthetic-unit-one',
    crypt('unit-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 345678, '1', '');
+   timestamp '2024-01-01 12:00:00', 345678, '1', ''),
+  -- Stored listing column preferences (closed.php, $user_prefs_hide): the
+  -- two users together hide every one of the 18 ledger columns once.
+  (4, 'synthetic-hide-odd',
+   crypt('hide-odd-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 456789, 'root,bgf', '1,3,5,7,9,11,13,15,17'),
+  (5, 'synthetic-hide-even',
+   crypt('hide-even-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 567890, 'root,bgf', '2,4,6,8,10,12,14,16,18');
 
 INSERT INTO balance (id, value, orga, date)
 VALUES

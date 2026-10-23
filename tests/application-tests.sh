@@ -24,6 +24,7 @@ fi
 
 php tests/http-smoke.php
 php tests/http-login.php
+php tests/http-listing-prefs.php
 # shellcheck disable=SC2086 # intentional word splitting of the optional flags
 XDEBUG_MODE=coverage php -d memory_limit="$phpunit_memory" vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result --coverage-text $phpunit_coverage
 php tests/show-uncovered-functions.php /tmp/functions-clover.xml

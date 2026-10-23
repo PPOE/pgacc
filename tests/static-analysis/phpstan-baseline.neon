@@ -13,12 +13,6 @@ parameters:
 			path: ../../check.php
 
 		-
-			message: '#^Function tag invoked with 1 parameter, 2 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: ../../closed.php
-
-		-
 			message: '#^Undefined variable\: \$donations$#'
 			identifier: variable.undefined
 			count: 1

@@ -20,17 +20,6 @@ return array(
     // (PHP 5.6 and 7.4). PHP 8.0/8.5 have no entries on purpose: every
     // diagnostic there is reported as a failure. See tests/README.md.
     array(
-        'id' => 'KD-PREFS-HIDE',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_NOTICE',
-        'file' => 'closed.php',
-        'lines' => array(54, 95, 98, 101, 104, 107, 110, 113, 116, 119, 122, 125, 128, 131, 134, 137, 140, 143, 146, 167, 176, 180, 187, 196, 202, 211, 215, 219, 223, 227, 231, 235, 239, 243, 247, 251, 255),
-        'message' => '/^Undefined offset: \\d+$/',
-        'reported' => false,
-        'reason' => 'listing column helpers read $user_prefs_hide[$n] for users '
-            . 'without hide preferences; null == 1 is false, so columns show',
-    ),
-    array(
         'id' => 'KD-REPORT-PREVCOND',
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',
