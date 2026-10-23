@@ -28,9 +28,10 @@ PHP 8 has not introduced a new rule prohibiting these redirects. The documented
 rule is that headers must precede response output, and `Location` normally sets
 status 302. See the [PHP header manual](https://www.php.net/manual/en/function.header.php).
 
-The application calls `acc_header()` at `index.php:176` before dispatching to
-`page_login()` at `index.php:284`. Login sets cookies and a redirect at
-`index.php:27-33`, after rendering has begun. It currently depends on buffering.
+Before the fix below (at 20b5911), the application called `acc_header()` at
+`index.php:176` before dispatching to `page_login()` at `index.php:284`. Login
+set cookies and a redirect at `index.php:27-33`, after rendering had begun, so
+it depended on buffering.
 
 The PHP 8.0 reproduction with the normal 4,096-byte buffer showed:
 
@@ -186,7 +187,7 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
 - [x] Review existing findings before establishing a baseline, then prevent new
   findings in CI. Static analysis complements the HTTP cookie/redirect tests;
   it does not establish their runtime behavior. Approved by the owner:
-  `phpcs-baseline.txt` (25 entries) and `phpstan-baseline.neon` (91
+  `phpcs-baseline.txt` (24 entries, after the `new.php:450` fix) and `phpstan-baseline.neon` (91
   findings in 41 entries) list every current finding (see
   [below](#static-analysis-findings)). The CI `static-analysis` job fails on new
   findings and on baseline entries that are no longer reported. Canary files
@@ -242,12 +243,11 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (25 findings)
+### PHPCompatibility (24 findings)
 
 | Finding | Locations | Status |
 |---|---|---|
 | Short open tag | `file.php:1`, `getusers.php:1` | Known (short-tag item above) |
-| Optional parameter before required (deprecated in 8.0) | `new.php:450` | Known (login redirect section; PHP 8 strict-HTTP diagnostic) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | Known (`mcrypt` item above). `import2.php:189` is the second receipt-encryption call site, on the PDF import path. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 
@@ -257,17 +257,17 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 |---|---|---|
 | Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. |
 | Malformed regular expression | `functions.php:73` | Known |
-| Extra arguments to functions without parameters | `index.php:210`, `:232`, `:257`, `:295`; `functions.php:163` | Known from the Rector review |
+| Extra arguments to functions without parameters | `index.php:226`, `:248`, `:273`, `:305`; `functions.php:163` | Known from the Rector review |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **New.** Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **New.** On PHP 7.1+ this throws `ArgumentCountError` whenever a listing column is hidden through `user_prefs_hide`; on 5.6 it is only a warning. The HTTP tests only cover users without hide preferences (`KD-PREFS-HIDE`), so they do not reach this path. |
-| Undefined functions | `index.php:234` `page_new_ack()`, `index.php:253` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
+| Undefined functions | `index.php:250` `page_new_ack()`, `index.php:269` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`), `edit.php:117` (`$rightssql` in `page_edit_ack()`), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:17` (`$datakey`, 2) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
-| Whitespace after the final `?>` | `check.php:64`, `index.php:330` | **New**, low. Emitted after page output. |
+| Whitespace after the final `?>` | `check.php:64`, `index.php:340` | **New**, low. Emitted after page output. |
 
 ### Not detected by either tool
 
@@ -280,5 +280,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
   `KD-PREFS-HIDE` (undefined offsets of a query-built array) and
   `KD-EDIT-RELOCATE-CLOSED-LINK` (closed connection) are runtime behavior that
   neither tool reports at the configured levels.
-- The login header-ordering failure is runtime behavior. The tools only flag
-  its trigger at `new.php:450`.
+- The login header-ordering failure was runtime behavior. The tools only
+  flagged its trigger, the optional-before-required parameter at
+  `new.php:450`; that finding was removed from the PHPCompatibility baseline
+  with the fix (24 findings since).
