@@ -137,6 +137,41 @@ jobs:
         if: always()
         run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
 
+  reference:
+    # PHP 5 golden master (tests/reference/, tests/README.md): PHP 5.6 must
+    # reproduce the committed recording byte for byte; the other lanes must
+    # match it except for reviewed tests/reference/allowlist.php entries.
+    # Failures stay visible: not continue-on-error, like the PHP 8 lanes.
+    name: PHP 5 reference comparison (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.4', '8.0', '8.5']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Compare with the PHP 5 reference
+        run: sh tests/reference/run.sh compare '${{ matrix.php }}'
+
+      - name: Publish comparison summary
+        if: always()
+        run: |
+          report="build/reference/php$(echo '${{ matrix.php }}' | tr -d .)/report.txt"
+          if [ -f "$report" ]; then
+            { echo '```'; head -n 80 "$report"; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload comparison report and recording
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reference-php${{ matrix.php }}
+          path: build/reference
+          if-no-files-found: warn
+
   mutation:
     # Report only: Infection results are not a required gate yet. See
     # tests/mutation/README.md for the baseline and threshold plan.

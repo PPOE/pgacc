@@ -92,3 +92,4 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `tests/run.sh`, `compose*.yaml` | Harness entry point and per-lane Compose files |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
+| `tests/reference/` | PHP 5 golden master: `record.sh` (PHP 5.6), `run.sh compare <lane>`, reviewed `allowlist.php` |

@@ -41,7 +41,8 @@ GitHub Actions runs the four application lanes as parallel matrix jobs
 on PostgreSQL 17, plus PHP 7.4 on PostgreSQL 9.4 and 18 (see
 [PostgreSQL versions](#postgresql-versions)),
 alongside a separate syntax compatibility job. A failure in any application
-lane fails CI; it does not cancel the other lanes. A separate, non-blocking `mutation`
+lane fails CI; it does not cancel the other lanes. A separate job compares every
+lane with the [PHP 5 reference recordings](#php-5-reference-recordings). A separate, non-blocking `mutation`
 job runs Infection on PHP 7.4 and PHP 8.5 and uploads its reports.
 
 The runner currently performs four checks:
@@ -433,6 +434,79 @@ Limitations: coverage is measured on PHP 7.4 only; code that behaves
 differently on other runtimes is not measured there. Line coverage shows that a
 line ran, not that its result was asserted; mutation testing remains the check
 for assertion strength.
+
+## PHP 5 reference recordings
+
+PHP 5 support ends with the PHP 5.6 lane (new floor: 7.4). Before that lane
+goes, `tests/reference/` pins the current PHP 5 behaviour as committed
+reference data (a golden master) recorded on PHP 5.6, and compares the other
+lanes against it:
+
+```bash
+sh tests/reference/record.sh                      # PHP 5.6: rewrite tests/reference/php5/
+PGACC_TEST_ID=ref sh tests/reference/run.sh compare 7.4   # or 5.6, 8.0, 8.5
+```
+
+`run.sh` builds the lane's image, adds a reference image on top
+(`runtime.Dockerfile`: libfaketime, and on PHP 5.6 the `mcrypt` extension that
+production PHP 5 has), and starts the lane's services plus a local membership
+stub (`tests/reference/compose.yaml`). `PGACC_TEST_ID` and `PGACC_TEST_PG`
+work as for `tests/run.sh`; remove the `pgacc-test-reference-*` images
+afterwards. A recording has:
+
+- `http/<step>.txt`: status, headers (without Date, Host, Connection,
+  X-Powered-By) and body of each of the ~300 requests in `scenario.php`:
+  every page and action, public report years, listings with every filter and
+  sort, CSV exports, edit views, captcha posts and the voucher, approval,
+  merge, recovery and account workflows, as visitor and as seven synthetic
+  users with different rights. Binary bodies are stored as base64.
+- `sql/<step>.sql`: the request's SQL statements and SQL errors, from
+  PostgreSQL's CSV statement log (`log_statement=all`). The application server
+  sets `application_name=ref:<request id>` per request through `PGAPPNAME`
+  (`runtime/prepend.php`, which chains the diagnostics recorder).
+- `db/<step>.txt`: row changes (`-`/`+`) of every table that the request's
+  statements wrote, plus sequences; `db/initial.txt` and `db/final.txt` are
+  full sorted dumps.
+- `helpers/*.txt`: the helper golden master (`helpers.php`): the helpers of
+  `functions.php` and page files, and probes of value-handling idioms copied
+  from the application (amount parsing, money formatting, review
+  percentages, loose comparisons, sorting), over a generated deterministic
+  corpus of numbers, numeric strings, `''`, `null`, `'1e3'`, `' 12'`, UTF-8 and
+  ISO-8859 bytes, floats and 64-bit limits.
+- The imports: synthetic BAWAG, ISO-8859-15, Handkassa, Sparkasse and PayPal
+  CSV files (`import.php`) and generated PDF bank statements (`import2.php`,
+  `fixtures/make-pdf.php`), receipt upload and download (`new.php`, `file.php`),
+  `mbapi.php` and the member-fee page. `getusers()` fetches the member list
+  from `mitglieder.piratenpartei.at`, which the Compose network alias resolves
+  to the stub (`membership/router.php`); `membership-stub.txt` records what it
+  received. The stub serves `membership/adm_names.b64`, synthetic members
+  encrypted the way `getusers.php` decrypts them, with the synthetic key in
+  `runtime/reference-constants.php` (`membership/generate.php` regenerates it).
+- `diagnostics/*.txt`: PHP diagnostics per request (informational).
+
+Nondeterminism is removed explicitly (details in `tests/reference/lib.php`):
+the application server runs with a fixed "now" (2026-06-15 10:00 UTC,
+libfaketime), Xdebug off and `display_errors=0`; login cookie values, cookie
+expiry times of day, captcha numbers (after checking the hidden answer), the
+impressum's PHP/PostgreSQL versions, PostgreSQL's own timestamps
+(`users.login`, `vouchers.save_date`) and md5-crypt salts are replaced by
+placeholders. `fixtures/extra.sql` adds reference-only synthetic rows and
+resets the sequences. A second PHP 5.6 run reproduces the recording byte for
+byte (`compare 5.6`).
+
+`compare.php` fails on every difference unless each changed line is accepted
+by a reviewed entry in `tests/reference/allowlist.php` (ID, PHP versions, file
+glob, line pattern, reason), in the style of `known-diagnostics.php`; unused
+entries fail as stale. `diagnostics/` differences are reported but do not fail,
+because the lanes already gate diagnostics. The report and per-file diffs go
+to `build/reference/php<lane>/`. `selftest.php` tests the allowlist logic and
+the normalizations before every run. The CI job `PHP 5 reference comparison`
+runs `compare` on all four lanes and uploads the reports.
+
+Re-record (and review the diff) when an intended behaviour change lands; the
+reference is to be re-recorded after the authorization, mcrypt and donations
+changes. Production runs PHP 5.3.3, which cannot be tested here; 5.6 is the
+oldest available stand-in.
 
 ## Static analysis
 
