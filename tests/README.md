@@ -504,15 +504,14 @@ for assertion strength.
 
 ## PHP 5 reference recordings
 
-PHP 5 support ends with the PHP 5.6 lane (new floor: 7.4). Before that lane
-goes, `tests/reference/` pins the current PHP 5 behaviour as committed
-reference data (a golden master) recorded on PHP 5.6, and compares the other
-lanes against it:
+PHP 5 support ends with the `php5-last` tag (new floor: 7.4). Before that,
+`tests/reference/` pins the current PHP 5 behaviour as committed reference
+data (a golden master) recorded on the production-like PHP 5.3 lane (owner
+decision), and compares the other lanes against it:
 
 ```bash
-sh tests/reference/record.sh                      # PHP 5.6: rewrite tests/reference/php5/
+sh tests/reference/record.sh                      # PHP 5.3: rewrite tests/reference/php5/
 PGACC_TEST_ID=ref sh tests/reference/run.sh compare 7.4   # or 5.3, 5.6, 8.0, 8.5
-sh tests/reference/record.sh 5.3                  # record on the production-like PHP 5.3 lane instead
 ```
 
 `run.sh` builds the lane's image, adds a reference image on top
@@ -523,7 +522,8 @@ work as for `tests/run.sh`; remove the `pgacc-test-reference-*` images
 afterwards. A recording has:
 
 - `http/<step>.txt`: status, headers (without Date, Host, Connection,
-  X-Powered-By) and body of each of the ~300 requests in `scenario.php`:
+  X-Powered-By, Server, and a Content-Length equal to the body length: transport
+  details of Lighttpd vs `php -S`) and body of each of the ~300 requests in `scenario.php`:
   every page and action, public report years, listings with every filter and
   sort, CSV exports, edit views, captcha posts and the voucher, approval,
   merge, recovery and account workflows, as visitor and as seven synthetic
@@ -559,17 +559,23 @@ expiry times of day, captcha numbers (after checking the hidden answer), the
 impressum's PHP/PostgreSQL versions, PostgreSQL's own timestamps
 (`users.login`, `vouchers.save_date`) and md5-crypt salts are replaced by
 placeholders. `fixtures/extra.sql` adds reference-only synthetic rows and
-resets the sequences. A second PHP 5.6 run reproduces the recording byte for
-byte (`compare 5.6`).
+resets the sequences. A second PHP 5.3 run reproduces the recording byte for
+byte (`compare 5.3`).
 
 `compare.php` fails on every difference unless each changed line is accepted
 by a reviewed entry in `tests/reference/allowlist.php` (ID, PHP versions, file
-glob, line pattern, reason), in the style of `known-diagnostics.php`; unused
-entries fail as stale. `diagnostics/` differences are reported but do not fail,
+glob, line pattern, reason, category), in the style of `known-diagnostics.php`;
+unused entries fail as stale. `category` is `accepted` (an expected
+environment difference: `default_charset`, cookie `Max-Age`/expiry format,
+32- vs 64-bit integers) or `todo` (a real defect or behaviour difference to fix
+later, e.g. the PDF import on PHP 7.2+, PHP 8 TypeErrors, exponent and hex
+numeric strings); the report counts both. Entries are ordered so that `todo`
+entries take precedence over the broad 32-bit entry. `diagnostics/` differences are reported but do not fail,
 because the lanes already gate diagnostics. The report and per-file diffs go
 to `build/reference/php<lane>/`. `selftest.php` tests the allowlist logic and
 the normalizations before every run. The CI job `PHP 5 reference comparison`
-runs `compare` on all five lanes and uploads the reports.
+runs `compare` on all five lanes and uploads the reports; with the allowlist all
+five pass, and the owner can make them required checks (branch protection).
 
 On the PHP 5.3 lane (`tests/reference/compose.php53.yaml`) the application is
 the Lighttpd/PHP-CGI server with libfaketime (squeeze's `faketime` 0.8) and the
@@ -578,22 +584,13 @@ the prepend also sets `PGOPTIONS=-c application_name=...`
 (`PGACC_REFERENCE_PGOPTIONS`). `helpers.php` runs on the PHP 5.3 CLI
 (`reference-helpers`, no network); the scenario, the comparison and the
 membership stub run from a reference image built on the PHP 5.6 lane image.
-Lighttpd sends `Content-Length`, so a body with normalized captcha numbers
-records it as `{{normalized-body-length}}`. A PHP 5.3 recording reproduces
-itself byte for byte. Compared with the PHP 5.6 reference, PHP 5.3 differs in
-SQL, database changes and bodies not at all, but in headers (`Server`,
-`Content-Length`, no `charset=UTF-8` without `default_charset`, cookies without
-`Max-Age` and with a one-year-old deletion expiry), in the helper golden master
-(32-bit integers: `PHP_INT_MAX` 2147483647, `intval()` saturates numeric strings
-and wraps floats) and, informationally, in diagnostics (notices reported instead
-of hidden; plain instead of HTML-escaped messages). No allowlist entries exist
-for these yet; the 5.3 comparison fails until the owner decides (allowlist
-entries or recording the reference on PHP 5.3).
+PHP 5.6 differs from the 5.3 recording only in `RD-CHARSET-DEFAULT`,
+`RD-COOKIE-MAX-AGE` and `RD-INT-32BIT` (SQL, database changes and bodies are
+identical); its diagnostics differ informationally (notices hidden instead of
+reported, HTML-escaped messages).
 
 Re-record (and review the diff) when an intended behaviour change lands; the
-reference was re-recorded after the rights and donations fixes and is to be
-re-recorded after the mcrypt change. Production runs PHP 5.3.3; the reference is
-recorded on 5.6, and `record.sh 5.3` records it on the production-like PHP 5.3 lane.
+security-hardening and receipt-key changes will need a re-recording.
 
 ## Static analysis
 

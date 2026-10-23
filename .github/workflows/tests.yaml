@@ -156,13 +156,15 @@ jobs:
         run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
 
   reference:
-    # PHP 5 golden master (tests/reference/, tests/README.md): PHP 5.6 must
-    # reproduce the committed recording byte for byte; the other lanes must
-    # match it except for reviewed tests/reference/allowlist.php entries.
+    # PHP 5 golden master (tests/reference/, tests/README.md), recorded on the
+    # production-like PHP 5.3 lane: PHP 5.3 must reproduce it byte for byte;
+    # the other lanes must match it except for reviewed
+    # tests/reference/allowlist.php entries (accepted/todo).
     # Failures stay visible: not continue-on-error, like the PHP 8 lanes.
     name: PHP 5 reference comparison (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # PHP 5.3 builds two lane images (squeeze server, PHP 5.6 client).
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

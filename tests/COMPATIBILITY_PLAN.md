@@ -326,16 +326,57 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
 
 ## Found by the PHP 5 reference
 
-Pinned as current behaviour in `tests/reference/php5/` (PHP 5.6); none is fixed.
-Behaviour changes are the owner's decision.
+Pinned as current behaviour in `tests/reference/php5/` (recorded on the
+production-like PHP 5.3 lane); none is fixed. Behaviour changes are the owner's
+decision. The differences of the other lanes are reviewed entries in
+`tests/reference/allowlist.php`: `accepted` (environment) or `todo` (to fix; the
+`RD-*` IDs below).
 
 | Location | Finding | Follow-up |
 |---|---|---|
 | `import.php:252` | When a CSV line without a parsed name matches exactly one member through the `ILIKE` lookup, `break` leaves the `fgetcsv()` loop: that line and all later lines of the file are not imported, yet the page reports "wurde erfolgreich importiert" (`http/import-bawag.txt`). All versions. | Owner decision: the `break` probably meant to end only the lookup. Test a match on a middle line first. |
 | `import2.php:103`, `:133` | `page_import2_process_multi_ids()` strips all bytes `\x80-\xFF` before matching `Entgeltf.+r(Kontof.+hrung\|...)`, so "Entgelt für Kontoführung" becomes `EntgeltfrKontofhrung` and can never match (`.+` needs a character between `f` and `r`). All versions. | Match with the umlauts removed (or before stripping); add a PDF fixture for the fee rows. |
 | `index.php:283-285` (`?action=transfer`) | Listed in the allowed actions, but `page_transfer()` is defined nowhere: fatal error on every version, also for visitors (`diagnostics/transfer-anon.txt`). | Remove the action or restore the page (owner). |
-| `import.php:118`, `donations.php:4-6`, `sprintf('%1.2f', ...)` sums | Numeric strings differ between 5.6 and 7.x: `intval('1e3')` is 1 on 5.6 and 1000 on 7.1+ (an import amount `1e3,2` becomes `PHP_INT_MAX` on 7.4); hex strings such as `'0x1A'` are numeric (26) on 5.6 only (`helpers/idioms-values.txt`, `helpers/page-helpers.txt`). | Validate amount and year formats before `intval()`; the `compare 7.4` diff lists these until they are decided and allowlisted. |
-| `functions.php:275` `konto2lo()`, `switch`/`==` idioms | PHP 8 string-number comparison: an account number with a trailing space (`'50110117300 '`) maps to organization 2 on PHP 8 but falls through on 5.6/7.4; `0 == 'abc'` is no longer true; `sort()` already orders mixed values differently on 7.4 than on 5.6 (`helpers/konto2lo.txt`, `helpers/idioms-*.txt`). | Normalize (trim) account numbers and compare strictly where the input is a string; review with the PHP 8 reference comparison. |
+| `import.php:118`, `donations.php:4-6`, `sprintf('%1.2f', ...)` sums | Numeric strings differ between 5.6 and 7.x: `intval('1e3')` is 1 on 5.6 and 1000 on 7.1+ (an import amount `1e3,2` becomes `PHP_INT_MAX` on 7.4); hex strings such as `'0x1A'` are numeric (26) on 5.6 only (`helpers/idioms-values.txt`, `helpers/page-helpers.txt`). | Validate amount and year formats before `intval()`. Allowlisted as `todo`: `RD-INTVAL-EXPONENT-VALUES`, `RD-INTVAL-EXPONENT-DATES`, `RD-HEX-NUMERIC-STRING` (7.4+). |
+| `functions.php:275` `konto2lo()`, `switch`/`==` idioms | PHP 8 string-number comparison: an account number with a trailing space (`'50110117300 '`) maps to organization 2 on PHP 8 but falls through on 5.6/7.4; `0 == 'abc'` is no longer true; `sort()` already orders mixed values differently on 7.4 than on 5.6 (`helpers/konto2lo.txt`, `helpers/idioms-*.txt`). | Normalize (trim) account numbers and compare strictly where the input is a string. Allowlisted as `todo`: `RD-PHP8-KONTO2LO-WHITESPACE`, `RD-PHP8-STRING-NUMBER-*`, `RD-SORT-ORDER`. |
+| `edit.php:348`, `import.php:27`, `import2.php:24`; `new.php:46`; `getfilter()`/`get_param()`/`hex2ascii()`/`rights2orgasql()` | PHP 8 `TypeError`s: `count(null)` (unknown or foreign voucher, import forms without an upload) gives HTTP 500; arithmetic on non-numeric amount strings; array request parameters. PHP 8.4 `round()`: an amount of 1,005 EUR is stored as 100 instead of 101 cents. | PHP 8 track. Allowlisted as `todo`: `RD-PHP8-COUNT-NULL-*`, `RD-PHP8-NONNUMERIC-ARITHMETIC`, `RD-PHP8-ARRAY-ARG-*`, `RD-PHP84-ROUND`. |
+| `import2.php` (smalot/pdfparser 0.9.23, TCPDF 6.2.6) | The PDF statement import dies on PHP 7.2+ (the libraries do not compile: class `Object`, curly-brace offsets): HTTP 500, no receipts attached (also the later download and voucher view). | Upgrade pdfparser (see [Dependencies](#dependencies)). Allowlisted as `todo`: `RD-PDFPARSER-PHP72-*`. |
+
+### 32-bit production integers
+
+Production is i686 (`PHP_INT_SIZE` 4, `PHP_INT_MAX` 2147483647); every lane
+except PHP 5.3 is 64-bit, so a move to a 64-bit host changes these
+(`RD-INT-32BIT`, `accepted`: the helper corpus values at or above 2^31).
+On 32-bit `intval()` saturates numeric strings at 2147483647 and wraps floats
+(`intval(2147483648.0)` is -2147483648). Application call sites, checked:
+
+- Account numbers are never converted to integers: `konto2lo()`
+  (`functions.php:275`) switches on the string, and the imports keep
+  `konto`/`gegenkonto` as strings (`import.php` SQL at `:308`, `:320`,
+  `:328`). A `switch` between numeric strings beyond 2^31 compares them as
+  floats on 32-bit, which is exact for 11-digit numbers, so `'50110117300'`
+  maps to 2 on both. (`konto2lo()` is only called with the rights array in
+  `new.php:362`, `:437`, `:619`, where it returns the array unchanged.)
+- Import amounts in cents: `import.php:118`, `:124`, `:128`, `:151`, `:157`,
+  `:164`, `:177`, `:184` use `intval()` of the amount with `.`/`,` removed,
+  so on 32-bit an amount of 21,474,836.48 EUR or more becomes 2147483647
+  cents (64-bit: exact). `import.php:130` multiplies the clamped integer by
+  100, so a whole-euro amount above 21,474,836 EUR becomes a float. No
+  realistic party transaction reaches this; a 64-bit host would import such
+  amounts exactly instead of clamping them.
+- Report and statistics sums: `report.php:20`, `:60`, `:97`, `wk.php:20`,
+  `:61`, `:101` only test `intval($sum) != 0`, which stays correct when a
+  sum is clamped. `functions.php:436-445` counts rows (small). The SUMs are
+  formatted from PostgreSQL's string value, not through `intval()`.
+- Request IDs and years (`file.php:6`, `edit.php:51`, `:53`, `:342`,
+  `recover.php`, `index.php:217`, `:289`, `:293`, `donations.php:5-7`): only
+  values beyond 2147483647 differ (32-bit clamps them), e.g. `?id=9999999999`
+  selects voucher 2147483647 instead of 9999999999; both find nothing.
+- `new.php:46` parses entered amounts with `round(... * 100.0)` (a float), so
+  32- and 64-bit agree there.
+
+No change is needed for the `php5-last` hotfix; on a 64-bit host the
+differences above are only visible for out-of-range input.
 
 ## Short tags and other migration debt
 

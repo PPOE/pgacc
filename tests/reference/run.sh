@@ -72,8 +72,8 @@ PGACC_REFERENCE_IMAGE=pgacc-test-reference-$lane_tag$PGACC_TEST_SUFFIX
 # PHP 5.3 lane only: the PHP 5.6 lane image as the scenario client.
 PGACC_REFERENCE_CLIENT_BASE_IMAGE=pgacc-test-application-php56$PGACC_TEST_SUFFIX
 PGACC_REFERENCE_CLIENT_IMAGE=pgacc-test-reference-php53-client$PGACC_TEST_SUFFIX
-# mcrypt only on the recording lane: production PHP 5 has it; PHP 7.2+ cannot.
-# (The PHP 5.3 image has production's php5-mcrypt package already.)
+# mcrypt on PHP 5.6, as production PHP 5 has it (the PHP 5.3 image has
+# production's php5-mcrypt package already); PHP 7.2+ cannot.
 PGACC_REFERENCE_MCRYPT=0
 if [ "$lane" = 5.6 ]; then
   PGACC_REFERENCE_MCRYPT=1
