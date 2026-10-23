@@ -14,7 +14,11 @@ VALUES (1, 'Synthetic Local Unit', 2);
 INSERT INTO person_type (id, name, description, used, public)
 VALUES
   (1, 'Synthetic organization', 'Test-only legal entity', 1, true),
-  (2, 'Synthetic person', 'Test-only private person', 2, false);
+  (2, 'Synthetic person', 'Test-only private person', 2, false),
+  -- report.php Anlage A reads the first four public person types.
+  (3, 'Synthetic association', 'Test-only association', 3, true),
+  (4, 'Synthetic company', 'Test-only company', 4, true),
+  (5, 'Synthetic public body', 'Test-only public body', 5, true);
 
 INSERT INTO type (id, name, used, income, realtype)
 VALUES

@@ -4,7 +4,7 @@ function date_condition($year,$begin = 1)
   if ($begin == 0)
     return "AND date < '".(intval($year)+1)."-01-01'";
   else
-    return "AND date >= '".$year."-01-01' AND date < '".(intval($year)+1)."-01-01'";
+    return " AND date >= '".$year."-01-01' AND date < '".(intval($year)+1)."-01-01'";
 }
 // from http://www.php.net/manual/de/function.htmlspecialchars.php
 function umlaute($text){

@@ -35,22 +35,10 @@ return array(
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',
         'file' => 'report.php',
-        'lines' => array(340),
+        'lines' => array(340, 347, 374, 381),
         'message' => '/^Undefined variable: prevcond$/',
         'reported' => false,
         'reason' => 'page_report() passes an unset $prevcond to unit_report()',
-    ),
-    array(
-        'id' => 'KD-REPORT-SQL-PG15',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_WARNING',
-        'file' => 'report.php',
-        'lines' => array(58),
-        'message' => '/^pg_query\\(\\): Query failed: ERROR:  trailing junk after numeric literal at or near &quot;8AND&quot;/',
-        'reported' => true,
-        'reason' => 'unit_report() builds "type = 8AND date ..." (no space before '
-            . '$cond); PostgreSQL 15+ rejects it and the "or die" ends the year '
-            . 'report early. Displayed in the response body',
     ),
     array(
         'id' => 'KD-NEW-RIGHTS',

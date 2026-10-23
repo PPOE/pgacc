@@ -76,8 +76,8 @@ lanes keep passing only through these entries:
 
 | ID | Location | Diagnostic | Follow-up |
 |---|---|---|---|
-| `KD-REPORT-SQL-PG15` | `report.php:58` | Displayed warning: `pg_query()` fails with "trailing junk after numeric literal at or near "8AND"". `unit_report()` appends `$cond` without a leading space; PostgreSQL 15+ rejects `8AND`, and `or die` ends the 2024 report at its first per-unit income query. The existing smoke assertions still pass on the truncated page. | [ ] Add a report completeness assertion, then add the missing space. Check other `$cond`/`$prevcond` concatenations. |
-| `KD-REPORT-PREVCOND` | `report.php:340` | Hidden notice: undefined `$prevcond` (warning on PHP 8). | [ ] Initialize or remove the parameter after tests pin the report output. |
+| `KD-REPORT-SQL-PG15` | `report.php:58` | Displayed warning: `pg_query()` fails with "trailing junk after numeric literal at or near "8AND"". `unit_report()` appends `$cond` without a leading space; PostgreSQL 15+ rejects `8AND`, and `or die` ends the 2024 report at its first per-unit income query. The existing smoke assertions still pass on the truncated page. | [x] Fixed: `date_condition()` now returns its `begin = 1` condition with a leading space; the smoke test asserts the report renders through Anlage B. The `begin = 0` branch is only appended after a space, so it is unchanged. Completing the report exposed `$prevcond` at more call sites (`KD-REPORT-PREVCOND`) and required four public person types in the fixtures. |
+| `KD-REPORT-PREVCOND` | `report.php:340`, `347`, `374`, `381` | Hidden notice: undefined `$prevcond` (warning on PHP 8). | [ ] Initialize or remove the parameter after tests pin the report output. |
 | `KD-PREFS-HIDE` | `closed.php` 37 lines | Hidden notices: `$user_prefs_hide[$n]` undefined offsets for users without hide preferences (54 distinct line/offset pairs per ledger request). | [ ] Use `isset()`/defaults; output must stay identical. |
 | `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [ ] Determine the intended rights argument; test scoped users. |
 | `KD-EDIT-RIGHTSSQL` | `edit.php:117` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] Review the authorization intent before changing it. |
@@ -236,7 +236,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
   tests remain the check.
 - PHP 8.5's deprecation of implicit PostgreSQL connections is not modelled by
   either tool; the runtime lanes report it.
-- Of the strict-HTTP diagnostics, `KD-REPORT-SQL-PG15` (SQL text),
+- Of the strict-HTTP diagnostics, `KD-REPORT-SQL-PG15` (SQL text, now fixed),
   `KD-PREFS-HIDE` (undefined offsets of a query-built array) and
   `KD-EDIT-RELOCATE-CLOSED-LINK` (closed connection) are runtime behavior that
   neither tool reports at the configured levels.
