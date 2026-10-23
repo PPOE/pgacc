@@ -197,6 +197,11 @@ rerun above):
 | PHP 7.4, Infection 0.26.6 | 692 | 437 | 1 | 245 | 9 | 63% | 64% |
 | PHP 8.5, Infection 0.35.8 | 727 | 498 | 1 | 221 | 7 | 68% | 69% |
 
+After the review fixes (shared `*_cipher_params()` helpers): 686 mutants,
+431 killed, 245 escaped, 9 not covered on PHP 7.4; 723 mutants, 494 killed,
+220 escaped, 7 not covered, 2 timeouts on PHP 8.5. The only escaped mutant
+on the changed lines is still the equivalent `setBlockLength(257)`.
+
 The one new escaped mutant (both lanes) is equivalent: `setBlockLength(257)`,
 which phpseclib rounds down to the same 256-bit block (`$length >> 5`). The
 [`receipt-crypto` target](#receipt-crypto-phpunit-and-http) covers the call
@@ -817,15 +822,22 @@ itself, `rtrim()`, base64 and the SHA-1 framing. Tests: `CryptoTest`,
 
 | Lane | Killed | Equivalent | Survived | Invalid |
 |---|---:|---:|---:|---:|
-| PHP 5.6.40 | 25 | 0 | 0 | 0 |
-| PHP 7.4.33 | 25 | 0 | 0 | 0 |
+| PHP 5.6.40 | 30 | 0 | 0 | 0 |
+| PHP 7.4.33 | 30 | 0 | 0 | 0 |
+
+30 mutations since the review fixes: key and IV now come from
+`receipt_cipher_params()`/`membership_cipher_params()` (swapped key/IV
+arguments in a helper are mutated too), and the call sites pass `''`
+explicitly (the configured test key instead of `''` is killed at each of
+the three sites). The first version had 25, all killed.
 
 The first run left `members-padding-kept` (no `rtrim()`) alive: the
 `getUsers()` export was a whole number of blocks, so it had no padding. The
 vector now ends 5 bytes short of a block. On PHP 5.6 the baseline first failed
 because displayed warnings name the runner's copy (`/tmp/pgacc-mutation/...`)
-instead of `/app`; `tests/http-diagnostics.php` now matches the logged
-diagnostic by path suffix.
+instead of `/app`; the runner now passes its served root as
+`PGACC_TEST_APP_ROOT`, and `tests/http-diagnostics.php` strips it (or `/app`)
+before matching the logged diagnostic exactly.
 
 ### Required step for fixes
 
@@ -837,5 +849,6 @@ change must not introduce survivors. CI runs the self-tests and the
 5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
 the `redirects` and `rights-checks` targets on PHP 5.6 and 7.4 (on PHP 8 their
 baseline fails on the write-workflow diagnostics that have no baseline entry
-there), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test fails
-on PHP 8; see `KD-RECEIPT-KEY` in `tests/COMPATIBILITY_PLAN.md`).
+there), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test
+failed on PHP 8 after the receipt upload's `relocate()`; see
+`tests/COMPATIBILITY_PLAN.md`).

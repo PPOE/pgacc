@@ -127,7 +127,8 @@ jobs:
 
       - name: receipt-crypto mutations
         # Only PHP 5.6 and 7.4: on PHP 8 the unmutated baseline fails in
-        # tests/http-receipts.php (undefined $key warning).
+        # tests/http-receipts.php (relocate() error after the upload; that error is
+        # fixed on the base branch, PHP 8 not re-checked since).
         if: always() && (matrix.php == '5.6' || matrix.php == '7.4')
         run: sh tests/mutation/run.sh '${{ matrix.php }}' receipt-crypto
 
