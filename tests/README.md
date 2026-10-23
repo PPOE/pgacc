@@ -124,6 +124,19 @@ ledger, logged in, as CSV, and not logged in. The import page is requested only
 after every other protected page has passed, so a missing login check never
 makes the test reach its call to the external membership system.
 
+`http-donations.php` covers the public donation list (`?action=donations`,
+`donations.php`). It reads the captcha operands and the hidden value from the
+form and answers like a browser, so the application's captcha check runs
+unchanged; a wrong or missing answer shows a new captcha. With the correct
+answer, 2024 (a donor above the 100 € threshold) and 2025 (below it) show the
+heading, year links, notice and an empty table: donor publication is disabled
+for legal reasons, so no donor name (plain or base64-encoded), row or sum may
+appear. Years before 2012 show 2013 without a captcha. Before the fix, the 2024
+list read the undefined `$donations` (displayed warnings on PHP 5.6 and 7.4, a
+`TypeError` in `array_multisort()` on PHP 8). Requests without `year` are not
+tested: `index.php` reads `$_GET["year"]` without `isset()` (see
+`COMPATIBILITY_PLAN.md`).
+
 ### PHP diagnostics are failures
 
 Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with

@@ -769,6 +769,27 @@ Before the fix of `page_new_save()` (the test-first commit, `9d0e753`), the
 because creation passed no rights to `get_voucher()` at all (the undefined
 variable is `null`).
 
+#### `donations` (HTTP, `donations.php`)
+
+The array initializations in `page_donations()`, the disabled donor
+publication and the captcha, tested with `tests/http-donations.php`.
+
+| Mutant | PHP 5.6 | PHP 7.4 | Killed by |
+|---|---|---|---|
+| `donations-initialization-removed` | killed | killed | undefined `$donations` and `foreach` warnings; displayed inside the table |
+| `sort-sum-initialization-removed` | killed | killed | `array_multisort()` argument #1 warning |
+| `sort-name-initialization-removed` | killed | killed | `array_multisort()` argument #3 warning |
+| `publication-re-enabled` | killed | killed | a donor row appears in the 2024 list |
+| `captcha-check-bypassed` | killed | killed | a wrong answer shows the list |
+| `captcha-offset-changed` | killed | killed | the correct answer shows the captcha again |
+| `captcha-hidden-value-changed` | killed | killed | hidden value is not `A + B - 37` |
+
+7 of 7 killed on both lanes. Before the fix (original `donations.php` with
+the new test, and the four mutations that apply to it), the target's baseline
+fails on PHP 5.6 and 7.4 (exit 2, no mutant runs): the 2024 list reads the
+undefined `$donations`, and the warnings land between the header row and
+`</table>`. The test therefore detects the original defect on both lanes.
+
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target must run that target on
