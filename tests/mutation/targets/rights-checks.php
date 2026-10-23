@@ -109,12 +109,34 @@ return array(
             'rationale' => 'Fail-open: a finalized voucher can be approved.',
         ),
         array(
+            'id' => 'ack-visibility-check-removed',
+            'region' => $ack,
+            'search' => 'if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A user of another organization learns whether a voucher is finalized.',
+        ),
+        array(
+            'id' => 'ack-visibility-check-unscoped',
+            'region' => $ack,
+            'search' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id;',
+            'rationale' => 'The visibility check uses the organization scope of the user.',
+        ),
+        array(
+            'id' => 'ack-finalized-check-scoped',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
+            'replace' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;',
+            'rationale' => 'A finalized row of another organization still blocks the approval of the '
+                . 'user\'s rows of the same voucher.',
+        ),
+        array(
             'id' => 'ack-receipt-check-unscoped',
             'region' => $ack,
             'search' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
             'replace' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id;',
-            'rationale' => 'A user of another organization is refused before any update ("Hier fehlt '
-                . 'noch der Beleg"), instead of getting the approval redirect.',
+            'rationale' => 'The receipt check counts only the user\'s rows: an approved row without a '
+                . 'receipt is refused although a row of another organization is open.',
         ),
         array(
             'id' => 'ack1-update-unscoped',

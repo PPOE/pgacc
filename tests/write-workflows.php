@@ -656,8 +656,10 @@ assert_database_field(
     'voucher after a revision into a foreign organization'
 );
 
-// Approval of a finalized voucher is refused, also for a user of another
-// organization, who gets the same answer.
+// Approval of a finalized voucher is refused. A user of another
+// organization gets the answer for any voucher without visible rows ("Hier
+// fehlt noch der Beleg", as for the unfinalized voucher above), so it does
+// not tell whether the voucher is finalized.
 $approveForm = array('ack' => 'Bestätigen');
 $finalizedId = create_voucher($database, 'Synthetic finalized draft', '-9.50', 9004, $adminCookies);
 $finalizeForm = array('beleg' => 'Beleg erhalten');
@@ -673,9 +675,10 @@ $crossFinalizedApproval = edit_request($finalizedId, $approveForm, $unitOneCooki
 assert_status($crossFinalizedApproval, 200, 'cross-organization approval of a finalized voucher');
 assert_contains(
     $crossFinalizedApproval['body'],
-    'bereits finalisiert',
+    'FEHLER: Hier fehlt noch der Beleg!',
     'cross-organization approval of a finalized voucher'
 );
+assert_not_contains($crossFinalizedApproval['body'], 'bereits finalisiert', 'cross-organization approval of a finalized voucher');
 assert_voucher_rows(
     $database,
     $finalizedId,
@@ -741,6 +744,21 @@ assert_voucher_rows(
     array(voucher_row_state('1', null, null, 't'), voucher_row_state('2', null, null, 'f')),
     'partly finalized voucher after approval by organization two'
 );
+
+// The receipt check counts only the user's rows: organization two's row is
+// approved once and has no receipt, so its second approval is refused even
+// though organization one's row is still open.
+$receiptCheckId = create_voucher_from_form($database, two_organization_form('Synthetic voucher without a receipt', 9010), $adminCookies);
+pg_query_params(
+    $database,
+    "UPDATE vouchers SET ack1 = 'synthetic-first-approver', file = 0 WHERE voucher_id = $1 AND orga = 2",
+    array($receiptCheckId)
+);
+$receiptCheckState = array(voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f'));
+$receiptCheck = edit_request($receiptCheckId, $approveForm, $unitTwoCookies);
+assert_status($receiptCheck, 200, 'approval of a row without a receipt');
+assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
+assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
 
 // Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
 // users) needs the exact bgf right; other users are refused and nothing

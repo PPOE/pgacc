@@ -132,7 +132,21 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
   return;
 }
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";
+$rightssql = rights2orgasql($rights);
+// A user who sees no row of the voucher gets the answer for a voucher
+// without a receipt, whether or not it is finalized.
+$query = "SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
+
+// A finalized row blocks the approval of the whole voucher, also a row of
+// another organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
@@ -140,8 +154,6 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         return;
 }
 pg_free_result($result);
-
-$rightssql = rights2orgasql($rights);
 
 $hasfile = false;
 $query = "SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";

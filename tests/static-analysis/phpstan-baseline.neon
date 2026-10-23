@@ -31,12 +31,6 @@ parameters:
 			path: ../../edit.php
 
 		-
-			message: '#^Undefined variable\: \$rightssql$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../edit.php
-
-		-
 			message: '#^Variable \$vouchers might not be defined\.$#'
 			identifier: variable.undefined
 			count: 13

@@ -847,8 +847,9 @@ behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
 `rights2orgasql` and `null-arguments` targets on every lane, the `login-logout` target on PHP
 5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
-the `redirects` and `rights-checks` targets on PHP 5.6 and 7.4 (on PHP 8 their
-baseline fails on the write-workflow diagnostics that have no baseline entry
-there), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test
+the `redirects`, `rights-checks` and `sql-injection` targets on PHP 5.6 and 7.4
+(on PHP 8.5 their baseline fails on the write-workflow diagnostics that have no
+baseline entry there; PHP 8.0 passes them since the `edit.php:120` fix, but is
+not enabled yet), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test
 failed on PHP 8 after the receipt upload's `relocate()`; see
 `tests/COMPATIBILITY_PLAN.md`).

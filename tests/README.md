@@ -308,10 +308,9 @@ longer suppress warnings. Tests that pass null (the anonymous `checklogin()`
 result, nullable columns) capture every diagnostic with their own error
 handler, because PHPUnit 9 only prints deprecations; they fail on PHP 8.1+ if
 a helper passes null to an internal function. On both PHP 8 runtimes, the HTTP
-and write tests fail on diagnostics that have no known-diagnostics entry:
-undefined `$rights`/`$rightssql` (the closed-link error after `relocate()` is
-fixed). On PHP 8.0 `http-login.php` and `http-redirects.php` pass and the
-write-workflow assertions pass up to the diagnostics check. PHP 8.5 adds
+and write tests failed on diagnostics that have no known-diagnostics entry:
+undefined `$rights`/`$rightssql` (both fixed, like the closed-link error after
+`relocate()`). PHP 8.0 now passes the whole lane. PHP 8.5 adds
 implicit PostgreSQL connection deprecations; displayed before the headers, they
 still break the login redirect without output buffering (and are expected to
 break the other unbuffered redirects the same way). See

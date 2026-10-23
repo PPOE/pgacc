@@ -52,8 +52,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
   Remove tagged images afterwards with `docker rmi`.
 - Other checks: `sh tests/static-analysis.sh` (`--report` lists every finding) and `sh tests/php-syntax-matrix.sh`.
-- Some lanes fail by design until their fixes land (currently PHP 8.0/8.5: undefined `$rightssql` (`edit.php:120`),
-  which has no known-diagnostics entry there; on 8.5 also implicit-connection deprecations displayed before redirects).
+- Some lanes fail by design until their fixes land (currently PHP 8.5: implicit-connection deprecations displayed
+  before redirects; PHP 8.0 passes since the `edit.php:120` fix).
   Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures (`KF-*`) fail when they
   start passing, so a fix moves them to regular assertions.
 
