@@ -1,10 +1,10 @@
-E_NOTICE edit.php:348 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:363 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:365 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:370 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:371 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:372 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:373 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:391 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:391 (hidden): Undefined variable: vouchers
-E_NOTICE edit.php:414 (hidden): Undefined variable: vouchers
+E_NOTICE edit.php:348: Undefined variable: vouchers
+E_NOTICE edit.php:363: Undefined variable: vouchers
+E_NOTICE edit.php:365: Undefined variable: vouchers
+E_NOTICE edit.php:370: Undefined variable: vouchers
+E_NOTICE edit.php:371: Undefined variable: vouchers
+E_NOTICE edit.php:372: Undefined variable: vouchers
+E_NOTICE edit.php:373: Undefined variable: vouchers
+E_NOTICE edit.php:391: Undefined variable: vouchers
+E_NOTICE edit.php:391: Undefined variable: vouchers
+E_NOTICE edit.php:414: Undefined variable: vouchers

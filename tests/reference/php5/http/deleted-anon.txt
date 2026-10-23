@@ -2,5 +2,5 @@
 # request: GET /index.php?action=deleted&filter_date=2024 as anon
 status: 302
 header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D64656C657465642666696C7465725F646174653D32303234
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---

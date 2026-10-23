@@ -1,3 +1,3 @@
-E_WARNING all.php:9: pg_query(): Query failed: ERROR:  column reference &quot;id&quot; is ambiguous
+E_WARNING all.php:9: pg_query(): Query failed: ERROR:  column reference "id" is ambiguous
 LINE 1: ...IN type ON type = type.id WHERE NOT deleted   AND id = 103 O...
                                                              ^

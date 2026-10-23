@@ -1,9 +1,9 @@
-E_NOTICE closed.php:229 (hidden): Undefined index: vaccount
-E_NOTICE closed.php:253 (hidden): Undefined index: ack1_old
-E_NOTICE closed.php:253 (hidden): Undefined index: ack2_old
-E_NOTICE closed.php:229 (hidden): Undefined index: vaccount
-E_NOTICE closed.php:253 (hidden): Undefined index: ack1_old
-E_NOTICE closed.php:253 (hidden): Undefined index: ack2_old
-E_NOTICE closed.php:229 (hidden): Undefined index: vaccount
-E_NOTICE closed.php:253 (hidden): Undefined index: ack1_old
-E_NOTICE closed.php:253 (hidden): Undefined index: ack2_old
+E_NOTICE closed.php:229: Undefined index: vaccount
+E_NOTICE closed.php:253: Undefined index: ack1_old
+E_NOTICE closed.php:253: Undefined index: ack2_old
+E_NOTICE closed.php:229: Undefined index: vaccount
+E_NOTICE closed.php:253: Undefined index: ack1_old
+E_NOTICE closed.php:253: Undefined index: ack2_old
+E_NOTICE closed.php:229: Undefined index: vaccount
+E_NOTICE closed.php:253: Undefined index: ack1_old
+E_NOTICE closed.php:253: Undefined index: ack2_old

@@ -1,7 +1,7 @@
 # step: spendings-all-units-anon
 # request: GET /index.php?action=spendings&unit=-1&from=2012-01-01&to=2026-12-31 as anon
 status: 200
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (4289 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

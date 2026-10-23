@@ -3,5 +3,5 @@
 # form: id=5000&parts=1&ack=Best%C3%A4tigen
 status: 302
 header: Location: index.php?action=edit&id=5000&hint=4
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---

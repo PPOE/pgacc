@@ -2,7 +2,7 @@
 # request: GET /index.php?action=file&id=1001 as anon
 status: 302
 header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D66696C652669643D31303031
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (8778 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

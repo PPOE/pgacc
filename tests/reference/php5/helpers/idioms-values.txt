@@ -43,11 +43,11 @@ import.php:118 amount string(3) "NAN" returns int(0)
 import.php:118 amount string(3) "INF" returns int(0)
 import.php:118 amount string(5) "1.005" returns int(1005)
 import.php:118 amount string(3) "2.5" returns int(25)
-import.php:118 amount string(19) "9223372036854775807" returns int(9223372036854775807)
-import.php:118 amount string(19) "9223372036854775808" returns int(9223372036854775807)
-import.php:118 amount string(20) "-9223372036854775809" returns int(-9223372036854775808)
-import.php:118 amount string(10) "2147483648" returns int(2147483648)
-import.php:118 amount string(10) "4294967296" returns int(4294967296)
+import.php:118 amount string(19) "9223372036854775807" returns int(2147483647)
+import.php:118 amount string(19) "9223372036854775808" returns int(2147483647)
+import.php:118 amount string(20) "-9223372036854775809" returns int(-2147483648)
+import.php:118 amount string(10) "2147483648" returns int(2147483647)
+import.php:118 amount string(10) "4294967296" returns int(2147483647)
 import.php:118 amount string(2) "\303\244" returns int(0)
 import.php:118 amount string(11) "\303\226sterreich" returns int(0)
 import.php:118 amount string(12) "\303\274\303\266\303\204\303\226\303\234\303\237" returns int(0)
@@ -63,7 +63,7 @@ import.php:118 amount string(8) "<b>x</b>" returns int(0)
 import.php:118 amount string(5) "&amp;" returns int(0)
 import.php:118 amount string(12) "BG/123456789" returns int(0)
 import.php:118 amount string(20) "AT606000050110117300" returns int(0)
-import.php:118 amount string(11) "50110117300" returns int(50110117300)
+import.php:118 amount string(11) "50110117300" returns int(2147483647)
 import.php:118 amount string(10) "31.12.2024" returns int(31122024)
 import.php:118 amount string(8) "1.1.2024" returns int(112024)
 import.php:118 amount string(19) "2024-01-01 12:00:00" returns int(2024)
@@ -92,10 +92,10 @@ sprintf money int(100) returns string(4) "1.00"
 sprintf money int(2000) returns string(5) "20.00"
 sprintf money int(-1000) returns string(6) "-10.00"
 sprintf money int(2147483647) returns string(11) "21474836.47"
-sprintf money int(2147483648) returns string(11) "21474836.48"
-sprintf money int(-2147483649) returns string(12) "-21474836.49"
-sprintf money int(9223372036854775807) returns string(20) "92233720368547760.00"
-sprintf money int(-9223372036854775808) returns string(21) "-92233720368547760.00"
+sprintf money float(2147483648) returns string(11) "21474836.48"
+sprintf money float(-2147483649) returns string(12) "-21474836.49"
+sprintf money int(2147483647) returns string(11) "21474836.47"
+sprintf money int(-2147483648) returns string(12) "-21474836.48"
 sprintf money float(0) returns string(4) "0.00"
 sprintf money float(-0) returns string(4) "0.00"
 sprintf money float(0.10000000000000001) returns string(4) "0.00"
@@ -261,22 +261,22 @@ string conversion int(2147483647) returns array(int(0) => string(10) "2147483647
 number conversion int(2147483647) returns array(int(0) => int(2147483647), int(1) => float(2147483647), int(2) => true)
 in_array/array_search int(2147483647) returns array(int(0) => false, int(1) => false)
 switch int(2147483647) returns string(7) "default"
-string conversion int(2147483648) returns array(int(0) => string(10) "2147483648", int(1) => string(10) "2147483648", int(2) => string(10) "2147483648")
-number conversion int(2147483648) returns array(int(0) => int(2147483648), int(1) => float(2147483648), int(2) => true)
-in_array/array_search int(2147483648) returns array(int(0) => false, int(1) => false)
-switch int(2147483648) returns string(7) "default"
-string conversion int(-2147483649) returns array(int(0) => string(11) "-2147483649", int(1) => string(11) "-2147483649", int(2) => string(11) "-2147483649")
-number conversion int(-2147483649) returns array(int(0) => int(-2147483649), int(1) => float(-2147483649), int(2) => true)
-in_array/array_search int(-2147483649) returns array(int(0) => false, int(1) => false)
-switch int(-2147483649) returns string(7) "default"
-string conversion int(9223372036854775807) returns array(int(0) => string(19) "9223372036854775807", int(1) => string(19) "9223372036854775807", int(2) => string(19) "9223372036854775807")
-number conversion int(9223372036854775807) returns array(int(0) => int(9223372036854775807), int(1) => float(9.2233720368547758E+18), int(2) => true)
-in_array/array_search int(9223372036854775807) returns array(int(0) => false, int(1) => false)
-switch int(9223372036854775807) returns string(7) "default"
-string conversion int(-9223372036854775808) returns array(int(0) => string(20) "-9223372036854775808", int(1) => string(20) "-9223372036854775808", int(2) => string(20) "-9223372036854775808")
-number conversion int(-9223372036854775808) returns array(int(0) => int(-9223372036854775808), int(1) => float(-9.2233720368547758E+18), int(2) => true)
-in_array/array_search int(-9223372036854775808) returns array(int(0) => false, int(1) => false)
-switch int(-9223372036854775808) returns string(7) "default"
+string conversion float(2147483648) returns array(int(0) => string(10) "2147483648", int(1) => string(10) "2147483648", int(2) => string(10) "2147483648")
+number conversion float(2147483648) returns array(int(0) => int(-2147483648), int(1) => float(2147483648), int(2) => true)
+in_array/array_search float(2147483648) returns array(int(0) => false, int(1) => false)
+switch float(2147483648) returns string(7) "default"
+string conversion float(-2147483649) returns array(int(0) => string(11) "-2147483649", int(1) => string(11) "-2147483649", int(2) => string(11) "-2147483649")
+number conversion float(-2147483649) returns array(int(0) => int(2147483647), int(1) => float(-2147483649), int(2) => true)
+in_array/array_search float(-2147483649) returns array(int(0) => false, int(1) => false)
+switch float(-2147483649) returns string(7) "default"
+string conversion int(2147483647) returns array(int(0) => string(10) "2147483647", int(1) => string(10) "2147483647", int(2) => string(10) "2147483647")
+number conversion int(2147483647) returns array(int(0) => int(2147483647), int(1) => float(2147483647), int(2) => true)
+in_array/array_search int(2147483647) returns array(int(0) => false, int(1) => false)
+switch int(2147483647) returns string(7) "default"
+string conversion int(-2147483648) returns array(int(0) => string(11) "-2147483648", int(1) => string(11) "-2147483648", int(2) => string(11) "-2147483648")
+number conversion int(-2147483648) returns array(int(0) => int(-2147483648), int(1) => float(-2147483648), int(2) => true)
+in_array/array_search int(-2147483648) returns array(int(0) => false, int(1) => false)
+switch int(-2147483648) returns string(7) "default"
 string conversion float(0) returns array(int(0) => string(1) "0", int(1) => string(1) "0", int(2) => string(1) "0")
 number conversion float(0) returns array(int(0) => int(0), int(1) => float(0), int(2) => true)
 in_array/array_search float(0) returns array(int(0) => true, int(1) => int(0))
@@ -318,11 +318,11 @@ number conversion float(1000) returns array(int(0) => int(1000), int(1) => float
 in_array/array_search float(1000) returns array(int(0) => false, int(1) => false)
 switch float(1000) returns string(7) "default"
 string conversion float(1000000000000000) returns array(int(0) => string(7) "1.0E+15", int(1) => string(7) "1.0E+15", int(2) => string(7) "1.0E+15")
-number conversion float(1000000000000000) returns array(int(0) => int(1000000000000000), int(1) => float(1000000000000000), int(2) => true)
+number conversion float(1000000000000000) returns array(int(0) => int(-1530494976), int(1) => float(1000000000000000), int(2) => true)
 in_array/array_search float(1000000000000000) returns array(int(0) => false, int(1) => false)
 switch float(1000000000000000) returns string(7) "default"
 string conversion float(10000000000000000) returns array(int(0) => string(7) "1.0E+16", int(1) => string(7) "1.0E+16", int(2) => string(7) "1.0E+16")
-number conversion float(10000000000000000) returns array(int(0) => int(10000000000000000), int(1) => float(10000000000000000), int(2) => true)
+number conversion float(10000000000000000) returns array(int(0) => int(1874919424), int(1) => float(10000000000000000), int(2) => true)
 in_array/array_search float(10000000000000000) returns array(int(0) => false, int(1) => false)
 switch float(10000000000000000) returns string(7) "default"
 string conversion float(1.5000000000000001E+300) returns array(int(0) => string(8) "1.5E+300", int(1) => string(8) "1.5E+300", int(2) => string(8) "1.5E+300")
@@ -454,23 +454,23 @@ number conversion string(3) "2.5" returns array(int(0) => int(2), int(1) => floa
 in_array/array_search string(3) "2.5" returns array(int(0) => false, int(1) => false)
 switch string(3) "2.5" returns string(7) "default"
 string conversion string(19) "9223372036854775807" returns array(int(0) => string(19) "9223372036854775807", int(1) => string(19) "9223372036854775807", int(2) => string(19) "9223372036854775807")
-number conversion string(19) "9223372036854775807" returns array(int(0) => int(9223372036854775807), int(1) => float(9.2233720368547758E+18), int(2) => true)
+number conversion string(19) "9223372036854775807" returns array(int(0) => int(2147483647), int(1) => float(9.2233720368547758E+18), int(2) => true)
 in_array/array_search string(19) "9223372036854775807" returns array(int(0) => false, int(1) => false)
 switch string(19) "9223372036854775807" returns string(7) "default"
 string conversion string(19) "9223372036854775808" returns array(int(0) => string(19) "9223372036854775808", int(1) => string(19) "9223372036854775808", int(2) => string(19) "9223372036854775808")
-number conversion string(19) "9223372036854775808" returns array(int(0) => int(9223372036854775807), int(1) => float(9.2233720368547758E+18), int(2) => true)
+number conversion string(19) "9223372036854775808" returns array(int(0) => int(2147483647), int(1) => float(9.2233720368547758E+18), int(2) => true)
 in_array/array_search string(19) "9223372036854775808" returns array(int(0) => false, int(1) => false)
 switch string(19) "9223372036854775808" returns string(7) "default"
 string conversion string(20) "-9223372036854775809" returns array(int(0) => string(20) "-9223372036854775809", int(1) => string(20) "-9223372036854775809", int(2) => string(20) "-9223372036854775809")
-number conversion string(20) "-9223372036854775809" returns array(int(0) => int(-9223372036854775808), int(1) => float(-9.2233720368547758E+18), int(2) => true)
+number conversion string(20) "-9223372036854775809" returns array(int(0) => int(-2147483648), int(1) => float(-9.2233720368547758E+18), int(2) => true)
 in_array/array_search string(20) "-9223372036854775809" returns array(int(0) => false, int(1) => false)
 switch string(20) "-9223372036854775809" returns string(7) "default"
 string conversion string(10) "2147483648" returns array(int(0) => string(10) "2147483648", int(1) => string(10) "2147483648", int(2) => string(10) "2147483648")
-number conversion string(10) "2147483648" returns array(int(0) => int(2147483648), int(1) => float(2147483648), int(2) => true)
+number conversion string(10) "2147483648" returns array(int(0) => int(2147483647), int(1) => float(2147483648), int(2) => true)
 in_array/array_search string(10) "2147483648" returns array(int(0) => false, int(1) => false)
 switch string(10) "2147483648" returns string(7) "default"
 string conversion string(10) "4294967296" returns array(int(0) => string(10) "4294967296", int(1) => string(10) "4294967296", int(2) => string(10) "4294967296")
-number conversion string(10) "4294967296" returns array(int(0) => int(4294967296), int(1) => float(4294967296), int(2) => true)
+number conversion string(10) "4294967296" returns array(int(0) => int(2147483647), int(1) => float(4294967296), int(2) => true)
 in_array/array_search string(10) "4294967296" returns array(int(0) => false, int(1) => false)
 switch string(10) "4294967296" returns string(7) "default"
 string conversion string(2) "\303\244" returns array(int(0) => string(2) "\303\244", int(1) => string(2) "\303\244", int(2) => string(2) "\303\244")
@@ -534,7 +534,7 @@ number conversion string(20) "AT606000050110117300" returns array(int(0) => int(
 in_array/array_search string(20) "AT606000050110117300" returns array(int(0) => true, int(1) => int(1))
 switch string(20) "AT606000050110117300" returns string(7) "default"
 string conversion string(11) "50110117300" returns array(int(0) => string(11) "50110117300", int(1) => string(11) "50110117300", int(2) => string(11) "50110117300")
-number conversion string(11) "50110117300" returns array(int(0) => int(50110117300), int(1) => float(50110117300), int(2) => true)
+number conversion string(11) "50110117300" returns array(int(0) => int(2147483647), int(1) => float(50110117300), int(2) => true)
 in_array/array_search string(11) "50110117300" returns array(int(0) => false, int(1) => false)
 switch string(11) "50110117300" returns string(7) "default"
 string conversion string(10) "31.12.2024" returns array(int(0) => string(10) "31.12.2024", int(1) => string(10) "31.12.2024", int(2) => string(10) "31.12.2024")

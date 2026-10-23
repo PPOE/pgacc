@@ -1,1 +1,1 @@
-E_NOTICE index.php:293 (hidden): Undefined index: year
+E_NOTICE index.php:293: Undefined index: year

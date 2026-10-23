@@ -2,5 +2,5 @@
 # request: GET /index.php?action=edit&id=1003 as anon
 status: 302
 header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D656469742669643D31303033
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---

@@ -1,1 +1,1 @@
-E_NOTICE edit.php:348 (hidden): Undefined variable: vouchers
+E_NOTICE edit.php:348: Undefined variable: vouchers

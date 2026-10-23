@@ -1,2 +1,0 @@
-E_NOTICE new.php:252 (hidden): Undefined variable: key
-E_NOTICE new.php:252 (hidden): Undefined variable: key

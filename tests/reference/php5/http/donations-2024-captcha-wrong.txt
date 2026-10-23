@@ -2,7 +2,7 @@
 # request: POST /index.php?action=donations&year=2024 as anon
 # form: captcha_input=1&captcha=0
 status: 200
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (3508 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

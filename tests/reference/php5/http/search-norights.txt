@@ -2,5 +2,5 @@
 # request: GET /index.php?action=search&member=9001 as norights
 status: 302
 header: Location: https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9001
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---

@@ -2,7 +2,7 @@
 # request: POST /index.php?action=new as admin
 # form: speichern=Speichern&parts=2&bid0=0&dir0=in&in_type0=8&out_type0=20&wk_type0=21&date0=15.09.2024&person_type0=2&lo0=1&amount0=100.5&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+two+parts+income&commentgf0=Reference+workflow&mitgliedsnummer0=9001&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0&bid1=0&dir1=wk&in_type1=8&out_type1=20&wk_type1=21&date1=2024-09-16&person_type1=1&lo1=1&amount1=-0%2C99&gegenkonto1=SYNTHETICREF&konto1=TESTACCOUNT2&vkonto1=TESTVIRTUAL2&comment1=Reference+two+parts+campaign&commentgf1=Reference+workflow&mitgliedsnummer1=0&name1=Synthetic+Reference+Supplier&street1=Test+Street+1&plz1=0000&city1=Test+City&file1=0
 status: 200
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (2895 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

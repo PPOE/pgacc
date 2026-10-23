@@ -2,7 +2,7 @@
 # request: POST /index.php?action=new as readonly
 # form: speichern=Speichern&parts=1&bid0=0&dir0=in&in_type0=8&out_type0=20&wk_type0=21&date0=15.09.2024&person_type0=1&lo0=1&amount0=9&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+read-only&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0
 status: 200
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (2895 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">

@@ -4,5 +4,5 @@
 # file: file0 receipt.pdf (application/pdf, 667 bytes)
 status: 302
 header: Location: index.php?action=edit&id=5000&bid=1000&hint=1
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---

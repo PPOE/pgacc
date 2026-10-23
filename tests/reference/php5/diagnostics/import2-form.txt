@@ -1,1 +1,1 @@
-E_NOTICE import2.php:24 (hidden): Undefined index: upload
+E_NOTICE import2.php:24: Undefined index: upload

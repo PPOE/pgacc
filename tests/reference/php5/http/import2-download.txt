@@ -5,7 +5,6 @@ header: Content-Type: application/pdf
 header: Content-Disposition: inline; filename="102.pdf"
 header: Content-Transfer-Encoding: binary
 header: Accept-Ranges: bytes
-header: Content-Length: 736
 --- body (binary, 736 bytes, sha256 0b7fdaa96ff9a565485b2607a9d0a09d298b51c62d2a15b6c604f0b5d42af771) ---
 JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2Jq
 CjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2Jq

@@ -3,5 +3,5 @@
 # form: submit=Anmeldung&target=696E6465782E7068703F616374696F6E3D6F70656E
 status: 302
 header: Location: index.php?action=open
-header: Content-type: text/html; charset=UTF-8
+header: Content-type: text/html
 --- body (0 bytes) ---
