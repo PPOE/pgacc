@@ -3,23 +3,23 @@ set -eu
 
 # PHP 5 reference recordings (golden master); see tests/README.md.
 #
-#   sh tests/reference/run.sh record          record on PHP 5.6 into tests/reference/php5/
-#   sh tests/reference/run.sh record 5.3      record on the production-like PHP 5.3 lane instead
+#   sh tests/reference/run.sh record          record on the production-like PHP 5.3 lane
+#                                             into tests/reference/php5/
 #   sh tests/reference/run.sh compare 7.4     run the same scenario on a lane and compare
-#   sh tests/reference/run.sh compare 5.6     reproducibility check of the recording
+#   sh tests/reference/run.sh compare 5.3     reproducibility check of the recording
 #
 # PGACC_TEST_ID and PGACC_TEST_PG work as for tests/run.sh. Compare results go
 # to build/reference/php<lane>/ (report.txt, diffs/ and the actual recording).
 
 usage()
 {
-  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh record [5.6|5.3] | compare 5.3|5.6|7.4|8.0|8.5" >&2
+  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh record [5.3] | compare 5.3|5.6|7.4|8.0|8.5" >&2
   exit 2
 }
 
 mode=${1:-}
 case "$mode" in
-  record) lane=${2:-5.6} ;;
+  record) lane=${2:-5.3} ;;
   compare) lane=${2:-} ;;
   *) usage ;;
 esac
@@ -27,8 +27,9 @@ case "$lane" in
   5.3|5.6|7.4|8.0|8.5) ;;
   *) usage ;;
 esac
-if [ "$mode" = record ] && [ "$lane" != 5.6 ] && [ "$lane" != 5.3 ]; then
-  echo "The reference is recorded on PHP 5.6 or 5.3 only." >&2
+# Production runs PHP 5.3 (owner decision: the reference is recorded there).
+if [ "$mode" = record ] && [ "$lane" != 5.3 ]; then
+  echo "The reference is recorded on PHP 5.3 only." >&2
   exit 2
 fi
 

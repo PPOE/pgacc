@@ -23,13 +23,21 @@
  *   pg_version()) become {{php-version}} and {{pg-version}}.
  * - Response headers Date, Host, Connection and X-Powered-By (PHP version)
  *   are dropped; the status line is reduced to its code.
+ * - Transport details that depend on the web server, not the application
+ *   (the reference is recorded under Lighttpd + PHP-CGI on the PHP 5.3 lane,
+ *   the other lanes use php -S): the Server header is dropped, and so is a
+ *   Content-Length equal to the received body length (Lighttpd adds one,
+ *   php -S does not; the body block records the length anyway). A
+ *   Content-Length that differs from the body, e.g. file.php's ciphertext
+ *   size for a missing file, is kept. Content-type, including its charset
+ *   (default_charset), is application/php.ini behaviour and is kept.
  * - Xdebug is off (XDEBUG_MODE=off) and display_errors=0 in reference runs,
  *   so bodies hold only application output; diagnostics are recorded
  *   separately (diagnostics/, informational) from the diagnostics recorder.
  * - Floats in the helper golden master are exported with a fixed "%.17G"
  *   format, so var_export()'s precision change in PHP 7.1 is not reported.
  *
- * Must stay compatible with PHP 5.6.
+ * Must stay compatible with PHP 5.3 (helpers.php runs on the PHP 5.3 lane).
  */
 
 define('REF_FIXED_NOW', '2026-06-15 10:00:00');
@@ -157,7 +165,8 @@ function ref_normalize_set_cookie($value)
 }
 
 // Response headers that the snapshot keeps, normalized, in received order.
-function ref_relevant_headers($headers)
+// $bodyLength: length of the received body (drops a Content-Length equal to it).
+function ref_relevant_headers($headers, $bodyLength = null)
 {
     $kept = array();
     foreach ($headers as $header) {
@@ -168,7 +177,10 @@ function ref_relevant_headers($headers)
         }
         $name = trim($parts[0]);
         $value = trim($parts[1]);
-        if (in_array(strtolower($name), array('date', 'host', 'connection', 'x-powered-by'), true)) {
+        if (in_array(strtolower($name), array('date', 'host', 'connection', 'x-powered-by', 'server'), true)) {
+            continue;
+        }
+        if (strtolower($name) === 'content-length' && $bodyLength !== null && $value === strval($bodyLength)) {
             continue;
         }
         if (strtolower($name) === 'set-cookie') {
@@ -225,17 +237,10 @@ function ref_http_snapshot($step, $response)
         $text .= '# file: ' . $file[0] . ' ' . $file[1] . ' (' . $file[2] . ', ' . strlen($file[3]) . " bytes)\n";
     }
     $text .= 'status: ' . $response['status'] . "\n";
-    $body = ref_normalize_body($response['body']);
-    foreach (ref_relevant_headers($response['headers']) as $header) {
-        // A web server's Content-Length (Lighttpd on the PHP 5.3 lane) of a
-        // body with normalized random parts (captcha numbers) varies too.
-        if ($body !== $response['body']
-            && strcasecmp($header, 'Content-Length: ' . strlen($response['body'])) === 0) {
-            $header = substr($header, 0, strlen('Content-Length: ')) . '{{normalized-body-length}}';
-        }
+    foreach (ref_relevant_headers($response['headers'], strlen($response['body'])) as $header) {
         $text .= 'header: ' . $header . "\n";
     }
-    return $text . ref_body_block($body);
+    return $text . ref_body_block(ref_normalize_body($response['body']));
 }
 
 // Diagnostics of one request as recorded by tests/runtime/diagnostics-prepend.php.
@@ -573,7 +578,7 @@ function ref_allowlist_problems($entries)
     $problems = array();
     $ids = array();
     foreach ($entries as $index => $entry) {
-        foreach (array('id', 'php', 'files', 'lines', 'reason') as $field) {
+        foreach (array('id', 'php', 'files', 'lines', 'reason', 'category') as $field) {
             if (!isset($entry[$field]) || $entry[$field] === '' || $entry[$field] === array()) {
                 $problems[] = "entry $index: missing $field";
             }
@@ -589,6 +594,10 @@ function ref_allowlist_problems($entries)
         }
         if (isset($entry['lines']) && is_string($entry['lines']) && @preg_match($entry['lines'], '') === false) {
             $problems[] = "entry $index: invalid lines pattern";
+        }
+        if (isset($entry['category']) && $entry['category'] !== ''
+            && !in_array($entry['category'], array('accepted', 'todo'), true)) {
+            $problems[] = "entry $index: category must be 'accepted' or 'todo'";
         }
     }
     return $problems;
@@ -621,6 +630,19 @@ function ref_classify_changes($php, $file, $changedLines, $entries)
         }
     }
     return array($used, $unmatched);
+}
+
+// Per category ('accepted', 'todo'): the used entry IDs and their accepted
+// line counts, for the comparison summary.
+function ref_category_summary($entries, $usedIds)
+{
+    $summary = array('accepted' => array(), 'todo' => array());
+    foreach ($entries as $entry) {
+        if (isset($usedIds[$entry['id']])) {
+            $summary[$entry['category']][$entry['id']] = $usedIds[$entry['id']];
+        }
+    }
+    return $summary;
 }
 
 // Entries for this PHP version that accepted nothing in a whole comparison.

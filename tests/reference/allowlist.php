@@ -15,6 +15,11 @@
  *               match; the line includes its leading "-" (only in the
  *               reference) or "+" (only in the lane's recording)
  *   'reason' => why the difference is intended, with the plan/PR reference
+ *   'category' => 'accepted': an expected environment difference (php.ini,
+ *               SAPI, PHP version formats, 32- vs 64-bit integers);
+ *               'todo': a real defect or behaviour difference that must be
+ *               fixed later (tracked in tests/COMPATIBILITY_PLAN.md). The
+ *               comparison summary counts both.
  *
  * A changed line is accepted by the first entry that matches it. An entry that
  * accepts nothing in a comparison on one of its PHP versions is stale and

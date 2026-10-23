@@ -85,6 +85,11 @@ $report = "PHP 5 reference comparison on PHP $php\n"
 foreach ($categories as $category => $count) {
     $report .= "  $category: $count differing files\n";
 }
+// Allowlisted differences by category: "todo" ones are known defects to fix.
+foreach (ref_category_summary($entries, $used) as $category => $ids) {
+    $report .= "  allowlist $category: " . count($ids) . ' entries, ' . array_sum($ids) . ' changed lines'
+        . (count($ids) > 0 ? ' (' . implode(', ', array_keys($ids)) . ')' : '') . "\n";
+}
 if (count($stale) > 0) {
     $report .= "\nStale allowlist entries (accepted nothing on PHP $php): " . implode(', ', $stale) . "\n";
 }

@@ -24,25 +24,30 @@ function check($label, $actual, $expected)
 // ---------------------------------------------------------------- allowlist
 
 $entries = array(
-    array('id' => 'A', 'php' => array('7.4'), 'files' => 'http/import-*.txt', 'lines' => '/^[-+]status: (200|500)$/', 'reason' => 'r'),
-    array('id' => 'B', 'php' => array('7.4', '8.0'), 'files' => 'helpers/*.txt', 'lines' => '/^\+.* THROWS TypeError$/', 'reason' => 'r'),
-    array('id' => 'C', 'php' => array('8.5'), 'files' => '*', 'lines' => '/./', 'reason' => 'r'),
+    array('id' => 'A', 'php' => array('7.4'), 'files' => 'http/import-*.txt', 'lines' => '/^[-+]status: (200|500)$/', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'B', 'php' => array('7.4', '8.0'), 'files' => 'helpers/*.txt', 'lines' => '/^\+.* THROWS TypeError$/', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'C', 'php' => array('8.5'), 'files' => '*', 'lines' => '/./', 'reason' => 'r', 'category' => 'todo'),
 );
 check('valid allowlist', ref_allowlist_problems($entries), array());
 check('committed allowlist is valid', ref_allowlist_problems(require __DIR__ . '/allowlist.php'), array());
 check('allowlist problems', ref_allowlist_problems(array(
     array('id' => 'X', 'php' => array('7.4'), 'files' => '*', 'lines' => '/a/'),
-    array('id' => 'X', 'php' => '7.4', 'files' => '*', 'lines' => '/a/', 'reason' => 'r'),
-    array('id' => 'Y', 'php' => array('7.4'), 'files' => '*', 'lines' => '/(/', 'reason' => 'r'),
-    array('id' => 'Z', 'php' => array(), 'files' => '', 'lines' => '/a/', 'reason' => 'r'),
+    array('id' => 'X', 'php' => '7.4', 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'Y', 'php' => array('7.4'), 'files' => '*', 'lines' => '/(/', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'Z', 'php' => array(), 'files' => '', 'lines' => '/a/', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'W', 'php' => array('7.4'), 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'fixme'),
 )), array(
     'entry 0: missing reason',
+    'entry 0: missing category',
     'entry 1: duplicate id X',
     'entry 1: php must be a list of versions',
     'entry 2: invalid lines pattern',
     'entry 3: missing php',
     'entry 3: missing files',
+    "entry 4: category must be 'accepted' or 'todo'",
 ));
+check('category summary', ref_category_summary($entries, array('A' => 3, 'C' => 2)),
+    array('accepted' => array('A' => 3), 'todo' => array('C' => 2)));
 
 check('all lines accepted', ref_classify_changes('7.4', 'http/import-bawag.txt', array('-status: 200', '+status: 500'), $entries),
     array(array('A' => 2), array()));
@@ -76,16 +81,16 @@ check('inconsistent captcha', ref_normalize_body('Was ergibt die Addition 12 + 4
     'Was ergibt die Addition {{captcha-a}} + {{captcha-b}}? <input value="{{captcha-c=INCONSISTENT}}" name="captcha" type="hidden">');
 check('captcha out of range', ref_normalize_body('Was ergibt die Addition 0 + 40? value="3" name="captcha"'),
     'Was ergibt die Addition {{captcha-a}} + {{captcha-b}}? value="{{captcha-c=INCONSISTENT}}" name="captcha"');
+check('transport headers', ref_relevant_headers(array('Server: lighttpd/1.4.28', 'Content-Length: 2',
+    'Content-type: text/html', 'Content-Length: 672', 'Content-Length:'), 2), array(
+    'Content-type: text/html', 'Content-Length: 672', 'Content-Length: '));
 $captchaBody = 'Was ergibt die Addition 12 + 40? value="15" name="captcha"';
 $step = array('id' => 's', 'method' => 'GET', 'path' => '/', 'user' => 'anon', 'form' => array(), 'files' => array());
-check('content length of a normalized body', ref_http_snapshot($step, array('status' => 200,
-    'headers' => array('Content-Length: ' . strlen($captchaBody), 'Content-Length: 3'), 'body' => $captchaBody)),
-    "# step: s\n# request: GET / as anon\nstatus: 200\nheader: Content-Length: {{normalized-body-length}}\n"
-    . "header: Content-Length: 3\n--- body (" . strlen(ref_normalize_body($captchaBody)) . " bytes) ---\n"
-    . ref_normalize_body($captchaBody));
-check('content length of an unchanged body', ref_http_snapshot($step, array('status' => 200,
-    'headers' => array('Content-Length: 2'), 'body' => 'ok')),
-    "# step: s\n# request: GET / as anon\nstatus: 200\nheader: Content-Length: 2\n--- body (2 bytes) ---\nok");
+check('web server Content-Length of a normalized body', ref_http_snapshot($step, array('status' => 200,
+    'headers' => array('Server: lighttpd/1.4.28', 'Content-Length: ' . strlen($captchaBody), 'Content-Length: 3'),
+    'body' => $captchaBody)),
+    "# step: s\n# request: GET / as anon\nstatus: 200\nheader: Content-Length: 3\n--- body ("
+    . strlen(ref_normalize_body($captchaBody)) . " bytes) ---\n" . ref_normalize_body($captchaBody));
 check('impressum versions', ref_normalize_body('<a href="http://www.php.net">PHP</a></td><td class=""><div>5.6.40</div></td>'
     . '<a href="http://www.postgresql.org/">PostgreSQL</a></td><td class=""><div>17.11 (Debian)</div>'),
     '<a href="http://www.php.net">PHP</a></td><td class=""><div>{{php-version}}</div></td>'
