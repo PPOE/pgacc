@@ -25,15 +25,16 @@ VALUES
   (21, 'Synthetic legacy expense', 5, -1, 20);
 
 INSERT INTO users (id, name, hash, login, cookie, rights, hide)
-VALUES (
-  1,
-  'synthetic-admin',
-  crypt('correct-password', gen_salt('md5')),
-  timestamp '2024-01-01 12:00:00',
-  123456,
-  'root,bgf',
-  ''
-);
+VALUES
+  (1, 'synthetic-admin',
+   crypt('correct-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 123456, 'root,bgf', ''),
+  (2, 'synthetic-reviewer',
+   crypt('reviewer-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 234567, 'bgf', ''),
+  (3, 'synthetic-unit-one',
+   crypt('unit-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 345678, '1', '');
 
 INSERT INTO balance (id, value, orga, date)
 VALUES

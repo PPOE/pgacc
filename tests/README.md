@@ -42,6 +42,13 @@ host port, cannot reach external networks, and receives only synthetic data.
 The test server enables `output_buffering=4096` because the current login flow
 sends redirect and cookie headers after page rendering has started.
 
+`write-workflows.php` exercises real HTTP mutations and verifies their database
+effects: voucher creation, organization-scoped approval, distinct first and
+second reviewers, finalization, the finalized-entry edit lock, revision history,
+and root-only recovery. Receipt encryption/upload is deliberately excluded
+because the unchanged application requires the removed `mcrypt` extension;
+the tests use a synthetic receipt reference instead.
+
 The PHP 7.4 package repository is archived, so `php-runtime.Dockerfile` pins
 the base images and installs `pgsql` from the archived Bullseye repository.
 This runtime is only a characterization bridge, not a deployment target.
