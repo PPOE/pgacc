@@ -22,14 +22,14 @@ case "$php_version" in
   all)
     matrix_status=0
     sh tests/php-syntax-matrix.sh || matrix_status=1
-    for test_php in 7.4 5.6 8.0 8.5; do
+    for test_php in 7.4 5.6 5.3 8.0 8.5; do
       sh tests/run.sh "$test_php" || matrix_status=1
     done
     exit "$matrix_status"
     ;;
-  7.4|5.6|8.0|8.5) ;;
+  7.4|5.6|5.3|8.0|8.5) ;;
   *)
-    echo "Usage: [PGACC_TEST_PG=9.4|14|17|18] sh tests/run.sh [all|7.4|5.6|8.0|8.5]" >&2
+    echo "Usage: [PGACC_TEST_PG=9.4|14|17|18] sh tests/run.sh [all|7.4|5.6|5.3|8.0|8.5]" >&2
     exit 2
     ;;
 esac
@@ -42,7 +42,10 @@ fi
 
 compose()
 {
-  if [ "$php_version" = 5.6 ]; then
+  if [ "$php_version" = 5.3 ]; then
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php53" \
+      -f compose.test.yaml -f compose.php53.yaml "$@"
+  elif [ "$php_version" = 5.6 ]; then
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php56" \
       -f compose.test.yaml -f compose.php56.yaml "$@"
   elif [ "$php_version" = 8.0 ]; then
@@ -88,4 +91,11 @@ compose up --detach --wait database
 compose run --rm php-lint
 compose run --rm database-test
 compose up --build --detach --wait application
+if [ "$php_version" = 5.3 ]; then
+  # PHPUnit on PHP 5.3 runs before the write workflows change the fixtures
+  # (as on the other lanes). The test client is the PHP 5.6 image
+  # (compose.php53.yaml); build it so that it carries the current scripts.
+  compose run --rm application-phpunit
+  compose build application-test
+fi
 compose run --rm application-test

@@ -61,6 +61,17 @@ jobs:
             pg: '17'
             project: pgacc-test-php56
             compose_files: -f compose.test.yaml
+          # Production-like PHP 5.3 (squeeze i386, Lighttpd + PHP-CGI); 32-bit
+          # x86 runs natively on the x86-64 runners. 9.4 is the closest server
+          # to production's PostgreSQL 8.4. No mutation runs on this lane.
+          - php: '5.3'
+            pg: '17'
+            project: pgacc-test-php53
+            compose_files: -f compose.test.yaml -f compose.php53.yaml
+          - php: '5.3'
+            pg: '9.4'
+            project: pgacc-test-pg94-php53
+            compose_files: -f compose.test.yaml -f compose.php53.yaml
           - php: '8.0'
             pg: '17'
             project: pgacc-test-php80
@@ -101,7 +112,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Mutation runner self-test, rights2orgasql and null-arguments mutations
-        if: always()
+        if: always() && matrix.php != '5.3'
         # Reuses the lane image built above; see tests/mutation/README.md.
         run: |
           sh tests/mutation/run.sh '${{ matrix.php }}' --self-test
@@ -111,7 +122,7 @@ jobs:
       - name: login-logout mutations
         # Not on PHP 8.5: the unmutated baseline fails there (implicit
         # PostgreSQL connection deprecations before the login redirect).
-        if: always() && matrix.php != '8.5'
+        if: always() && matrix.php != '8.5' && matrix.php != '5.3'
         run: sh tests/mutation/run.sh '${{ matrix.php }}' login-logout
 
       - name: redirects mutations
@@ -133,7 +144,7 @@ jobs:
         run: sh tests/mutation/run.sh '${{ matrix.php }}' receipt-crypto
 
       - name: Upload mutation results
-        if: always()
+        if: always() && matrix.php != '5.3'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: mutation-php${{ matrix.php }}${{ matrix.pg != '17' && format('-pg{0}', matrix.pg) || '' }}

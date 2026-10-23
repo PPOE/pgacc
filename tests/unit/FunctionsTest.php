@@ -233,13 +233,22 @@ final class FunctionsTest extends FunctionsTestCase
             return true;
         });
         ob_start();
+        // No "finally": the PHP 5.3 lane runs these tests (PHPUnit 4.8).
+        // Throwable (PHP 7+) is only resolved when something is thrown.
         try {
             $return = call_user_func($callback);
             $output = ob_get_contents();
-        } finally {
+        } catch (Exception $exception) {
             ob_end_clean();
             restore_error_handler();
+            throw $exception;
+        } catch (Throwable $exception) {
+            ob_end_clean();
+            restore_error_handler();
+            throw $exception;
         }
+        ob_end_clean();
+        restore_error_handler();
         return array('return' => $return, 'output' => $output, 'diagnostics' => $diagnostics);
     }
 
@@ -466,10 +475,16 @@ final class FunctionsTest extends FunctionsTestCase
                 array('ack1' => null, 'ack2' => null, 'ack1_old' => 'reviewer-one', 'ack2_old' => 'reviewer-two'),
                 pg_fetch_assoc($result)
             );
-        } finally {
-            // pg_connect() returned the shared default link; keep it open
-            // for helpers in later tests, whatever the execution order.
+        } catch (Exception $exception) {
             pg_query($connection, 'ROLLBACK');
+            throw $exception;
+        } catch (Throwable $exception) {
+            pg_query($connection, 'ROLLBACK');
+            throw $exception;
         }
+        // pg_connect() returned the shared default link; keep it open for
+        // helpers in later tests, whatever the execution order. No "finally"
+        // (PHP 5.3 lane), so both exits roll back explicitly.
+        pg_query($connection, 'ROLLBACK');
     }
 }

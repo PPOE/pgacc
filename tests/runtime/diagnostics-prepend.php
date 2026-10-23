@@ -11,7 +11,7 @@
  * display_errors and output buffering. Only functions with a test-specific
  * prefix are defined; no global variables are left behind.
  *
- * Must stay compatible with PHP 5.6.
+ * Must stay compatible with PHP 5.3 (the PHP 5.3 lane runs it under PHP-CGI).
  */
 
 function pgacc_test_diagnostics_log_path()

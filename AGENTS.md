@@ -10,11 +10,14 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   No PHP 5.4+ syntax: no short arrays `[]`, no `f()[0]`, no traits, no `::class`, no `$this` in closures.
   No PHP 7+ syntax or functions either: no `??`, `<=>`, `match`, typed parameters/returns/properties,
   arrow functions, nullsafe `?->`, `str_contains`/`str_starts_with`, etc. Use `array()`.
-- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`), but the oldest runnable lane is
-  PHP 5.6: runtime behaviour on 5.3 is not tested.
+- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`). The PHP 5.3 lane
+  (`sh tests/run.sh 5.3`) runs the app on a production-like squeeze i386 image (Lighttpd + PHP-CGI
+  5.3.3-7+squeeze19); its HTTP test scripts run from the PHP 5.6 image (`tests/README.md`, "PHP 5.3 lane").
 - PostgreSQL: production runs a very old server; the schema was reconstructed from 8.4 (`tests/fixtures/schema.sql`).
   Tests use PostgreSQL 17. Write SQL that works on both.
 - Test files must stay PHP 5.6-compatible too (`tests/known-diagnostics.php`, mutation targets, helpers).
+  `tests/unit/FunctionsTest.php`, `tests/runtime/` and the server-side `tests/php53/` scripts run on PHP 5.3
+  (no `finally`).
 
 ## Change workflow (owner's rules)
 
@@ -44,7 +47,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 ## Running tests
 
 - Docker only. Tests use synthetic data on internal networks with no published ports.
-- `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.6|7.4|8.0|8.5` runs one lane.
+- `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.3|5.6|7.4|8.0|8.5` runs one lane.
   Coverage runs only on 7.4 (report in `build/coverage/`).
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
   Remove tagged images afterwards with `docker rmi`.

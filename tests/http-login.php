@@ -66,11 +66,18 @@ function response_cookie_attributes($response, $name)
     return null;
 }
 
+// setcookie() sends Max-Age only since PHP 5.5 (production runs PHP 5.3).
+function server_sends_max_age()
+{
+    return version_compare(server_php_version(), '5.5', '>=');
+}
+
 // Both login cookies last 24 hours and have no path, domain, secure, or
 // httponly attribute (setcookie() with only name, value, and expiry).
 function login_cookie_attribute_problems($response)
 {
     $problems = array();
+    $expected = server_sends_max_age() ? array('expires', 'max-age') : array('expires');
     foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
         $attributes = response_cookie_attributes($response, $cookie);
         if ($attributes === null) {
@@ -79,11 +86,11 @@ function login_cookie_attribute_problems($response)
         }
         $names = array_keys($attributes);
         sort($names);
-        if ($names !== array('expires', 'max-age')) {
-            $problems[] = "$cookie attributes were " . implode(',', $names) . ', expected expires,max-age';
+        if ($names !== $expected) {
+            $problems[] = "$cookie attributes were " . implode(',', $names) . ', expected ' . implode(',', $expected);
             continue;
         }
-        if ($attributes['max-age'] !== '86400') {
+        if (server_sends_max_age() && $attributes['max-age'] !== '86400') {
             $problems[] = "$cookie Max-Age was {$attributes['max-age']}, expected 86400";
         }
         $expires = strtotime($attributes['expires']);
@@ -96,7 +103,9 @@ function login_cookie_attribute_problems($response)
 
 // PHP clears a cookie set to "" with a fixed past expiry, whatever expiry
 // was passed: 1970-01-01 00:00:01 GMT ("Thu, 01-Jan-1970 ..." before PHP 8.2,
-// "Thu, 01 Jan 1970 ..." since).
+// "Thu, 01 Jan 1970 ..." since). Before PHP 5.5 (production's PHP 5.3) the
+// expiry is one year and one second before the request instead, without
+// Max-Age.
 function logout_cookie_attribute_problems($response)
 {
     $problems = array();
@@ -104,8 +113,14 @@ function logout_cookie_attribute_problems($response)
         $attributes = response_cookie_attributes($response, $cookie);
         $names = is_array($attributes) ? array_keys($attributes) : array();
         sort($names);
-        if ($names !== array('expires', 'max-age') || $attributes['max-age'] !== '0'
-            || strtotime($attributes['expires']) !== 1) {
+        if (server_sends_max_age()) {
+            $cleared = $names === array('expires', 'max-age') && $attributes['max-age'] === '0'
+                && strtotime($attributes['expires']) === 1;
+        } else {
+            $expires = $names === array('expires') ? strtotime($attributes['expires']) : false;
+            $cleared = $expires !== false && abs($expires - (time() - 31536001)) <= 120;
+        }
+        if (!$cleared) {
             $problems[] = "$cookie attributes were " . var_export($attributes, true);
         }
     }

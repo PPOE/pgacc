@@ -1,0 +1,72 @@
+# PHP 5.3 lane (tests/run.sh 5.3): the application runs on a production-like
+# Debian squeeze i386 image under Lighttpd + PHP-CGI (tests/php53/). PHP 5.3
+# has no built-in web server, and the test scripts need PHP 5.4+ syntax, so
+# the HTTP and write-workflow tests run as clients from the PHP 5.6 test image
+# against that server. See tests/README.md, "PHP 5.3 lane".
+services:
+  database:
+    # libpq 8.4 predates SCRAM. Only this isolated synthetic database uses MD5.
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: --auth-host=md5
+    # PostgreSQL 9.4 spells MD5 hashing "on" (tests/postgres-version.sh).
+    command: ["postgres", "-c", "password_encryption=${PGACC_TEST_PG_MD5_ENCRYPTION:-md5}"]
+
+  php-lint:
+    image: pgacc-test-application-php53${PGACC_TEST_SUFFIX:-}
+    platform: linux/386
+    build:
+      context: .
+      dockerfile: tests/php53/runtime.Dockerfile
+
+  application:
+    image: pgacc-test-application-php53${PGACC_TEST_SUFFIX:-}
+    platform: linux/386
+    build:
+      context: .
+      dockerfile: tests/php53/runtime.Dockerfile
+    # Lighttpd starts as root and runs itself and PHP-CGI as www-data.
+    command: ["sh", "/app/tests/php53/start-server.sh"]
+    # Port 8081: the same server with output_buffering=0 (start-server.sh).
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - "exit(@fsockopen('127.0.0.1', 8080) && @fsockopen('127.0.0.1', 8081) ? 0 : 1);"
+    tmpfs:
+      - /var/run
+      - /var/cache/lighttpd
+
+  # PHPUnit 4.8 on PHP 5.3 CLI (functions.php helpers), against the database.
+  application-phpunit:
+    image: pgacc-test-application-php53${PGACC_TEST_SUFFIX:-}
+    platform: linux/386
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: accounting
+      PGUSER: pgacc_test
+      PGPASSWORD: pgacc_test
+      TZ: UTC
+    command: ["sh", "tests/php53/phpunit.sh"]
+    init: true
+    networks:
+      - test
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # The test client: the PHP 5.6 lane image (same Dockerfile, same tag).
+  application-test:
+    image: pgacc-test-application-php56${PGACC_TEST_SUFFIX:-}
+    build:
+      context: .
+      dockerfile: tests/php56/runtime.Dockerfile
+    environment:
+      PGACC_TEST_SERVER_PHP: "5.3"
+      PGACC_TEST_UNBUFFERED_BASE_URL: http://application:8081
+    command: ["sh", "tests/php53/application-tests.sh"]

@@ -10,14 +10,15 @@ Run the current harness with:
 sh tests/run.sh
 ```
 
-This runs the syntax matrix, then independent PHP 7.4, PHP 5.6, PHP 8.0, and
-PHP 8.5 application lanes. Each lane gets a fresh synthetic PostgreSQL database.
+This runs the syntax matrix, then independent PHP 7.4, PHP 5.6, PHP 5.3, PHP 8.0,
+and PHP 8.5 application lanes. Each lane gets a fresh synthetic PostgreSQL database.
 Every lane is attempted, and the runner returns nonzero if any lane fails. To
 run one lane:
 
 ```bash
 sh tests/run.sh 7.4
 sh tests/run.sh 5.6
+sh tests/run.sh 5.3
 sh tests/run.sh 8.0
 sh tests/run.sh 8.5
 ```
@@ -37,8 +38,8 @@ names are unchanged (`pgacc-test-php74`, `pgacc-test-application`, ...). Runs
 with an ID leave their tagged images behind; remove them with `docker rmi` when
 no longer needed.
 
-GitHub Actions runs the four application lanes as parallel matrix jobs
-on PostgreSQL 17, plus PHP 7.4 on PostgreSQL 9.4 and 18 (see
+GitHub Actions runs the five application lanes as parallel matrix jobs
+on PostgreSQL 17, plus PHP 7.4 on PostgreSQL 9.4 and 18 and PHP 5.3 on 9.4 (see
 [PostgreSQL versions](#postgresql-versions)),
 alongside a separate syntax compatibility job. A failure in any application
 lane fails CI; it does not cancel the other lanes. A separate job compares every
@@ -226,6 +227,60 @@ voucher creation, approval, finalization, revision, and recovery tests as PHP 7.
 PHP 5.6 and PHP 7.4 both pass 161 PHPUnit test cases and 256 assertions (121 and
 157 of them for `functions.php`, the rest for the Infection wrapper). PHP 5.6 has an
 explicit UTC PHP timezone setting, matching the fixture environment.
+
+### PHP 5.3 lane (production-like)
+
+`sh tests/run.sh 5.3` (`compose.php53.yaml`, `tests/php53/`) reproduces the
+production server as closely as Docker allows, because the `php5-last` hotfix is
+deployed there:
+
+- Image `debian/eol:squeeze`, the **linux/386** manifest pinned by digest
+  (`sha256:4a306675...`; manifest list `sha256:80ed3d6f...`), i.e. 32-bit like
+  production (`PHP_INT_SIZE` 4). The server runs under `linux32`, so
+  `php_uname('m')` is `i686`. 32-bit x86 runs natively on x86-64 hosts and
+  GitHub runners (no QEMU).
+- Packages from archive.debian.org (squeeze, squeeze/updates; squeeze-lts only at
+  priority 100, for packages squeeze lacks), pinned to the production versions:
+  `php5-cgi`, `php5-cli`, `php5-common`, `php5-pgsql`, `php5-mcrypt`
+  5.3.3-7+squeeze19 (Suhosin patch 0.9.9.1 compiled in, as on production),
+  `lighttpd` 1.4.28-2+squeeze1.6, `libpq5` 8.4.20-0squeeze1. The full package
+  list is in the image at `/opt/pgacc-php53-packages.txt`.
+- Debian's stock CGI `php.ini` is kept unchanged: it already has every value
+  confirmed on production (`output_buffering=4096`, `short_open_tag` On,
+  `display_errors` Off, `error_reporting` 22527, `register_globals` and
+  `magic_quotes_gpc` Off, no `date.timezone`, no `default_charset`).
+  `tests/php53/ini-check.php` asserts them, the extensions, the version, i686
+  and the Suhosin patch at build time. The only test addition is
+  `auto_prepend_file` for the diagnostics recorder (`conf.d/zz-pgacc-test.ini`).
+  Without `date.timezone` and `TZ`, Debian's PHP 5.3 silently uses the system
+  zone from `/etc/timezone` (UTC in the image; no diagnostic).
+- Lighttpd + PHP-CGI over FastCGI with Debian's stock `lighttpd.conf` and
+  `15-fastcgi-php.conf` (`tests/php53/lighttpd.conf` lists the test-only
+  deviations: port 8080, document root `/app`, PG*/diagnostics variables passed
+  to PHP). Lighttpd and PHP-CGI run as `www-data`. A second instance on port 8081
+  runs PHP-CGI with `output_buffering=0` for the unbuffered header checks
+  (`PGACC_TEST_UNBUFFERED_BASE_URL`).
+- `vendor/` comes from the locked `composer.lock` in a Composer build stage
+  (squeeze's OpenSSL 0.9.8 cannot reach Packagist); the build checks it on 5.3
+  with `composer check-platform-reqs` and `tests/php53/vendor-check.php` (TCPDF
+  writes a PDF, smalot/pdfparser reads it back; phpseclib once it is locked).
+
+PHP 5.3 has no built-in server, and the HTTP/write-workflow scripts use PHP 5.4+
+syntax, so `application-test` runs them from the PHP 5.6 lane image as clients of
+the 5.3 server, with `PGACC_TEST_SERVER_PHP=5.3` (diagnostics are matched and
+version-dependent expectations chosen by the server's PHP version).
+`tests/php53/http-cgi.php` first proves that both servers are
+`PHP/5.3.3-7+squeeze19` on `lighttpd/1.4.28`, that the recorder ran under 5.3,
+and that a request without `X-Forwarded-Proto: https` is redirected to
+`https://<Host><REQUEST_URI>` as behind the TLS proxy. `application-phpunit`
+runs `FunctionsTest.php` with PHPUnit 4.8.36 (PHAR, SHA-256 pinned; the last
+PHPUnit for PHP 5.3) on the 5.3 CLI with its stock `php.ini`, before the write
+workflows; the Infection wrapper tests are not run there. Differences from
+PHP 5.6 seen by the tests: `setcookie()` sends no `Max-Age` before PHP 5.5, and
+a cleared cookie expires one year (plus one second) before the request instead
+of at 1970-01-01; notices are reported (logged, not displayed) because of
+production's `error_reporting`, so `KD-EDIT-RIGHTSSQL` has a separate `5.3`
+entry. Mutation runs are not available on this lane.
 
 `compose.php56.yaml` configures MD5 password authentication only for that lane's
 isolated synthetic PostgreSQL database. Its archived libpq 9.6 client predates
@@ -537,7 +592,7 @@ The copy also contains the synthetic `tests/runtime/test-constants.php` as
 `PGACC_TEST_ID` suffixes the image name, as for `tests/run.sh`.
 
 - **PHPCompatibility** through PHP_CodeSniffer (`phpcs.xml`): `testVersion`
-  5.3-8.5 (production runs PHP 5.3.3; the oldest runtime lane is 5.6) plus
+  5.3-8.5 (production runs PHP 5.3.3, which the PHP 5.3 lane runs) plus
   `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
 - **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
   variables (levels 0/1), unknown functions, argument counts and types, invalid
@@ -677,6 +732,7 @@ same reason, with a separate runner configuration. The initial suite covers
   5.6. PHP 5.4 and 5.3 were not testable with the available Docker Hub images,
   which use a manifest format rejected by the current Docker engine. This is
   syntax-only evidence for PHP 5.5; PHP 5.6 also has the behavioral lane below.
+  (PHP 5.3 now runs from `debian/eol:squeeze`; see [PHP 5.3 lane](#php-53-lane-production-like).)
 - [x] Run the shared PHPUnit tests and HTTP/database workflows on PHP 5.6.40,
   using PHPUnit 5.7.27 and an isolated PostgreSQL database. Run the PHP 5.6 and
   7.4 lanes as independent GitHub Actions matrix jobs.

@@ -18,6 +18,18 @@ $GLOBALS['pgacc_test_known_failure'] = null;
 $GLOBALS['pgacc_test_diagnostics_reported'] = false;
 $GLOBALS['pgacc_test_checked_requests'] = 0;
 
+// PHP minor version of the application server under test: the client's own
+// version, except on lanes whose server runs another PHP (the PHP 5.3 lane
+// sets PGACC_TEST_SERVER_PHP; its tests run from the PHP 5.6 image).
+function server_php_version()
+{
+    $version = getenv('PGACC_TEST_SERVER_PHP');
+    if ($version !== false && $version !== '') {
+        return $version;
+    }
+    return PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+}
+
 function diagnostics_directory()
 {
     $directory = getenv('PGACC_TEST_DIAGNOSTICS_DIR');
@@ -130,7 +142,7 @@ function collect_response_diagnostics($requestId, $label, $response)
         if (!$logged) {
             $records[] = array(
                 'uri' => '',
-                'php' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+                'php' => server_php_version(),
                 'type' => 'DISPLAYED ' . $displayed['label'],
                 'message' => $displayed['message'],
                 'file' => $displayed['file'],
@@ -189,7 +201,7 @@ function print_diagnostics_summary()
         $groups[$key]['labels'][$record['label']] = true;
     }
     $script = basename($_SERVER['SCRIPT_NAME']);
-    $php = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+    $php = server_php_version();
     $checked = $GLOBALS['pgacc_test_checked_requests'];
     if (count($groups) === 0) {
         echo "PHP $php diagnostics in $script: none in $checked checked request(s)\n";
