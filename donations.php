@@ -101,6 +101,7 @@ $donation_condition = "AND type = 8";
 $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE ".eyes()." $donation_condition ".date_condition($year)." GROUP BY name;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 $count = 0;
+$donations = array();
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if ($line['sum'] <= 10000) { continue; }
 //if ($year == 2012 && $line['sum'] <= 0) { continue; }
@@ -113,6 +114,8 @@ pg_free_result($result);
 
 if ($count > 0)
 {
+$sort_sum = array();
+$sort_name = array();
 foreach ($donations as $d)
 {
 $sort_sum[] = $d['sum'];
