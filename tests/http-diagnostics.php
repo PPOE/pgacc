@@ -58,6 +58,22 @@ function known_diagnostic_reason($record)
     return null;
 }
 
+// Application path relative to the served root: /app in the test images, or
+// the copy the mutation runner serves (PGACC_TEST_APP_ROOT).
+function displayed_relative_file($file)
+{
+    $roots = array('/app');
+    if (getenv('PGACC_TEST_APP_ROOT')) {
+        $roots[] = rtrim(getenv('PGACC_TEST_APP_ROOT'), '/');
+    }
+    foreach ($roots as $root) {
+        if (strpos($file, $root . '/') === 0) {
+            return substr($file, strlen($root) + 1);
+        }
+    }
+    return $file;
+}
+
 // Diagnostics displayed in the body, e.g. "<b>Deprecated</b>:  msg in
 // <b>/app/new.php</b> on line <b>450</b>" or the plain-text equivalent.
 function displayed_body_diagnostics($body)
@@ -71,7 +87,7 @@ function displayed_body_diagnostics($body)
             $found[] = array(
                 'label' => $match[1],
                 'message' => strip_tags($match[2]),
-                'file' => preg_replace('#^/app/#', '', $match[3]),
+                'file' => displayed_relative_file($match[3]),
                 'line' => intval($match[4]),
             );
         }
@@ -106,12 +122,8 @@ function collect_response_diagnostics($requestId, $label, $response)
     foreach (displayed_body_diagnostics($response['body']) as $displayed) {
         $logged = false;
         foreach ($records as $record) {
-            // The mutation runner serves a copy outside /app, so the
-            // displayed path may keep a directory prefix.
-            $suffix = '/' . $record['file'];
-            if ($record['reported'] && $record['line'] === $displayed['line']
-                && ($record['file'] === $displayed['file']
-                    || substr($displayed['file'], -strlen($suffix)) === $suffix)) {
+            if ($record['reported'] && $record['file'] === $displayed['file']
+                && $record['line'] === $displayed['line']) {
                 $logged = true;
             }
         }

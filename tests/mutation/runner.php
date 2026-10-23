@@ -238,6 +238,8 @@ function run_case($context, $mutation, $mutantSource, $index)
         $environment = array(
             'PGACC_TEST_DIAGNOSTICS_DIR' => $diagnostics,
             'PGACC_TEST_BASE_URL' => 'http://127.0.0.1:' . $port,
+            // Served root, so tests/http-diagnostics.php can relate displayed paths.
+            'PGACC_TEST_APP_ROOT' => $copy,
         );
         $server = null;
         if ($context['http']) {
