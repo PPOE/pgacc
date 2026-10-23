@@ -3,7 +3,12 @@
  * Encrypted receipts and the membership export over HTTP: receipt upload
  * (new.php), PDF import (import2.php), receipt download (file.php) and
  * mbapi.php. The byte-exact mcrypt compatibility of the encryption itself is
- * pinned by tests/unit/CryptoTest.php; this checks the call sites.
+ * pinned by tests/unit/CryptoTest.php; this checks the call sites and the
+ * stored files: new receipts are files/<n>.v2.aes with the configured key,
+ * legacy files/<n>.aes (empty key part) stay readable, and <n>.v2.aes wins.
+ * The test reads and writes the server's files/ directory: a volume shared
+ * with the server in compose.test.yaml, the copy's files/ in the mutation
+ * runner (PGACC_TEST_APP_ROOT).
  *
  * Must stay compatible with PHP 5.6.
  */
@@ -80,6 +85,40 @@ function assert_receipt_download($cookies, $id, $plain, $contentType, $fileNumbe
     }
 }
 
+// The server's files/ directory and its receipt files of one file number.
+function receipt_files_directory()
+{
+    $root = getenv('PGACC_TEST_APP_ROOT') ? rtrim(getenv('PGACC_TEST_APP_ROOT'), '/') : '/app';
+    if (!is_dir("$root/files") || !is_writable("$root/files")) {
+        fail_test("the server's receipt directory $root/files is not shared with the test");
+    }
+    return "$root/files";
+}
+
+function stored_receipt_files($fileNumber)
+{
+    $names = array();
+    foreach (scandir(receipt_files_directory()) as $name) {
+        if (strpos($name, "$fileNumber.") === 0) {
+            $names[] = $name;
+        }
+    }
+    sort($names);
+    return $names;
+}
+
+function assert_stored_receipt($fileNumber, $cipherHex, $label)
+{
+    $names = stored_receipt_files($fileNumber);
+    if ($names !== array("$fileNumber.v2.aes")) {
+        fail_test("$label stored " . var_export($names, true) . ", expected $fileNumber.v2.aes only");
+    }
+    $stored = bin2hex(file_get_contents(receipt_files_directory() . "/$fileNumber.v2.aes"));
+    if ($stored !== $cipherHex) {
+        fail_test("$label: $fileNumber.v2.aes is not the configured-key ciphertext");
+    }
+}
+
 $vectors = json_decode(file_get_contents(__DIR__ . '/fixtures/mcrypt/vectors.json'), true);
 $receiptVectors = array();
 foreach ($vectors['receipts'] as $vector) {
@@ -87,6 +126,14 @@ foreach ($vectors['receipts'] as $vector) {
 }
 $pdf = hex2bin($receiptVectors['pdf document']['plain']);
 $jpeg = hex2bin($receiptVectors['jpeg with trailing NUL bytes']['plain']);
+// tests/runtime/test-constants.php sets this synthetic $key.
+$testKey = 'synthetic-test-only-encryption-key';
+$pdfV2 = $receiptVectors['pdf document, test-constants key'];
+$jpegV2 = $receiptVectors['jpeg with trailing NUL bytes, test-constants key'];
+if ($pdfV2['key'] !== $testKey || $jpegV2['key'] !== $testKey
+    || hex2bin($pdfV2['plain']) !== $pdf || hex2bin($jpegV2['plain']) !== $jpeg) {
+    fail_test('the test-constants key vectors do not match the receipts uploaded here');
+}
 
 $database = receipts_database();
 $adminCookies = login_user('synthetic-admin', 'correct-password');
@@ -96,11 +143,11 @@ insert_receipt_voucher($database, 9103, 4712, 'Synthetic bank import AB/12345678
 
 // Receipt upload on the voucher edit page (new.php page_new_file()).
 $uploads = array(
-    array(9101, 4711, 'receipt.pdf', 'application/pdf', $pdf),
-    array(9102, 815, 'receipt.jpg', 'image/jpeg', $jpeg),
+    array(9101, 4711, 'receipt.pdf', 'application/pdf', $pdf, $pdfV2['cipher']),
+    array(9102, 815, 'receipt.jpg', 'image/jpeg', $jpeg, $jpegV2['cipher']),
 );
 foreach ($uploads as $upload) {
-    list($id, $voucherId, $name, $type, $content) = $upload;
+    list($id, $voucherId, $name, $type, $content, $cipherHex) = $upload;
     $response = http_request(
         '/index.php?action=edit&id=' . $voucherId,
         'POST',
@@ -115,7 +162,45 @@ foreach ($uploads as $upload) {
         "$name upload"
     );
     $fileNumber = receipt_file_number($database, $id);
+    assert_stored_receipt($fileNumber, $cipherHex, "$name upload");
     assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, "$name download");
+}
+
+// Stored receipts with synthetic file numbers above the sequence: the legacy
+// format alone, both formats (the configured-key file wins, and
+// Content-Length is its size), a legacy-scheme file under the new name (read
+// with the logged fallback), and a file that decrypts to neither.
+$storedCases = array(
+    array(9104, 4711, 990001, array('aes' => $receiptVectors['pdf document']['cipher']),
+        $pdf, 'application/pdf', 'legacy receipt download'),
+    array(9105, 4711, 990002, array('aes' => $receiptVectors['pdf 33 bytes']['cipher'], 'v2.aes' => $pdfV2['cipher']),
+        $pdf, 'application/pdf', 'download with both formats'),
+    array(9106, 815, 990003, array('aes' => $receiptVectors['jpeg image']['cipher'], 'v2.aes' => $jpegV2['cipher']),
+        $jpeg, 'image/jpeg', 'JPEG download with both formats'),
+    array(9107, 4711, 990004, array('v2.aes' => $receiptVectors['pdf document']['cipher']),
+        $pdf, 'application/pdf', 'legacy-scheme receipt under the new name'),
+    array(9108, 4711, 990005, array('v2.aes' => str_repeat('00', 64)),
+        null, null, 'undecryptable receipt'),
+);
+$filesDirectory = receipt_files_directory();
+foreach ($storedCases as $case) {
+    list($id, $voucherId, $fileNumber, $files, $content, $type, $label) = $case;
+    insert_receipt_voucher($database, $id, $voucherId, "Synthetic stored receipt $fileNumber");
+    receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', array($fileNumber, $id), "file of voucher $id");
+    foreach ($files as $suffix => $bytes) {
+        file_put_contents("$filesDirectory/$fileNumber.$suffix", hex2bin($bytes));
+    }
+    if ($content !== null) {
+        assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, $label);
+        continue;
+    }
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', array(), $adminCookies);
+    assert_status($response, 500, $label);
+    if (response_header($response, 'Content-Type') !== 'text/plain; charset=UTF-8'
+        || $response['body'] !== 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.') {
+        fail_test("$label: " . var_export(response_header($response, 'Content-Type'), true) . ' '
+            . var_export($response['body'], true));
+    }
 }
 
 // Bank-statement PDF import (import2.php): matched by reference and date.
@@ -157,7 +242,16 @@ if (PHP_VERSION_ID < 70200) {
     assert_contains($import['body'], 'Ein Datum (2024-09-15) gefunden.', 'PDF import');
     assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4712&bid=9103">4712</a>', 'PDF import');
     $fileNumber = receipt_file_number($database, 9103);
+    assert_stored_receipt($fileNumber, bin2hex(receipt_encrypt('4712', $testKey, $statement)), 'PDF import');
     assert_receipt_download($adminCookies, 9103, $statement, 'application/pdf', $fileNumber, 'imported PDF download');
+}
+
+// The receipt key migration is a command-line script; the web server must
+// not run it.
+$migration = http_request('/migrate-receipt-key.php');
+assert_status($migration, 404, 'migration script over HTTP');
+if ($migration['body'] !== '') {
+    fail_test('migration script over HTTP answered ' . var_export($migration['body'], true));
 }
 
 // Membership export (mbapi.php): members whose acknowledged membership fees

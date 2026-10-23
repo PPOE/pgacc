@@ -184,9 +184,11 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   pg_free_result($result);
 
   $sourcepath = $_FILES["upload"]["tmp_name"][$i];
-  $targetpath = getcwd() . '/files/' . $file_number . ".aes";
   $data = file_get_contents($sourcepath);
-  file_put_contents($targetpath,receipt_encrypt($id, '', $data)); // '' as before (an unset local $key): owner decision on the receipt key, see tests/COMPATIBILITY_PLAN.md
+  if (!receipt_store(getcwd() . '/files', $file_number, $id, $data)) {
+    echo "Beleg konnte nicht gespeichert werden.<br />";
+    return;
+  }
 
   vouchers_reset_ack($id, $rightssql);
 

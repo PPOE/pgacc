@@ -96,9 +96,9 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-      - /app/files
     volumes:
       - diagnostics:/diagnostics
+      - receipts:/app/files
 
   application-test:
     image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
@@ -123,6 +123,8 @@ services:
       - /tmp
     volumes:
       - diagnostics:/diagnostics
+      # tests/http-receipts.php checks and plants the server's receipt files.
+      - receipts:/app/files
 
 networks:
   test:
@@ -132,6 +134,12 @@ volumes:
   # Per-request PHP diagnostics written by tests/runtime/diagnostics-prepend.php
   # on the test servers and read by the HTTP tests. Removed with the project.
   diagnostics:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  # The application's files/ directory (receipt storage), shared with the
+  # tests. Synthetic receipts only; removed with the project.
+  receipts:
     driver_opts:
       type: tmpfs
       device: tmpfs

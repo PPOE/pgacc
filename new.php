@@ -279,9 +279,12 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
-$targetpath = getcwd() . '/files/' . $file_number . ".aes";
 $data = file_get_contents($sourcepath);
-file_put_contents($targetpath,receipt_encrypt($id, '', $data)); // '' as before (an unset local $key): owner decision on the receipt key, see tests/COMPATIBILITY_PLAN.md
+if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
+  return;
+}
 
   vouchers_reset_ack($id, $rightssql);
 

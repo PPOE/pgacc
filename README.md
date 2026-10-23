@@ -45,6 +45,12 @@ have known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.
    $key = 'CHANGE-ME';      // key for encrypting uploaded receipts
    ```
 
+   Back up `$key`: receipts uploaded since the receipt key fix
+   (`files/<n>.v2.aes`) cannot be decrypted without it, and without a key
+   uploads are refused. Older receipts (`files/<n>.aes`) stay readable;
+   `migrate-receipt-key.php` (command line only) re-encrypts them, see the
+   runbook in [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
+
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
    must not be web-accessible.

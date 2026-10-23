@@ -146,7 +146,8 @@ Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
 includes it; see [Coverage](#coverage)). It installs an error handler for all diagnostic types and
 a shutdown check for fatal errors, writes each one to a per-request JSON-lines
 file on a tmpfs volume shared with the test container
-(`PGACC_TEST_DIAGNOSTICS_DIR`), and then returns `false`, so PHP's own handling
+(`PGACC_TEST_DIAGNOSTICS_DIR`; the server's `files/` is shared the same way,
+for `tests/http-receipts.php`), and then returns `false`, so PHP's own handling
 continues unchanged. The runtime's `error_reporting`, `display_errors`, and
 output buffering are not modified: response bodies and header timing are the
 same as without the recorder. Diagnostics that PHP 5.6/7.4 hide by default
@@ -206,9 +207,10 @@ where the runtime's built-in default hides them (PHP 5.6 and 7.4 without
 of the Infection class wrapper (see [mutation notes](mutation/README.md)),
 and the mcrypt contract tests: `CryptoTest.php` (vectors from
 `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php` (`getUsers()` with a
-stubbed `http://` stream wrapper, rolled back) and `ReceiptImportTest.php`
-(the receipt file `import2.php` writes; with the known failure
-`KF-RECEIPT-KEY-IGNORED`, see `tests/COMPATIBILITY_PLAN.md`). The suite exercises the utility and rendering helpers plus the
+stubbed `http://` stream wrapper, rolled back), `ReceiptImportTest.php`
+(the configured-key receipt file `import2.php` writes; import and upload
+refused without a key), `ReceiptStorageTest.php` (receipt storage helpers)
+and `ReceiptMigrationTest.php` (`migrate-receipt-key.php` on synthetic files). The suite exercises the utility and rendering helpers plus the
 two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
 printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
 inside the disposable test container. The current suite covers 349 of 350
@@ -415,7 +417,7 @@ run against production.
 
 ## Coverage
 
-The PHP 7.4 lane measures coverage of all 29 top-level application files, not
+The PHP 7.4 lane measures coverage of all 30 top-level application files, not
 only the PHPUnit-tested `functions.php`. `tests/run.sh 7.4` adds
 `compose.coverage.yaml`, which only exists for that lane; the other lanes are
 unchanged.
@@ -606,7 +608,7 @@ legacy runtime images: pinned `php:8.5-cli` with tools installed from
 against a SHA-256 digest). Network access is needed only to build the image. The
 analysis container has no network, a read-only repository mount and a read-only
 root filesystem. It analyses a temporary copy of the tracked top-level application
-PHP files (currently 29), excluding `vendor/`, `tests/`, `files/` and `proxy/`.
+PHP files (currently 30), excluding `vendor/`, `tests/`, `files/` and `proxy/`.
 The copy also contains the synthetic `tests/runtime/test-constants.php` as
 `constants.php` and the locked application `vendor/` directory, so `require()` paths resolve.
 `PGACC_TEST_ID` suffixes the image name, as for `tests/run.sh`.

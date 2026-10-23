@@ -106,5 +106,5 @@ docker run --rm \
   "$image" \
   sh -c 'php -d xdebug.mode=off /app/tests/mutation/infection-shim.php \
       /app/functions.php /tmp/infection-src \
-    && exec infection --configuration="$PGACC_INFECTION_CONFIG" "$@"' \
+    && exec php -d memory_limit=1G "$(command -v infection)" --configuration="$PGACC_INFECTION_CONFIG" "$@"' \
   infection --threads="$(nproc)" --no-progress --show-mutations $lane_options "$@"

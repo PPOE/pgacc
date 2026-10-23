@@ -1,7 +1,7 @@
 # AGENTS.md
 
 pgacc is a legacy PHP/PostgreSQL accounting tool for a political party, with a German UI.
-It has 29 top-level PHP files, global functions, no framework, direct `pg_*` calls, and SQL built by string concatenation.
+It has 30 top-level PHP files, global functions, no framework, direct `pg_*` calls, and SQL built by string concatenation.
 Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fix plan: `tests/COMPATIBILITY_PLAN.md`.
 
 ## Compatibility contract
@@ -90,7 +90,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
 | `getusers.php`, `mbapi.php` | Membership-system interface (lookup and export API) |
-| `file.php` | Encrypted receipt download (mcrypt-compatible helpers in `functions.php`, phpseclib) |
+| `file.php` | Encrypted receipt download (mcrypt-compatible helpers in `functions.php`, phpseclib); new receipts are `files/<n>.v2.aes` (configured `$key`), legacy `files/<n>.aes` |
+| `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `table-schema.txt`, `tests/fixtures/` | Schema notes; test schema and synthetic data |
 | `tests/run.sh`, `compose*.yaml` | Harness entry point and per-lane Compose files |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |

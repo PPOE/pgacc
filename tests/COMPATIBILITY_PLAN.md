@@ -298,7 +298,7 @@ lanes keep passing only through these entries:
 | `KD-PREFS-HIDE` | `closed.php` 37 lines | Hidden notices: `$user_prefs_hide[$n]` undefined offsets for users without hide preferences (54 distinct line/offset pairs per ledger request). | [x] Fixed together with the `emptytag()` crash (`closed.php:158` under [Static-analysis findings](#static-analysis-findings)): every read goes through `listing_column_hidden($col)`, `isset(...) && ... == 1`, which is what the undefined offset (`null == 1`) evaluated to, so listings without hide preferences are byte-identical (ledger, CSV, open, deleted, search, closed, compared on PHP 7.4). `tests/http-listing-prefs.php` covers stored preferences and `?hide=N`/`?hide=-N` (see the static-analysis row). Mutation target `listing-columns`. |
 | `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [x] Fixed: `page_new_save()` takes the `$rights` that `index.php:264` already passed, as `page_edit_save()` does for revisions. The rights only choose the default organization in `get_voucher()` when the form posts none, which is always the case for a user with a single organization (the form shows the organization field only for rights with several entries). Before: such a user's new voucher was saved in organization 10 (Bund), which the user cannot see or edit. After: it is saved in the user's organization. Unchanged: `bgf`-only, multi-entry and admin rights still default to 10. A posted organization is checked since the security fix above. **Owner decision:** behaviour change; vouchers created this way so far are in organization 10. Tests in `tests/write-workflows.php`, mutation target `rights-checks`. Entry and PHPStan baseline entries (undefined `$rights`, `page_new_save` invoked with 1 parameter) removed. |
 | `KD-EDIT-RIGHTSSQL` | `edit.php:120` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query had no organization restriction. | [x] Fixed: `page_edit_ack()` computes `$rightssql` first and answers a user who sees no row of the voucher (same scope as the receipt check, deleted rows included) with the existing "Hier fehlt noch der Beleg!" before the finalized check; the finalized check itself stays explicitly unscoped. Users of the voucher's organizations get the same answers as before (a finalized row of another organization still blocks the approval of their rows); a user of another organization can no longer tell whether a voucher is finalized. Entries (5.6/7.4 and the reported PHP 5.3 one) and PHPStan baseline entry removed; tests in `tests/write-workflows.php`, mutation target `rights-checks`. |
-| `KD-RECEIPT-KEY` | `new.php:252`, `import2.php:189`, `file.php:19` | Hidden notice: undefined `$key` in receipt upload, PDF import and download, reached once the `mcrypt` replacement made these paths testable. | [x] Removed: the call sites pass `''`, the value the undefined variable had, so the ciphertext is unchanged. The receipt key itself remains an owner decision (`mcrypt` items under [Short tags and other migration debt](#short-tags-and-other-migration-debt)). |
+| `KD-RECEIPT-KEY` | `new.php:252`, `import2.php:189`, `file.php:19` | Hidden notice: undefined `$key` in receipt upload, PDF import and download, reached once the `mcrypt` replacement made these paths testable. | [x] Removed: the call sites pass `''`, the value the undefined variable had, so the ciphertext is unchanged. Since then new receipts use the configured key (receipt key item under [Short tags and other migration debt](#short-tags-and-other-migration-debt)). |
 
 `KD-EDIT-RIGHTSSQL`, `KD-NEW-RIGHTS` and `KD-REPORT-PREVCOND` (all fixed) were also PHPStan
 baseline findings ("Undefined variables in function scope" under
@@ -574,25 +574,47 @@ differences above are only visible for out-of-range input.
   file `import2.php` writes, byte for byte) and `tests/http-receipts.php`
   (upload, PDF import on PHP 5.6, download headers and body, `mbapi.php`
   framing and selection). Mutation target `receipt-crypto`.
-- [ ] Receipt key (`KF-RECEIPT-KEY-IGNORED`). The callers read `$key` without
-  `global` (PHPStan row below), so receipts have always been encrypted with
-  an empty key part; the call sites now pass that `''` explicitly. Using the
-  configured key needs a migration of the existing `files/*.aes`
-  (re-encrypt, or try the configured key and fall back to the empty one);
-  the three call sites and `receipt_cipher_params()` are the places to change.
-  Known failure `KF-RECEIPT-KEY-IGNORED` in `tests/unit/ReceiptImportTest.php`
-  (`testImportIgnoresTheConfiguredKey`): with the synthetic `$key` of
-  `tests/runtime/test-constants.php` set, the PDF import writes the empty-key
-  ciphertext, not the configured-key one (contract vector
-  `pdf document, test-constants key`, generated with the real mcrypt
-  extension). The test fails once the configured key is used; then turn it
-  into a regular assertion. Intended fix (owner decision, not implemented
-  yet): new uploads (`new.php`, `import2.php`) use the configured key and are
-  stored as `files/<n>.v2.aes`; `file.php` reads `<n>.v2.aes` with the
-  configured key when it exists, else the legacy `<n>.aes` with the empty key
-  part (no mass re-encryption; an optional migration script later); new
-  uploads are refused when no key is configured; deploy note: back up the
-  `$key` of `constants.php`, without it new receipts cannot be decrypted.
+- [x] Receipt key (formerly the known failure `KF-RECEIPT-KEY-IGNORED`). The
+  callers read `$key` without `global` (PHPStan row below), so receipts were
+  always encrypted with an empty key part. Owner decision, implemented with
+  explicit file name versioning:
+  - New receipts (upload in `new.php`, PDF import in `import2.php`) are
+    `files/<n>.v2.aes`, encrypted with the configured `$key`
+    (`receipt_configured_key()` reads `$GLOBALS['key']`; only a non-empty
+    string counts) and written atomically (temporary `<n>.v2.aes.tmp`, then
+    renamed; `receipt_store()`). Without a configured key, or when the file
+    cannot be written, the upload is refused with the page's usual error
+    ("Beleg konnte nicht gespeichert werden."), the voucher keeps no file
+    number, and `error_log()` names the reason. A write failure used to be
+    ignored (the voucher then pointed to a missing file).
+  - Download (`file.php`): `<n>.v2.aes` if it exists, decrypted with the
+    configured key; otherwise the legacy `<n>.aes` with the empty key part,
+    byte-identical to before (also for a missing file). A `<n>.v2.aes` that
+    does not decrypt to a PDF or JPEG is tried with the legacy scheme (logged
+    via `error_log()`, never the key); if that fails too, the response is a
+    500 with "FEHLER: Der Beleg konnte nicht entschlüsselt werden." Without a
+    configured key a `<n>.v2.aes` is only readable if it is in the legacy
+    scheme. Content-Length is the size of the file that was read. Only PDF
+    and JPEG are recognized: the upload form accepts PDF only, but any other
+    type stored as `<n>.v2.aes` would get the 500 response.
+  - `migrate-receipt-key.php` re-encrypts legacy files (runbook in the deploy
+    checklist below). Command line only: it answers 404 to web requests, and
+    `.htaccess` denies it.
+  - Tests: contract vectors with the synthetic test key (`pdf document,
+    test-constants key`, `jpeg with trailing NUL bytes, test-constants key`,
+    from the real mcrypt extension); `tests/unit/ReceiptStorageTest.php`
+    (helpers, atomic writes, fallback and its log); `ReceiptImportTest.php`
+    (the import writes the configured-key file byte for byte; import and
+    upload refused without a key); `ReceiptMigrationTest.php` (dry run,
+    byte-verified migration, skipped types and vouchers, idempotent reruns,
+    `--keep-legacy`, interrupted state, failures, `--limit`, refusals, the
+    command itself); `tests/http-receipts.php` (stored file names and bytes,
+    legacy download, `<n>.v2.aes` wins, fallback, 500, the script over HTTP;
+    it shares the server's `files/` through a Compose volume). Mutation
+    target `receipt-crypto`.
+  - Open: the both-files window. A download that finds no `<n>.v2.aes` while
+    the migration writes it and deletes `<n>.aes` can read neither (the
+    legacy missing-file response); rare, and gone on reload.
 - [ ] Deploy checklist for the `mcrypt` replacement (owner):
   - Run `composer install`, which adds `phpseclib/phpseclib` 2.0.55.
   - Check `mbstring.func_overload` on production. phpseclib's `bootstrap.php`
@@ -609,6 +631,30 @@ differences above are only visible for out-of-range input.
     beyond the data). On a server without mcrypt, uploads and downloads of
     large receipts can therefore hit `max_execution_time` (30 s by default)
     and need `memory_limit` headroom; the upload limit is 100 MB.
+- [ ] Deploy runbook for the receipt key (owner):
+  1. Back up `files/` and `constants.php` (its `$key`) to separate, safe
+     places. Without that `$key` no new receipt can be decrypted again; keep
+     the backup as long as receipts must be kept.
+  2. Check that `constants.php` sets a non-empty `$key` string. Without one,
+     uploads are refused after the deploy (legacy downloads keep working).
+  3. Deploy. From now on new receipts are `files/<n>.v2.aes`.
+  4. Lighttpd: deny the script, like `files/`, e.g.
+     `$HTTP["url"] =~ "^/migrate-receipt-key\.php" { url.access-deny = ("") }`
+     (it answers 404 to web requests anyway; `.htaccess` covers Apache).
+  5. Dry run, as the web server's user (file owner and database role):
+     `sudo -u <web user> php migrate-receipt-key.php --dry-run`. It lists
+     every legacy file as "would migrate" or "not migrated" (no voucher with
+     that file decrypts it to a PDF or JPEG) and writes nothing.
+  6. Migrate, optionally in batches (`--limit=500`) and first with
+     `--keep-legacy`: `sudo -u <web user> php migrate-receipt-key.php`. Each
+     file is verified byte for byte before its `<n>.aes` is deleted. Exit
+     status 1 means a file failed; its `<n>.aes` is kept. Rerun until the
+     summary shows 0 migrated and 0 failed; after a `--keep-legacy` run, a
+     run without it deletes the verified legacy files.
+  7. Spot-check a few migrated receipts (PDF and JPEG) in the browser and
+     check the web server's error log for `pgacc: receipt` lines.
+  8. Keep the `files/` backup from step 1 until the spot checks are done;
+     skipped files stay legacy `<n>.aes` and keep working.
 
 ## Planned security follow-ups
 
@@ -791,7 +837,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Empty array passed to `foreach` | `donations.php:119`, `:127` (2) | Added with the `donations.php` fix: `$donations` is now always `array()`, because the assignment that filled it is commented out (publication disabled for legal reasons). PHPStan correctly reports the sort and output loops as dead code. Kept on purpose until the owner decides on publication; see the array/input table. |
 | Malformed regular expression | `functions.php:73` | Known |
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
-| `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. The receipt key itself is an owner decision (`mcrypt` items). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
+| `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
 | Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
