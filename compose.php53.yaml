@@ -70,3 +70,11 @@ services:
       PGACC_TEST_SERVER_PHP: "5.3"
       PGACC_TEST_UNBUFFERED_BASE_URL: http://application:8081
     command: ["sh", "tests/php53/application-tests.sh"]
+    volumes:
+      # nocopy: the image's root-owned /app/files must not be copied over the
+      # shared receipts volume after start-server.sh gave it to www-data.
+      - type: volume
+        source: receipts
+        target: /app/files
+        volume:
+          nocopy: true
