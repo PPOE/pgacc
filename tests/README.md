@@ -10,21 +10,28 @@ Run the current harness with:
 sh tests/run.sh
 ```
 
-The runner currently performs two baseline checks:
+The runner currently performs two checks:
 
 1. It syntax-checks every top-level PHP application file without executing it.
-2. It initializes and queries a synthetic PostgreSQL database with `psql`,
-   including the `pgcrypto` extension required by pgacc password checks.
+2. It installs a data-free copy of the pgacc schema and synthetic fixtures in
+   PostgreSQL, then runs database characterization assertions with `psql`.
 
 PHP 7.4 is used only as a temporary characterization bridge because the
 unchanged application contains syntax removed in PHP 8. It is not a supported
 deployment target. The database uses PostgreSQL 17 as the initial replacement
 platform target.
 
-`fixtures/harness.sql` is deliberately a test-harness probe, not the pgacc
-application schema. A reviewed, data-free schema and synthetic application
-fixtures will be added in a separate change.
+`fixtures/schema.sql` was reconstructed from a read-only inspection of the
+deployed PostgreSQL 8.4.20 catalog. It preserves the observed tables, columns,
+defaults, sequences, and constraints while excluding the dated backup table,
+owners, permissions, credentials, and all production rows. `fixtures/data.sql`
+contains only visibly synthetic records.
 
-The PHP-to-PostgreSQL application integration is also intentionally deferred.
-Keeping the first slice independent of packages from the retired PHP 7.4 base
-distribution makes this baseline deterministic and easier to maintain.
+`database-characterization.sql` covers password hashing, open and closed
+voucher states, attachment propagation, public transactions and spendings,
+donation totals, report type mapping, and review-progress counts using SQL
+contracts from the current PHP application.
+
+The PHP-to-PostgreSQL application integration is still intentionally deferred.
+Keeping these tests independent of packages from the retired PHP 7.4 base
+distribution makes the database baseline deterministic and easier to maintain.
