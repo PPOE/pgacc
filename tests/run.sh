@@ -1,6 +1,18 @@
 #!/bin/sh
 set -eu
 
+# PGACC_TEST_ID isolates concurrent runs (e.g. separate worktrees): it
+# suffixes Compose project names and locally built image tags.
+test_id=${PGACC_TEST_ID:-}
+case "$test_id" in
+  *[!a-z0-9_-]*)
+    echo "PGACC_TEST_ID may only contain a-z, 0-9, '_' and '-'" >&2
+    exit 2
+    ;;
+esac
+PGACC_TEST_SUFFIX=${test_id:+-$test_id}
+export PGACC_TEST_SUFFIX
+
 php_version=${1:-all}
 
 case "$php_version" in
@@ -19,19 +31,20 @@ case "$php_version" in
     ;;
 esac
 
+
 compose()
 {
   if [ "$php_version" = 5.6 ]; then
-    docker compose --project-name pgacc-test-php56 \
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php56" \
       -f compose.test.yaml -f compose.php56.yaml "$@"
   elif [ "$php_version" = 8.0 ]; then
-    docker compose --project-name pgacc-test-php80 \
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php80" \
       -f compose.test.yaml -f compose.php80.yaml "$@"
   elif [ "$php_version" = 8.5 ]; then
-    docker compose --project-name pgacc-test-php85 \
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php85" \
       -f compose.test.yaml -f compose.php85.yaml "$@"
   else
-    docker compose --project-name pgacc-test-php74 -f compose.test.yaml "$@"
+    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php74" -f compose.test.yaml "$@"
   fi
 }
 

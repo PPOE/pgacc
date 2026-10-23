@@ -53,7 +53,7 @@ services:
     working_dir: /app
 
   application:
-    image: pgacc-test-application
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     build:
       context: .
       dockerfile: tests/php-runtime.Dockerfile
@@ -93,7 +93,7 @@ services:
       - /app/files
 
   application-test:
-    image: pgacc-test-application
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     depends_on:
       application:
         condition: service_healthy
