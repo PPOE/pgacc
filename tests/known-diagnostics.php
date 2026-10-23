@@ -20,16 +20,6 @@ return array(
     // (PHP 5.6 and 7.4). PHP 8.0/8.5 have no entries on purpose: every
     // diagnostic there is reported as a failure. See tests/README.md.
     array(
-        'id' => 'KD-REPORT-PREVCOND',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_NOTICE',
-        'file' => 'report.php',
-        'lines' => array(340, 347, 374, 381),
-        'message' => '/^Undefined variable: prevcond$/',
-        'reported' => false,
-        'reason' => 'page_report() passes an unset $prevcond to unit_report()',
-    ),
-    array(
         'id' => 'KD-NEW-RIGHTS',
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',

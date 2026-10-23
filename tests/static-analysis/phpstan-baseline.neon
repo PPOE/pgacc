@@ -217,12 +217,6 @@ parameters:
 			path: ../../report.php
 
 		-
-			message: '#^Undefined variable\: \$prevcond$#'
-			identifier: variable.undefined
-			count: 8
-			path: ../../report.php
-
-		-
 			message: '#^Variable \$unit might not be defined\.$#'
 			identifier: variable.undefined
 			count: 8
