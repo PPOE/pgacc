@@ -1,7 +1,8 @@
 <?php
 /*
  * Organization scope of voucher writes: the rights that voucher creation and
- * revision pass to get_voucher() (default organization), and the rights SQL
+ * revision pass to get_voucher() (default organization), the check of posted
+ * organizations against them, and the rights SQL
  * of approval and finalization in edit.php. Users of one organization must
  * not change rows of another one. Tested with tests/write-workflows.php
  * (users of organizations 1 and 2, bgf, admin, empty rights). See
@@ -58,6 +59,47 @@ return array(
             'search' => "\$voucher['lo'] = get_param(\$part, 'lo', \$default_lo,",
             'replace' => "\$voucher['lo'] = get_param(\$part, 'lx', \$default_lo,",
             'rationale' => 'A posted organization is saved as given.',
+        ),
+        array(
+            'id' => 'new-posted-organization-unchecked',
+            'file' => 'new.php',
+            'search' => 'if (!posted_organizations_allowed($parts, $rights))',
+            'replace' => 'if (false)',
+            'rationale' => 'Fail-open: a new voucher is saved in any posted organization.',
+        ),
+        array(
+            'id' => 'revision-posted-organization-unchecked',
+            'search' => 'if (!posted_organizations_allowed($parts, $rights))',
+            'replace' => 'if (false)',
+            'rationale' => 'Fail-open: a revision is saved in any posted organization.',
+        ),
+        array(
+            'id' => 'posted-organization-bgf-exemption-removed',
+            'file' => 'new.php',
+            'search' => "if (has_right(\$rights, 'bgf'))\n  return true;",
+            'replace' => "if (false)\n  return true;",
+            'rationale' => 'bgf users may post any organization.',
+        ),
+        array(
+            'id' => 'posted-organization-first-part-only',
+            'file' => 'new.php',
+            'search' => "for (\$part = 0; \$part < \$parts; \$part++)\n{\n  \$lo = get_param(",
+            'replace' => "for (\$part = 0; \$part < 1; \$part++)\n{\n  \$lo = get_param(",
+            'rationale' => 'Every part of a voucher is checked, not only the first.',
+        ),
+        array(
+            'id' => 'posted-organization-loose-comparison',
+            'file' => 'new.php',
+            'search' => 'if ($lo !== null && !in_array($lo, $rights2, true))',
+            'replace' => 'if ($lo !== null && !in_array($lo, $rights2))',
+            'rationale' => 'Organizations are compared as strings: a padded ID is not one of the user\'s.',
+        ),
+        array(
+            'id' => 'posted-organization-default-checked',
+            'file' => 'new.php',
+            'search' => 'if ($lo !== null && !in_array($lo, $rights2, true))',
+            'replace' => 'if (!in_array($lo, $rights2, true))',
+            'rationale' => 'Without a posted organization the default applies and is not refused.',
         ),
         array(
             'id' => 'ack-finalized-check-removed',

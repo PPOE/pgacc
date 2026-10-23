@@ -518,6 +518,13 @@ function create_voucher_from_form($database, $form, $cookies)
     return $row['voucher_id'];
 }
 
+// Creates a voucher from the form and returns its comment.
+function create_voucher_comment($database, $form, $cookies)
+{
+    create_voucher_from_form($database, $form, $cookies);
+    return $form['comment0'];
+}
+
 function voucher_by_comment($database, $comment)
 {
     return database_row(
@@ -561,8 +568,9 @@ $bgfCreation = http_request(
 assert_contains($bgfCreation['body'], 'Buchung erfasst', 'creation by a bgf user');
 assert_database_field(voucher_by_comment($database, $bgfComment), 'orga', '10', 'voucher created by a bgf user');
 
-// The posted organization is saved as given; it is not checked against the
-// user's rights.
+// A posted organization must be one of the user's (numeric) organizations,
+// unless the user has the bgf right. Otherwise the whole voucher is refused
+// before anything is saved.
 $explicitComment = 'Synthetic voucher with a posted organization';
 $explicitCreation = http_request(
     '/index.php?action=new',
@@ -570,13 +578,40 @@ $explicitCreation = http_request(
     voucher_form($explicitComment, '-6.50', 0),
     $unitOneCookies
 );
-assert_contains($explicitCreation['body'], 'Buchung erfasst', 'creation with a posted organization');
+assert_status($explicitCreation, 200, 'creation with a foreign posted organization');
+assert_contains($explicitCreation['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation with a foreign posted organization');
+assert_not_contains($explicitCreation['body'], 'Buchung erfasst', 'creation with a foreign posted organization');
+assert_database_count($database, $commentQuery, array($explicitComment), 0, 'voucher created with a foreign posted organization');
+$ownForm = voucher_form('Synthetic voucher with its own posted organization', '-6.60', 0);
+$ownForm['lo0'] = '1';
 assert_database_field(
-    voucher_by_comment($database, $explicitComment),
+    voucher_by_comment($database, create_voucher_comment($database, $ownForm, $unitOneCookies)),
     'orga',
-    '2',
-    'voucher created with a posted organization'
+    '1',
+    'voucher created with its own posted organization'
 );
+// Organizations are compared as written ('01' is not organization 1).
+$paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
+$paddedForm['lo0'] = '01';
+$padded = http_request('/index.php?action=new', 'POST', $paddedForm, $unitOneCookies);
+assert_contains($padded['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation with a padded organization');
+assert_database_count($database, $commentQuery, array('Synthetic voucher with a padded organization'), 0, 'voucher with a padded organization');
+// The second part of a two-part voucher is in organization 2.
+$foreignPartForm = two_organization_form('Synthetic voucher with a foreign second part', 0);
+$foreignPart = http_request('/index.php?action=new', 'POST', $foreignPartForm, $unitOneCookies);
+assert_contains($foreignPart['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation with a foreign second part');
+assert_database_count($database, $commentQuery, array('Synthetic voucher with a foreign second part'), 0, 'voucher with a foreign second part');
+foreach (array('bgf' => $reviewerCookies, 'root,bgf' => $adminCookies) as $rightsLabel => $cookies) {
+    $comment = "Synthetic voucher in organization 1 by $rightsLabel";
+    $form = voucher_form($comment, '-6.70', 0);
+    $form['lo0'] = '1';
+    assert_database_field(
+        voucher_by_comment($database, create_voucher_comment($database, $form, $cookies)),
+        'orga',
+        '1',
+        "voucher created in organization 1 by $rightsLabel"
+    );
+}
 
 // A revision without an organization keeps the user's organization.
 $scopedDraftId = create_voucher($database, 'Synthetic draft of organization two', '-7.50', 0, $adminCookies);
@@ -599,6 +634,20 @@ assert_database_field(
     'orga',
     '2',
     'revision by an organization user'
+);
+// A revision that posts another organization is refused; the voucher keeps
+// its rows.
+$foreignRevisionForm = revision_form($scopedDraftId, 'Synthetic revision into organization one', '-8.60');
+$foreignRevisionForm['lo0'] = '1';
+$foreignRevision = edit_request($scopedDraftId, $foreignRevisionForm, $unitTwoCookies);
+assert_status($foreignRevision, 200, 'revision into a foreign organization');
+assert_contains($foreignRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision into a foreign organization');
+assert_database_count($database, $commentQuery, array('Synthetic revision into organization one'), 0, 'revision into a foreign organization');
+assert_database_field(
+    voucher_by_comment($database, 'Synthetic revision of organization two'),
+    'orga',
+    '2',
+    'voucher after a revision into a foreign organization'
 );
 
 // Approval of a finalized voucher is refused, also for a user of another

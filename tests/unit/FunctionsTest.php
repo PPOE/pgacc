@@ -352,6 +352,34 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * @dataProvider hasRightProvider
+     */
+    public function testHasRight($rights, $right, $expected)
+    {
+        $result = self::callAndCaptureDiagnostics(function () use ($rights, $right) {
+            return has_right($rights, $right);
+        });
+        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+    }
+
+    public static function hasRightProvider()
+    {
+        return array(
+            'bgf' => array('bgf', 'bgf', true),
+            'bgf among other rights' => array('root,bgf', 'bgf', true),
+            'root among other rights' => array('root,bgf', 'root', true),
+            'read-only bgf is not bgf' => array('Rbgf', 'bgf', false),
+            'Rbgf' => array('Rbgf,2', 'Rbgf', true),
+            'substring is not a right' => array('notbgf', 'bgf', false),
+            'case sensitive' => array('BGF', 'bgf', false),
+            'organization id' => array('1,2', '2', true),
+            'numeric comparison is not used' => array('02', '2', false),
+            'empty rights' => array('', 'bgf', false),
+            'null rights' => array(null, 'bgf', false),
+        );
+    }
+
+    /**
      * @dataProvider accountProvider
      */
     public function testKonto2lo($account, $expected)

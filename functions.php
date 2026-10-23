@@ -254,6 +254,12 @@ function format_date($date)
   }
   return $date;
 }
+// Whether the comma-separated rights contain exactly this right ("bgf" is
+// not contained in "Rbgf").
+function has_right($rights, $right)
+{
+  return in_array($right, explode(",", $rights === null ? '' : $rights), true);
+}
 function rights2orgasql($rights)
 {
   $rights_r = explode(",", $rights === null ? '' : $rights);

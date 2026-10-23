@@ -62,6 +62,21 @@ $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
+// Whether the organizations posted for the parts of a voucher may be used:
+// any for bgf, otherwise only the user's own (numeric) organizations.
+function posted_organizations_allowed($parts, $rights)
+{
+if (has_right($rights, 'bgf'))
+  return true;
+$rights2 = explode(",", $rights === null ? '' : $rights);
+for ($part = 0; $part < $parts; $part++)
+{
+  $lo = get_param($part, 'lo', null, '/^\d+$/');
+  if ($lo !== null && !in_array($lo, $rights2, true))
+    return false;
+}
+return true;
+}
 function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
 {
 $voucher = get_voucher($part,$rights);
@@ -170,6 +185,11 @@ $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
 
+if (!posted_organizations_allowed($parts, $rights))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $query = "SELECT nextval('voucher_number') AS num;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
