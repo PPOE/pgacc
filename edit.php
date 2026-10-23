@@ -99,9 +99,9 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 }
 
 $rightssql = rights2orgasql($rights);
-// A user who sees no row of the voucher gets the answer for a voucher
-// without a receipt, whether or not it is finalized.
-$query = "SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;";
+// A user who sees no current (not deleted) row of the voucher gets the
+// answer for a voucher without a receipt, whether or not it is finalized.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';

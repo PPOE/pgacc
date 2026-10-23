@@ -771,6 +771,21 @@ assert_status($receiptCheck, 200, 'approval of a row without a receipt');
 assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
 assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
 
+// A voucher whose rows are all deleted (old revisions only) counts as not
+// visible: approval is refused and the deleted rows keep their state.
+$deletedOnlyId = create_voucher($database, 'Synthetic voucher with deleted rows only', '-10.25', 9013, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET deleted = true WHERE voucher_id = $1', array($deletedOnlyId));
+$deletedOnlyApproval = edit_request($deletedOnlyId, $approveForm, $unitTwoCookies);
+assert_status($deletedOnlyApproval, 200, 'approval of a voucher with deleted rows only');
+assert_contains($deletedOnlyApproval['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a voucher with deleted rows only');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND ack1 IS NULL AND deleted',
+    array($deletedOnlyId),
+    1,
+    'deleted rows after an approval attempt'
+);
+
 // Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
 // users) needs the exact bgf right; other users are refused and nothing
 // changes (before, empty rights reset any voucher). For bgf users the reset

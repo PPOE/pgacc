@@ -123,7 +123,10 @@ with synthetic users and covered by a mutation target.
   number was finalized. The approval is now refused with "Hier fehlt noch
   der Beleg!" first when the user sees no row of the voucher; see the
   [diagnostics table](#diagnostics-surfaced-by-the-strict-http-checks).
-  No approval outcome changes.
+  No approval outcome changes. Review fix: the visibility check counts only
+  rows that are not deleted, so a voucher with nothing but old revisions in
+  the user's organization is refused too (before, its deleted rows could
+  get approvals; the approval updates themselves are unchanged).
 - [x] New users (`accounts.php`, "Benutzer -1 erstellen", root only) were
   stored with the creating root user's rights instead of the entered ones
   (the update path used the entered rights). Bug fix: the entered, escaped

@@ -131,9 +131,16 @@ return array(
         array(
             'id' => 'ack-visibility-check-unscoped',
             'region' => $ack,
-            'search' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
-            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id;',
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id;',
             'rationale' => 'The visibility check uses the organization scope of the user.',
+        ),
+        array(
+            'id' => 'ack-visibility-check-counts-deleted',
+            'region' => $ack,
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
+            'rationale' => 'Deleted rows (old revisions) do not make a voucher visible for approval.',
         ),
         array(
             'id' => 'ack-finalized-check-scoped',
