@@ -537,46 +537,65 @@ differences above are only visible for out-of-range input.
   (upload, PDF import on PHP 5.6, download headers and body, `mbapi.php`
   framing and selection). Mutation target `receipt-crypto`.
 - [x] Receipt key (formerly the known failure `KF-RECEIPT-KEY-IGNORED`). The
-  callers read `$key` without `global` (PHPStan row below), so receipts were
-  always encrypted with an empty key part. Owner decision, implemented with
-  explicit file name versioning:
+  callers read `$key` without `global` (PHPStan row below), so legacy
+  receipts were encrypted with an empty key part, keyed on the voucher ID
+  only. Owner decision, with explicit file name versioning:
   - New receipts (upload in `new.php`, PDF import in `import2.php`) are
-    `files/<n>.v2.aes`, encrypted with the configured `$key`
-    (`receipt_configured_key()` reads `$GLOBALS['key']`; only a non-empty
-    string counts) and written atomically (temporary `<n>.v2.aes.tmp`, then
-    renamed; `receipt_store()`). Without a configured key, or when the file
-    cannot be written, the upload is refused with the page's usual error
-    ("Beleg konnte nicht gespeichert werden."), the voucher keeps no file
-    number, and `error_log()` names the reason. A write failure used to be
-    ignored (the voucher then pointed to a missing file).
-  - Download (`file.php`): `<n>.v2.aes` if it exists, decrypted with the
-    configured key; otherwise the legacy `<n>.aes` with the empty key part,
-    byte-identical to before (also for a missing file). A `<n>.v2.aes` that
-    does not decrypt to a PDF or JPEG is tried with the legacy scheme (logged
-    via `error_log()`, never the key); if that fails too, the response is a
-    500 with "FEHLER: Der Beleg konnte nicht entschlüsselt werden." Without a
-    configured key a `<n>.v2.aes` is only readable if it is in the legacy
-    scheme. Content-Length is the size of the file that was read. Only PDF
-    and JPEG are recognized: the upload form accepts PDF only, but any other
-    type stored as `<n>.v2.aes` would get the 500 response.
-  - `migrate-receipt-key.php` re-encrypts legacy files (runbook in the deploy
-    checklist below). Command line only: it answers 404 to web requests, and
-    `.htaccess` denies it.
-  - Tests: contract vectors with the synthetic test key (`pdf document,
-    test-constants key`, `jpeg with trailing NUL bytes, test-constants key`,
-    from the real mcrypt extension); `tests/unit/ReceiptStorageTest.php`
-    (helpers, atomic writes, fallback and its log); `ReceiptImportTest.php`
-    (the import writes the configured-key file byte for byte; import and
-    upload refused without a key); `ReceiptMigrationTest.php` (dry run,
-    byte-verified migration, skipped types and vouchers, idempotent reruns,
-    `--keep-legacy`, interrupted state, failures, `--limit`, refusals, the
-    command itself); `tests/http-receipts.php` (stored file names and bytes,
-    legacy download, `<n>.v2.aes` wins, fallback, 500, the script over HTTP;
-    it shares the server's `files/` through a Compose volume). Mutation
-    target `receipt-crypto`.
-  - Open: the both-files window. A download that finds no `<n>.v2.aes` while
-    the migration writes it and deletes `<n>.aes` can read neither (the
-    legacy missing-file response); rare, and gone on reload.
+    `files/<n>.v2.aes`: `"PGR2"`, a random 16-byte IV, AES-256-CBC with
+    PKCS#7 padding and an HMAC-SHA256 over all of that (encrypt-then-MAC,
+    compared in constant time). The keys are derived from the configured
+    `$key` and the file number `<n>` (`HMAC-SHA256($key,
+    "pgacc-receipt-v2-enc|<n>")`, `...-mac|<n>`), so a merge or revision,
+    which changes voucher IDs, does not affect them, and no database lookup
+    is needed. Written atomically (unique temporary file, then rename).
+    Contract vectors from the openssl extension:
+    `tests/fixtures/receipt-v2/`.
+  - Key validation: `receipt_configured_key()` reads `$GLOBALS['key']` and
+    accepts only a string of at least 16 characters that does not contain the
+    `CHANGE-ME` placeholder. Without a valid key uploads are refused with the
+    page's usual error ("Beleg konnte nicht gespeichert werden."), the
+    voucher keeps no file number, and `error_log()` names the reason; a write
+    failure is refused the same way (it used to be ignored).
+  - Download (`file.php`): `<n>.v2.aes` if it exists: MAC checked, then
+    decrypted; a wrong key, a file copied from another number or a modified
+    file gives a 500 ("FEHLER: Der Beleg konnte nicht entschlüsselt
+    werden.") and an `error_log()` line with the key fingerprint (first 8
+    hex digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, never the
+    key). Content-Type from the magic bytes: PDF, JPEG, otherwise
+    `application/octet-stream`; Content-Length is the plain text size.
+    Without `<n>.v2.aes`, the legacy `<n>.aes` exactly as before. There is
+    no fallback from `<n>.v2.aes` to the legacy scheme.
+  - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3
+    has no fsync): a normal run writes and verifies `<n>.v2.aes` and keeps
+    `<n>.aes`; after `sync`, `--delete-legacy` decrypts both again and
+    deletes `<n>.aes` only where the plain texts match. It reads `$key`
+    like `index.php`, refuses invalid keys, prints the key fingerprint, holds
+    an exclusive lock (`files/.migrate-receipt-key.lock`), never removes a
+    `<n>.v2.aes` it did not just write, probes the first block per candidate
+    voucher ID, skips files above `--max-size` (default `memory_limit` / 8)
+    and non-PDF/JPEG files, and exits 2 when it cannot read the directory.
+    Its first statement answers web requests with 404, before any include.
+    Runbook below.
+  - Tests: `tests/unit/ReceiptStorageTest.php` (key validation, fingerprint,
+    v2 vectors, random IV, rejected keys/numbers/modifications, atomic
+    writes, store and read); `ReceiptImportTest.php` (the import's
+    `<n>.v2.aes`; import and upload refused without a valid key);
+    `ReceiptMigrationTest.php` (dry run, migration with skips and the size
+    limit, idempotent reruns, the delete phase, failures, `--limit`, the
+    lock, refusals, key loading, the command); `tests/http-receipts.php`
+    (stored files, legacy downloads, `<n>.v2.aes` wins, other types as
+    downloads, the error cases, merges, the script over HTTP; it shares the
+    server's `files/` through a Compose volume). Mutation target
+    `receipt-crypto`; Infection also runs `ReceiptStorageTest`.
+  - [ ] Known bug `KB-RECEIPT-LEGACY-MERGE`, not changed: a legacy `<n>.aes`
+    is keyed on the voucher ID, so after a merge (which changes the merged
+    rows' voucher ID) its download sends unreadable bytes as `image/jpeg`,
+    and the migration cannot find its key either (skipped and listed).
+    Characterized in `tests/http-receipts.php`. A `<n>.v2.aes` is not
+    affected.
+  - Open: a download that finds no `<n>.v2.aes` while a migration renames it
+    into place still reads the legacy `<n>.aes`, which is kept until the
+    delete phase, so it gets the right receipt.
 - [ ] Deploy checklist for the `mcrypt` replacement (owner):
   - Run `composer install`, which adds `phpseclib/phpseclib` 2.0.55.
   - Check `mbstring.func_overload` on production. phpseclib's `bootstrap.php`
@@ -597,26 +616,32 @@ differences above are only visible for out-of-range input.
   1. Back up `files/` and `constants.php` (its `$key`) to separate, safe
      places. Without that `$key` no new receipt can be decrypted again; keep
      the backup as long as receipts must be kept.
-  2. Check that `constants.php` sets a non-empty `$key` string. Without one,
-     uploads are refused after the deploy (legacy downloads keep working).
+  2. Check `$key` in `constants.php`: at least 16 characters, not the
+     `CHANGE-ME` placeholder. Otherwise uploads are refused after the deploy
+     (legacy downloads keep working). Do not change it later: receipts
+     encrypted with it cannot be read with another key.
   3. Deploy. From now on new receipts are `files/<n>.v2.aes`.
-  4. Lighttpd: deny the script, like `files/`, e.g.
-     `$HTTP["url"] =~ "^/migrate-receipt-key\.php" { url.access-deny = ("") }`
-     (it answers 404 to web requests anyway; `.htaccess` covers Apache).
-  5. Dry run, as the web server's user (file owner and database role):
-     `sudo -u <web user> php migrate-receipt-key.php --dry-run`. It lists
-     every legacy file as "would migrate" or "not migrated" (no voucher with
-     that file decrypts it to a PDF or JPEG) and writes nothing.
-  6. Migrate, optionally in batches (`--limit=500`) and first with
-     `--keep-legacy`: `sudo -u <web user> php migrate-receipt-key.php`. Each
-     file is verified byte for byte before its `<n>.aes` is deleted. Exit
-     status 1 means a file failed; its `<n>.aes` is kept. Rerun until the
-     summary shows 0 migrated and 0 failed; after a `--keep-legacy` run, a
-     run without it deletes the verified legacy files.
-  7. Spot-check a few migrated receipts (PDF and JPEG) in the browser and
-     check the web server's error log for `pgacc: receipt` lines.
-  8. Keep the `files/` backup from step 1 until the spot checks are done;
-     skipped files stay legacy `<n>.aes` and keep working.
+  4. Dry run, as the web server's user (file owner and database role), from
+     any directory: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
+     It lists each legacy file as "would migrate" or "not migrated" (with the
+     reason) and writes nothing. Note the key fingerprint in the summary.
+  5. Migrate: `sudo -u <web user> php migrate-receipt-key.php`, optionally in
+     batches (`--limit=500`). Files above `--max-size` (default
+     `memory_limit` / 8) are skipped; for large receipts run with
+     `php -d memory_limit=1G` (or set `--max-size`). Legacy files are kept.
+     Exit status 1 means a file failed; rerun until the summary shows 0
+     migrated and 0 failed.
+  6. Run `sync` (the migration cannot flush files to disk on PHP 5.3).
+  7. Spot-check a few migrated receipts (PDF and JPEG) in the browser.
+  8. Delete the legacy files: `sudo -u <web user> php migrate-receipt-key.php
+     --delete-legacy` (also with `--dry-run` first). Each `<n>.aes` is
+     deleted only after `<n>.v2.aes` decrypted to the same content.
+  9. Compare key fingerprints: the migration prints one; the web server's
+     error log shows `pgacc: receipt <n>.v2.aes could not be decrypted (...
+     key fingerprint ...)` when a receipt fails. Different fingerprints mean
+     the web application and the migration use different keys.
+  10. Keep the `files/` backup from step 1 until the spot checks are done.
+      Skipped files stay legacy `<n>.aes` and keep working as before.
 
 ## Planned security follow-ups
 
