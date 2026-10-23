@@ -20,16 +20,6 @@ return array(
     // (PHP 5.6 and 7.4). PHP 8.0/8.5 have no entries on purpose: every
     // diagnostic there is reported as a failure. See tests/README.md.
     array(
-        'id' => 'KD-NEW-RIGHTS',
-        'php' => array('5.6', '7.4'),
-        'type' => 'E_NOTICE',
-        'file' => 'new.php',
-        'lines' => array(184),
-        'message' => '/^Undefined variable: rights$/',
-        'reported' => false,
-        'reason' => 'voucher creation passes an unset $rights to page_save_buchung()',
-    ),
-    array(
         'id' => 'KD-EDIT-RIGHTSSQL',
         'php' => array('5.6', '7.4'),
         'type' => 'E_NOTICE',

@@ -122,7 +122,13 @@ explains that dropping the unused default generally preserves behavior; see
   reaches its redirect, because it passes `$rights` instead of the rights
   SQL to `vouchers_reset_ack()` and the query fails ("syntax error at or
   near ..."). [ ] Fix and test the reset separately; it is an existing
-  failure, not a header problem. The receipt download (`file.php`) and the
+  failure, not a header problem. **Owner decision:** the query only works
+  for empty (or null) rights, and then has no organization restriction: a
+  user with empty rights can reset the approvals of any voucher (tested in
+  `tests/write-workflows.php`). Passing `$rightssql` would stop that, but
+  would also let every user of an organization reset the approvals of that
+  organization's vouchers, which fails for all of them now; the page has no
+  `bgf` check (the button is only shown to `bgf` users). The receipt download (`file.php`) and the
   CSV headers were already sent before any output.
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.
   The only caller (`new.php:610`) passes all four arguments; the `$part = 0`
@@ -145,10 +151,10 @@ lanes keep passing only through these entries:
 | `KD-REPORT-SQL-PG15` | `report.php:58` | Displayed warning: `pg_query()` fails with "trailing junk after numeric literal at or near "8AND"". `unit_report()` appends `$cond` without a leading space; PostgreSQL 15+ rejects `8AND`, and `or die` ends the 2024 report at its first per-unit income query. The existing smoke assertions still pass on the truncated page. | [x] Fixed: `date_condition()` now returns its `begin = 1` condition with a leading space; the smoke test asserts the report renders through Anlage B. The `begin = 0` branch is only appended after a space, so it is unchanged. Completing the report exposed `$prevcond` at more call sites (`KD-REPORT-PREVCOND`) and required four public person types in the fixtures. |
 | `KD-REPORT-PREVCOND` | `report.php:340`, `347`, `374`, `381` | Hidden notice: undefined `$prevcond` (warning on PHP 8). | [x] Fixed: `page_report()` sets `$prevcond = null` before the calls. `unit_report()` has never read its first parameter (in every revision of `report.php` its only occurrence is the parameter list), so it keeps receiving the value it always got, and the report cannot change: the 2012, 2024, 2025, current-year and `print_empty` reports were byte-identical before and after on PHP 7.4. The similarly named `$prev_cond` (`AND date < '<year>-01-01'`) was deliberately not passed; it would be output-identical too, but suggests a use that does not exist. Removing the unused parameter (and the unused `$prev_cond`/`$precond` variables) is left to a later cleanup. Entry and PHPStan baseline entry (8 sites) removed; mutation target `report-prevcond`. |
 | `KD-PREFS-HIDE` | `closed.php` 37 lines | Hidden notices: `$user_prefs_hide[$n]` undefined offsets for users without hide preferences (54 distinct line/offset pairs per ledger request). | [x] Fixed together with the `emptytag()` crash (`closed.php:158` under [Static-analysis findings](#static-analysis-findings)): every read goes through `listing_column_hidden($col)`, `isset(...) && ... == 1`, which is what the undefined offset (`null == 1`) evaluated to, so listings without hide preferences are byte-identical (ledger, CSV, open, deleted, search, closed, compared on PHP 7.4). `tests/http-listing-prefs.php` covers stored preferences and `?hide=N`/`?hide=-N` (see the static-analysis row). Mutation target `listing-columns`. |
-| `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [ ] Determine the intended rights argument; test scoped users. |
-| `KD-EDIT-RIGHTSSQL` | `edit.php:120` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] Review the authorization intent before changing it. |
+| `KD-NEW-RIGHTS` | `new.php:184` | Hidden notice: undefined `$rights` passed to `page_save_buchung()`. | [x] Fixed: `page_new_save()` takes the `$rights` that `index.php:264` already passed, as `page_edit_save()` does for revisions. The rights only choose the default organization in `get_voucher()` when the form posts none, which is always the case for a user with a single organization (the form shows the organization field only for rights with several entries). Before: such a user's new voucher was saved in organization 10 (Bund), which the user cannot see or edit. After: it is saved in the user's organization. Unchanged: `bgf`-only, multi-entry and admin rights still default to 10, and a posted organization is still saved as given (it is not checked against the user's rights). **Owner decision:** behaviour change; vouchers created this way so far are in organization 10. Tests in `tests/write-workflows.php`, mutation target `rights-checks`. Entry and PHPStan baseline entries (undefined `$rights`, `page_new_save` invoked with 1 parameter) removed. |
+| `KD-EDIT-RIGHTSSQL` | `edit.php:120` | Hidden notice: undefined `$rightssql` in the finalized-voucher check, so that query has no organization restriction. | [ ] **Owner decision, not changed.** The check only refuses ("bereits finalisiert"); every update in `page_edit_ack()` keeps its organization restriction, so no user can approve rows of another organization (tested). Effects of the missing restriction: a finalized row of any organization blocks the approval of the whole voucher (also of another organization's rows of a voucher with rows in two organizations), and a user of another organization learns whether a voucher number is finalized (the answer differs from "Hier fehlt noch der Beleg"). Moving `$rightssql = rights2orgasql($rights);` before the check (as in `page_edit_save()`) would remove the notice and that difference, but would allow the approval of a user's own rows of a partly finalized voucher, which is refused now. Characterized in `tests/write-workflows.php`. |
 
-`KD-NEW-RIGHTS` and `KD-EDIT-RIGHTSSQL` (and the fixed `KD-REPORT-PREVCOND`) are also PHPStan
+`KD-EDIT-RIGHTSSQL` (and the fixed `KD-NEW-RIGHTS` and `KD-REPORT-PREVCOND`) are also PHPStan
 baseline findings ("Undefined variables in function scope" under
 [Static-analysis findings](#static-analysis-findings)). A fix for any of them
 must remove both its entry here and its PHPStan baseline entry; the static
@@ -157,14 +163,15 @@ check fails until the stale baseline entry is gone.
 PHP 8.0 and 8.5 have no baseline entries; every diagnostic fails the lane.
 In addition to the PHP 8 forms of the issues above, they report:
 
-- PHP 8.0 and 8.5: undefined `$rights` (`new.php:184`) and `$rightssql`
-  (`edit.php:120`) as warnings. The `new.php:450` deprecation (also a former
+- PHP 8.0 and 8.5: undefined `$rightssql` (`edit.php:120`) as a warning
+  (`$rights` at `new.php:184` is fixed). The `new.php:450` deprecation (also a former
   PHPCompatibility baseline finding), the login/logout "headers already sent"
   warnings, and the uncaught `Error` "No PostgreSQL link opened yet" at
   `index.php:78` (from `acc_footer()` after `relocate()`) are fixed. A
   targeted PHP 8.0 run after the redirect fix: `http-login.php` and
   `http-redirects.php` pass (also unbuffered), `write-workflows.php` fails
-  only on the two warnings above.
+  only on the two warnings above; after the `new.php:184` fix a PHP 8.0 run
+  fails only on `edit.php:120`.
 - PHP 8.5 only: "headers already sent" at `index.php:27/28/31/33` (login on the
   unbuffered server, output started by the `index.php:15` deprecation). Before
   the redirect fix also at `edit.php:6` (approval redirect); not re-run on
@@ -427,17 +434,17 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | Known (`mcrypt` item above). `import2.php:189` is the second receipt-encryption call site, on the PDF import path. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 
-### PHPStan (91 findings; 81 after the `closed.php`/`report.php` fixes and the `index.php:226` merge fix)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
 | Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. |
 | Malformed regular expression | `functions.php:73` | Known |
-| Extra arguments to functions without parameters | `index.php:264`, `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
+| Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **New.** Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
 | Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
-| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`), `edit.php:120` (`$rightssql` in `page_edit_ack()`), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
+| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:17` (`$datakey`, 2) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |

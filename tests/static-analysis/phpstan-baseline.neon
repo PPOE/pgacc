@@ -133,12 +133,6 @@ parameters:
 			path: ../../index.php
 
 		-
-			message: '#^Function page_new_save invoked with 1 parameter, 0 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: ../../index.php
-
-		-
 			message: '#^Function page_transfer not found\.$#'
 			identifier: function.notFound
 			count: 1
@@ -178,12 +172,6 @@ parameters:
 			message: '#^Undefined variable\: \$key$#'
 			identifier: variable.undefined
 			count: 2
-			path: ../../new.php
-
-		-
-			message: '#^Undefined variable\: \$rights$#'
-			identifier: variable.undefined
-			count: 1
 			path: ../../new.php
 
 		-

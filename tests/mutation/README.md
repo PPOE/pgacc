@@ -738,6 +738,37 @@ passes on both lanes. The `login-logout` target gives the same result before
 (at `5fe1c62`) and after the fix: 36 killed, 2 accepted equivalents on PHP 5.6
 and 7.4.
 
+#### `rights-checks` (HTTP, `new.php`, `edit.php`)
+
+The organization scope of voucher writes, tested with
+`tests/write-workflows.php` (users of organizations 1 and 2, `bgf`, admin and
+empty rights; vouchers with rows in two organizations): the rights that
+creation (`page_new_save()`) and revision pass to `get_voucher()`, its default
+organization, and the rights SQL of approval and finalization.
+
+| Mutant | Line | 5.6 | 7.4 | Killed by |
+|---|---:|---|---|---|
+| `new-save-rights-dropped` | `new.php:170` | killed | killed | voucher of an organization user saved in organization 10 |
+| `new-save-rights-null` | `new.php:184` | killed | killed | same |
+| `default-organization-fixed` | `new.php:43` | killed | killed | creation and revision by an organization user |
+| `default-organization-for-any-rights` | `new.php:41` | killed | killed | `bgf` voucher saved in organization 0 |
+| `posted-organization-ignored` | `new.php:45` | killed | killed | posted organization not saved |
+| `ack-finalized-check-removed` | `edit.php:120` | killed | killed | finalized voucher approved |
+| `ack-receipt-check-unscoped` | `edit.php:132` | killed | killed | cross-organization approval redirects |
+| `ack1-update-unscoped` | `edit.php:145` | killed | killed | first approval of the other organization's row |
+| `ack2-update-unscoped` | `edit.php:156` | killed | killed | second approval of the other organization's row |
+| `ack2-same-user` | `edit.php:156` | killed | killed | duplicate approval by the first approver |
+| `finalize-unscoped` | `edit.php:39` | killed | killed | the other organization's row finalized |
+| `drop-acks-reset-removed` | `edit.php:96` | killed | killed | approvals not reset |
+
+PHP 5.6 and 7.4: 12 killed; both runs exit 0 (about 1 minute on PHP 7.4).
+
+Before the fix of `page_new_save()` (the test-first commit, `9d0e753`), the
+11 mutations that apply to that code (all but `new-save-rights-dropped`) gave
+10 killed and 1 survivor on PHP 5.6 and 7.4: `new-save-rights-null` survived,
+because creation passed no rights to `get_voucher()` at all (the undefined
+variable is `null`).
+
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target must run that target on
@@ -746,5 +777,6 @@ behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
 `rights2orgasql` and `null-arguments` targets on every lane, the `login-logout` target on PHP
 5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
-the `redirects` target on PHP 5.6 and 7.4 (on PHP 8 its baseline fails on the
-write-workflow diagnostics that have no baseline entry there).
+the `redirects` and `rights-checks` targets on PHP 5.6 and 7.4 (on PHP 8 their
+baseline fails on the write-workflow diagnostics that have no baseline entry
+there).

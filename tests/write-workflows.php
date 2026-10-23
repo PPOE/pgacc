@@ -536,8 +536,9 @@ function voucher_by_comment($database, $comment)
     );
 }
 
-// Creation without an organization: the voucher is saved with a default
-// organization.
+// Creation without an organization: the voucher is saved in the user's
+// organization (before the fix in organization 10, because page_new_save()
+// passed an undefined $rights), and its creator can open it.
 $scopedComment = 'Synthetic voucher of organization two';
 $scopedCreation = http_request(
     '/index.php?action=new',
@@ -548,7 +549,15 @@ $scopedCreation = http_request(
 assert_status($scopedCreation, 200, 'creation by an organization user');
 assert_contains($scopedCreation['body'], 'Buchung erfasst', 'creation by an organization user');
 $scopedVoucher = voucher_by_comment($database, $scopedComment);
-assert_database_field($scopedVoucher, 'orga', '10', 'voucher created by an organization user');
+assert_database_field($scopedVoucher, 'orga', '2', 'voucher created by an organization user');
+$scopedVoucherPage = http_request(
+    '/index.php?action=edit&id=' . rawurlencode($scopedVoucher['voucher_id']),
+    'GET',
+    array(),
+    $unitTwoCookies
+);
+assert_status($scopedVoucherPage, 200, 'voucher page for its creator');
+assert_contains($scopedVoucherPage['body'], 'value="' . $scopedComment . '"', 'voucher page for its creator');
 
 $bgfComment = 'Synthetic voucher of the bgf reviewer';
 $bgfCreation = http_request(

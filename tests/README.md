@@ -167,7 +167,12 @@ recovery. The approval, finalization, revision and merge redirects must be a
 302 to the voucher's edit page with the exact hint and an empty body, also on
 an `output_buffering=0` server. Visitors who are not logged in posting a new
 voucher, an approval, a finalization, a revision, or a merge get only the
-login redirect, and nothing changes in the database. Receipt encryption/upload is deliberately excluded
+login redirect, and nothing changes in the database. The fixture users
+`synthetic-unit-one` (organization 1), `synthetic-unit-two` (organization 2)
+and `synthetic-no-rights` (empty rights) cover the organization scope: the
+default organization of vouchers created or revised without one, approvals
+and finalization of a voucher with rows in two organizations, approvals of
+finalized vouchers, and the approval reset. Receipt encryption/upload is deliberately excluded
 because the unchanged application requires the removed `mcrypt` extension;
 the tests use a synthetic receipt reference instead.
 

@@ -164,7 +164,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 return $voucher_number;
 }
-function page_new_save()
+function page_new_save($rights)
 {
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
