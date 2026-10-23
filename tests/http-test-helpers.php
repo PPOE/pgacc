@@ -128,6 +128,14 @@ function assert_status($response, $expected, $label)
     }
 }
 
+function assert_location($response, $expected, $label)
+{
+    $location = response_header($response, 'Location');
+    if ($location !== $expected) {
+        fail_test("$label sent Location " . var_export($location, true) . ', expected ' . var_export($expected, true));
+    }
+}
+
 function assert_contains($body, $expected, $label)
 {
     if (strpos($body, $expected) === false) {

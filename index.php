@@ -223,7 +223,7 @@ else if ($page == "search")
 else if ($page == "merge")
 {
   $rights = checklogin('rights');
-  page_edit_merge($rights,intval($_POST["bid1"]),intval($_POST["bid2"]));
+  page_edit_merge($rights);
 }
 else if ($page == "edit")
 {

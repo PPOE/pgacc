@@ -75,6 +75,20 @@ function voucher_form($comment, $amount, $file)
     );
 }
 
+function create_voucher($database, $comment, $amount, $file, $cookies)
+{
+    $response = http_request('/index.php?action=new', 'POST', voucher_form($comment, $amount, $file), $cookies);
+    assert_status($response, 200, "creation of $comment");
+    assert_contains($response['body'], 'Buchung erfasst', "creation of $comment");
+    $row = database_row(
+        $database,
+        'SELECT voucher_id FROM vouchers WHERE comment = $1 AND NOT deleted',
+        array($comment),
+        "created $comment"
+    );
+    return $row['voucher_id'];
+}
+
 $database = database_connection();
 $adminCookies = login_user('synthetic-admin', 'correct-password');
 $reviewerCookies = login_user('synthetic-reviewer', 'reviewer-password');
@@ -248,6 +262,27 @@ $newRevision = database_row(
 assert_database_field($newRevision, 'voucher_id', '1004', 'replacement revision');
 assert_database_field($newRevision, 'amount', '-3000', 'replacement revision');
 assert_database_field($newRevision, 'deleted', 'f', 'replacement revision');
+
+// Merging moves every row of the second voucher into the first one. The edit
+// page links it as index.php?action=merge&bid1=<this voucher>&bid2=<other>.
+$mergeTargetId = create_voucher($database, 'Synthetic merge target', '-1.00', 0, $adminCookies);
+$mergeSourceId = create_voucher($database, 'Synthetic merge source', '-2.00', 0, $adminCookies);
+$mergeUrl = '/index.php?action=merge&bid1=' . rawurlencode($mergeTargetId) . '&bid2=' . rawurlencode($mergeSourceId);
+$voucherRowsQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1';
+
+// A user restricted to another organization gets the same redirect, but no
+// row moves.
+$unauthorizedMerge = http_request($mergeUrl, 'GET', array(), $unitOneCookies);
+assert_status($unauthorizedMerge, 302, 'cross-organization merge');
+assert_location($unauthorizedMerge, "index.php?action=edit&id=$mergeTargetId&hint=6", 'cross-organization merge');
+assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after cross-organization merge');
+assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after cross-organization merge');
+
+$merge = http_request($mergeUrl, 'GET', array(), $adminCookies);
+assert_status($merge, 302, 'voucher merge');
+assert_location($merge, "index.php?action=edit&id=$mergeTargetId&hint=6", 'voucher merge');
+assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 2, 'merge target');
+assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 0, 'merge source');
 
 $unauthorizedRecovery = http_request(
     '/index.php?action=recover&id=1004&bid=105&doit=1',
