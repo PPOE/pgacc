@@ -486,49 +486,111 @@ Earlier history: the original four rights cases killed 13 of the first 30
 mutants; the expanded 24 cases kill all 30, and the initialization-removal
 mutant was added with the initialization fix.
 
-#### `login-logout` (HTTP, `index.php`)
+#### `login-logout` (HTTP, `index.php`, `login.php`, `new.php`)
 
-`login()` (lines 13-37) and the logout branch (lines 286-291), tested with
-`tests/http-login.php` only.
+`login()` (`index.php:13-39`), the logout and `login_redirect()` blocks that
+`index.php` answers before `acc_header()` (lines 175-187), `login_redirect()`
+and `page_login()` in `login.php`, and the `page_new_buchung()` signature
+(`new.php:450`, compiled on every request), tested with `tests/http-login.php`
+only. Since the login/logout header fix the target has 38 mutations: the 15
+earlier ones (the logout ones moved to the new logout block) plus the
+meaningful mutants of the former manual list `login-headers.json` (see
+[History](#history-of-the-login-logout-target)).
 
-| Mutant | Line | PHP 5.6 | PHP 7.4 | Killed by |
-|---|---:|---|---|---|
-| `login-password-check-inverted` | 22 | killed | killed | valid login not 302; wrong password accepted |
-| `login-password-check-removed` | 22 | killed | killed | wrong password accepted |
-| `login-session-not-stored` | 26 | killed | killed | cookies do not authenticate |
-| `login-cookie-renamed` | 27 | killed | killed | missing `pp_pgacc_login` |
-| `login-id-cookie-removed` | 28 | killed | killed | missing `pp_pgacc_id` |
-| `login-cookie-expires-immediately` | 27 | **survived** | **survived** | - |
-| `login-target-ignored` | 31 | killed | killed | wrong `Location` for target |
-| `login-default-redirect-removed` | 32 | killed | killed | 200 instead of 302 |
-| `login-username-not-escaped` | 15 | **survived** | **survived** | - |
-| `login-raises-hidden-notice` | 25 | killed | killed | new hidden `E_NOTICE` (diagnostics check) |
-| `logout-login-cookie-kept` | 288 | killed | killed | `pp_pgacc_login` not cleared |
-| `logout-id-cookie-kept` | 289 | killed | killed | `pp_pgacc_id` not cleared |
-| `logout-redirect-removed` | 290 | killed | killed | 200 instead of 302 |
-| `logout-redirect-target-changed` | 290 | killed | killed | wrong `Location` |
-| `logout-cookie-expiry-in-future` | 288 | equivalent | equivalent | `setcookie()` ignores the expiry for an empty value |
+| Mutant | Line | 5.6 | 7.4 | 8.0 | Killed by |
+|---|---:|---|---|---|---|
+| `login-password-check-inverted` | 22 | killed | killed | killed | valid login not 302; wrong password accepted |
+| `login-password-check-removed` | 22 | killed | killed | killed | wrong password accepted |
+| `login-session-not-stored` | 26 | killed | killed | killed | cookies do not authenticate; database state |
+| `login-cookie-renamed` | 27 | killed | killed | killed | missing `pp_pgacc_login` |
+| `login-cookie-value` | 27 | killed | killed | killed | cookie differs from `users.cookie` |
+| `login-cookie-expires-immediately` | 27 | killed | killed | killed | cookie attributes (expiry) |
+| `login-cookie-expiry` | 27 | killed | killed | killed | cookie attributes (`Max-Age=86400`) |
+| `login-id-cookie-removed` | 28 | killed | killed | killed | missing `pp_pgacc_id` |
+| `login-id-cookie-renamed` | 28 | killed | killed | killed | missing `pp_pgacc_id` |
+| `login-id-cookie-value` | 28 | killed | killed | killed | wrong user id |
+| `login-id-cookie-path` | 28 | killed | killed | killed | cookie attributes (`path`) |
+| `login-target-ignored` | 31 | killed | killed | killed | wrong `Location` for target |
+| `login-target-not-decoded` | 31 | killed | killed | killed | hex target not decoded |
+| `login-default-redirect-removed` | 32 | killed | killed | killed | 200 instead of 302 |
+| `login-default-redirect-target-changed` | 32 | killed | killed | killed | wrong `Location` |
+| `login-username-not-escaped` | 15 | killed | killed | killed | quote in user name logs in (SQL injection) |
+| `login-password-not-escaped` | 16 | killed | killed | killed | quote in password: SQL error, no form |
+| `login-raises-hidden-notice` | 25 | killed | killed | killed | new hidden `E_NOTICE` (diagnostics check) |
+| `logout-login-cookie-kept` | 177 | killed | killed | killed | `pp_pgacc_login` not cleared |
+| `logout-login-cookie-renamed` | 177 | killed | killed | killed | `pp_pgacc_login` not cleared |
+| `logout-id-cookie-kept` | 178 | killed | killed | killed | `pp_pgacc_id` not cleared |
+| `logout-id-cookie-not-cleared` | 178 | killed | killed | killed | `pp_pgacc_id` set to `0` |
+| `logout-redirect-removed` | 179 | killed | killed | killed | 200 instead of 302 |
+| `logout-redirect-target-changed` | 179 | killed | killed | killed | wrong `Location` |
+| `logout-continues` | 180 | killed | killed | killed | redirect body not empty |
+| `logout-cookie-expiry-in-future` | 177 | equivalent | equivalent | equivalent | `setcookie()` ignores the expiry for an empty value |
+| `logout-after-output` | 175 | killed | killed | killed | body not empty; unbuffered logout 200 without cookies |
+| `login-continues` | 185 | killed | killed | killed | redirect body not empty |
+| `login-after-output` | 183 | killed | killed | killed | body not empty; unbuffered login 200 without cookies |
+| `logged-in-guard-removed` | `login.php:7` | killed | killed | killed | logged-in target redirect |
+| `logged-in-target-check-removed` | `login.php:9` | killed | killed | killed | logged-in page without target |
+| `logged-in-target-not-decoded` | `login.php:11` | killed | killed | killed | hex target not decoded |
+| `logged-in-target-continues` | `login.php:12` | killed | killed | killed | redirect body not empty |
+| `login-submit-check-negated` | `login.php:19` | killed | killed | killed | valid login not 302, no cookies |
+| `login-success-continues` | `login.php:21` | killed | killed | killed | redirect body not empty |
+| `rejected-login-ends-request` | `login.php:21` | killed | killed | killed | rejected login renders no form |
+| `page-login-guard-removed` | `login.php:28` | killed | killed | killed | logged-in user sees the form |
+| `page-new-buchung-default-restored` | `new.php:450` | equivalent | equivalent | killed | PHP 8.0 deprecation (diagnostics check) |
 
-Both lanes: 12 killed, 2 survived, 1 accepted equivalent; the run exits 1.
-The two survivors are real gaps in `tests/http-login.php`, not equivalents:
+PHP 5.6 and 7.4: 36 killed, 2 accepted equivalents; PHP 8.0: 37 killed, 1
+accepted equivalent. Every run exits 0. `page-new-buchung-default-restored` is
+an equivalent on PHP 5.6 and 7.4 only (`'php' => array('5.6', '7.4')`): before
+PHP 8.0 a default before required parameters is accepted silently and never
+used, because the only caller passes all four arguments. On PHP 8.0 it is
+killed by the deprecation, and listing it as equivalent there would make it a
+stale equivalent.
 
-- `login-cookie-expires-immediately`: the tests read cookie values but never
-  their expiry, so a login cookie that browsers would discard immediately
-  passes. Assert that both login cookies expire in the future (about 24 hours).
-- `login-username-not-escaped`: no test uses a user name that needs escaping.
-  A rejected login for a name such as `synthetic'admin` would fail with an SQL
-  error (and a new diagnostic) without the escaping.
+On PHP 8.5 the runner refuses the target, as intended: the baseline fails (exit
+2) because the implicit-connection deprecations in `login()`/`checklogin()` are
+displayed before the login redirect, so its body is not empty and the
+unbuffered login returns 200 without cookies (see
+`tests/COMPATIBILITY_PLAN.md`).
 
-On PHP 8.0 and 8.5 the runner refuses the target, as intended: the baseline
-fails because login and logout return 200 instead of 302 and raise unlisted
-diagnostics (see `tests/COMPATIBILITY_PLAN.md`), so no mutant is run (exit 2).
+A mutant takes 0.6-0.8 s on PHP 7.4, 0.5-1.7 s on PHP 5.6, and 0.6-1.2 s on
+PHP 8.0 (several seconds on a busy host). A whole run with an already built
+image, including the database start, takes 30-40 s on each of these lanes, so
+CI runs it on PHP 5.6, 7.4 and 8.0.
 
-A mutant takes 0.6-0.8 s on PHP 5.6 and 0.4-1.0 s on PHP 7.4 with
-`tests/http-login.php`, including copy, lint, database reset, and server
-start (up to 3 s on a busy host). A surviving mutant that runs all four suites
-(smoke, login, write workflows, and a PHPUnit filter) takes about 1.5 s on PHP
-7.4. A whole run, including the image build check and database start, takes
-about 20-50 s for these targets.
+#### History of the `login-logout` target
+
+Before this runner existed, the login/logout header fix was mutation-tested
+with a manual list (`login-headers.json`, now replaced by this target): 26
+mutants, each applied by hand (mutated files bind-mounted over `/app`, a fresh
+synthetic database per run) and run against `tests/http-login.php` on the PHP
+7.4 image, the signature mutant on PHP 8.0. "Before" means the original code
+at 20b5911 with the test-first `http-login.php` (the unbuffered login/logout
+checks still recorded as known failures); mutants that exist only in the
+fixed structure had no "before" form.
+
+| Code | Driver | Tests | Mutants | Killed | Survived |
+|---|---|---|---:|---:|---:|
+| Original (before) | manual | `http-login.php` test-first version, with the unbuffered known failures | 19 | 18 | 1 |
+| Fixed (after) | manual | final `http-login.php` | 26 | 25 | 1 |
+| Fixed (after) | this runner, PHP 5.6 / 7.4 | final `http-login.php` | 38 | 36 | 0 (2 equivalent) |
+| Fixed (after) | this runner, PHP 8.0 | final `http-login.php` | 38 | 37 | 0 (1 equivalent) |
+
+The manual survivor in both runs was `logout-expiry-in-future`, here
+`logout-cookie-expiry-in-future`, the accepted equivalent. With the
+`http-login.php` at 20b5911 and the first version of this target (15
+mutants), `login-cookie-expires-immediately` and `login-username-not-escaped`
+survived on PHP 5.6 and 7.4; the cookie attribute checks and the rejected
+logins with quotes in the user name and password kill them now. All 26 manual
+mutants are in the target, some under the earlier target's ID
+(`login-database-update-removed` is `login-session-not-stored`,
+`logout-location` is `logout-redirect-target-changed`,
+`logout-return-removed` is `logout-continues`, `login-return-removed` is
+`login-continues`, `login-default-location` is
+`login-default-redirect-target-changed`, `login-cookie-path` is
+`login-id-cookie-path`, `login-id-cookie-name` is `login-id-cookie-renamed`,
+`logout-login-cookie-name` is `logout-login-cookie-renamed`); the removal and
+move mutants keep the line count (`true;` placeholders, and one search that
+spans the moved block and `acc_header()`).
 
 ### Required step for fixes
 
@@ -536,29 +598,5 @@ Fix pull requests that change code reached by a target must run that target on
 PHP 7.4 and 5.6 before and after the change and report both results. A new
 behavior needs a mutation in the relevant target (or a new target), and the
 change must not introduce survivors. CI runs the self-tests and the
-`rights2orgasql` target on every lane; `login-logout` is not in CI while it
-has the two survivors above.
-
-## Targeted mutation test: login/logout headers
-
-`login-headers.json` lists 26 mutants of the login/logout code changed to send
-cookies and redirects before `acc_header()` (`index.php`, `login.php`) and of the
-`page_new_buchung()` signature (`new.php`). "before" edits apply to the original
-code (20b5911), "after" edits to the fixed code; mutants that only exist in the
-fixed structure have no "before" edits. Each mutant was run manually against
-`tests/http-login.php` (both test servers) on the PHP 7.4 image, and the
-signature mutant on PHP 8.0, with mutated files bind-mounted over `/app` and a
-fresh synthetic database per run. The generalized HTTP mutation runner is
-expected to replace this manual run.
-
-| Code | Tests | Mutants | Killed | Survived |
-|---|---|---:|---:|---:|
-| Original (before) | `http-login.php` test-first version, with the unbuffered known failures | 19 | 18 | 1 |
-| Fixed (after) | final `http-login.php` | 26 | 25 | 1 |
-
-The survivor in both runs is `logout-expiry-in-future`, an equivalent mutant:
-for an empty cookie value PHP always sends `deleted` with a 1970 expiry and
-`Max-Age=0`, whatever expiry is passed. With the `http-login.php` at 20b5911,
-`login-cookie-expires-immediately` and `login-username-not-escaped` survived
-(reported by the HTTP mutation runner work); the cookie attribute and quoted
-credential checks kill them now.
+`rights2orgasql` target on every lane, and the `login-logout` target on PHP
+5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above).

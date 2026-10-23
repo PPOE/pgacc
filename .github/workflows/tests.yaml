@@ -89,6 +89,12 @@ jobs:
           sh tests/mutation/run.sh '${{ matrix.php }}' --self-test
           sh tests/mutation/run.sh '${{ matrix.php }}' rights2orgasql
 
+      - name: login-logout mutations
+        # Not on PHP 8.5: the unmutated baseline fails there (implicit
+        # PostgreSQL connection deprecations before the login redirect).
+        if: always() && matrix.php != '8.5'
+        run: sh tests/mutation/run.sh '${{ matrix.php }}' login-logout
+
       - name: Upload mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

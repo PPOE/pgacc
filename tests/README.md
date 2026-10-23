@@ -214,10 +214,12 @@ reviewable mutations and the tests that must kill them: PHPUnit filters and/or
 HTTP suites. HTTP mutants each get a disposable copy of the application, a
 fresh `php -S` with the application service's settings, and a fresh database
 from a template, so top-level page code that Infection cannot mutate is
-covered too. The `login-logout` target mutates `index.php` login/logout
-handling; on PHP 5.6 and 7.4 it kills 12 of 15 mutants, accepts one
-equivalent, and shows two test gaps (login cookie expiry, user-name escaping).
-CI runs the runner's self-tests and the `rights2orgasql` target on every lane.
+covered too. The `login-logout` target mutates login/logout
+handling in `index.php` and `login.php` and the `page_new_buchung()` signature
+in `new.php`; on PHP 5.6 and 7.4 it kills 36 of 38 mutants and accepts two
+reviewed equivalents.
+CI runs the runner's self-tests and the `rights2orgasql` target on every lane,
+and the `login-logout` target on PHP 5.6, 7.4 and 8.0.
 See [the runner documentation](mutation/README.md).
 
 ## Coverage
@@ -400,7 +402,7 @@ same reason, with a separate runner configuration. The initial suite covers
 - [x] Generalize the hand-picked `rights2orgasql` runner into a target-driven
   runner (`tests/mutation/run.sh`) that also mutates code reached only through
   the HTTP tests, on every lane including PHP 5.6.
-- [ ] Close the `login-logout` survivors: assert login cookie expiry and add a
+- [x] Close the `login-logout` survivors: assert login cookie expiry and add a
   rejected login with a user name that needs SQL escaping.
 - [x] Add PHPUnit to the isolated test environment and begin PHPUnit coverage
   with `functions.php`. Keep `tests/run.sh` as the single entry point for
