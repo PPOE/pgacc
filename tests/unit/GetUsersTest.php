@@ -9,6 +9,7 @@
  */
 
 require_once dirname(dirname(__DIR__)) . '/getusers.php';
+require_once __DIR__ . '/AppExitGuard.php';
 
 final class MembershipStubStream
 {
@@ -60,14 +61,18 @@ final class GetUsersTest extends FunctionsTestCase
         stream_wrapper_unregister('http');
         stream_wrapper_register('http', 'MembershipStubStream');
         // pg_connect() returns the default link that the application code uses.
-        $connection = pg_connect('host=' . getenv('PGHOST') . ' port=' . getenv('PGPORT') . ' dbname=' . getenv('PGDATABASE') . ' user=' . getenv('PGUSER') . ' password=' . getenv('PGPASSWORD'));
+        $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         try {
+            // getUsers() dies on a short response, an empty key or an SQL error.
+            AppExitGuard::enter('getUsers()');
             getUsers();
             $result = pg_query($connection, 'SELECT id, name, lo, paid FROM ppmembers ORDER BY id');
             $rows = pg_fetch_all($result);
             pg_free_result($result);
         } finally {
+            // die() skips finally blocks, so this only runs when the call returned.
+            AppExitGuard::leave();
             stream_wrapper_restore('http');
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
