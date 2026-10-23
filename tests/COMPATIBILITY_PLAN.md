@@ -96,6 +96,16 @@ with synthetic users and covered by a mutation target.
   `tests/write-workflows.php`): for `bgf` users the reset still fails with
   "Abfrage fehlgeschlagen" (syntax error); passing `$rightssql` would make
   it work. Mutation target `rights-checks`.
+- [x] Finalization (`page_edit_finalize()`, POST `beleg`). The voucher form
+  has had no finalization button since `68cda09` (2015); before, only the
+  treasurer (`bsm`) saw it, after both approvals. The action stayed
+  reachable by a direct request for every user, within the rights SQL. It
+  now requires the exact `bgf` right; other users get "FEHLER: Keine
+  Zugriffsrechte." and nothing changes. Behaviour difference: organization
+  users (and `Rbgf`) can no longer finalize their own rows; `bgf` users
+  are unchanged (they may still finalize without approvals). The
+  `finalize-unscoped` mutant of `rights-checks` is an accepted equivalent
+  since: the rights SQL of a `bgf` user is empty.
 
 ## Login and redirect failure: confirmed
 

@@ -152,11 +152,27 @@ return array(
             'rationale' => 'bgf without root may not merge.',
         ),
         array(
+            'id' => 'finalize-bgf-check-removed',
+            'region' => $finalize,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => 'if (false)',
+            'rationale' => 'Fail-open: users without bgf finalize vouchers.',
+        ),
+        array(
+            'id' => 'finalize-bgf-check-closed',
+            'region' => $finalize,
+            'search' => "if (!has_right(\$rights, 'bgf'))",
+            'replace' => 'if (true)',
+            'rationale' => 'bgf users finalize vouchers.',
+        ),
+        array(
             'id' => 'finalize-unscoped',
             'region' => $finalize,
             'search' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;',
             'replace' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id;',
             'rationale' => 'Wrong organization: finalization marks rows of other organizations.',
+            'equivalent' => array('reason' => 'Only users with the bgf right finalize since the bgf '
+                . 'check, and their rights SQL is empty.'),
         ),
         array(
             'id' => 'drop-acks-reset-removed',

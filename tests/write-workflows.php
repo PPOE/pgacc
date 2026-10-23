@@ -713,16 +713,22 @@ $mixedFinalizedId = create_voucher_from_form(
     two_organization_form('Synthetic partly finalized voucher', 9006),
     $adminCookies
 );
-assert_redirect(
-    edit_request($mixedFinalizedId, $finalizeForm, $unitOneCookies),
-    edit_location($mixedFinalizedId, 2),
-    'finalization by organization one'
-);
-assert_voucher_rows(
+// Finalization needs the exact bgf right (the old treasurer button; the
+// current form has no finalization button): organization users and users
+// without rights are refused and nothing changes.
+$unfinalizedState = array(voucher_row_state('1', null, null, 'f'), voucher_row_state('2', null, null, 'f'));
+foreach (array('of organization one' => $unitOneCookies, 'of organization two' => $unitTwoCookies, 'without rights' => $noRightsCookies) as $userLabel => $cookies) {
+    $finalization = edit_request($mixedFinalizedId, $finalizeForm, $cookies);
+    assert_status($finalization, 200, "finalization by a user $userLabel");
+    assert_contains($finalization['body'], 'FEHLER: Keine Zugriffsrechte.', "finalization by a user $userLabel");
+    assert_voucher_rows($database, $mixedFinalizedId, $unfinalizedState, "mixed voucher after finalization by a user $userLabel");
+}
+// A partly finalized voucher (as organization users could finalize their
+// rows before), set up in the database.
+pg_query_params(
     $database,
-    $mixedFinalizedId,
-    array(voucher_row_state('1', null, null, 't'), voucher_row_state('2', null, null, 'f')),
-    'mixed voucher after finalization by organization one'
+    'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $1 AND orga = 1',
+    array($mixedFinalizedId)
 );
 // The finalized row of organization one blocks the approval by organization
 // two.

@@ -29,6 +29,11 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
   return;
 }
 
+if (!has_right($rights, 'bgf'))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 echo "<h1>Buchung finalisiert - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=2\">Zurück zur Buchung</a>";
