@@ -341,6 +341,68 @@ were found in the tracked application files; PHP 8.5 syntax checks pass.
   before modernizing the `mcrypt` dependency. Do not change ciphertext formats
   without checking consumers.
 
+## Dependencies
+
+Audited on 2026-10-23 against `composer.lock` (report only; nothing was
+upgraded). The application uses one runtime package: `import2.php:52` calls
+`Smalot\PdfParser\Parser::parseContent()` and `Document::getText()` on
+uploaded bank statements. That path was exercised outside the HTTP tests:
+a script built synthetic one-page PDFs (plain and `FlateDecode` content
+streams with the texts `import2.php` searches for), parsed them with the
+locked `vendor/` of the PHP 5.6 image and with candidate versions installed
+by Composer 2.2.25 in scratch projects, and recorded every diagnostic
+(`error_reporting(-1)`) on the official `php:5.6`, `7.4.33`, `8.0`-`8.5` CLI
+images (5.6.40, 7.4.33, 8.0.30, 8.1.34, 8.2.35, 8.3.36, 8.4.27, 8.5.12).
+Advisories are from the Packagist security-advisories API.
+
+| Package (locked) | PHP constraint | 5.6 | 7.4 / 8.0 | 8.5 | Notes |
+|---|---|---|---|---|---|
+| `smalot/pdfparser` v0.9.23 (2015) | `>=5.3.0` | works | **fatal**: class `Object` (reserved since 7.2) on 7.4; on 8.0+ the TCPDF parser fails first | **fatal** (`ParseError`, curly-brace offsets in TCPDF) | The PDF import is broken on every runtime from 7.2 on. `composer.json` requires `*`, so any `composer update` jumps to 2.x (see below). |
+| `tecnick.com/tcpdf` 6.2.6 (abandoned name of `tecnickcom/tcpdf`) | `>=5.3.0` | works | **fatal** on 8.0+: curly-brace string offsets (`$this->pdfdata{$strpos}`, `tcpdf_parser.php:531-534`) | **fatal** | Only its parser/filter classes are used (through pdfparser 0.9). Affected by CVE-2018-17057 (`<6.2.22`, phar deserialization) and the 2024 TCPDF advisories (`<6.8.0`; mostly PDF generation, which the app does not use). |
+| Dev: `phpunit/phpunit` 9.6.38 with `php-code-coverage` 9.2.32, `sebastian/*`, `phar-io/*`, `theseer/tokenizer`, `doctrine/instantiator` 1.5.0, `myclabs/deep-copy` 1.13.4, `nikic/php-parser` v5.9.0 | `>=7.3` (php-parser `>=7.4`) | not installed (`--no-dev`; the lane uses the PHPUnit 5.7.27 PHAR) | used, suite passes | used, suite passes | Test-only. No single PHPUnit runs on both 5.6 and 8.5, so the split (PHAR on 5.6, locked 9.6 elsewhere) stays. Not an upgrade candidate. |
+
+Candidate `smalot/pdfparser` versions (resolved with `platform.php` 5.6.40;
+"text OK" means both PDFs yielded the searched texts; 8.1-8.4 were run for
+v0.13.3, v0.16.2 and v0.19.0, the others on 5.6, 7.4, 8.0 and 8.5):
+
+| Versions tested | Pulls in | 5.6 | 7.4 / 8.0-8.3 | 8.4 / 8.5 |
+|---|---|---|---|---|
+| v0.9.26, v0.10.0 | `tecnickcom/tcpdf` | text OK | fatal (`Object` class) | fatal |
+| v0.11, v0.12.0, v0.13.0 | `tecnickcom/tcpdf` 6.7.8 | text OK | text OK; 2 compile warnings (`"continue" targeting switch`) | same, plus implicit-nullable deprecations |
+| v0.13.3, v0.14.0, v0.15.1 | `tecnickcom/tcpdf` 6.7.8 (advisories `<6.8.0`) | text OK, clean | text OK, clean | text OK, 17 deprecations |
+| v0.16.0, v0.16.2 | nothing | text OK, clean | text OK, clean | text OK, 14 deprecations |
+| v0.17.1, v0.18.2, v0.19.0 (last `>=5.6`) | `symfony/polyfill-mbstring` v1.19.0 | text OK, clean | text OK, clean | text OK, 15-18 deprecations |
+| v2.13.1 (latest, `>=7.1`) | `symfony/polyfill-mbstring` v1.43.0 | **parse error at autoload** (polyfill `bootstrap72.php`), i.e. on every page | text OK, clean | text OK, clean |
+
+The 8.4/8.5 deprecations are all "Implicitly marking parameter ... as
+nullable" (class signatures like `Header $header = null`), raised once when
+each class is compiled, i.e. only on the PDF import request. Fixing them
+needs `?Header` (PHP 7.1 syntax), so **no release runs on both 5.6 and 8.5
+without diagnostics**. The oldest release that works functionally on 5.6
+through 8.5 is v0.11 (warnings from 7.3); the oldest without warnings up to
+8.3 is v0.13.3.
+
+Recommendation (owner decision):
+
+- [ ] While PHP 5.6 is supported, pin `smalot/pdfparser` to `v0.16.2`
+  exactly (not `*`): it has no dependencies (drops TCPDF and its advisories),
+  requires only `>=5.6`, parses on 5.6-8.5, and leaves only the 8.4+
+  implicit-nullable deprecations on the import request. v0.17-v0.19 would
+  also work but need `symfony/polyfill-mbstring` held at v1.19.0, because
+  `composer.json`'s `platform.php` 7.4.33 otherwise resolves a polyfill that
+  breaks every page on 5.6. The abandoned `tecnick.com/tcpdf` leaves the
+  lock with it. First add an HTTP test for `import2.php` with synthetic PDF
+  uploads (cover page, one ID, several IDs) and compare the extracted text
+  of v0.9.23 on PHP 5.6 with the new version: only the synthetic PDFs above
+  were compared.
+- [ ] After dropping PHP 5.6 and 7.0: move to `^2.13` (clean on 7.4-8.5).
+- [ ] Until then, any `composer update` without a package name upgrades
+  pdfparser to 2.x with a polyfill for PHP 7.2+: the PHP 5.6 image then fails
+  `composer check-platform-reqs`, and without that check every page would
+  fail at autoload. Add packages with
+  `composer require <name>` / `composer update <name>` only; check the 5.6
+  lane (`composer check-platform-reqs --no-dev`) after every lock change.
+
 ## Tooling to catch these earlier
 
 - [x] Add a dedicated modern-PHP analysis container, separate from the legacy
