@@ -1,4 +1,4 @@
-<?
+<?php
 function download_file($rights)
 {
 $file = 0;

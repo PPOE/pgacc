@@ -339,13 +339,17 @@ Behaviour changes are the owner's decision.
 
 ## Short tags and other migration debt
 
-- [ ] Replace `<?` with `<?php` at `getusers.php:1` and `file.php:1`. Short tags
+- [x] Replace `<?` with `<?php` at `getusers.php:1` and `file.php:1`. Short tags
   depend on `short_open_tag`; when disabled, PHP can treat these files as text
   instead of defining their functions. A plain `php -l` can then miss the issue.
   Add a check with short tags disabled and assert that source text is never
   emitted. This is a portability risk: source emission was not observed in the
   tested PHP 8.0 default or short-tags-enabled control, and enabling short tags
-  did not fix the login response.
+  did not fix the login response. Fixed: `tests/unit/ShortOpenTagTest.php`
+  includes both files with `short_open_tag=0` in a separate process and
+  asserts no output and the defined function (before: 1,707 bytes of source
+  from `getusers.php`, nothing defined). No other tracked application file
+  uses `<?` or `<?=`. Both `DisallowShortOpenTag` baseline entries removed.
 - [ ] Replace implicit PostgreSQL connection use incrementally with explicit
   connection arguments; PHP 8.5 emits deprecations from the current helpers.
 - [x] Update the HTTP test helper's deprecated `$http_response_header` use on
@@ -556,11 +560,11 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement)
+### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix)
 
 | Finding | Locations | Status |
 |---|---|---|
-| Short open tag | `file.php:1`, `getusers.php:1` | Known (short-tag item above) |
+| Short open tag | `file.php:1`, `getusers.php:1` | **Fixed** (short-tag item above) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 

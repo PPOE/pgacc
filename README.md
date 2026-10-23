@@ -21,8 +21,7 @@ Core concepts:
 
 ## Requirements
 
-- PHP with the `pgsql` extension and `short_open_tag` enabled (set in
-  `.htaccess`). `mcrypt` is no longer needed: receipts and the membership
+- PHP with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
   exchange use `phpseclib` (same ciphertext; used automatically if loaded).
 - PostgreSQL with the `pgcrypto` extension (passwords use `crypt()`).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.

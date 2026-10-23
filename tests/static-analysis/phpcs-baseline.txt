@@ -3,7 +3,5 @@
 # A finding missing here fails CI; an entry no longer reported fails
 # CI until it is removed. Regenerate with:
 #   sh tests/static-analysis.sh --update-baselines
-file.php	Generic.PHP.DisallowShortOpenTag.Found	Short PHP opening tag used; expected "<?php" but found "<?"
-getusers.php	Generic.PHP.DisallowShortOpenTag.Found	Short PHP opening tag used; expected "<?php" but found "<?"
 import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling fgetcsv() as its default value will change in a future PHP version.
 import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling str_getcsv() as its default value will change in a future PHP version.
