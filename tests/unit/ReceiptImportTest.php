@@ -14,24 +14,32 @@ require_once __DIR__ . '/AppExitGuard.php';
 
 final class ReceiptImportTest extends FunctionsTestCase
 {
-    public function testImportWritesTheMcryptCompatibleReceipt()
+    private static function receiptVector($name)
     {
         $vectors = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/mcrypt/vectors.json'), true);
-        $vector = null;
-        foreach ($vectors['receipts'] as $candidate) {
-            if ($candidate['name'] === 'pdf document') {
-                $vector = $candidate;
+        foreach ($vectors['receipts'] as $vector) {
+            if ($vector['name'] === $name) {
+                return $vector;
             }
         }
-        self::assertSame('4711', $vector['id']);
+        throw new RuntimeException("no receipt vector named $name");
+    }
 
+    /*
+     * Imports $plain as the receipt of a synthetic voucher 4711 and returns
+     * the output, the voucher's file number, the written files (name =>
+     * bytes) and the diagnostics.
+     */
+    private static function importReceipt($plain)
+    {
         $directory = sys_get_temp_dir() . '/pgacc-receipt-import-' . uniqid('', true);
         mkdir($directory . '/files', 0700, true);
-        file_put_contents($directory . '/upload.pdf', hex2bin($vector['plain']));
+        file_put_contents($directory . '/upload.pdf', $plain);
         $_FILES = array('upload' => array('tmp_name' => array(3 => $directory . '/upload.pdf')));
         $workingDirectory = getcwd();
         $diagnostics = array();
         $stored = array();
+        $file = null;
         // pg_connect() returns the default link that the application code uses.
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
@@ -68,6 +76,15 @@ final class ReceiptImportTest extends FunctionsTestCase
             rmdir($directory . '/files');
             rmdir($directory);
         }
+        return array($output, $file, $stored, $diagnostics);
+    }
+
+    public function testImportWritesTheMcryptCompatibleReceipt()
+    {
+        $vector = self::receiptVector('pdf document');
+        self::assertSame('4711', $vector['id']);
+
+        list($output, $file, $stored, $diagnostics) = self::importReceipt(hex2bin($vector['plain']));
 
         self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
         // The voucher row names the one file the import wrote.
@@ -75,5 +92,50 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame(array("$file.aes"), array_keys($stored));
         self::assertSame($vector['cipher'], bin2hex($stored["$file.aes"]));
         self::assertSame(array(), $diagnostics);
+    }
+
+    /**
+     * Known failure KF-RECEIPT-KEY-IGNORED (tests/COMPATIBILITY_PLAN.md):
+     * receipts are encrypted without the configured $key. With the synthetic
+     * key of tests/runtime/test-constants.php set, the import writes the
+     * empty-key ciphertext instead of the configured-key one. This test fails
+     * once the configured key is used; then make the last check a regular
+     * assertion of the configured-key ciphertext.
+     */
+    public function testImportIgnoresTheConfiguredKey()
+    {
+        $configured = self::receiptVector('pdf document, test-constants key');
+        $emptyKey = self::receiptVector('pdf document');
+        self::assertSame($emptyKey['plain'], $configured['plain']);
+        self::assertSame('', $emptyKey['key']);
+        $constants = call_user_func(function ($path) {
+            require $path;
+            return $key;
+        }, dirname(__DIR__) . '/runtime/test-constants.php');
+        self::assertSame($constants, $configured['key']);
+
+        $hadKey = array_key_exists('key', $GLOBALS);
+        $previousKey = $hadKey ? $GLOBALS['key'] : null;
+        $GLOBALS['key'] = $configured['key'];
+        try {
+            list($output, $file, $stored, $diagnostics) = self::importReceipt(hex2bin($configured['plain']));
+        } finally {
+            if ($hadKey) {
+                $GLOBALS['key'] = $previousKey;
+            } else {
+                unset($GLOBALS['key']);
+            }
+        }
+
+        self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
+        self::assertGreaterThan(0, intval($file));
+        self::assertCount(1, $stored);
+        self::assertSame(array(), $diagnostics);
+        $cipher = bin2hex(reset($stored));
+        if ($cipher === $configured['cipher']) {
+            self::fail('KF-RECEIPT-KEY-IGNORED passes now: the receipt uses the configured key. '
+                . 'Make this a regular assertion and update tests/COMPATIBILITY_PLAN.md.');
+        }
+        self::assertSame($emptyKey['cipher'], $cipher, 'KF-RECEIPT-KEY-IGNORED: not the empty-key ciphertext either');
     }
 }

@@ -15,6 +15,9 @@
  *   docker run --rm --network none -v "$PWD/tests/fixtures/mcrypt:/v:ro" <image> \
  *     php -d error_reporting=-1 /v/generate-vectors.php > tests/fixtures/mcrypt/vectors.json
  *
+ * Regenerated the same way on 2026-10-23 to add the "test-constants key"
+ * vectors; all earlier entries came out byte-identical.
+ *
  * PHP 7.1.33 with its bundled mcrypt extension (php:7.1-cli, libmcrypt from
  * Debian buster) produced identical vectors apart from the "php" field.
  *
@@ -69,8 +72,11 @@ for ($i = 0; $i < 256; $i++) {
 $allBytes .= "%PDF\0";
 
 $receipts = array(
-    // Receipts are written and read with an empty $key (see the mcrypt item in
-    // tests/COMPATIBILITY_PLAN.md); the non-empty key pins the derivation order.
+    // Legacy receipts (files/<n>.aes) were written and are read with an empty
+    // key part (see the receipt key item in tests/COMPATIBILITY_PLAN.md); the
+    // non-empty keys pin the derivation order. New receipts (files/<n>.v2.aes)
+    // use the configured $key: the "test-constants key" vectors use the
+    // synthetic key of tests/runtime/test-constants.php.
     receipt_vector('empty', '1', '', ''),
     receipt_vector('one byte', '7', '', '%'),
     receipt_vector('pdf 31 bytes', '4711', '', substr($pdf, 0, 31)),
@@ -81,6 +87,8 @@ $receipts = array(
     receipt_vector('jpeg with trailing NUL bytes', '815', '', $jpeg . "\0\0"),
     receipt_vector('all byte values', '123456', '', $allBytes),
     receipt_vector('pdf with a non-empty key', '4711', 'synthetic-receipt-key', $pdf),
+    receipt_vector('pdf document, test-constants key', '4711', 'synthetic-test-only-encryption-key', $pdf),
+    receipt_vector('jpeg with trailing NUL bytes, test-constants key', '815', 'synthetic-test-only-encryption-key', $jpeg . "\0\0"),
 );
 $receiptDecrypts = array(
     receipt_decrypt_vector('empty ciphertext', '1', '', ''),

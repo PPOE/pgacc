@@ -387,12 +387,25 @@ Behaviour changes are the owner's decision.
   file `import2.php` writes, byte for byte) and `tests/http-receipts.php`
   (upload, PDF import on PHP 5.6, download headers and body, `mbapi.php`
   framing and selection). Mutation target `receipt-crypto`.
-- [ ] Owner decision: the receipt key. The callers read `$key` without
+- [ ] Receipt key (`KF-RECEIPT-KEY-IGNORED`). The callers read `$key` without
   `global` (PHPStan row below), so receipts have always been encrypted with
   an empty key part; the call sites now pass that `''` explicitly. Using the
   configured key needs a migration of the existing `files/*.aes`
   (re-encrypt, or try the configured key and fall back to the empty one);
   the three call sites and `receipt_cipher_params()` are the places to change.
+  Known failure `KF-RECEIPT-KEY-IGNORED` in `tests/unit/ReceiptImportTest.php`
+  (`testImportIgnoresTheConfiguredKey`): with the synthetic `$key` of
+  `tests/runtime/test-constants.php` set, the PDF import writes the empty-key
+  ciphertext, not the configured-key one (contract vector
+  `pdf document, test-constants key`, generated with the real mcrypt
+  extension). The test fails once the configured key is used; then turn it
+  into a regular assertion. Intended fix (owner decision, not implemented
+  yet): new uploads (`new.php`, `import2.php`) use the configured key and are
+  stored as `files/<n>.v2.aes`; `file.php` reads `<n>.v2.aes` with the
+  configured key when it exists, else the legacy `<n>.aes` with the empty key
+  part (no mass re-encryption; an optional migration script later); new
+  uploads are refused when no key is configured; deploy note: back up the
+  `$key` of `constants.php`, without it new receipts cannot be decrypted.
 - [ ] Deploy checklist for the `mcrypt` replacement (owner):
   - Run `composer install`, which adds `phpseclib/phpseclib` 2.0.55.
   - Check `mbstring.func_overload` on production. phpseclib's `bootstrap.php`

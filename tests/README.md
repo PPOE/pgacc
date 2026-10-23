@@ -206,7 +206,8 @@ of the Infection class wrapper (see [mutation notes](mutation/README.md)),
 and the mcrypt contract tests: `CryptoTest.php` (vectors from
 `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php` (`getUsers()` with a
 stubbed `http://` stream wrapper, rolled back) and `ReceiptImportTest.php`
-(the receipt file `import2.php` writes). The suite exercises the utility and rendering helpers plus the
+(the receipt file `import2.php` writes; with the known failure
+`KF-RECEIPT-KEY-IGNORED`, see `tests/COMPATIBILITY_PLAN.md`). The suite exercises the utility and rendering helpers plus the
 two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
 printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
 inside the disposable test container. The current suite covers 349 of 350
