@@ -40,18 +40,4 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 1
 -- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = 1004  AND orga IN ('1') ;
 -- next
-UPDATE vouchers SET deleted = true WHERE voucher_id = 1004  AND orga IN ('1') ;
--- next
-
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(1004, '2024-09-15', 20,1,2,false,
-  0,'SYNTHETICREF',
-  'Synthetic Reference Supplier','Test Street 1','0000',
-  'Test City',-3100,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference revision by unit one','Reference workflow',
-  false,0,false,NULL,NULL);
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval

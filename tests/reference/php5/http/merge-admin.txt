@@ -1,6 +1,6 @@
 # step: merge-admin
-# request: GET /index.php?action=merge&bid1=5007&bid2=5008 as admin
+# request: GET /index.php?action=merge&bid1=5005&bid2=5006 as admin
 status: 302
-header: Location: index.php?action=edit&id=5007&hint=6
+header: Location: index.php?action=edit&id=5005&hint=6
 header: Content-type: text/html
 --- body (0 bytes) ---

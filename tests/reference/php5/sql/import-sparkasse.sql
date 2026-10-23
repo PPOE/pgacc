@@ -52,7 +52,7 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic Sparer');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Sparer Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5025, '2024-02-20', 8,6,false,0,'AT999999999999999999 STSPAT2GXXX','Synthetic Sparer','','','',9999,'20815 6659403','Gutschrift; Spende; Synthetic Sparer',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5023, '2024-02-20', 8,6,false,0,'AT999999999999999999 STSPAT2GXXX','Synthetic Sparer','','','',9999,'20815 6659403','Gutschrift; Spende; Synthetic Sparer',false,false)
 -- next
 INSERT INTO import (line) VALUES ('Giro;20.02.2024;+99,99;EUR;20.02.2024;Gutschrift;Spende;SyntheticSparer;REF1;;ER1;AT00;STSPAT2G;SyntheticSparer;AT999999999999999999;STSPAT2GXXX');
 -- next
@@ -66,7 +66,7 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic Bank');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Bank Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5026, '2024-02-22', 28,6,false,0,' ','Synthetic Bank','','','',-1000,'20815 6659403','Lastschrift; Gebühr; ',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5024, '2024-02-22', 28,6,false,0,' ','Synthetic Bank','','','',-1000,'20815 6659403','Lastschrift; Gebühr; ',false,false)
 -- next
 INSERT INTO import (line) VALUES ('Giro;22.02.2024;-10,00;EUR;22.02.2024;Lastschrift;Gebühr;;;;;;;SyntheticBank;;');
 -- next

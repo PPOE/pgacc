@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 8 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,24 +32,8 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 8 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 8 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
 -- next
-SELECT nextval('voucher_number') AS num;
--- next
-
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(5004, '2024-09-15', 8,1,1,false,
-  0,'SYNTHETICREF',
-  'Synthetic Reference Supplier','Test Street 1','0000',
-  'Test City',900,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference read-only','Reference workflow',
-  false,0,false,NULL,NULL);
--- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 8 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval

@@ -1,1 +1,0 @@
-E_NOTICE edit.php:120: Undefined variable: rightssql

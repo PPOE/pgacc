@@ -38,7 +38,7 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-INSERT INTO users (name,hash,rights) VALUES ('synthetic-created', crypt('created-password', gen_salt('md5')), 'root,bgf');
+INSERT INTO users (name,hash,rights) VALUES ('synthetic-created', crypt('created-password', gen_salt('md5')), '3');
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next

@@ -37,5 +37,3 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24 hours'::interval
--- next
-UPDATE vouchers SET voucher_id = 5007 WHERE voucher_id = 5008 ;

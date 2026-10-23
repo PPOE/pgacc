@@ -52,9 +52,9 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic PayPal Donor');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('PayPal Donor Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5027, '2024-03-15', 8,10,false,0,'donor@example.invalid','Synthetic PayPal Donor','','','',2500,'spende@piratenpartei.at','Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5025, '2024-03-15', 8,10,false,0,'donor@example.invalid','Synthetic PayPal Donor','','','',2500,'spende@piratenpartei.at','Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor',false,false)
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5027, '2024-03-15', 20,10,false,0,'','Paypal','','','',-78,'spende@piratenpartei.at','Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5025, '2024-03-15', 20,10,false,0,'','Paypal','','','',-78,'spende@piratenpartei.at','Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor',false,false)
 -- next
 INSERT INTO import (line) VALUES ('15.03.2024,10:00:00,CET,SyntheticPayPalDonor,Spende,Abgeschlossen,EUR,25.00,-0.78,24.22,donor@example.invalid,spende@piratenpartei.at,SYNTH0000000001,,,SpendeWahlkampf,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,');
 -- next
@@ -66,9 +66,9 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic Refund');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Refund Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5028, '2024-03-16', 28,10,false,0,'refund@example.invalid','Synthetic Refund','','','',-500,'spende@piratenpartei.at','Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5026, '2024-03-16', 28,10,false,0,'refund@example.invalid','Synthetic Refund','','','',-500,'spende@piratenpartei.at','Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund',false,false)
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5028, '2024-03-16', 20,10,false,0,'','Paypal','','','',20,'spende@piratenpartei.at','Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5026, '2024-03-16', 20,10,false,0,'','Paypal','','','',20,'spende@piratenpartei.at','Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund',false,false)
 -- next
 INSERT INTO import (line) VALUES ('16.03.2024,11:00:00,CET,SyntheticRefund,Rückzahlung,Abgeschlossen,EUR,-5.00,0.20,-4.80,spende@piratenpartei.at,refund@example.invalid,SYNTH0000000002,,,,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,');
 -- next

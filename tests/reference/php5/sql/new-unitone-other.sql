@@ -36,20 +36,4 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval
 -- next
-SELECT nextval('voucher_number') AS num;
--- next
-
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(5003, '2024-09-15', 8,1,2,false,
-  0,'SYNTHETICREF',
-  'Synthetic Reference Supplier','Test Street 1','0000',
-  'Test City',800,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference unit one other','Reference workflow',
-  false,0,false,NULL,NULL);
--- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval

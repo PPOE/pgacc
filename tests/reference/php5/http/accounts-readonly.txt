@@ -2,7 +2,7 @@
 # request: GET /index.php?action=accounts as readonly
 status: 200
 header: Content-type: text/html
---- body (3249 bytes) ---
+--- body (3112 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -27,13 +27,13 @@ header: Content-type: text/html
 <a href="wk">Wahlkampf</a>
 <a href="transactions">Kontobeweg.</a>
 <a href="vreport">Virt. Konten</a>
-<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts" class="selected">Benutzer</a></div><br />
+<br /><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts" class="selected">Benutzer</a></div><br />
 <h1>Benutzerverwaltung:</h1><br>
 <br style="clear: both;" />
 <div class="wiki use_terms">
 <form action="index.php?action=accounts" method="POST"><table>
 <tr><td><b>Name</b></td><td><b>Passwort</b></td></tr>
-<tr><td>synthetic-readonly</td><td><input type="password" name="password8" value="******"></td><td><input type="submit" name="submit" value="Benutzer 8 aktualisieren" /></td></tr>
+<tr><td>synthetic-readonly</td><td><input type="password" name="password10" value="******"></td><td><input type="submit" name="submit" value="Benutzer 10 aktualisieren" /></td></tr>
 
 </table></form>
 

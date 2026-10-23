@@ -47,17 +47,19 @@ id	name	used	income	realtype
 29	Synthetic internal transfer in	0	1	29
 30	Synthetic internal transfer out	0	-1	30
 8	Synthetic donation	10	1	8
-## users (9 rows)
+## users (11 rows)
 id	name	hash	login	cookie	rights	hide
 1	synthetic-admin	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	
+10	synthetic-readonly	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
+11	synthetic-norights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		\N
 2	synthetic-reviewer	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	bgf	
 3	synthetic-unit-one	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	1	
 4	synthetic-hide-odd	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	1,3,5,7,9,11,13,15,17
 5	synthetic-hide-even	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	2,4,6,8,10,12,14,16,18
 6	synthetic-unit-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	2	
 7	synthetic-no-rights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		
-8	synthetic-readonly	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
-9	synthetic-norights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		\N
+8	synthetic-read-only	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
+9	synthetic-read-only-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf,2	
 ## vouchers (32 rows)
 id	voucher_id	type	orga	member	member_id	contra_account	name	street	plz	city	amount	account	comment	committed	receipt_received	deleted	date	ack1	ack2	person_type	file	save_date	save_user	commentgf	refund	vaccount	ack1_old	ack2_old	ack_rp1	ack_rp2	ack_rp1_old	ack_rp2_old
 101	1001	8	1	f	\N	SYNTHETIC-001	Synthetic Donor	\N	\N	\N	12000	TEST-ACCOUNT-1	Closed donation	t	t	f	2024-02-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N

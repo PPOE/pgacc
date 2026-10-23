@@ -1,7 +1,0 @@
-## (sequences)
-- voucher_number	5003	t
-+ voucher_number	5004	t
-- vouchers_id_seq	1004	t
-+ vouchers_id_seq	1005	t
-## vouchers
-+ 1005	5004	8	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	900	TESTACCOUNT2	Reference read-only	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N

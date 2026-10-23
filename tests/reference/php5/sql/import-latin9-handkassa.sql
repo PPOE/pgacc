@@ -50,7 +50,7 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Jörg Österreicher');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Österreicher Jörg');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5020, '2024-01-12', 8,6,false,0,'BAWAATWW AT666666666666666666','Jörg Österreicher','','','',1234,'AT716000020810070316','Spende für Büro
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5018, '2024-01-12', 8,6,false,0,'BAWAATWW AT666666666666666666','Jörg Österreicher','','','',1234,'AT716000020810070316','Spende für Büro
 BAWAATWW AT666666666666666666 Jörg Österreicher',false,false)
 -- next
 INSERT INTO import (line) VALUES ('AT716000020810070316;SpendefürBüroBAWAATWWAT666666666666666666JörgÖsterreicher;12.01.2024;12.01.2024;+12,34;EUR');
@@ -61,7 +61,7 @@ SELECT nextval('voucher_number') AS num;
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Zoë Synthetisch');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5021, '2024-01-13', 28,6,true,9025,'BAWAATWW AT777777777777777777','Zoë Synthetisch','','','',-500,'AT496000020810070324','Rückzahlung €
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5019, '2024-01-13', 28,6,true,9025,'BAWAATWW AT777777777777777777','Zoë Synthetisch','','','',-500,'AT496000020810070324','Rückzahlung €
 BAWAATWW AT777777777777777777 Zoë Synthetisch',false,false)
 -- next
 INSERT INTO import (line) VALUES ('AT496000020810070324;Rückzahlung€BAWAATWWAT777777777777777777ZoëSynthetisch;13.01.2024;13.01.2024;-5,00;EUR');
@@ -76,7 +76,7 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic Kassa');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Kassa Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5022, '2024-02-15', 8,2,false,0,'FREMD-1','Synthetic Kassa','','','',1250,'Handkassa','Kaffee
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5020, '2024-02-15', 8,2,false,0,'FREMD-1','Synthetic Kassa','','','',1250,'Handkassa','Kaffee
 Milch',false,false)
 -- next
 INSERT INTO import (line) VALUES ('15.02.2024;12,50;Handkassa;KaffeeMilch;GFKommentar;FREMD-1;Ja;Nein;SyntheticKassa;0;2;Weg1;1010;Wien');
@@ -87,7 +87,7 @@ SELECT nextval('voucher_number') AS num;
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Testa Mitglied');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5023, '2024-02-16', 1,10,true,9031,'','Testa Mitglied','','','',700,'Handkassa','Porto',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5021, '2024-02-16', 1,10,true,9031,'','Testa Mitglied','','','',700,'Handkassa','Porto',false,false)
 -- next
 INSERT INTO import (line) VALUES ('16.02.2024;7;Handkassa;Porto;;;Nein;Ja;TestaMitglied;9031;0;;;');
 -- next
@@ -101,7 +101,7 @@ SELECT * FROM ppmembers WHERE lower(name) = lower('Synthetic Kassa');
 -- next
 SELECT * FROM ppmembers WHERE lower(name) = lower('Kassa Synthetic');
 -- next
-INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5024, '2024-02-18', 28,99,false,0,'','Synthetic Kassa','','','',-35,'Handkassa','ISO Datum',false,false)
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5022, '2024-02-18', 28,99,false,0,'','Synthetic Kassa','','','',-35,'Handkassa','ISO Datum',false,false)
 -- next
 INSERT INTO import (line) VALUES ('2024-02-18;-3.5;Handkassa;ISODatum;;;1;Wahr;SyntheticKassa;abc;99;;;');
 -- next

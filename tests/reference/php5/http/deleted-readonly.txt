@@ -2,7 +2,7 @@
 # request: GET /index.php?action=deleted&filter_date=2024 as readonly
 status: 200
 header: Content-type: text/html
---- body (8174 bytes) ---
+--- body (8035 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -27,7 +27,7 @@ header: Content-type: text/html
 <a href="wk">Wahlkampf</a>
 <a href="transactions">Kontobeweg.</a>
 <a href="vreport">Virt. Konten</a>
-<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026" class="selected">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+<br /><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026" class="selected">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
 
 <div class="wiki motd">Hier finden sich alte Revisionen von Buchungszeilen. Buchungszeilen können zwar nicht gelöscht werden jedoch geändert, sofern sie noch nicht mittels Bestätigungen abgeschlossen wurden. Da Änderungen aber nachvollziehbar sein müssen werden bei einer Änderung alte Revisionen nicht verworfen sondern nur als &quot;gelöscht&quot; markiert. Abgeschlossene Buchungen können nicht verändert oder gelöscht werden.</div>
 

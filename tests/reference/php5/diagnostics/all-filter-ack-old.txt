@@ -1,2 +1,0 @@
-E_NOTICE functions.php:88: Undefined index: filter_ack
-E_NOTICE functions.php:88: Undefined index: filter_ack

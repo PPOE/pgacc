@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 9 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,12 +32,12 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 9 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 9 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 9 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users  WHERE id = 9  ORDER BY rights DESC,id ASC
+SELECT * FROM users  WHERE id = 11  ORDER BY rights DESC,id ASC
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 9 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval

@@ -1,2 +1,0 @@
-## vouchers
-+ 1008	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3100	TESTACCOUNT2	Reference revision by unit one	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
