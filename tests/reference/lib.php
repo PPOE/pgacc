@@ -225,10 +225,17 @@ function ref_http_snapshot($step, $response)
         $text .= '# file: ' . $file[0] . ' ' . $file[1] . ' (' . $file[2] . ', ' . strlen($file[3]) . " bytes)\n";
     }
     $text .= 'status: ' . $response['status'] . "\n";
+    $body = ref_normalize_body($response['body']);
     foreach (ref_relevant_headers($response['headers']) as $header) {
+        // A web server's Content-Length (Lighttpd on the PHP 5.3 lane) of a
+        // body with normalized random parts (captcha numbers) varies too.
+        if ($body !== $response['body']
+            && strcasecmp($header, 'Content-Length: ' . strlen($response['body'])) === 0) {
+            $header = substr($header, 0, strlen('Content-Length: ')) . '{{normalized-body-length}}';
+        }
         $text .= 'header: ' . $header . "\n";
     }
-    return $text . ref_body_block(ref_normalize_body($response['body']));
+    return $text . ref_body_block($body);
 }
 
 // Diagnostics of one request as recorded by tests/runtime/diagnostics-prepend.php.

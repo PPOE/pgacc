@@ -507,7 +507,8 @@ lanes against it:
 
 ```bash
 sh tests/reference/record.sh                      # PHP 5.6: rewrite tests/reference/php5/
-PGACC_TEST_ID=ref sh tests/reference/run.sh compare 7.4   # or 5.6, 8.0, 8.5
+PGACC_TEST_ID=ref sh tests/reference/run.sh compare 7.4   # or 5.3, 5.6, 8.0, 8.5
+sh tests/reference/record.sh 5.3                  # record on the production-like PHP 5.3 lane instead
 ```
 
 `run.sh` builds the lane's image, adds a reference image on top
@@ -564,12 +565,31 @@ entries fail as stale. `diagnostics/` differences are reported but do not fail,
 because the lanes already gate diagnostics. The report and per-file diffs go
 to `build/reference/php<lane>/`. `selftest.php` tests the allowlist logic and
 the normalizations before every run. The CI job `PHP 5 reference comparison`
-runs `compare` on all four lanes and uploads the reports.
+runs `compare` on all five lanes and uploads the reports.
+
+On the PHP 5.3 lane (`tests/reference/compose.php53.yaml`) the application is
+the Lighttpd/PHP-CGI server with libfaketime (squeeze's `faketime` 0.8) and the
+reference prepend (`PGACC_PHP_CGI_PREPEND`); libpq 8.4 ignores `PGAPPNAME`, so
+the prepend also sets `PGOPTIONS=-c application_name=...`
+(`PGACC_REFERENCE_PGOPTIONS`). `helpers.php` runs on the PHP 5.3 CLI
+(`reference-helpers`, no network); the scenario, the comparison and the
+membership stub run from a reference image built on the PHP 5.6 lane image.
+Lighttpd sends `Content-Length`, so a body with normalized captcha numbers
+records it as `{{normalized-body-length}}`. A PHP 5.3 recording reproduces
+itself byte for byte. Compared with the PHP 5.6 reference, PHP 5.3 differs in
+SQL, database changes and bodies not at all, but in headers (`Server`,
+`Content-Length`, no `charset=UTF-8` without `default_charset`, cookies without
+`Max-Age` and with a one-year-old deletion expiry), in the helper golden master
+(32-bit integers: `PHP_INT_MAX` 2147483647, `intval()` saturates numeric strings
+and wraps floats) and, informationally, in diagnostics (notices reported instead
+of hidden; plain instead of HTML-escaped messages). No allowlist entries exist
+for these yet; the 5.3 comparison fails until the owner decides (allowlist
+entries or recording the reference on PHP 5.3).
 
 Re-record (and review the diff) when an intended behaviour change lands; the
 reference was re-recorded after the rights and donations fixes and is to be
-re-recorded after the mcrypt change. Production runs PHP 5.3.3, which cannot be tested here; 5.6 is the
-oldest available stand-in.
+re-recorded after the mcrypt change. Production runs PHP 5.3.3; the reference is
+recorded on 5.6, and `record.sh 5.3` records it on the production-like PHP 5.3 lane.
 
 ## Static analysis
 

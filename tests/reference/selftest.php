@@ -76,6 +76,16 @@ check('inconsistent captcha', ref_normalize_body('Was ergibt die Addition 12 + 4
     'Was ergibt die Addition {{captcha-a}} + {{captcha-b}}? <input value="{{captcha-c=INCONSISTENT}}" name="captcha" type="hidden">');
 check('captcha out of range', ref_normalize_body('Was ergibt die Addition 0 + 40? value="3" name="captcha"'),
     'Was ergibt die Addition {{captcha-a}} + {{captcha-b}}? value="{{captcha-c=INCONSISTENT}}" name="captcha"');
+$captchaBody = 'Was ergibt die Addition 12 + 40? value="15" name="captcha"';
+$step = array('id' => 's', 'method' => 'GET', 'path' => '/', 'user' => 'anon', 'form' => array(), 'files' => array());
+check('content length of a normalized body', ref_http_snapshot($step, array('status' => 200,
+    'headers' => array('Content-Length: ' . strlen($captchaBody), 'Content-Length: 3'), 'body' => $captchaBody)),
+    "# step: s\n# request: GET / as anon\nstatus: 200\nheader: Content-Length: {{normalized-body-length}}\n"
+    . "header: Content-Length: 3\n--- body (" . strlen(ref_normalize_body($captchaBody)) . " bytes) ---\n"
+    . ref_normalize_body($captchaBody));
+check('content length of an unchanged body', ref_http_snapshot($step, array('status' => 200,
+    'headers' => array('Content-Length: 2'), 'body' => 'ok')),
+    "# step: s\n# request: GET / as anon\nstatus: 200\nheader: Content-Length: 2\n--- body (2 bytes) ---\nok");
 check('impressum versions', ref_normalize_body('<a href="http://www.php.net">PHP</a></td><td class=""><div>5.6.40</div></td>'
     . '<a href="http://www.postgresql.org/">PostgreSQL</a></td><td class=""><div>17.11 (Debian)</div>'),
     '<a href="http://www.php.net">PHP</a></td><td class=""><div>{{php-version}}</div></td>'

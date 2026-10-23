@@ -6,9 +6,15 @@
  * request, then chains the usual diagnostics recorder. PHP restores the
  * environment at the end of each request. The application cannot observe
  * the tag (it never reads application_name). Defines no globals.
- * Must stay compatible with PHP 5.6.
+ * libpq before 9.0 (the PHP 5.3 lane's 8.4) ignores PGAPPNAME; there
+ * PGACC_REFERENCE_PGOPTIONS makes it send the same setting as a startup
+ * option instead (PGOPTIONS, which libpq 8.4 supports).
+ * Must stay compatible with PHP 5.3.
  */
 putenv('PGAPPNAME=ref:' . ((isset($_SERVER['HTTP_X_PGACC_TEST_REQUEST'])
     && preg_match('/^[A-Za-z0-9_-]{1,59}$/', $_SERVER['HTTP_X_PGACC_TEST_REQUEST']) === 1)
     ? $_SERVER['HTTP_X_PGACC_TEST_REQUEST'] : 'untagged'));
+if (getenv('PGACC_REFERENCE_PGOPTIONS') === '1') {
+    putenv('PGOPTIONS=-c application_name=' . getenv('PGAPPNAME'));
+}
 require '/app/tests/runtime/diagnostics-prepend.php';

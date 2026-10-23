@@ -166,7 +166,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.6', '7.4', '8.0', '8.5']
+        # 5.3: the production-like lane (see tests/README.md, "PHP 5.3 lane").
+        php: ['5.3', '5.6', '7.4', '8.0', '8.5']
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

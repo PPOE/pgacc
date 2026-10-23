@@ -4,6 +4,7 @@ set -eu
 # PHP 5 reference recordings (golden master); see tests/README.md.
 #
 #   sh tests/reference/run.sh record          record on PHP 5.6 into tests/reference/php5/
+#   sh tests/reference/run.sh record 5.3      record on the production-like PHP 5.3 lane instead
 #   sh tests/reference/run.sh compare 7.4     run the same scenario on a lane and compare
 #   sh tests/reference/run.sh compare 5.6     reproducibility check of the recording
 #
@@ -12,7 +13,7 @@ set -eu
 
 usage()
 {
-  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh record | compare 5.6|7.4|8.0|8.5" >&2
+  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh record [5.6|5.3] | compare 5.3|5.6|7.4|8.0|8.5" >&2
   exit 2
 }
 
@@ -23,11 +24,11 @@ case "$mode" in
   *) usage ;;
 esac
 case "$lane" in
-  5.6|7.4|8.0|8.5) ;;
+  5.3|5.6|7.4|8.0|8.5) ;;
   *) usage ;;
 esac
-if [ "$mode" = record ] && [ "$lane" != 5.6 ]; then
-  echo "The reference is recorded on PHP 5.6 only." >&2
+if [ "$mode" = record ] && [ "$lane" != 5.6 ] && [ "$lane" != 5.3 ]; then
+  echo "The reference is recorded on PHP 5.6 or 5.3 only." >&2
   exit 2
 fi
 
@@ -46,8 +47,14 @@ PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
 export PGACC_TEST_SUFFIX
 
 lane_tag=php$(echo "$lane" | tr -d .)
-# libfaketime of the lane image's Debian release (stretch, bullseye, trixie).
+# libfaketime of the lane image's Debian release (squeeze, stretch, bullseye, trixie).
+PGACC_REFERENCE_FAKETIME_PACKAGE=libfaketime
+reference_files="-f tests/reference/compose.yaml"
 case "$lane" in
+  # Production-like PHP 5.3 server (squeeze i386); see tests/reference/compose.php53.yaml.
+  5.3) lane_files="-f compose.test.yaml -f compose.php53.yaml"; base_image=pgacc-test-application-php53
+    PGACC_REFERENCE_FAKETIME=0.8-1 PGACC_REFERENCE_FAKETIME_PACKAGE=faketime
+    reference_files="$reference_files -f tests/reference/compose.php53.yaml" ;;
   5.6) lane_files="-f compose.test.yaml -f compose.php56.yaml"; base_image=pgacc-test-application-php56
     PGACC_REFERENCE_FAKETIME=0.9.6-7+b1 ;;
   7.4) lane_files="-f compose.test.yaml"; base_image=pgacc-test-application
@@ -61,7 +68,11 @@ project="pgacc-reference${PGACC_TEST_SUFFIX}-$lane_tag"
 
 PGACC_REFERENCE_BASE_IMAGE=$base_image$PGACC_TEST_SUFFIX
 PGACC_REFERENCE_IMAGE=pgacc-test-reference-$lane_tag$PGACC_TEST_SUFFIX
+# PHP 5.3 lane only: the PHP 5.6 lane image as the scenario client.
+PGACC_REFERENCE_CLIENT_BASE_IMAGE=pgacc-test-application-php56$PGACC_TEST_SUFFIX
+PGACC_REFERENCE_CLIENT_IMAGE=pgacc-test-reference-php53-client$PGACC_TEST_SUFFIX
 # mcrypt only on the recording lane: production PHP 5 has it; PHP 7.2+ cannot.
+# (The PHP 5.3 image has production's php5-mcrypt package already.)
 PGACC_REFERENCE_MCRYPT=0
 if [ "$lane" = 5.6 ]; then
   PGACC_REFERENCE_MCRYPT=1
@@ -75,6 +86,7 @@ else
   PGACC_REFERENCE_OUT=$repo_root/build/reference/$lane_tag
 fi
 export PGACC_REFERENCE_BASE_IMAGE PGACC_REFERENCE_IMAGE PGACC_REFERENCE_MCRYPT PGACC_REFERENCE_FAKETIME \
+  PGACC_REFERENCE_FAKETIME_PACKAGE PGACC_REFERENCE_CLIENT_BASE_IMAGE PGACC_REFERENCE_CLIENT_IMAGE \
   PGACC_REFERENCE_MODE PGACC_REFERENCE_LANE PGACC_REFERENCE_OWNER PGACC_REFERENCE_OUT
 
 # The recording is replaced as a whole, so removed steps do not linger.
@@ -88,7 +100,8 @@ lane_compose()
 }
 compose()
 {
-  lane_compose -f tests/reference/compose.yaml "$@"
+  # shellcheck disable=SC2086 # intentional word splitting of the file list
+  lane_compose $reference_files "$@"
 }
 cleanup()
 {
@@ -100,7 +113,15 @@ echo "PHP 5 reference: $mode on PHP $lane with PostgreSQL $PGACC_TEST_PG"
 # The lane's own image first; the reference image is built on top of it.
 lane_compose build application
 compose build application
+if [ "$lane" = 5.3 ]; then
+  # The PHP 5.6 lane image and the scenario client image built on it.
+  lane_compose build application-test
+  compose build reference-test
+fi
 compose up --detach --wait database
 compose run --rm database-test
 compose up --detach --wait application
+if [ "$lane" = 5.3 ]; then
+  compose run --rm reference-helpers
+fi
 compose run --rm reference-test

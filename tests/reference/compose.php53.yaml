@@ -1,0 +1,51 @@
+# PHP 5.3 lane additions for tests/reference/run.sh (after compose.php53.yaml
+# and tests/reference/compose.yaml). The application is the PHP 5.3
+# Lighttpd/PHP-CGI server with libfaketime and the reference prepend;
+# helpers.php runs on its PHP 5.3 CLI (reference-helpers). The scenario, the
+# comparison and the membership stub need PHP 5.4+ and run from a reference
+# image built on the PHP 5.6 lane image (PGACC_REFERENCE_CLIENT_IMAGE).
+services:
+  application:
+    # Replaces the php -S command of tests/reference/compose.yaml.
+    command: ["sh", "/app/tests/php53/start-server.sh"]
+    build:
+      args:
+        PGACC_REFERENCE_FAKETIME_PACKAGE: ${PGACC_REFERENCE_FAKETIME_PACKAGE:?}
+    environment:
+      PGACC_PHP_CGI_PREPEND: /app/tests/reference/runtime/prepend.php
+      # libpq 8.4 has no PGAPPNAME (tests/reference/runtime/prepend.php).
+      PGACC_REFERENCE_PGOPTIONS: "1"
+
+  reference-helpers:
+    image: ${PGACC_REFERENCE_IMAGE:?}
+    platform: linux/386
+    pull_policy: never
+    environment:
+      PGACC_REFERENCE_MODE: ${PGACC_REFERENCE_MODE:?}
+      PGACC_REFERENCE_LANE: ${PGACC_REFERENCE_LANE:?}
+      PGACC_REFERENCE_OWNER: ${PGACC_REFERENCE_OWNER:-}
+      PGACC_REFERENCE_PARTS: helpers
+      TZ: UTC
+    command: ["sh", "tests/reference/in-container.sh"]
+    init: true
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ${PGACC_REFERENCE_OUT:?}:/reference-out
+
+  membership:
+    image: ${PGACC_REFERENCE_CLIENT_IMAGE:?}
+
+  reference-test:
+    image: ${PGACC_REFERENCE_CLIENT_IMAGE:?}
+    build:
+      context: .
+      dockerfile: tests/reference/runtime.Dockerfile
+      args:
+        BASE_IMAGE: ${PGACC_REFERENCE_CLIENT_BASE_IMAGE:?}
+        PGACC_REFERENCE_MCRYPT: "0"
+        PGACC_REFERENCE_FAKETIME: 0.9.6-7+b1
+    environment:
+      PGACC_REFERENCE_PARTS: scenario
