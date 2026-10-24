@@ -31,6 +31,10 @@ foreach ($regions as $name => $region) {
         'replace' => str_replace('if ($rights === false)', 'if (false)', $check),
         'rationale' => 'Fail-open: read-only bgf changes data.',
     );
+    if ($name === 'new-save') {
+        $mutations[count($mutations) - 1]['equivalent'] = array('reason' => 'Rbgf alone has no organization '
+            . 'right, so the organization check of the save refuses every voucher of it as well.');
+    }
 }
 foreach (array('ack', 'new-save') as $name) {
     $mutations[] = array(

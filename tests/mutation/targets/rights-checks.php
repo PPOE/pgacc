@@ -57,8 +57,8 @@ return array(
         array(
             'id' => 'default-organization-untrimmed',
             'file' => 'new.php',
-            'search' => '$rights2 = rights_tokens($rights);',
-            'replace' => '$rights2 = explode(",", $rights === null ? \'\' : $rights);',
+            'search' => "\$rights2 = rights_tokens(\$rights);\nif (count(\$rights2) == 1 && preg_match(",
+            'replace' => "\$rights2 = explode(',', \$rights === null ? '' : \$rights);\nif (count(\$rights2) == 1 && preg_match(",
             'rationale' => 'The single organization is trimmed: "2 " defaults to organization 2.',
         ),
         array(
