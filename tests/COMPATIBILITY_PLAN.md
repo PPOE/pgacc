@@ -352,6 +352,18 @@ with synthetic users and covered by a mutation target.
   user (all sessions of a user share `users.cookie`, as before: a new login
   also ends the previous one). Tests in `tests/http-login.php`, mutations in
   `login-logout`.
+- [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
+  with `setcookie()` and only an expiry: readable by scripts, sent over plain
+  HTTP and on cross-site requests. `index.php` now sends both Set-Cookie
+  headers itself (`login_cookie_header()`; `setcookie()` of PHP 5.3 has no
+  SameSite) with `secure; HttpOnly; SameSite=Lax`, still without path or
+  domain, and with `expires` and `Max-Age` on every PHP version (PHP 5.3
+  sent no `Max-Age` before). Logout deletes them as `setcookie()` of PHP
+  5.5+ does (`deleted`, 1970 expiry, `Max-Age=0`). The app is only served
+  over HTTPS (the proxy; `index.php` redirects other requests), so `secure`
+  does not change what browsers send there. Tests in `tests/http-login.php`
+  (the HTTP test client sends cookies itself, so the attributes do not
+  affect it) and `LoginSessionTest`, mutations in `login-logout`.
 - [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
   `bgf`); not requested by the tests.
 

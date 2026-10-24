@@ -24,8 +24,8 @@ function login($user, $pass)
     {
       $id = $line['id'];
       $session = pg_query("UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");
-      setcookie("pp_pgacc_login", login_session_token($id, $nonce, pg_fetch_result($session, 0, 0)), time()+86400);
-      setcookie("pp_pgacc_id", $id, time()+86400);
+      header(login_cookie_header("pp_pgacc_login", login_session_token($id, $nonce, pg_fetch_result($session, 0, 0)), 86400), false);
+      header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
       pg_free_result($data);
       if (isset($_POST['target']))
         header("Location: " . hex2ascii($_POST['target']));
@@ -203,8 +203,8 @@ if ($page == "logout")
   $logoutId = checklogin('id', false);
   if ($logoutId > 0)
     pg_query("UPDATE users SET cookie = NULL WHERE id = $logoutId");
-  setcookie("pp_pgacc_login", "", time() - 3600);
-  setcookie("pp_pgacc_id", "", time() - 3600);
+  header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);
+  header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);
   header("Location: index.php");
   pg_close($dbconn);
   return;

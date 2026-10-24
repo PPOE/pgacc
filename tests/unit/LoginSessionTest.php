@@ -171,6 +171,26 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertNotSame($token, login_session_token(1, 5, $login));
     }
 
+    public function testCookieHeaders()
+    {
+        $before = time();
+        $header = login_cookie_header('pp_pgacc_login', 'abc', 86400);
+        $after = time();
+        $expected = array();
+        for ($now = $before; $now <= $after; $now++) {
+            $expected[] = 'Set-Cookie: pp_pgacc_login=abc; expires=' . gmdate('D, d M Y H:i:s', $now + 86400)
+                . ' GMT; Max-Age=86400; secure; HttpOnly; SameSite=Lax';
+        }
+        self::assertContains($header, $expected);
+        self::assertSame(
+            'Set-Cookie: pp_pgacc_id=deleted; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax',
+            login_cookie_header('pp_pgacc_id', 'deleted', 0)
+        );
+        $short = login_cookie_header('pp_pgacc_id', 7, 1);
+        self::assertSame(1, preg_match('/^Set-Cookie: pp_pgacc_id=7; expires=.* GMT; Max-Age=1; secure; HttpOnly; SameSite=Lax$/D', $short));
+        self::assertTrue(abs(strtotime(substr($short, strlen('Set-Cookie: pp_pgacc_id=7; expires='), 29)) - time() - 1) <= 1, $short);
+    }
+
     public function testTokenComparison()
     {
         $token = str_repeat('ab', 32);

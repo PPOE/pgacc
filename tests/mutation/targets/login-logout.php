@@ -21,8 +21,8 @@ $logoutBlock = "if (\$page == \"logout\")\n{\n"
     . "  // a copy was kept. Wrong or missing cookies end nothing.\n"
     . "  \$logoutId = checklogin('id', false);\n  if (\$logoutId > 0)\n"
     . "    pg_query(\"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
-    . "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);\n"
-    . "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");\n"
+    . "  header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n"
+    . "  header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n  header(\"Location: index.php\");\n"
     . "  pg_close(\$dbconn);\n  return;\n}\n";
 $loginRedirectBlock = "if (\$page == \"login\" && login_redirect())\n{\n  pg_close(\$dbconn);\n  return;\n}\n";
 $pageStart = "\n\$year = date('Y');\n\nif (!\$make_csv)\n  acc_header(\$dbconn,\$page,\$year);\n";
@@ -78,8 +78,8 @@ return array(
         array(
             'id' => 'login-cookie-renamed',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_login", login_session_token(',
-            'replace' => 'setcookie("pp_pgacc_session", login_session_token(',
+            'search' => 'header(login_cookie_header("pp_pgacc_login", login_session_token(',
+            'replace' => 'header(login_cookie_header("pp_pgacc_session", login_session_token(',
             'rationale' => 'checklogin() reads the pp_pgacc_login cookie.',
         ),
         array(
@@ -106,44 +106,51 @@ return array(
         array(
             'id' => 'login-cookie-expires-immediately',
             'region' => $login,
-            'search' => 'pg_fetch_result($session, 0, 0)), time()+86400);',
-            'replace' => 'pg_fetch_result($session, 0, 0)), time()-86400);',
+            'search' => 'pg_fetch_result($session, 0, 0)), 86400), false);',
+            'replace' => 'pg_fetch_result($session, 0, 0)), -86400), false);',
             'rationale' => 'A browser discards an already expired cookie, so the session would be lost.',
         ),
         array(
             'id' => 'login-cookie-expiry',
             'region' => $login,
-            'search' => 'pg_fetch_result($session, 0, 0)), time()+86400);',
-            'replace' => 'pg_fetch_result($session, 0, 0)), time()+3600);',
+            'search' => 'pg_fetch_result($session, 0, 0)), 86400), false);',
+            'replace' => 'pg_fetch_result($session, 0, 0)), 3600), false);',
             'rationale' => 'The login cookie lasts 24 hours, not one.',
         ),
         array(
             'id' => 'login-id-cookie-removed',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_id", $id, time()+86400);',
+            'search' => 'header(login_cookie_header("pp_pgacc_id", $id, 86400), false);',
             'replace' => 'true;',
             'rationale' => 'checklogin() also needs the user id cookie.',
         ),
         array(
             'id' => 'login-id-cookie-renamed',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_id", $id,',
-            'replace' => 'setcookie("pp_pgacc_uid", $id,',
+            'search' => 'login_cookie_header("pp_pgacc_id", $id,',
+            'replace' => 'login_cookie_header("pp_pgacc_uid", $id,',
             'rationale' => 'checklogin() reads the pp_pgacc_id cookie.',
         ),
         array(
             'id' => 'login-id-cookie-value',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_id", $id, time()+86400);',
-            'replace' => 'setcookie("pp_pgacc_id", 1, time()+86400);',
+            'search' => 'login_cookie_header("pp_pgacc_id", $id, 86400)',
+            'replace' => 'login_cookie_header("pp_pgacc_id", 1, 86400)',
             'rationale' => 'The id cookie is the logged-in user, not always user 1.',
         ),
         array(
-            'id' => 'login-id-cookie-path',
+            'id' => 'login-id-cookie-without-flags',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_id", $id, time()+86400);',
-            'replace' => 'setcookie("pp_pgacc_id", $id, time()+86400, "/");',
-            'rationale' => 'The cookies keep their attributes (no path), so existing browsers keep matching them.',
+            'search' => 'header(login_cookie_header("pp_pgacc_id", $id, 86400), false);',
+            'replace' => 'setcookie("pp_pgacc_id", $id, time()+86400);',
+            'rationale' => 'The cookies are secure, HttpOnly and SameSite=Lax (setcookie() of PHP 5.3 cannot send SameSite).',
+        ),
+        array(
+            'id' => 'login-id-cookie-replaces-login-cookie',
+            'region' => $login,
+            'search' => 'header(login_cookie_header("pp_pgacc_id", $id, 86400), false);',
+            'replace' => 'header(login_cookie_header("pp_pgacc_id", $id, 86400), true);',
+            'rationale' => 'Both Set-Cookie headers are sent; the second must not replace the first.',
         ),
         array(
             'id' => 'login-target-ignored',
@@ -258,30 +265,44 @@ return array(
         array(
             'id' => 'logout-login-cookie-kept',
             'region' => $logout,
-            'search' => 'setcookie("pp_pgacc_login", "", time() - 3600);',
+            'search' => 'header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);',
             'replace' => 'true;',
             'rationale' => 'Logout clears the session cookie.',
         ),
         array(
             'id' => 'logout-login-cookie-renamed',
             'region' => $logout,
-            'search' => 'setcookie("pp_pgacc_login", "",',
-            'replace' => 'setcookie("pp_pgacc_logon", "",',
+            'search' => 'login_cookie_header("pp_pgacc_login", "deleted",',
+            'replace' => 'login_cookie_header("pp_pgacc_logon", "deleted",',
             'rationale' => 'Logout clears the pp_pgacc_login cookie, not another one.',
         ),
         array(
             'id' => 'logout-id-cookie-kept',
             'region' => $logout,
-            'search' => 'setcookie("pp_pgacc_id", "", time() - 3600);',
+            'search' => 'header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);',
             'replace' => 'true;',
             'rationale' => 'Logout clears the user id cookie.',
         ),
         array(
             'id' => 'logout-id-cookie-not-cleared',
             'region' => $logout,
-            'search' => 'setcookie("pp_pgacc_id", "", time() - 3600);',
-            'replace' => 'setcookie("pp_pgacc_id", "0", time() - 3600);',
-            'rationale' => 'Logout clears the id cookie (empty value), not sets it to a value.',
+            'search' => 'login_cookie_header("pp_pgacc_id", "deleted", 0)',
+            'replace' => 'login_cookie_header("pp_pgacc_id", "0", 0)',
+            'rationale' => 'Logout clears the id cookie ("deleted"), not sets it to a value.',
+        ),
+        array(
+            'id' => 'logout-id-cookie-kept-alive',
+            'region' => $logout,
+            'search' => 'login_cookie_header("pp_pgacc_id", "deleted", 0)',
+            'replace' => 'login_cookie_header("pp_pgacc_id", "deleted", 86400)',
+            'rationale' => 'Logout deletes the cookie (Max-Age=0 and an expiry in the past).',
+        ),
+        array(
+            'id' => 'logout-id-cookie-replaces-login-cookie',
+            'region' => $logout,
+            'search' => 'header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);',
+            'replace' => 'header(login_cookie_header("pp_pgacc_id", "deleted", 0), true);',
+            'rationale' => 'Both cookies are cleared; the second Set-Cookie header must not replace the first.',
         ),
         array(
             'id' => 'logout-redirect-removed',
@@ -303,17 +324,6 @@ return array(
             'search' => "  pg_close(\$dbconn);\n  return;",
             'replace' => "  true;\n  true;",
             'rationale' => 'Logout ends the request: the redirect body stays empty instead of rendering the default page.',
-        ),
-        array(
-            'id' => 'logout-cookie-expiry-in-future',
-            'region' => $logout,
-            'search' => 'setcookie("pp_pgacc_login", "", time() - 3600);',
-            'replace' => 'setcookie("pp_pgacc_login", "", time() + 3600);',
-            'rationale' => 'Cookie deletion must not depend on the expiry argument.',
-            'equivalent' => array(
-                'reason' => 'setcookie() with an empty value always sends "deleted" with an expiry in 1970, '
-                    . 'ignoring the expiry argument (PHP 5.6-8.5), so the response is byte-identical.',
-            ),
         ),
         array(
             'id' => 'logout-after-output',

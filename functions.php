@@ -1082,4 +1082,13 @@ function login_token_equals($known, $given)
   return $difference === 0;
 }
 
+// The Set-Cookie header of a login cookie: secure, HttpOnly and SameSite=Lax
+// (setcookie() of PHP 5.3 has neither SameSite nor Max-Age), lasting $maxAge
+// seconds. $maxAge 0 deletes the cookie, as setcookie() of PHP 5.5+ does.
+function login_cookie_header($name, $value, $maxAge)
+{
+  $expires = $maxAge > 0 ? time() + $maxAge : 1;
+  return 'Set-Cookie: ' . $name . '=' . $value . '; expires=' . gmdate('D, d M Y H:i:s', $expires) . ' GMT; Max-Age=' . $maxAge . '; secure; HttpOnly; SameSite=Lax';
+}
+
 ?>

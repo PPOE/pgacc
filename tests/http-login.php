@@ -76,18 +76,25 @@ function response_cookie_attributes($response, $name)
     return null;
 }
 
-// setcookie() sends Max-Age only since PHP 5.5 (production runs PHP 5.3).
-function server_sends_max_age()
-{
-    return version_compare(server_php_version(), '5.5', '>=');
-}
-
-// Both login cookies last 24 hours and have no path, domain, secure, or
-// httponly attribute (setcookie() with only name, value, and expiry).
-function login_cookie_attribute_problems($response)
+// The login cookies are secure, HttpOnly and SameSite=Lax, without path or
+// domain, on every PHP version (index.php sends the Set-Cookie headers itself:
+// setcookie() of PHP 5.3 has no SameSite and no Max-Age). Each cookie is sent
+// exactly once. $maxAge 0: the cookie is deleted (value "deleted", expiry
+// 1970-01-01 00:00:01 GMT, as setcookie() of PHP 5.5+ sends it).
+function login_cookie_header_problems($response, $maxAge)
 {
     $problems = array();
-    $expected = server_sends_max_age() ? array('expires', 'max-age') : array('expires');
+    $setCookies = 0;
+    foreach ($response['headers'] as $header) {
+        if (stripos($header, 'Set-Cookie:') === 0) {
+            $setCookies++;
+        }
+    }
+    if ($setCookies !== 2) {
+        $problems[] = "sent $setCookies Set-Cookie headers, expected 2";
+    }
+    $expected = array('expires', 'httponly', 'max-age', 'samesite', 'secure');
+    $cookies = response_cookies($response);
     foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
         $attributes = response_cookie_attributes($response, $cookie);
         if ($attributes === null) {
@@ -100,41 +107,32 @@ function login_cookie_attribute_problems($response)
             $problems[] = "$cookie attributes were " . implode(',', $names) . ', expected ' . implode(',', $expected);
             continue;
         }
-        if (server_sends_max_age() && $attributes['max-age'] !== '86400') {
-            $problems[] = "$cookie Max-Age was {$attributes['max-age']}, expected 86400";
+        if ($attributes['secure'] !== true || $attributes['httponly'] !== true || $attributes['samesite'] !== 'Lax') {
+            $problems[] = "$cookie flags were " . var_export($attributes, true);
+        }
+        if ($attributes['max-age'] !== strval($maxAge)) {
+            $problems[] = "$cookie Max-Age was {$attributes['max-age']}, expected $maxAge";
         }
         $expires = strtotime($attributes['expires']);
-        if ($expires === false || abs($expires - (time() + 86400)) > 120) {
-            $problems[] = "$cookie expires was {$attributes['expires']}, expected about 24 hours from now";
+        if ($maxAge === 0 && ($expires !== 1 || $cookies[$cookie] !== 'deleted')) {
+            $problems[] = "$cookie was not deleted: " . var_export($attributes, true);
+        }
+        if ($maxAge > 0 && ($expires === false || abs($expires - (time() + $maxAge)) > 120)) {
+            $problems[] = "$cookie expires was {$attributes['expires']}, expected about $maxAge seconds from now";
         }
     }
     return $problems;
 }
 
-// PHP clears a cookie set to "" with a fixed past expiry, whatever expiry
-// was passed: 1970-01-01 00:00:01 GMT ("Thu, 01-Jan-1970 ..." before PHP 8.2,
-// "Thu, 01 Jan 1970 ..." since). Before PHP 5.5 (production's PHP 5.3) the
-// expiry is one year and one second before the request instead, without
-// Max-Age.
+// Both login cookies last 24 hours.
+function login_cookie_attribute_problems($response)
+{
+    return login_cookie_header_problems($response, 86400);
+}
+
 function logout_cookie_attribute_problems($response)
 {
-    $problems = array();
-    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
-        $attributes = response_cookie_attributes($response, $cookie);
-        $names = is_array($attributes) ? array_keys($attributes) : array();
-        sort($names);
-        if (server_sends_max_age()) {
-            $cleared = $names === array('expires', 'max-age') && $attributes['max-age'] === '0'
-                && strtotime($attributes['expires']) === 1;
-        } else {
-            $expires = $names === array('expires') ? strtotime($attributes['expires']) : false;
-            $cleared = $expires !== false && abs($expires - (time() - 31536001)) <= 120;
-        }
-        if (!$cleared) {
-            $problems[] = "$cookie attributes were " . var_export($attributes, true);
-        }
-    }
-    return $problems;
+    return login_cookie_header_problems($response, 0);
 }
 
 function database_connection()
