@@ -299,10 +299,16 @@ final class ReceiptStorageTest extends FunctionsTestCase
         rewind($in);
         $out = fopen('php://memory', 'w+');
         self::assertTrue(receipt_v2_encrypt_stream(self::TEST_KEY, 42, $in, $out));
+        rewind($in);
+        $out2 = fopen('php://memory', 'w+');
+        self::assertTrue(receipt_v2_encrypt_stream(self::TEST_KEY, 42, $in, $out2));
         rewind($out);
+        rewind($out2);
         $third = stream_get_contents($out);
-        self::assertNotSame(substr($first, 4, 16), substr($third, 4, 16));
+        $fourth = stream_get_contents($out2);
+        self::assertNotSame(substr($third, 4, 16), substr($fourth, 4, 16));
         self::assertSame($plain, receipt_v2_decrypt(self::TEST_KEY, '42', $third));
+        self::assertSame($plain, receipt_v2_decrypt(self::TEST_KEY, '42', $fourth));
     }
 
     public function testStreamReportsAFailedWrite()

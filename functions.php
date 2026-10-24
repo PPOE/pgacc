@@ -858,7 +858,8 @@ function receipt_v2_open_with($key, $number, $path)
     $tail = (string) fread($in, 32);
     $last = receipt_v2_stream_cipher($encryptionKey, substr($tail, 0, 16))->decrypt(substr($tail, 16));
     $padding = ord(substr($last, -1));
-    $valid = $padding >= 1 && $padding <= 16 && substr($last, -$padding) === str_repeat(chr($padding), $padding);
+    // PKCS#7; also rejects 0 (the whole block is compared with '') and above 16.
+    $valid = substr($last, -$padding) === str_repeat(chr($padding), $padding);
     $length -= $padding;
     fseek($in, 20);
     $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, 16));
