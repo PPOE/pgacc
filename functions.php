@@ -24,7 +24,12 @@ function csv_download_link($i = -1)
   global $make_csv;
   if ($make_csv)
     return;
-  $link = $_SERVER['REQUEST_URI'] . "&format=csv";
+  $link = $_SERVER['REQUEST_URI'];
+  $query = strstr($link, '?');
+  if ($query === false)
+    $link .= "?format=csv";
+  else if (preg_match('/[?&]format=csv(&|$)/', $query) != 1)
+    $link .= (in_array(substr($query, -1), array('?', '&')) ? "" : "&") . "format=csv";
   echo "<br style=\"clear: both;\" /><center>";
   if ($i >= 0)
     echo "$i Umsätze gefunden<br /><br />";

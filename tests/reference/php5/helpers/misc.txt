@@ -38,14 +38,14 @@ whitelist(array(int(0) => int(1), int(1) => int(2), int(2) => int(3)), array(int
 [csv /index.php?action=all&filter_text=ä] csv_download_link(null) returns null
 [csv /index.php?action=all&filter_text=ä] csv_download_link(float(2.5)) returns null
 [csv /index.php?action=all&filter_text=ä] csv_download_link(string(1) "x") returns null
-[html ] csv_download_link() returns null output string(101) "<br style=\"clear: both;\" /><center><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(int(-1)) returns null output string(101) "<br style=\"clear: both;\" /><center><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(int(0)) returns null output string(132) "<br style=\"clear: both;\" /><center>0 Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(int(5)) returns null output string(132) "<br style=\"clear: both;\" /><center>5 Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(string(1) "3") returns null output string(132) "<br style=\"clear: both;\" /><center>3 Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(null) returns null output string(131) "<br style=\"clear: both;\" /><center> Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(float(2.5)) returns null output string(134) "<br style=\"clear: both;\" /><center>2.5 Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
-[html ] csv_download_link(string(1) "x") returns null output string(132) "<br style=\"clear: both;\" /><center>x Ums\303\244tze gefunden<br /><br /><a href=\"&amp;format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link() returns null output string(97) "<br style=\"clear: both;\" /><center><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(int(-1)) returns null output string(97) "<br style=\"clear: both;\" /><center><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(int(0)) returns null output string(128) "<br style=\"clear: both;\" /><center>0 Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(int(5)) returns null output string(128) "<br style=\"clear: both;\" /><center>5 Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(string(1) "3") returns null output string(128) "<br style=\"clear: both;\" /><center>3 Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(null) returns null output string(127) "<br style=\"clear: both;\" /><center> Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(float(2.5)) returns null output string(130) "<br style=\"clear: both;\" /><center>2.5 Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
+[html ] csv_download_link(string(1) "x") returns null output string(128) "<br style=\"clear: both;\" /><center>x Ums\303\244tze gefunden<br /><br /><a href=\"?format=csv\">Als CSV Datei herunterladen</a></center>"
 [csv ] csv_download_link() returns null
 [csv ] csv_download_link(int(-1)) returns null
 [csv ] csv_download_link(int(0)) returns null
