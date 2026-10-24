@@ -82,6 +82,9 @@ $readOnlyTwoCookies = login_user('synthetic-read-only-two', 'read-only-two-passw
 // The fixtures import as before for an admin.
 $fixture = file_get_contents(__DIR__ . '/reference/fixtures/import/handkassa.csv');
 $imported = import_csv('handkassa.csv', $fixture, $adminCookies);
+// The import form on the result page carries the form token of the session.
+assert_contains($imported['body'], 'method="POST">' . "\r\n" . '<input type="hidden" name="csrf_token" value="'
+    . session_csrf_token($adminCookies) . '" />', 'import form');
 assert_status($imported, 200, 'handkassa fixture');
 assert_contains($imported['body'], 'wurde erfolgreich importiert', 'handkassa fixture');
 $kaffee = import_orga($database, "Kaffee\nMilch");

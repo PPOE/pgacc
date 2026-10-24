@@ -138,8 +138,8 @@ function assert_stored_receipt($fileNumber, $key, $plain, $label)
 
 function merge_vouchers($cookies, $target, $source)
 {
-    // The edit page links index.php?action=merge&bid1=<this voucher>&bid2=<other>.
-    $response = http_request("/index.php?action=merge&bid1=$target&bid2=$source", 'GET', array(), $cookies);
+    // The merge form of the edit page posts bid1=<this voucher>, bid2=<other>.
+    $response = http_request('/index.php?action=merge', 'POST', array('bid1' => $target, 'bid2' => $source), $cookies);
     assert_no_problems(redirect_problems($response, "index.php?action=edit&id=$target&hint=6"), "merge of $source into $target");
 }
 

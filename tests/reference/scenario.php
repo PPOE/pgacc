@@ -29,6 +29,8 @@ $GLOBALS['ref_state'] = array();
 $GLOBALS['ref_manifest'] = array();
 $GLOBALS['ref_sessions'] = array('anon' => array());
 $GLOBALS['ref_ids'] = array();
+// The form token of each session, as its last HTML page showed it.
+$GLOBALS['ref_tokens'] = array();
 
 $GLOBALS['ref_users'] = array(
     'admin' => array('synthetic-admin', 'correct-password'),
@@ -68,9 +70,24 @@ function step($id, $user, $method, $path, $form = array(), $files = array())
         ref_fail("invalid or duplicate step id $id");
     }
     $cookies = isset($GLOBALS['ref_sessions'][$user]) ? $GLOBALS['ref_sessions'][$user] : array();
+    // POST requests of a session carry its form token, as its forms do,
+    // unless the step sets csrf_token itself (null: none). The recording
+    // shows the token as {{csrf-token}}.
+    $recordedForm = $form;
+    if ($method === 'POST' && $user !== 'anon' && strpos($path, '/index.php?action=login') !== 0
+        && !array_key_exists('csrf_token', $form)) {
+        if (!isset($GLOBALS['ref_tokens'][$user])) {
+            ref_fail("step $id: no form token known for $user (request an HTML page of the session first)");
+        }
+        $form['csrf_token'] = $GLOBALS['ref_tokens'][$user];
+        $recordedForm['csrf_token'] = '{{csrf-token}}';
+    }
     $response = ref_http($id, $method, $path, $form, $files, $cookies);
+    if ($user !== 'anon' && preg_match('/name="csrf_token" value="([0-9a-f]{64})"/', $response['body'], $matches) === 1) {
+        $GLOBALS['ref_tokens'][$user] = $matches[1];
+    }
     $records = ref_statement_log_until_marker($GLOBALS['ref_db'], $GLOBALS['ref_log_offset'], $id);
-    $step = array('id' => $id, 'user' => $user, 'method' => $method, 'path' => $path, 'form' => $form, 'files' => $files);
+    $step = array('id' => $id, 'user' => $user, 'method' => $method, 'path' => $path, 'form' => $recordedForm, 'files' => $files);
     $out = $GLOBALS['ref_out'];
     ref_write("$out/http/$id.txt", ref_http_snapshot($step, $response));
 
@@ -116,6 +133,7 @@ function login($user, $id = null)
         'pass' => $credentials[1],
     ));
     $GLOBALS['ref_sessions'][$user] = ref_response_cookies($response);
+    unset($GLOBALS['ref_tokens'][$user]);
 }
 
 // A voucher id looked up by its comment (0 when the step did not create it).
@@ -304,10 +322,12 @@ step('all-sort-html', 'admin', 'GET', '/index.php?action=all&filter_date=2024&so
 step('closed-filter-csv', 'unitone', 'GET', '/index.php?action=closed&format=csv&filter_date=2024&sort=amd');
 step('transactions-filter-csv', 'anon', 'GET', '/index.php?action=transactions&format=csv&filter_lo=2');
 
-// Column preferences (?hide=) are stored in users.hide.
-step('all-hide-3', 'admin', 'GET', '/index.php?action=all&filter_date=2024&hide=3');
+// Column preferences (POST hide=N with the form token) are stored in
+// users.hide; the old GET link (?hide=N) stores nothing.
+step('all-hide-3-get', 'admin', 'GET', '/index.php?action=all&format=csv&filter_date=2024&hide=3');
+step('all-hide-3', 'admin', 'POST', '/index.php?action=all&filter_date=2024', array('hide' => '3'));
 step('all-hide-3-again', 'admin', 'GET', '/index.php?action=all&format=csv&filter_date=2024');
-step('all-show-3', 'admin', 'GET', '/index.php?action=all&format=csv&filter_date=2024&hide=-3');
+step('all-show-3', 'admin', 'POST', '/index.php?action=all&format=csv&filter_date=2024', array('hide' => '-3'));
 
 // Edit views.
 foreach (array('1001' => 'admin', '1004' => 'admin', '9999' => 'admin', 'abc' => 'admin', '1001-' => 'unitone', '1003-' => 'unitone') as $voucher => $user) {
@@ -385,14 +405,21 @@ step('new-merge-target', 'admin', 'POST', '/index.php?action=new', voucher_form(
 step('new-merge-source', 'admin', 'POST', '/index.php?action=new', voucher_form(array(voucher_part(0, 'out', '2', '-2', 'Reference merge source'))));
 $mergeTarget = voucher_id('Reference merge target');
 $mergeSource = voucher_id('Reference merge source');
-$merge = '/index.php?action=merge&bid1=' . $mergeTarget[0] . '&bid2=' . $mergeSource[0];
-step('merge-unitone', 'unitone', 'GET', $merge);
-step('merge-reviewer', 'reviewer', 'GET', $merge);
-step('merge-admin', 'admin', 'GET', $merge);
-step('merge-missing', 'admin', 'GET', '/index.php?action=merge');
+// Merge and recovery write only on POST with the form token: the old GET
+// links write nothing, and a missing or wrong token is refused.
+$mergeForm = array('bid1' => $mergeTarget[0], 'bid2' => $mergeSource[0]);
+step('merge-get', 'admin', 'GET', '/index.php?action=merge&bid1=' . $mergeTarget[0] . '&bid2=' . $mergeSource[0]);
+step('merge-no-token', 'admin', 'POST', '/index.php?action=merge', array_merge($mergeForm, array('csrf_token' => null)));
+step('merge-wrong-token', 'admin', 'POST', '/index.php?action=merge', array_merge($mergeForm, array('csrf_token' => str_repeat('0', 64))));
+step('merge-unitone', 'unitone', 'POST', '/index.php?action=merge', $mergeForm);
+step('merge-reviewer', 'reviewer', 'POST', '/index.php?action=merge', $mergeForm);
+step('merge-admin', 'admin', 'POST', '/index.php?action=merge', $mergeForm);
+step('merge-admin-again', 'admin', 'POST', '/index.php?action=merge', $mergeForm);
+step('merge-missing', 'admin', 'POST', '/index.php?action=merge');
 
-step('recover-unitone', 'unitone', 'GET', '/index.php?action=recover&id=1004&bid=105&doit=1');
-step('recover-admin', 'admin', 'GET', '/index.php?action=recover&id=1004&bid=105&doit=1');
+step('recover-get', 'admin', 'GET', '/index.php?action=recover&id=1004&bid=105&doit=1');
+step('recover-unitone', 'unitone', 'POST', '/index.php?action=recover&id=1004&bid=105', array('doit' => 'Ja, ich weiß was ich tue!'));
+step('recover-admin', 'admin', 'POST', '/index.php?action=recover&id=1004&bid=105', array('doit' => 'Ja, ich weiß was ich tue!'));
 
 step('accounts-create', 'admin', 'POST', '/index.php?action=accounts', array(
     'submit' => 'Benutzer -1 erstellen', 'name-1' => 'synthetic-created', 'password-1' => 'created-password', 'rights-1' => '3',
@@ -409,6 +436,7 @@ step('accounts-own-password', 'unitone', 'POST', '/index.php?action=accounts', a
 // A password change ends the sessions of that user: log in again for the
 // following unit one steps.
 login('unitone', 'login-unitone-after-password');
+step('accounts-unitone-after-password', 'unitone', 'GET', '/index.php?action=accounts');
 step('accounts-other-user', 'unitone', 'POST', '/index.php?action=accounts', array(
     'submit' => 'Benutzer 1 aktualisieren', 'password1' => 'stolen',
 ));
@@ -475,8 +503,11 @@ step('import2-rejected', 'admin', 'POST', '/index.php?action=import2', array('MA
 step('import2-download', 'admin', 'GET', '/index.php?action=file&id=220');
 step('edit-view-imported-receipt', 'admin', 'GET', '/index.php?action=edit&id=2020');
 
-step('logout-admin', 'admin', 'GET', '/index.php?action=logout');
+// Logout is the POST form with the form token; GET (old link) ends nothing.
+step('logout-admin-get', 'admin', 'GET', '/index.php?action=logout');
+step('logout-admin', 'admin', 'POST', '/index.php?action=logout');
 step('logout-anon', 'anon', 'GET', '/index.php?action=logout');
+step('logout-anon-post', 'anon', 'POST', '/index.php?action=logout');
 
 // ------------------------------------------------------------------ finish
 

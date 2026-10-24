@@ -398,6 +398,7 @@ also on PHP 8.5. The target files hold each mutation's rationale.
 | `import-checks` | date and organization checks of every bank CSV line (`import.php`), the PDF import's voucher match (`import2.php`), the receipt upload's row check (`new.php`) | `ReceiptImportTest`, `ImportMemberMatchTest`, `http-import.php` |
 | `read-only-rights` | `write_rights()` and its checks for read-only `Rbgf` | `write-workflows.php`, PHPUnit |
 | `listing-columns` | column preferences in `closed.php` (`listing_column_hidden()`, `emptytag()`) | `http-listing-prefs.php` |
+| `csrf` | form-token check and token derivation in `index.php`, POST-only column preferences, logout, merge (`edit.php`, also the merge that moves no row) and recovery (`recover.php`), the token fields of the forms | `http-csrf.php`, `http-listing-prefs.php` |
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `donations` | `page_donations()` initializations, disabled publication, captcha | `http-donations.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations/wk sinks | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
@@ -407,7 +408,10 @@ Accepted equivalents (reasons in the target files):
 
 - `login-logout`: `logout-cookie-expiry-in-future` (`setcookie()` ignores the
   expiry for an empty value); `page-new-buchung-default-restored` on PHP 7.4
-  only (a default before required parameters is silent before PHP 8.0).
+  only (a default before required parameters is silent before PHP 8.0);
+  `logout-trusts-id-cookie` and `logout-without-session` (since the
+  form-token check a logout POST reaches the logout block only with a valid
+  session; the guards stay as defence in depth).
 - `null-arguments`: the guard removals on PHP 7.4 (null is accepted silently
   before PHP 8.1); PHP 8.5 kills them.
 - `redirects`: `search-requires-login` (`page_search()` replaces the login

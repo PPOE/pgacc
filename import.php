@@ -372,6 +372,7 @@ function page_import($rights)
   echo "</table>\n";
   echo 'Bitte wähle die CSV Dateien für den Import:
 <form enctype="multipart/form-data" action="index.php?action=import" method="POST">
+'.csrf_field().'
 <input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
 <input name="uploadcsv[]" type="file" multiple="multiple" /><br />
 <br />';

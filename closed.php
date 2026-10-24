@@ -43,7 +43,13 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_name=" . rawurlencode($_GET['filter_name']);
   return "<a href=\"" . html_escape("index.php?action=$action&sort=".getoppsort($sort).$filters) . "\">$text</a>";
 }
-// Whether the user hid listing column $col (users.hide, ?hide=N). Columns
+// The button that hides (N) or shows again (-N) listing column $tabc: a POST
+// form with the form token (index.php stores users.hide).
+function listing_column_form($action,$hide,$icon)
+{
+  return '<form class="inline" action="index.php?action='.$action.'" method="post">'.csrf_field().'<button class="link" type="submit" name="hide" value="'.$hide.'"><img class="icon" src="icons/'.$icon.'.png"></button></form>';
+}
+// Whether the user hid listing column $col (users.hide, POST hide=N). Columns
 // without a stored preference are shown.
 function listing_column_hidden($col)
 {
@@ -61,9 +67,9 @@ function gentab($tabc,$action,$s,$t)
       return "$t\t";
   }
   if (listing_column_hidden($tabc))
-    return tag("td",'<a href="index.php?action='.$action.'&hide=-'.$tabc.'"><img class="icon" src="icons/add.png"></a>');
+    return tag("td",listing_column_form($action,-$tabc,'add'));
   else
-    return tag("td",tag("b",sortlink($action,$s,$t) . '<a href="index.php?action='.$action.'&hide='.$tabc.'"><img class="icon" src="icons/delete.png"></a>'));
+    return tag("td",tag("b",sortlink($action,$s,$t) . listing_column_form($action,$tabc,'delete')));
 }
 function page_listing_header($action)
 {

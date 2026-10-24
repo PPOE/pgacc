@@ -2,7 +2,7 @@
 # request: GET /index.php?action=open&filter_date=2024 as readonly
 status: 200
 header: Content-type: text/html
---- body (10612 bytes) ---
+--- body (13637 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,41 +31,41 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=open&amp;sort=idd&amp;filter_date=2024">Buchung</a><a href="index.php?action=open&hide=1"><img class="icon" src="icons/delete.png"></a></b>
+<table><tr><td><b><a href="index.php?action=open&amp;sort=idd&amp;filter_date=2024">Buchung</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="1"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><a href="index.php?action=open&hide=2"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="2"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=datea&amp;filter_date=2024">Datum</a><a href="index.php?action=open&hide=3"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=datea&amp;filter_date=2024">Datum</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="3"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=typea&amp;filter_date=2024">Art</a><a href="index.php?action=open&hide=4"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=typea&amp;filter_date=2024">Art</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="4"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=loa&amp;filter_date=2024">LO</a><a href="index.php?action=open&hide=5"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=loa&amp;filter_date=2024">LO</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="5"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=membera&amp;filter_date=2024">Mitglied</a><a href="index.php?action=open&hide=6"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=membera&amp;filter_date=2024">Mitglied</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="6"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><a href="index.php?action=open&hide=7"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="7"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=ka&amp;filter_date=2024">Konto</a><a href="index.php?action=open&hide=8"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=ka&amp;filter_date=2024">Konto</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="8"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><a href="index.php?action=open&hide=9"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="9"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=ama&amp;filter_date=2024">Betrag</a><a href="index.php?action=open&hide=10"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=ama&amp;filter_date=2024">Betrag</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="10"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=texta&amp;filter_date=2024">Text</a><a href="index.php?action=open&hide=11"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=texta&amp;filter_date=2024">Text</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="11"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><a href="index.php?action=open&hide=12"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="12"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><a href="index.php?action=open&hide=13"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="13"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><a href="index.php?action=open&hide=14"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="14"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><a href="index.php?action=open&hide=15"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="15"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=refunda&amp;filter_date=2024">Rück.</a><a href="index.php?action=open&hide=16"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=refunda&amp;filter_date=2024">Rück.</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="16"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=bela&amp;filter_date=2024">Datei</a><a href="index.php?action=open&hide=17"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=bela&amp;filter_date=2024">Datei</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="17"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
-<td><b><a href="index.php?action=open&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><a href="index.php?action=open&hide=18"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><form class="inline" action="index.php?action=open" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="18"><img class="icon" src="icons/delete.png"></button></form></b>
 </td>
 </tr>
 <form action="index.php" method="GET"> <tr>
@@ -205,7 +205,7 @@ header: Content-type: text/html
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
-<a href="index.php?action=logout">Logout</a>      </div>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
     </div>
     </div>
     </div>

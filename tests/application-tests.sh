@@ -35,6 +35,7 @@ php tests/write-workflows.php
 php tests/http-import.php
 php tests/http-receipts.php
 php tests/http-output-escaping.php
+php tests/http-csrf.php
 
 if [ -n "$coverage_dir" ]; then
   XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir"

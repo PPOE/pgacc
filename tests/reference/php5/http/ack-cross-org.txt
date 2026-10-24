@@ -1,9 +1,9 @@
 # step: ack-cross-org
 # request: POST /index.php?action=edit&id=5000 as unitone
-# form: id=5000&parts=1&ack=Best%C3%A4tigen
+# form: id=5000&parts=1&ack=Best%C3%A4tigen&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 200
 header: Content-type: text/html
---- body (2847 bytes) ---
+--- body (2992 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -34,7 +34,7 @@ header: Content-type: text/html
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
-<a href="index.php?action=logout">Logout</a>      </div>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
     </div>
     </div>
     </div>

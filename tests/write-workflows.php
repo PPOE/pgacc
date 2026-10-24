@@ -319,36 +319,39 @@ assert_database_field($newRevision, 'amount', '-3000', 'replacement revision');
 assert_database_field($newRevision, 'deleted', 'f', 'replacement revision');
 
 // Merging moves every row of the second voucher into the first one. The edit
-// page links it as index.php?action=merge&bid1=<this voucher>&bid2=<other>.
+// page posts it to index.php?action=merge with bid1=<this voucher> and
+// bid2=<other> (and the form token); the old GET link merges nothing.
 $mergeTargetId = create_voucher($database, 'Synthetic merge target', '-1.00', 0, $adminCookies);
 $mergeSourceId = create_voucher($database, 'Synthetic merge source', '-2.00', 0, $adminCookies);
-$mergeUrl = '/index.php?action=merge&bid1=' . rawurlencode($mergeTargetId) . '&bid2=' . rawurlencode($mergeSourceId);
+$mergeUrl = '/index.php?action=merge';
+$mergeForm = array('bid1' => $mergeTargetId, 'bid2' => $mergeSourceId);
 $voucherRowsQuery = 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1';
 
 // Merging needs the exact root right (the edit page offers it only to root):
 // other users get the warning of the recovery page, and no row moves.
-$unauthorizedMerge = http_request($mergeUrl, 'GET', array(), $unitOneCookies);
+$unauthorizedMerge = http_request($mergeUrl, 'POST', $mergeForm, $unitOneCookies);
 assert_status($unauthorizedMerge, 200, 'cross-organization merge');
 assert_contains($unauthorizedMerge['body'], 'nur von Admins', 'cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after cross-organization merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after cross-organization merge');
-$bgfMerge = http_request($mergeUrl, 'GET', array(), $reviewerCookies);
+$bgfMerge = http_request($mergeUrl, 'POST', $mergeForm, $reviewerCookies);
 assert_status($bgfMerge, 200, 'merge by a bgf user without root');
 assert_contains($bgfMerge['body'], 'nur von Admins', 'merge by a bgf user without root');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 1, 'merge target after a merge by a bgf user');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after a merge by a bgf user');
 
-$merge = http_request($mergeUrl, 'GET', array(), $adminCookies);
+$getMerge = http_request($mergeUrl . '&bid1=' . rawurlencode($mergeTargetId) . '&bid2=' . rawurlencode($mergeSourceId), 'GET', array(), $adminCookies);
+assert_status($getMerge, 200, 'voucher merge by GET');
+assert_contains($getMerge['body'], 'Schaltfläche „Merge“', 'voucher merge by GET');
+assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 1, 'merge source after a merge by GET');
+$merge = http_request($mergeUrl, 'POST', $mergeForm, $adminCookies);
 assert_redirect($merge, edit_location($mergeTargetId, 6), 'voucher merge');
 assert_database_count($database, $voucherRowsQuery, array($mergeTargetId), 2, 'merge target');
 assert_database_count($database, $voucherRowsQuery, array($mergeSourceId), 0, 'merge source');
 
-$unauthorizedRecovery = http_request(
-    '/index.php?action=recover&id=1004&bid=105&doit=1',
-    'GET',
-    array(),
-    $unitOneCookies
-);
+$recoveryUrl = '/index.php?action=recover&id=1004&bid=105';
+$recoveryForm = array('doit' => 'Ja, ich weiß was ich tue!');
+$unauthorizedRecovery = http_request($recoveryUrl, 'POST', $recoveryForm, $unitOneCookies);
 assert_status($unauthorizedRecovery, 200, 'unauthorized recovery');
 assert_contains($unauthorizedRecovery['body'], 'nur von Admins', 'unauthorized recovery');
 $oldRevision = database_row(
@@ -359,12 +362,17 @@ $oldRevision = database_row(
 );
 assert_database_field($oldRevision, 'deleted', 't', 'revision after unauthorized recovery');
 
-$authorizedRecovery = http_request(
-    '/index.php?action=recover&id=1004&bid=105&doit=1',
-    'GET',
-    array(),
-    $adminCookies
+// The old GET link only shows the confirmation form.
+$getRecovery = http_request($recoveryUrl . '&doit=1', 'GET', array(), $adminCookies);
+assert_status($getRecovery, 200, 'recovery by GET');
+assert_contains($getRecovery['body'], 'Ja, ich weiß was ich tue!', 'recovery by GET');
+assert_database_field(
+    database_row($database, 'SELECT deleted FROM vouchers WHERE id = 105', array(), 'revision after recovery by GET'),
+    'deleted',
+    't',
+    'revision after recovery by GET'
 );
+$authorizedRecovery = http_request($recoveryUrl, 'POST', $recoveryForm, $adminCookies);
 assert_status($authorizedRecovery, 200, 'authorized recovery');
 assert_contains($authorizedRecovery['body'], 'wiederhergestellt', 'authorized recovery');
 $oldRevision = database_row(
@@ -401,9 +409,8 @@ $unbufferedSteps = array(
         edit_location($unbufferedRevisionId, 5),
     ),
     'merge' => array(
-        '/index.php?action=merge&bid1=' . rawurlencode($unbufferedMergeTargetId)
-            . '&bid2=' . rawurlencode($unbufferedMergeSourceId),
-        null,
+        '/index.php?action=merge',
+        array('bid1' => $unbufferedMergeTargetId, 'bid2' => $unbufferedMergeSourceId),
         $adminCookies,
         edit_location($unbufferedMergeTargetId, 6),
     ),
@@ -445,14 +452,13 @@ assert_database_count($database, $voucherRowsQuery, array($unbufferedMergeSource
 // action, and nothing changes.
 $visitorDraftId = create_voucher($database, 'Synthetic draft for visitors', '-6.00', 9003, $adminCookies);
 $visitorEditUri = '/index.php?action=edit&id=' . rawurlencode($visitorDraftId);
-$visitorMergeUri = '/index.php?action=merge&bid1=' . rawurlencode($visitorDraftId)
-    . '&bid2=' . rawurlencode($mergeTargetId);
+$visitorMergeUri = '/index.php?action=merge';
 $visitorRequests = array(
     'voucher creation' => array('/index.php?action=new', voucher_form('Synthetic visitor voucher', '-7.00', 0)),
     'approval' => array($visitorEditUri, array('id' => $visitorDraftId, 'parts' => '1', 'ack' => 'Bestätigen')),
     'finalization' => array($visitorEditUri, array('id' => $visitorDraftId, 'parts' => '1', 'beleg' => 'Beleg erhalten')),
     'revision' => array($visitorEditUri, revision_form($visitorDraftId, 'Synthetic visitor revision', '-8.00')),
-    'merge' => array($visitorMergeUri, null),
+    'merge' => array($visitorMergeUri, array('bid1' => $visitorDraftId, 'bid2' => $mergeTargetId)),
 );
 foreach ($visitorRequests as $label => $request) {
     $method = $request[1] === null ? 'GET' : 'POST';
@@ -1363,7 +1369,7 @@ $writeRequests = array(
     'revision without an organization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array_diff_key(revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50'), array('lo0' => true))),
     'approval' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'ack' => 'Bestätigen')),
     'approval reset' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'belegfehler' => 'Bestätigungen zurücksetzen!')),
-    'merge' => array('/index.php?action=merge&bid1=' . $readOnlyOneId . '&bid2=' . $readOnlyTwoId, null),
+    'merge' => array('/index.php?action=merge', array('bid1' => $readOnlyOneId, 'bid2' => $readOnlyTwoId)),
     'receipt upload' => array('/index.php?action=edit', $readOnlyUpload),
     'password change' => array('/index.php?action=accounts', array('submit' => 'Benutzer 8 aktualisieren', 'password8' => 'changed-password')),
     'receipt import' => array('/index.php?action=import2', null),
@@ -1390,9 +1396,9 @@ assert_database_field(
     'read-only password after the change'
 );
 // Recovery stays root-only; the user's own column preferences may change.
-$readOnlyRecovery = http_request('/index.php?action=recover&id=1004&bid=105&doit=1', 'GET', array(), $readOnlyCookies);
+$readOnlyRecovery = http_request($recoveryUrl, 'POST', $recoveryForm, $readOnlyCookies);
 assert_contains($readOnlyRecovery['body'], 'nur von Admins', 'recovery by read-only bgf');
-http_request('/index.php?action=all&filter_date=2024&hide=3', 'GET', array(), $readOnlyCookies);
+http_request('/index.php?action=all&filter_date=2024', 'POST', array('hide' => '3'), $readOnlyCookies);
 assert_database_field(
     database_row($database, 'SELECT hide FROM users WHERE id = 8', array(), 'read-only column preferences'),
     'hide',
@@ -1406,7 +1412,7 @@ assert_contains($readOnlyTwoApproval['body'], 'FEHLER: Hier fehlt noch der Beleg
 assert_read_only_unchanged($database, $readOnlyStates, 'approval of organization one by Rbgf,2');
 assert_redirect(edit_request($readOnlyTwoId, $approveForm, $readOnlyTwoCookies), edit_location($readOnlyTwoId, 4), 'approval of organization two by Rbgf,2');
 assert_voucher_rows($database, $readOnlyTwoId, array(voucher_row_state('2', 'synthetic-read-only-two', null, 'f')), 'voucher approved by Rbgf,2');
-$readOnlyTwoMerge = http_request('/index.php?action=merge&bid1=' . $readOnlyTwoId . '&bid2=' . $readOnlyOneId, 'GET', array(), $readOnlyTwoCookies);
+$readOnlyTwoMerge = http_request('/index.php?action=merge', 'POST', array('bid1' => $readOnlyTwoId, 'bid2' => $readOnlyOneId), $readOnlyTwoCookies);
 assert_contains($readOnlyTwoMerge['body'], 'nur von Admins', 'merge by Rbgf,2');
 $foreignByReadOnlyTwo = http_request('/index.php?action=new', 'POST', array_merge(voucher_form('Synthetic voucher of Rbgf,2 in one', '-19.00', 0), array('lo0' => '1')), $readOnlyTwoCookies);
 assert_contains($foreignByReadOnlyTwo['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation in organization one by Rbgf,2');
@@ -1486,7 +1492,7 @@ foreach (array('synthetic-admin', 'name="rights51"', 'Benutzer -1 erstellen', '<
     assert_not_contains($substringUserList['body'], $expected, "user list for xroot ($expected)");
 }
 pg_query($database, 'UPDATE vouchers SET deleted = true WHERE id = 105');
-$substringRecovery = http_request('/index.php?action=recover&id=1004&bid=105&doit=1', 'GET', array(), $substringCookies);
+$substringRecovery = http_request($recoveryUrl, 'POST', $recoveryForm, $substringCookies);
 assert_contains($substringRecovery['body'], 'nur von Admins', 'recovery by xroot');
 assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE id = 105 AND deleted', array(), 1, 'row after recovery by xroot');
 $substringDraftId = create_voucher($database, 'Synthetic draft for role substrings', '-20.00', 0, $adminCookies);

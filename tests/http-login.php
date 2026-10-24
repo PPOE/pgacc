@@ -504,12 +504,22 @@ $arrayTargetForm = http_request('/index.php?action=login&target[]=41');
 check('login form with an array target', strpos($arrayTargetForm['body'], '<input name="target" type="hidden" value="" />') === false
     ? array('form target was not empty') : array());
 
-// Logout redirects to index.php and clears both cookies. It also ends the
-// session on the server (users.cookie is cleared), so the cookies of that
-// session no longer authenticate, even if a copy was kept.
+// Logout (the POST form with the form token) redirects to index.php and
+// clears both cookies. It also ends the session on the server (users.cookie
+// is cleared), so the cookies of that session no longer authenticate, even
+// if a copy was kept. A GET request (old link or bookmark) ends nothing.
 $reviewerCookies = response_cookies(login_request('synthetic-reviewer', 'reviewer-password'));
 check('admin session before logout', authenticated_as_problems($adminCookies));
-$logout = http_request('/index.php?action=logout', 'GET', array(), $adminCookies);
+$adminState = login_state(1);
+$getLogout = http_request('/index.php?action=logout', 'GET', array(), $adminCookies);
+check('logout by GET keeps the session', array_merge(
+    $getLogout['status'] === 200 ? array() : array("returned HTTP {$getLogout['status']}, expected 200"),
+    response_header($getLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
+    strpos($getLogout['body'], 'Abmelden mit der Schaltfläche') !== false ? array() : array('no hint to the Logout button'),
+    login_state(1) === $adminState ? array() : array('changed the database login state'),
+    authenticated_as_problems($adminCookies)
+));
+$logout = http_request('/index.php?action=logout', 'POST', array(), $adminCookies);
 check('logout', array_merge(logout_response_problems($logout), redirect_body_problems($logout)));
 check('logout cookie attributes', logout_cookie_attribute_problems($logout));
 $loggedOut = login_state(1);
@@ -524,13 +534,18 @@ check('token for the cleared users.cookie rejected', not_authenticated_problems(
 )));
 check('logout keeps the sessions of other users', authenticated_as_problems($reviewerCookies));
 
-// A logout with a wrong token for a user id ends nothing.
+// A logout with a wrong session token for a user id ends nothing: without a
+// session there is no form token, and the token error clears no cookie.
 $reviewerState = login_state(2);
-$forgedLogout = http_request('/index.php?action=logout', 'GET', array(), array(
+$forgedLogout = http_request('/index.php?action=logout', 'POST', array(), array(
     'pp_pgacc_login' => str_repeat('0', 64),
     'pp_pgacc_id' => '2',
 ));
-check('logout with a wrong token', logout_response_problems($forgedLogout));
+check('logout with a wrong token', array_merge(
+    $forgedLogout['status'] === 200 ? array() : array("returned HTTP {$forgedLogout['status']}, expected 200"),
+    response_header($forgedLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
+    strpos($forgedLogout['body'], 'Ungültiges Formular-Token') !== false ? array() : array('no token error')
+));
 check('logout with a wrong token keeps the session', array_merge(
     login_state(2) === $reviewerState ? array() : array('changed the database login state'),
     authenticated_as_problems($reviewerCookies)
@@ -561,7 +576,7 @@ if (isset($unbufferedCookies['pp_pgacc_login']) && isset($unbufferedCookies['pp_
 }
 // Logout with and without the cookies of a session: the session check and
 // the end of the session run before the headers.
-$unbufferedLogout = http_request('/index.php?action=logout', 'GET', array(), $unbufferedCookies, $unbufferedUrl);
+$unbufferedLogout = http_request('/index.php?action=logout', 'POST', array(), $unbufferedCookies, $unbufferedUrl);
 $unbufferedLoggedOut = login_state(2);
 check('logout with output_buffering=0', array_merge(
     logout_response_problems($unbufferedLogout),
@@ -570,11 +585,11 @@ check('logout with output_buffering=0', array_merge(
     $unbufferedLoggedOut['cookie'] === null ? array() : array('users.cookie was not cleared'),
     not_authenticated_problems($unbufferedCookies)
 ));
-$unbufferedAnonymousLogout = http_request('/index.php?action=logout', 'GET', array(), array(), $unbufferedUrl);
+$unbufferedAnonymousLogout = http_request('/index.php?action=logout', 'POST', array(), array(), $unbufferedUrl);
 check('logout without cookies with output_buffering=0', array_merge(
-    logout_response_problems($unbufferedAnonymousLogout),
-    logout_cookie_attribute_problems($unbufferedAnonymousLogout),
-    redirect_body_problems($unbufferedAnonymousLogout)
+    $unbufferedAnonymousLogout['status'] === 200 ? array() : array("returned HTTP {$unbufferedAnonymousLogout['status']}, expected 200"),
+    response_header($unbufferedAnonymousLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
+    strpos($unbufferedAnonymousLogout['body'], 'Ungültiges Formular-Token') !== false ? array() : array('no token error')
 ));
 
 if (count($problems) > 0) {

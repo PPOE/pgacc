@@ -641,6 +641,7 @@ function clicked(init)
 }
 </script>
 <form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action='.$p.'" method="post">
+'.csrf_field().'
 ';
 }
 

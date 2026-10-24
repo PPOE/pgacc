@@ -24,8 +24,13 @@ set_error_handler('test_client_error_handler');
 
 // $files: field name => array('name' => ..., 'type' => ..., 'content' => ...),
 // sent with $form as multipart/form-data (POST only).
+// POST requests of a session carry its form token, as the forms of the pages
+// do, unless $form sets csrf_token itself (null: no token).
 function http_request($path, $method = 'GET', $form = array(), $cookies = array(), $baseUrl = null, $files = array())
 {
+    if ($method === 'POST' && isset($cookies['pp_pgacc_login']) && !array_key_exists('csrf_token', $form)) {
+        $form['csrf_token'] = session_csrf_token($cookies, $baseUrl);
+    }
     if ($baseUrl === null) {
         $baseUrl = getenv('PGACC_TEST_BASE_URL');
     }
@@ -53,6 +58,9 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     if ($method === 'POST' && count($files) > 0) {
         $boundary = 'pgacc-test-' . md5(uniqid('', true));
         foreach ($form as $name => $value) {
+            if ($value === null) {
+                continue;
+            }
             $content .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";
         }
         foreach ($files as $name => $file) {
@@ -107,6 +115,22 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     );
     collect_response_diagnostics($requestId, "$method $path", $response);
     return $response;
+}
+
+// The form token of the session of $cookies as its forms carry it (the
+// user list, shown to every logged-in user, also without rights), or null
+// without a valid session.
+function session_csrf_token($cookies, $baseUrl = null)
+{
+    static $tokens = array();
+    $cacheKey = strval($baseUrl) . '|' . (isset($cookies['pp_pgacc_id']) ? $cookies['pp_pgacc_id'] : '')
+        . '|' . (isset($cookies['pp_pgacc_login']) ? $cookies['pp_pgacc_login'] : '');
+    if (!array_key_exists($cacheKey, $tokens)) {
+        $page = http_request('/index.php?action=accounts', 'GET', array(), $cookies, $baseUrl);
+        $tokens[$cacheKey] = preg_match('/name="csrf_token" value="([0-9a-f]{64})"/', $page['body'], $matches) === 1
+            ? $matches[1] : null;
+    }
+    return $tokens[$cacheKey];
 }
 
 function response_header($response, $name)

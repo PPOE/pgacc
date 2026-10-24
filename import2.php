@@ -5,6 +5,8 @@ function page_import2_form()
   ?>
   Bitte wähle die Beleg Dateien für den Import:
   <form enctype="multipart/form-data" action="index.php?action=import2" method="POST">
+    <?php echo csrf_field(); ?>
+
     <input type="hidden" name="MAX_FILE_SIZE" value="10000000" />
     <input name="upload[]" type="file" multiple="multiple" /><br />
     <br />

@@ -7,7 +7,8 @@
  * synthetic-hide-odd and synthetic-hide-even (tests/fixtures/data.sql) hide
  * the odd and even columns, so each of the 18 columns is checked hidden once
  * and shown once, in the header, the filter row, every voucher row, and the
- * CSV export. ?hide=-N / ?hide=N then show and hide a stored column again.
+ * CSV export. The column buttons (POST hide=-N / hide=N with the form token)
+ * then show and hide a stored column again; GET ?hide= changes nothing.
  *
  * Must stay compatible with PHP 5.6.
  */
@@ -49,10 +50,12 @@ function listing_part($body, $start, $end, $label)
     return substr($body, $from, $to - $from);
 }
 
-// The 18 header cells, each "<td>...</td>\n".
+// The 18 header cells, each "<td>...</td>\n", with the form token of the
+// column buttons as {{token}} (it differs per session).
 function header_cells($body, $label)
 {
     $row = listing_part($body, '<table><tr>', "</tr>\n<form", "$label header");
+    $row = preg_replace('/name="csrf_token" value="[0-9a-f]{64}"/', 'name="csrf_token" value="{{token}}"', $row);
     $cells = explode("</td>\n", $row);
     if (count($cells) !== LISTING_COLUMNS + 1 || end($cells) !== '') {
         fail_test("$label header has " . (count($cells) - 1) . ' cells');
@@ -128,8 +131,9 @@ function assert_html_listing($body, $reference, $hidden, $label)
     $referenceFilters = filter_cells($reference, "$label reference");
     foreach ($columns as $col => $isHidden) {
         if ($isHidden) {
-            $expectedHeader = '<td><a href="index.php?action=all&hide=-' . $col
-                . '"><img class="icon" src="icons/add.png"></a>';
+            $expectedHeader = '<td><form class="inline" action="index.php?action=all" method="post">'
+                . '<input type="hidden" name="csrf_token" value="{{token}}" /><button class="link" type="submit" name="hide" value="-'
+                . $col . '"><img class="icon" src="icons/add.png"></button></form>';
             $expectedFilter = filter_without_input($referenceFilters[$col]);
         } else {
             $expectedHeader = $referenceHeaders[$col];
@@ -185,6 +189,19 @@ function listing($cookies, $suffix = '')
 {
     $response = http_request(LISTING_PATH . $suffix, 'GET', array(), $cookies);
     assert_status($response, 200, 'listing ' . LISTING_PATH . $suffix);
+    if ($suffix !== '&format=csv') {
+        // The column buttons carry the form token of this session.
+        assert_contains($response['body'], '<input type="hidden" name="csrf_token" value="' . session_csrf_token($cookies)
+            . '" /><button class="link" type="submit" name="hide"', 'column buttons of ' . LISTING_PATH . $suffix);
+    }
+    return $response['body'];
+}
+
+// A column button: POST hide=$hide with the form token of the session.
+function hide_listing($cookies, $hide)
+{
+    $response = http_request(LISTING_PATH, 'POST', array('hide' => $hide), $cookies);
+    assert_status($response, 200, 'listing ' . LISTING_PATH . " with hide=$hide");
     return $response['body'];
 }
 
@@ -211,16 +228,18 @@ foreach ($users as $name => $user) {
 // must then be shown. Hiding it again restores the stored preference.
 list(, , $oddHidden, $oddCookies) = $users['odd'];
 $shown = array_values(array_diff($oddHidden, array(3)));
-assert_html_listing(listing($oddCookies, '&hide=-3'), $referenceHtml, $shown, 'odd-column listing after hide=-3');
+// The old GET link stores nothing.
+assert_html_listing(listing($oddCookies, '&hide=-3'), $referenceHtml, $oddHidden, 'odd-column listing after GET hide=-3');
+assert_html_listing(hide_listing($oddCookies, '-3'), $referenceHtml, $shown, 'odd-column listing after hide=-3');
 assert_html_listing(listing($oddCookies), $referenceHtml, $shown, 'odd-column listing, stored without 3');
 assert_csv_listing(listing($oddCookies, '&format=csv'), $referenceCsv, $shown, 'odd-column listing, stored without 3');
-assert_html_listing(listing($oddCookies, '&hide=3'), $referenceHtml, $oddHidden, 'odd-column listing after hide=3');
+assert_html_listing(hide_listing($oddCookies, '3'), $referenceHtml, $oddHidden, 'odd-column listing after hide=3');
 
 list(, , $evenHidden, $evenCookies) = $users['even'];
 $moreHidden = array_merge($evenHidden, array(1));
-assert_html_listing(listing($evenCookies, '&hide=1'), $referenceHtml, $moreHidden, 'even-column listing after hide=1');
+assert_html_listing(hide_listing($evenCookies, '1'), $referenceHtml, $moreHidden, 'even-column listing after hide=1');
 assert_csv_listing(listing($evenCookies, '&format=csv'), $referenceCsv, $moreHidden, 'even-column listing, stored with 1');
-assert_html_listing(listing($evenCookies, '&hide=-1'), $referenceHtml, $evenHidden, 'even-column listing after hide=-1');
+assert_html_listing(hide_listing($evenCookies, '-1'), $referenceHtml, $evenHidden, 'even-column listing after hide=-1');
 
 assert_no_unexpected_diagnostics();
 echo "Listing column preference tests passed\n";

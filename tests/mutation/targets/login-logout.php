@@ -9,7 +9,7 @@
  * tests/mutation/README.md for the format.
  */
 $login = array('start' => 'function login($user, $pass)', 'end' => 'require("constants.php");');
-$logout = array('start' => 'if ($page == "logout")', 'end' => 'if ($page == "login" && login_redirect())');
+$logout = array('start' => 'if ($page == "logout" && request_is_post())', 'end' => 'if ($page == "login" && login_redirect())');
 $loginBlock = array('start' => 'if ($page == "login" && login_redirect())', 'end' => '$year = date(\'Y\');');
 $loginRedirect = array('start' => 'function login_redirect()', 'end' => 'function page_login()');
 $checklogin = array('start' => 'function checklogin(', 'end' => '$page = "index";');
@@ -17,7 +17,7 @@ $pageLogin = array('start' => 'function page_login()', 'end' => '<h1>Login erfor
 
 // The early-answer blocks of index.php and the start of the page, used to
 // move one block back after acc_header() (the ordering before the fix).
-$logoutBlock = "if (\$page == \"logout\")\n{\n"
+$logoutBlock = "if (\$page == \"logout\" && request_is_post())\n{\n"
     . "  // Ends the session on the server too: its cookies stop working even if\n"
     . "  // a copy was kept. Wrong or missing cookies end nothing.\n"
     . "  \$logoutId = checklogin('id', false);\n  if (\$logoutId > 0)\n"
@@ -284,6 +284,9 @@ return array(
             'search' => "\$logoutId = checklogin('id', false);",
             'replace' => "\$logoutId = isset(\$_COOKIE['pp_pgacc_id']) ? intval(\$_COOKIE['pp_pgacc_id']) : 0;",
             'rationale' => 'Only the session of valid cookies is ended, not that of any user id sent in a cookie.',
+            'equivalent' => array('reason' => 'Since the form-token check, a logout POST reaches this block only with '
+                . 'a valid form token, i.e. after checklogin() accepted the cookies: the id cookie is then the id of '
+                . 'that session (intval() of the same digits). The guard stays as defence in depth.'),
         ),
         array(
             'id' => 'logout-without-session',
@@ -291,6 +294,9 @@ return array(
             'search' => 'if ($logoutId > 0)',
             'replace' => 'if (true)',
             'rationale' => 'Without a valid session there is nothing to end (the query would fail without an id).',
+            'equivalent' => array('reason' => 'Since the form-token check, a logout POST without a valid session gets '
+                . 'the token error before this block, so $logoutId is always positive here. The guard stays as '
+                . 'defence in depth.'),
         ),
         array(
             'id' => 'logout-login-cookie-kept',

@@ -2,7 +2,8 @@
 /*
  * Login session helpers in functions.php: CSPRNG bytes with their fallback,
  * the session key derived from $key, the users.cookie nonce, the
- * pp_pgacc_login token and its constant-time comparison.
+ * pp_pgacc_login token and its constant-time comparison, and the form token
+ * (CSRF) with its field, request check and the POST check.
  *
  * Runs on PHP 5.3 (PHPUnit 4.8, tests/php53/phpunit.xml): no "finally".
  */
@@ -398,5 +399,80 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertFalse(login_token_equals(false, false));
         self::assertFalse(login_token_equals('5', 5));
         self::assertFalse(login_token_equals($token, array($token)));
+    }
+
+    public function testFormTokenIsAnHmacOfTheSessionUnderItsOwnSubkey()
+    {
+        $login = '2026-10-24 10:00:00.123456';
+        $expected = hash_hmac(
+            'sha256',
+            'pgacc-csrf|1|5|' . $login,
+            hash_hmac('sha256', 'pgacc-csrf-key', self::TEST_KEY, true)
+        );
+        $token = csrf_session_token(1, 5, $login);
+        self::assertSame($expected, $token);
+        self::assertNotSame(login_session_token(1, 5, $login), $token);
+        self::assertNotSame($token, csrf_session_token(2, 5, $login));
+        self::assertNotSame($token, csrf_session_token(1, 6, $login));
+        self::assertNotSame($token, csrf_session_token(1, 5, '2026-10-24 10:00:00.123457'));
+        self::assertNotSame($token, csrf_session_token(11, 5, $login));
+        self::assertNotSame($token, csrf_session_token(1, 55, $login));
+        $GLOBALS['key'] = 'another-synthetic-test-key';
+        self::assertNotSame($token, csrf_session_token(1, 5, $login));
+        foreach (array('', '0123456789abcde', 'CHANGE-ME-to-a-long-random-key', null) as $key) {
+            $GLOBALS['key'] = $key;
+            self::assertFalse(csrf_session_token(1, 5, $login), var_export($key, true));
+        }
+    }
+
+    public function testFormTokenFieldAndCheck()
+    {
+        $hadToken = array_key_exists('csrf_token', $GLOBALS);
+        $previousToken = $hadToken ? $GLOBALS['csrf_token'] : null;
+        $previousPost = $_POST;
+        $token = str_repeat('ab', 32);
+        $GLOBALS['csrf_token'] = $token;
+        self::assertSame('<input type="hidden" name="csrf_token" value="' . $token . '" />', csrf_field());
+        $_POST = array('csrf_token' => $token);
+        self::assertTrue(csrf_request_valid());
+        foreach (array(array(), array('csrf_token' => ''), array('csrf_token' => 'cd' . substr($token, 2)),
+            array('csrf_token' => $token . 'a'), array('csrf_token' => array($token)), array('token' => $token)) as $post) {
+            $_POST = $post;
+            self::assertFalse(csrf_request_valid(), var_export($post, true));
+        }
+        // Without a session (checklogin() leaves false) nothing is valid,
+        // not even an empty field.
+        foreach (array(false, null, '') as $none) {
+            $GLOBALS['csrf_token'] = $none;
+            self::assertSame('<input type="hidden" name="csrf_token" value="" />', csrf_field());
+            foreach (array(array(), array('csrf_token' => ''), array('csrf_token' => $token)) as $post) {
+                $_POST = $post;
+                self::assertFalse(csrf_request_valid(), var_export(array($none, $post), true));
+            }
+        }
+        unset($GLOBALS['csrf_token']);
+        $_POST = array('csrf_token' => '');
+        self::assertFalse(csrf_request_valid());
+        $_POST = $previousPost;
+        if ($hadToken) {
+            $GLOBALS['csrf_token'] = $previousToken;
+        }
+    }
+
+    public function testRequestIsPost()
+    {
+        $hadMethod = array_key_exists('REQUEST_METHOD', $_SERVER);
+        $previousMethod = $hadMethod ? $_SERVER['REQUEST_METHOD'] : null;
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        self::assertTrue(request_is_post());
+        foreach (array('GET', 'HEAD', 'post', 'PUT', '') as $method) {
+            $_SERVER['REQUEST_METHOD'] = $method;
+            self::assertFalse(request_is_post(), $method);
+        }
+        unset($_SERVER['REQUEST_METHOD']);
+        self::assertFalse(request_is_post());
+        if ($hadMethod) {
+            $_SERVER['REQUEST_METHOD'] = $previousMethod;
+        }
     }
 }

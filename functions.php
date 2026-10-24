@@ -255,7 +255,7 @@ echo '
 if (strlen($rights === null ? '' : $rights) == 0)
   echo '<a href="index.php?action=login">Login</a>';
 if (strlen($rights === null ? '' : $rights) != 0)
-  echo '<a href="index.php?action=logout">Logout</a>';
+  echo '<form class="inline" action="index.php?action=logout" method="post">' . csrf_field() . '<button class="link" type="submit">Logout</button></form>';
 echo '      </div>
     </div>
     </div>
@@ -1129,6 +1129,41 @@ function login_session_token($id, $nonce, $login)
 function login_token_equals($known, $given)
 {
   return is_string($known) && is_string($given) && receipt_equals($known, $given);
+}
+
+// The form token (CSRF) of a session (64 hex digits), or false without a
+// valid $key: an HMAC of the session data of the pp_pgacc_login cookie under
+// its own subkey of $key. It changes with every login, stops working when
+// logout or a password change clears users.cookie, and does not reveal the
+// HttpOnly cookie when a page shows it.
+function csrf_session_token($id, $nonce, $login)
+{
+  $key = receipt_configured_key();
+  if ($key === '')
+    return false;
+  return hash_hmac('sha256', 'pgacc-csrf|' . $id . '|' . $nonce . '|' . $login, hash_hmac('sha256', 'pgacc-csrf-key', $key, true));
+}
+
+// The hidden form field with the form token of the session that checklogin()
+// accepted in this request (an empty value without one).
+function csrf_field()
+{
+  global $csrf_token;
+  return '<input type="hidden" name="csrf_token" value="' . (is_string($csrf_token) ? $csrf_token : '') . '" />';
+}
+
+// Whether the POST field csrf_token is the form token of the session that
+// checklogin() accepted (constant-time); false without a session.
+function csrf_request_valid()
+{
+  global $csrf_token;
+  return isset($_POST['csrf_token']) && is_string($csrf_token) && $csrf_token !== '' && login_token_equals($csrf_token, $_POST['csrf_token']);
+}
+
+// Whether this is a POST request: only those may change data.
+function request_is_post()
+{
+  return isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
 }
 
 // The Set-Cookie header of a login cookie: secure, HttpOnly and SameSite=Lax

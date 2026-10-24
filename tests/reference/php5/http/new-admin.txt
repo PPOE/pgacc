@@ -2,7 +2,7 @@
 # request: GET /index.php?action=new as admin
 status: 200
 header: Content-type: text/html
---- body (13641 bytes) ---
+--- body (13852 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -137,6 +137,7 @@ function clicked(init)
 }
 </script>
 <form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action=new" method="post">
+<input type="hidden" name="csrf_token" value="{{csrf-token}}" />
 
 <h1>Buchung erfassen</h1>
 
@@ -282,7 +283,7 @@ function clicked(init)
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
-<a href="index.php?action=logout">Logout</a>      </div>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
     </div>
     </div>
     </div>
