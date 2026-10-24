@@ -222,6 +222,62 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
     fail_test('BAWAG voucher ID import: expected one voucher after importing the same line twice');
 }
 
+// getusers() replaces the member list (ppmembers) only with a complete,
+// valid response of the membership stub (HTTPS, compose.test.yaml). A failed
+// fetch, a short or an undecryptable response stops the page with an error
+// and leaves the table as it was. The member-fee and import pages drop the
+// table after each view, so a table left in place (such as one of a
+// concurrent request) is planted here.
+function membership_stub_mode($mode)
+{
+    $answer = @file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=' . $mode);
+    if ($answer !== "mode $mode\n") {
+        fail_test("membership stub mode $mode: " . var_export($answer, true));
+    }
+}
+
+function member_rows($database)
+{
+    $result = @pg_query($database, 'SELECT id, name, lo, paid FROM ppmembers ORDER BY id, name');
+    if ($result === false) {
+        fail_test('ppmembers query failed: ' . pg_last_error($database));
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows === false ? array() : $rows;
+}
+
+membership_stub_mode('ok');
+$memberPage = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
+assert_status($memberPage, 200, 'member-fee page');
+assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
+foreach (array('DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',
+    "INSERT INTO ppmembers VALUES (8801, 'Synthetic Kept Member', 1, 1), (8802, 'Synthetic Kept Other', 10, 0)") as $query) {
+    if (@pg_query($database, $query) === false) {
+        fail_test('planting ppmembers failed: ' . pg_last_error($database));
+    }
+}
+$members = member_rows($database);
+$failures = array(
+    'short' => 'Daten von Mitgliederverwaltung zu kurz!',
+    'garbage' => 'Daten von Mitgliederverwaltung ungültig!',
+    'error' => 'Mitgliederliste konnte nicht abgerufen werden!',
+);
+foreach ($failures as $mode => $message) {
+    membership_stub_mode($mode);
+    foreach (array('mb', 'import') as $action) {
+        $failed = http_request("/index.php?action=$action", 'GET', array(), $adminCookies);
+        assert_contains($failed['body'], $message, "$action with a $mode member list");
+        if (member_rows($database) !== $members) {
+            fail_test("$action with a $mode member list changed ppmembers: " . var_export(array_slice(member_rows($database), 0, 2), true));
+        }
+    }
+}
+membership_stub_mode('ok');
+if (@pg_query($database, 'DROP TABLE ppmembers') === false) {
+    fail_test('dropping the planted ppmembers failed: ' . pg_last_error($database));
+}
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Bank import tests passed\n";
