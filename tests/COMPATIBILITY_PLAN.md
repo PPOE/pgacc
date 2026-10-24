@@ -310,10 +310,13 @@ Open security findings (not changed here; owner decisions):
   request's voucher and row IDs in its notices and heading; it now uses
   them as `intval()` numbers throughout, as its query already did (a
   request such as `id=5abc` shows "Buchung 5" instead of "Buchung 5abc").
-- [ ] The default organization of a single-organization user
-  (`get_voucher()`, `new.php`) uses `is_numeric()` and `intval()`, whose
-  results differ between PHP versions for unusual rights values (hex,
-  exponent notation, surrounding whitespace). Rights are entered by root.
+- [x] The default organization of a single-organization user
+  (`default_organization()`, `new.php`) used `is_numeric()` and `intval()`,
+  whose results differ between PHP versions for unusual rights values.
+  Fixed in the PR review: it takes the trimmed single token
+  (`rights_tokens()`, null-safe) and accepts only digits, like
+  `organization_allowed()`, so `2 ` is organization 2 on every version and
+  hex or exponent notation falls back to 10.
 - [ ] The login `target` is redirected to without a check
   (`login_redirect()`, `login()`).
 - [x] Old approval names posted with a revision were stored as given

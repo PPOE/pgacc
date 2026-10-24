@@ -686,6 +686,15 @@ assert_database_field(
     '1',
     'voucher with a padded organization'
 );
+// The default organization uses the trimmed single organization ('2 ' is
+// organization 2 on every PHP version).
+$trailingCookies = create_test_user($database, 56, 'synthetic-trailing-space', 'trailing-password', '2 ');
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, voucher_form_without_organization('Synthetic voucher of trailing-space rights', '-6.69', 0), $trailingCookies)),
+    'orga',
+    '2',
+    'voucher without organization of trailing-space rights'
+);
 $spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
 // (The voucher form of the edit page; the new-voucher page raises the open
 // $bgfandack finding.)

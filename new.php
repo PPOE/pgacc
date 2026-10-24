@@ -14,14 +14,14 @@ if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name 
 return $value;
 }
 // The organization of a voucher part that posts none: the user's single
-// organization, otherwise 10.
+// (numeric, trimmed) organization, otherwise 10.
 function default_organization($rights)
 {
 $default_lo = 10;
-$rights2 = explode(",", $rights);
-if (count($rights2) == 1 && is_numeric($rights))
+$rights2 = rights_tokens($rights);
+if (count($rights2) == 1 && preg_match('/^\d+$/D', $rights2[0]) == 1)
 {
-  $default_lo = intval($rights);
+  $default_lo = intval($rights2[0]);
 }
 return $default_lo;
 }

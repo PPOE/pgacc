@@ -41,7 +41,7 @@ return array(
         array(
             'id' => 'default-organization-fixed',
             'file' => 'new.php',
-            'search' => '  $default_lo = intval($rights);',
+            'search' => '  $default_lo = intval($rights2[0]);',
             'replace' => '  $default_lo = 10;',
             'rationale' => 'Without a posted organization, a user of one organization saves into that '
                 . 'organization (creation and revision).',
@@ -49,10 +49,17 @@ return array(
         array(
             'id' => 'default-organization-for-any-rights',
             'file' => 'new.php',
-            'search' => 'if (count($rights2) == 1 && is_numeric($rights))',
+            'search' => "if (count(\$rights2) == 1 && preg_match('/^\\d+\$/D', \$rights2[0]) == 1)",
             'replace' => 'if (count($rights2) == 1)',
             'rationale' => 'Only a single numeric organization is a default: a bgf user\'s voucher '
                 . 'without organization goes to organization 10, not intval(\'bgf\') = 0.',
+        ),
+        array(
+            'id' => 'default-organization-untrimmed',
+            'file' => 'new.php',
+            'search' => '$rights2 = rights_tokens($rights);',
+            'replace' => '$rights2 = explode(",", $rights === null ? \'\' : $rights);',
+            'rationale' => 'The single organization is trimmed: "2 " defaults to organization 2.',
         ),
         array(
             'id' => 'posted-organization-ignored',
