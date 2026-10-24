@@ -324,7 +324,8 @@ with synthetic users and covered by a mutation target.
   `functions.php`). The `pp_pgacc_login` cookie was the `mt_rand()` value
   stored in `users.cookie`. `users.cookie` stays an `integer` column (no
   schema change): it now holds a nonce of 31 random bits (1 to 2147483647)
-  from a CSPRNG (`openssl_random_pseudo_bytes()` with a strong result, else
+  from a CSPRNG (`random_bytes()` on PHP 7+, else
+  `openssl_random_pseudo_bytes()` with a strong result, else
   `mcrypt_create_iv()` with `/dev/urandom`; PHP 5.3 has no `random_bytes()`),
   replaced by every login. The cookie is
   `hash_hmac('sha256', "pgacc-login|<id>|<nonce>|<users.login>", K)` in hex
@@ -335,8 +336,11 @@ with synthetic users and covered by a mutation target.
   (`login_token_equals()`; PHP 5.3 has no `hash_equals()`). Neither the
   cookie nor `users.cookie` alone lets anyone forge a session without
   `$key`. Fails closed: without a valid `$key` (at least 16 characters, not
-  the `CHANGE-ME` placeholder) or a CSPRNG, nobody can log in (the login form
-  is shown again). Tests in `tests/http-login.php` (token format, rotation,
+  the `CHANGE-ME` placeholder) or a CSPRNG, or when the session cannot be
+  stored, nobody can log in (the login form is shown again);
+  `login_start_session()` logs the reason (`pgacc: login refused: ...`,
+  without key material), so that operators can tell it from a wrong
+  password. Tests in `tests/http-login.php` (token format, rotation,
   wrong, old-format and other users' tokens, 24-hour expiry) and
   `LoginSessionTest`, mutations in `login-logout`.
   **Deploy:** check that `constants.php` sets a valid `$key` (also needed for

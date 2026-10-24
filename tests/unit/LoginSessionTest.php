@@ -7,7 +7,23 @@
  * Runs on PHP 5.3 (PHPUnit 4.8, tests/php53/phpunit.xml): no "finally".
  */
 
-// Stand-ins for openssl_random_pseudo_bytes() and mcrypt_create_iv().
+// Stand-ins for random_bytes(), openssl_random_pseudo_bytes() and
+// mcrypt_create_iv().
+function login_test_random_bytes($length)
+{
+    return str_repeat('r', $length);
+}
+
+function login_test_throwing_random_bytes($length)
+{
+    throw new Exception('no random source');
+}
+
+function login_test_short_random_bytes($length)
+{
+    return str_repeat('u', $length - 1);
+}
+
 function login_test_strong_bytes($length, &$strong)
 {
     $strong = true;
@@ -88,25 +104,37 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertSame(4, strlen(login_random_bytes(4)));
     }
 
+    public function testRandomBytesPreferRandomBytes()
+    {
+        self::assertSame('rrrr', login_random_bytes(4, 'login_test_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('ssss', login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('ssss', login_random_bytes(4, 'login_test_short_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_weak_bytes', 'login_test_mcrypt_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_weak_bytes', 'login_test_missing_mcrypt'));
+        if (function_exists('random_bytes')) {
+            self::assertSame(4, strlen(login_random_bytes(4, 'random_bytes', 'login_test_missing_openssl', 'login_test_missing_mcrypt')));
+        }
+    }
+
     public function testRandomBytesPreferStrongOpenssl()
     {
-        self::assertSame('ssss', login_random_bytes(4, 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('ssss', login_random_bytes(4, 'login_test_missing_random', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
     }
 
     public function testRandomBytesFallBackToMcryptUrandom()
     {
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_weak_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_short_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_failing_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_silent_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_openssl', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_weak_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_short_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_failing_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_silent_bytes', 'login_test_mcrypt_bytes'));
+        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_mcrypt_bytes'));
     }
 
     public function testRandomBytesFailClosed()
     {
-        self::assertFalse(login_random_bytes(4, 'login_test_weak_bytes', 'login_test_missing_mcrypt'));
-        self::assertFalse(login_random_bytes(4, 'login_test_missing_openssl', 'login_test_missing_mcrypt'));
-        self::assertFalse(login_random_bytes(4, 'login_test_missing_openssl', 'login_test_mcrypt_short_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_weak_bytes', 'login_test_missing_mcrypt'));
+        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_missing_mcrypt'));
+        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_mcrypt_short_bytes'));
     }
 
     public function testSessionKeyIsDerivedFromAValidKey()
@@ -122,7 +150,6 @@ final class LoginSessionTest extends FunctionsTestCase
             $GLOBALS['key'] = $key;
             self::assertFalse(login_session_key(), var_export($key, true));
             self::assertFalse(login_session_token(1, 5, '2026-10-24 10:00:00.123456'), var_export($key, true));
-            self::assertFalse(login_new_nonce(), var_export($key, true));
         }
         unset($GLOBALS['key']);
         self::assertFalse(login_session_key());
@@ -144,11 +171,108 @@ final class LoginSessionTest extends FunctionsTestCase
     {
         $nonces = array();
         for ($i = 0; $i < 20; $i++) {
-            $nonce = login_new_nonce();
+            $nonce = login_nonce(login_random_bytes(4));
             self::assertTrue(is_int($nonce) && $nonce >= 1 && $nonce <= 2147483647, var_export($nonce, true));
             $nonces[$nonce] = true;
         }
         self::assertGreaterThan(18, count($nonces));
+    }
+
+    private static function cookieOf($connection)
+    {
+        $row = pg_fetch_assoc(pg_query($connection, 'SELECT cookie::text AS cookie FROM users WHERE id = 7'));
+        return $row['cookie'];
+    }
+
+    /*
+     * Runs login_start_session() in a transaction that is rolled back, with
+     * error_log() redirected; returns array(result, log text, users.cookie of
+     * user 7 before, and after).
+     */
+    private static function startSession($bytes = null, $failTransaction = false, $userId = 7)
+    {
+        $connection = pg_connect(pgacc_test_connection_string());
+        self::assertNotFalse($connection);
+        pg_query($connection, 'BEGIN');
+        $before = self::cookieOf($connection);
+        if ($failTransaction) {
+            @pg_query($connection, 'SELECT 1 / 0');
+        }
+        $log = tempnam(sys_get_temp_dir(), 'pgacc-log-');
+        $previous = ini_set('error_log', $log);
+        try {
+            $result = login_start_session($connection, $userId, $bytes);
+        } catch (Exception $exception) {
+            ini_set('error_log', $previous);
+            unlink($log);
+            pg_query($connection, 'ROLLBACK');
+            throw $exception;
+        }
+        ini_set('error_log', $previous);
+        $text = file_get_contents($log);
+        unlink($log);
+        $after = $failTransaction ? $before : self::cookieOf($connection);
+        pg_query($connection, 'ROLLBACK');
+        return array($result, $text, $before, $after);
+    }
+
+    public function testStartSessionStoresANewNonceAndReturnsItsToken()
+    {
+        $connection = pg_connect(pgacc_test_connection_string());
+        self::assertNotFalse($connection);
+        pg_query($connection, 'BEGIN');
+        $log = tempnam(sys_get_temp_dir(), 'pgacc-log-');
+        $previous = ini_set('error_log', $log);
+        $token = login_start_session($connection, 7);
+        $second = login_start_session($connection, '7', "\x00\x00\x00\x2a");
+        ini_set('error_log', $previous);
+        $text = file_get_contents($log);
+        unlink($log);
+        $state = pg_fetch_assoc(pg_query($connection, "SELECT cookie::text AS cookie, login::text AS login, login > now() - '1 minute'::interval AS recent FROM users WHERE id = 7"));
+        pg_query($connection, 'ROLLBACK');
+        self::assertSame('', $text);
+        self::assertSame(1, preg_match('/^[0-9a-f]{64}$/', $token));
+        self::assertNotSame($token, $second);
+        self::assertSame('42', $state['cookie']);
+        self::assertSame('t', $state['recent']);
+        self::assertSame(login_session_token(7, 42, $state['login']), $second);
+    }
+
+    public function testStartSessionFailsClosed()
+    {
+        // Without a valid key: nothing is stored.
+        $GLOBALS['key'] = 'short';
+        list($result, $text, $before, $after) = self::startSession();
+        self::assertFalse($result);
+        self::assertSame($before, $after);
+        self::assertStringContainsStringCompat('pgacc: login refused: no valid session key', $text);
+        self::assertStringNotContainsStringCompat('short', str_replace('pgacc: login refused: no valid session key ($key in constants.php)', '', $text));
+        $GLOBALS['key'] = self::TEST_KEY;
+
+        // Without random bytes.
+        list($result, $text, $before, $after) = self::startSession(false);
+        self::assertFalse($result);
+        self::assertSame($before, $after);
+        self::assertStringContainsStringCompat('pgacc: login refused: no secure random source', $text);
+
+        // The session cannot be stored: a failing query, or no such user.
+        list($result, $text) = self::startSession("\x00\x00\x00\x2a", true);
+        self::assertFalse($result);
+        self::assertStringContainsStringCompat('pgacc: login refused: the session of user 7 could not be stored', $text);
+        list($result, $text) = self::startSession("\x00\x00\x00\x2a", false, 987654);
+        self::assertFalse($result);
+        self::assertStringContainsStringCompat('pgacc: login refused: the session of user 987654 could not be stored', $text);
+    }
+
+    // PHPUnit 4.8 (PHP 5.3 lane) has no assertStringContainsString().
+    private static function assertStringContainsStringCompat($needle, $haystack)
+    {
+        self::assertTrue(strpos($haystack, $needle) !== false, "'$needle' not in '$haystack'");
+    }
+
+    private static function assertStringNotContainsStringCompat($needle, $haystack)
+    {
+        self::assertTrue(strpos($haystack, $needle) === false, "'$needle' in '$haystack'");
     }
 
     public function testSessionTokenIsAnHmacOfIdNonceAndLoginTime()

@@ -1008,11 +1008,25 @@ function membership_decrypt($datakey, $data)
  * log in, and changing $key ends every session.
  */
 
-// $length bytes from a CSPRNG, or false. PHP 5.3 has no random_bytes():
-// openssl (only a cryptographically strong result), else mcrypt's
-// /dev/urandom source. The function names are parameters for the tests.
-function login_random_bytes($length, $openssl = 'openssl_random_pseudo_bytes', $mcrypt = 'mcrypt_create_iv')
+// $length bytes from a CSPRNG, or false: random_bytes() (PHP 7+), else
+// openssl (only a cryptographically strong result; PHP 5.3 has no
+// random_bytes()), else mcrypt's /dev/urandom source. The function names are
+// parameters for the tests.
+function login_random_bytes($length, $random = 'random_bytes', $openssl = 'openssl_random_pseudo_bytes', $mcrypt = 'mcrypt_create_iv')
 {
+  if (function_exists($random))
+  {
+    try
+    {
+      $bytes = $random($length);
+      if (strlen($bytes) == $length)
+        return $bytes;
+    }
+    catch (Exception $exception)
+    {
+      // No random source: try the next one.
+    }
+  }
   if (function_exists($openssl))
   {
     $strong = false;
@@ -1051,13 +1065,31 @@ function login_nonce($bytes)
   return max(1, $value[1] & 0x7FFFFFFF);
 }
 
-// A new users.cookie nonce, or false without a valid $key or a CSPRNG: the
-// login then fails.
-function login_new_nonce()
+// Starts a session of user $id: stores a new nonce and the login time and
+// returns the pp_pgacc_login token. Fails closed (false, logged without key
+// material) without a valid $key or a random source, or when the session
+// cannot be stored. $bytes: the random bytes of the nonce (for the tests).
+function login_start_session($connection, $id, $bytes = null)
 {
   if (login_session_key() === false)
+  {
+    error_log('pgacc: login refused: no valid session key ($key in constants.php)');
     return false;
-  return login_nonce(login_random_bytes(4));
+  }
+  $nonce = login_nonce($bytes === null ? login_random_bytes(4) : $bytes);
+  if ($nonce === false)
+  {
+    error_log('pgacc: login refused: no secure random source');
+    return false;
+  }
+  $id = intval($id);
+  $session = @pg_query($connection, "UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");
+  if ($session === false || pg_num_rows($session) != 1)
+  {
+    error_log("pgacc: login refused: the session of user $id could not be stored");
+    return false;
+  }
+  return login_session_token($id, $nonce, pg_fetch_result($session, 0, 0));
 }
 
 // The pp_pgacc_login cookie of a session (64 hex digits), or false without a

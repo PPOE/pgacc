@@ -12,6 +12,7 @@ global $user_prefs_hide;
 $user_prefs_hide = array();
 function login($user, $pass)
 {
+  global $dbconn;
   $user = pg_escape_string($user);
   $pass = pg_escape_string($pass);
   $data = pg_query("SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -19,12 +20,12 @@ function login($user, $pass)
     return 0;
   while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
   {
-    // Fails closed without a valid $key or a CSPRNG (functions.php).
-    if ($line['success'] == 't' && ($nonce = login_new_nonce()) !== false)
+    // Fails closed without a valid $key, a CSPRNG or a stored session
+    // (functions.php): the login form is shown again.
+    if ($line['success'] == 't' && ($token = login_start_session($dbconn, $line['id'])) !== false)
     {
       $id = $line['id'];
-      $session = pg_query("UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");
-      header(login_cookie_header("pp_pgacc_login", login_session_token($id, $nonce, pg_fetch_result($session, 0, 0)), 86400), false);
+      header(login_cookie_header("pp_pgacc_login", $token, 86400), false);
       header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
       pg_free_result($data);
       if (isset($_POST['target']))
