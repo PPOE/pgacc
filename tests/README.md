@@ -185,10 +185,12 @@ transaction, spending and virtual-account pages, the account report, the
 membership-fee page and the import reports show them as text
 (`&lt;s&gt;...`), that ordinary values and umlauts are unchanged, that
 reflected filter values, sort links and the CSV link are encoded, and that
-the CSV export keeps the raw text, prefixes formula cells (`=`, `+`, `-`,
-`@`) with `'` and turns tabs and carriage returns inside a cell into spaces. It removes its rows afterwards. Pages
+the CSV export keeps the raw text, prefixes formula and quoted cells (`=`,
+`+`, `-`, `@`, `"`, also after spaces) with `'` and keeps tabs and line
+breaks from splitting cells. Forms shown again from posted values keep
+quotes and backslashes as entered, and saving stores them unchanged. It removes its rows afterwards. Pages
 with known diagnostics outside its scope are attributed to the known
-failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR` and
+failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR`, `KF-NEW-UNDEFINED-BGFANDACK` and
 `KF-REPORT-UNDEFINED-UNIT` (see `COMPATIBILITY_PLAN.md`), which must still
 occur.
 

@@ -25,7 +25,15 @@ if (count($rights2) == 1 && preg_match('/^\d+$/D', $rights2[0]) == 1)
 }
 return $default_lo;
 }
-function get_voucher($part,$rights)
+// get_voucher() text fields: SQL-escaped for the insert, as posted for a
+// form that is shown again.
+function voucher_text($value, $escape)
+{
+  if ($escape)
+    return pg_escape_string($value);
+  return $value;
+}
+function get_voucher($part,$rights,$escape = true)
 {
   $filepart = $part;
 $voucher['bid'] = get_param($part, 'bid', 0, '/^\d+$/');
@@ -52,19 +60,19 @@ $voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/'
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
 if ($voucher['type'] == 45)
   $voucher['amount'] = "0.00";
-$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'));
-$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['vkonto'] = pg_escape_string(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
-$voucher['commentgf'] = pg_escape_string(get_param($part, 'commentgf', '', null));
+$voucher['gegenkonto'] = voucher_text(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'), $escape);
+$voucher['konto'] = voucher_text(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['vkonto'] = voucher_text(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['comment'] = voucher_text(get_param($part, 'comment', '', null), $escape);
+$voucher['commentgf'] = voucher_text(get_param($part, 'commentgf', '', null), $escape);
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['refund'] = get_param_bool($part, 'refund', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
 $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
-$voucher['name'] = pg_escape_string(get_param($part, 'name', '', null));
-$voucher['street'] = pg_escape_string(get_param($part, 'street', '', null));
-$voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
-$voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
+$voucher['name'] = voucher_text(get_param($part, 'name', '', null), $escape);
+$voucher['street'] = voucher_text(get_param($part, 'street', '', null), $escape);
+$voucher['plz'] = voucher_text(get_param($part, 'plz', '', null), $escape);
+$voucher['city'] = voucher_text(get_param($part, 'city', '', null), $escape);
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
@@ -505,11 +513,11 @@ block_end();
 function page_new_buchung($part, $part_to_remove,$rights,$add)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
-	$voucher = get_voucher($part+1,$rights);
+	$voucher = get_voucher($part+1,$rights,false);
 else if ($add)
-  $voucher = get_voucher($part-1,$rights);
+  $voucher = get_voucher($part-1,$rights,false);
 else
-	$voucher = get_voucher($part,$rights);
+	$voucher = get_voucher($part,$rights,false);
 
 if ($add == 2)
 {

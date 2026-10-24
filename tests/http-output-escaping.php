@@ -41,12 +41,6 @@ function escaped($field)
     return "&lt;s&gt;$field&lt;/s&gt; &amp; &quot;Ö&quot; &#039;x&#039;";
 }
 
-// In a double-quoted attribute only the quotes are encoded.
-function attribute($field)
-{
-    return "<s>$field</s> & &quot;Ö&quot; &#039;x&#039;";
-}
-
 function assert_escaped($body, $field, $label)
 {
     assert_contains($body, escaped($field), "$label ($field)");
@@ -145,7 +139,7 @@ insert_voucher($database, $voucherColumns, array(9003, 9003, 91, 90, 'false', nu
 // CSV cells that a spreadsheet would read as formulas.
 insert_voucher($database, $voucherColumns, array(9004, 9004, 91, 90, 'false', null, '-2+3', '+cmd|x',
     "\tTab", "\rCR", '@SUM(A1)', -400, 'TEST-ESCAPING', '=HYPERLINK("http://example.invalid")', 'false', 'false',
-    'false', '2024-07-04', 'reviewer-a', 'reviewer-b', 1, 0, 1, '=1+1', 'false', '', null, null));
+    'false', '2024-07-04', 'reviewer-a', 'reviewer-b', 1, 0, 1, '=1+1', 'false', "\"A\tB", null, null));
 
 $admin = login_user('synthetic-admin', 'correct-password');
 
@@ -180,7 +174,7 @@ assert_contains($csv, "\n" . $csvRow, 'CSV row with markup');
 assert_not_contains($csv, '&lt;', 'CSV export');
 assert_not_contains($csv, '&quot;', 'CSV export');
 assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
-assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x  Tab  CR @SUM(A1)\t\n", 'CSV row with formulas');
+assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t'\"A B\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x  Tab  / CR @SUM(A1)\t\n", 'CSV row with formulas');
 
 // Filter values are reflected in the sort links and the filter inputs.
 $filters = array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_k',
@@ -193,31 +187,29 @@ foreach ($filters as $filter) {
 $filtered = with_expected_diagnostics('KF-AMOUNT-FILTER-REGEX', array(array('functions.php', 'preg_match()')), function () use ($query, $admin) {
     return page('/index.php?' . $query, $admin);
 });
-assert_contains($filtered, '<input type="hidden" name="sort" value="' . attribute('sort') . '" />', 'sort input');
+assert_contains($filtered, '<input type="hidden" name="sort" value="' . escaped('sort') . '" />', 'sort input');
 $sortFilters = '';
 foreach ($filters as $filter) {
-    if ($filter !== 'filter_refund') {
-        $sortFilters .= "&$filter=" . attribute($filter);
-    }
-    $value = 'name="' . $filter . '" value="' . attribute($filter) . '"';
+    $sortFilters .= "&amp;$filter=" . rawurlencode(payload($filter));
+    $value = 'name="' . $filter . '" value="' . escaped($filter) . '"';
     assert_contains($filtered, $value, "$filter input");
-    assert_not_contains($filtered, payload($filter), "filtered listing ($filter)");
+    assert_escaped($filtered, $filter, 'filtered listing');
 }
-assert_contains($filtered, '<a href="index.php?action=all&sort=idd' . $sortFilters . '">Buchung</a>', 'sort link');
-assert_not_contains($filtered, payload('sort'), 'filtered listing (sort)');
-// An ordinary amount filter keeps its bytes.
-$amount = page('/index.php?action=all&filter_amount=' . rawurlencode('>0') . '&filter_text=' . rawurlencode('Büro'), $admin);
-assert_contains($amount, '<a href="index.php?action=all&sort=idd&filter_amount=>0&filter_text=Büro">Buchung</a>', 'amount filter link');
-assert_contains($amount, 'name="filter_amount" value=">0"', 'amount filter input');
+assert_contains($filtered, '<a href="index.php?action=all&amp;sort=idd' . $sortFilters . '">Buchung</a>', 'sort link');
+assert_escaped($filtered, 'sort', 'filtered listing');
+// Sort links carry the filters URL-encoded, so &, #, % and + survive.
+$amount = page('/index.php?action=all&filter_amount=' . rawurlencode('>0') . '&filter_text=' . rawurlencode('Büro') . '&filter_name=' . rawurlencode('a&b#c%d+e'), $admin);
+assert_contains($amount, '<a href="index.php?action=all&amp;sort=idd&amp;filter_amount=%3E0&amp;filter_text=B%C3%BCro&amp;filter_name=a%26b%23c%25d%2Be">Buchung</a>', 'amount filter link');
+assert_contains($amount, 'name="filter_amount" value="&gt;0"', 'amount filter input');
+assert_contains($amount, 'name="filter_name" value="a&amp;b#c%d+e"', 'name filter input');
 $deleted = page('/index.php?action=deleted&filter_text=' . rawurlencode(payload('deleted-filter')), $admin);
-assert_contains($deleted, 'name="filter_text" value="' . attribute('deleted-filter') . '"', 'deleted listing');
-assert_not_contains($deleted, payload('deleted-filter'), 'deleted listing');
+assert_contains($deleted, 'name="filter_text" value="' . escaped('deleted-filter') . '"', 'deleted listing');
+assert_escaped($deleted, 'deleted-filter', 'deleted listing');
 
 // The CSV link repeats the request URI in an attribute.
 $uri = page('/index.php?action=all&filter_date=2024&x="><s>uri</s>\'', $admin);
-assert_contains($uri, '<a href="/index.php?action=all&filter_date=2024&x=&quot;><s>uri</s>&#039;&format=csv">Als CSV Datei herunterladen</a>', 'CSV link');
-assert_not_contains($uri, 'x="><s>uri', 'CSV link');
-assert_not_contains($uri, "</s>'&format", 'CSV link');
+assert_contains($uri, '<a href="/index.php?action=all&amp;filter_date=2024&amp;x=&quot;&gt;&lt;s&gt;uri&lt;/s&gt;&#039;&amp;format=csv">Als CSV Datei herunterladen</a>', 'CSV link');
+assert_not_contains($uri, '<s>uri</s>', 'CSV link');
 
 // Edit form (new.php page_edit_form() and edit.php page_edit()).
 $edit = page('/index.php?action=edit&id=9001', $admin);
@@ -238,6 +230,46 @@ foreach (array('type-in' => 90, 'type-out' => 91, 'type-wk' => 92, 'ptname' => 1
 }
 foreach (array('ack1', 'ack2', 'ackold1', 'ackold2', 'contra', 'account', 'comment', 'commentgf', 'vaccount', 'name', 'street', 'plz', 'city', 'type-in', 'type-out', 'type-wk', 'ptname', 'lo') as $field) {
     assert_escaped($edit, $field, 'edit');
+}
+
+// The new-voucher form reads the undefined $bgfandack (end_of_form()).
+function new_form($admin, $form)
+{
+    return with_expected_diagnostics('KF-NEW-UNDEFINED-BGFANDACK', array(array('new.php', 'Undefined variable')), function () use ($admin, $form) {
+        return page('/index.php?action=new', $admin, 'POST', $form);
+    });
+}
+// Forms re-rendered from the posted values show them as entered: a quote
+// and a backslash are not doubled by the SQL escaping of get_voucher().
+$entered = "O'Brien \\ Ö & <b>";
+$enteredHtml = 'O&#039;Brien \\ Ö &amp; &lt;b&gt;';
+$posted = array('parts' => '1', 'add' => 'Buchungszeile hinzufügen', 'name0' => $entered, 'street0' => $entered, 'plz0' => $entered,
+    'city0' => $entered, 'comment0' => $entered, 'commentgf0' => $entered);
+$newForm = new_form($admin, $posted);
+$editForm = page('/index.php?action=edit&id=9001', $admin, 'POST', array_merge($posted, array('changed' => '1', 'id' => '9001')));
+foreach (array('new' => $newForm, 'edit' => $editForm) as $label => $form) {
+    foreach (array('name0', 'street0', 'plz0', 'city0', 'comment0', 'commentgf0') as $input) {
+        assert_contains($form, 'name="' . $input . '" value="' . $enteredHtml . '" onchange="clicked();" />', "$label form $input");
+    }
+    assert_contains($form, 'name="name1" value="' . $enteredHtml . '" onchange="clicked();" />', "$label form added part");
+}
+
+// A removed part shows the next part's posted values.
+$removedPost = array('parts' => '2', 'remove' => '0', 'name1' => $entered);
+$newRemoved = new_form($admin, $removedPost);
+$editRemoved = page('/index.php?action=edit&id=9001', $admin, 'POST', array_merge($removedPost, array('changed' => '1', 'id' => '9001')));
+foreach (array('new' => $newRemoved, 'edit' => $editRemoved) as $label => $form) {
+    assert_contains($form, 'name="name0" value="' . $enteredHtml . '" onchange="clicked();" />', "$label form after removing a part");
+}
+// Saving still escapes the values for SQL: they are stored as entered.
+$savedForm = page('/index.php?action=new', $admin, 'POST', array('parts' => '1', 'speichern' => 'Speichern', 'date0' => '2024-07-06',
+    'dir0' => 'in', 'in_type0' => '90', 'lo0' => '90', 'amount0' => '1,00', 'name0' => $entered, 'comment0' => $entered,
+    'commentgf0' => $entered, 'street0' => $entered, 'plz0' => $entered, 'city0' => $entered));
+assert_contains($savedForm, '<h1>Buchung erfasst', 'saved voucher');
+$stored = pg_fetch_assoc(escaping_query($database, 'SELECT name, comment, commentgf, street, plz, city FROM vouchers WHERE NOT deleted AND date = $1 AND orga = 90 AND amount = 100',
+    array('2024-07-06')));
+if ($stored === false || count(array_unique(array_values($stored))) !== 1 || $stored['name'] !== $entered) {
+    fail_test('saved voucher: ' . var_export($stored, true));
 }
 
 // User administration (accounts.php) for root.
@@ -315,6 +347,8 @@ foreach (array('account', 'type-in', 'type-out') as $field) {
 // membership system ("O'Brien Synthetisch", member 9033).
 $feeColumns = 'id, voucher_id, type, orga, member, member_id, amount, deleted, date, ack1, ack2';
 insert_voucher($database, $feeColumns, array(9005, 9005, 1, 90, 'true', 9004, 500, 'false', date('Y-m-d'), 'reviewer-a', 'reviewer-b'));
+// An open loan (type 13) shows its name.
+insert_voucher($database, 'id, voucher_id, type, orga, member, name, amount, deleted, date', array(9007, 9007, 13, 90, 'false', payload('loan'), 700, 'false', '2024-07-05'));
 $mb = page('/index.php?action=mb', $admin);
 assert_contains($mb, '<tr><td>' . escaped('lo2') . '</td><td>', 'mb organization of members');
 assert_contains($mb, "<tr><td>$lo</td><td>5.00 €</td></tr>", 'mb organization of accounts');
@@ -327,6 +361,8 @@ $consistent = body_part($mb, '<h2>Mitglieder mit konsistentem Zahlungsstatus</h2
 assert_contains($consistent, "<td>O&#039;Brien Synthetisch</td>", 'mb consistent member');
 assert_not_contains($mb, "O'Brien", 'mb');
 assert_contains($mb, '<td>Anna Synthetisch-Müller</td>', 'mb member with umlauts');
+assert_contains($mb, '<a href="index.php?action=edit&id=9007">9007</a></td>' . "\n  <td>7</td>\n  <td>" . escaped('loan') . '</td></tr>', 'mb open loan');
+assert_escaped($mb, 'loan', 'mb');
 
 // Bank CSV import (import.php): file names, MIME types and the report of an
 // invalid line. Each imported line raises the known KF-IMPORT-REGEX-G warning.
@@ -365,8 +401,9 @@ assert_contains($receipt, 'Datei 1 (&lt;i id=pdf&gt;&amp;ä.pdf):<br />Hat ein u
 assert_not_contains($receipt, '<i id=', 'receipt import');
 
 // Remove the rows again and restore the changed names.
-pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9001 AND 9006'));
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9001 AND 9007'));
 pg_free_result(escaping_query($database, "DELETE FROM vouchers WHERE comment LIKE '%csvline%'"));
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE name = $1', array($entered)));
 pg_free_result(escaping_query($database, 'DELETE FROM users WHERE id = 90'));
 pg_free_result(escaping_query($database, 'DELETE FROM type WHERE id IN (90, 91, 92)'));
 pg_free_result(escaping_query($database, 'DELETE FROM oo WHERE id = 90'));

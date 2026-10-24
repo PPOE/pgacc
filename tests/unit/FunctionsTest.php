@@ -16,7 +16,7 @@ final class FunctionsTest extends FunctionsTestCase
         ob_start();
         csv_download_link();
         $withoutCount = ob_get_clean();
-        self::assertStringContainsString('/index.php?action=all&format=csv', $withoutCount);
+        self::assertStringContainsString('/index.php?action=all&amp;format=csv', $withoutCount);
         self::assertStringNotContainsString('Umsätze gefunden', $withoutCount);
 
         ob_start();
@@ -24,12 +24,11 @@ final class FunctionsTest extends FunctionsTestCase
         $withCount = ob_get_clean();
         self::assertStringContainsString('3 Umsätze gefunden', $withCount);
 
-        // The request URI is reflected in an attribute: quotes are encoded, angle
-        // brackets and ampersands are kept as before.
-        $_SERVER['REQUEST_URI'] = '/index.php?action=all&filter_date=2024&x="><s>\'';
+        // The request URI is reflected in an attribute and HTML-encoded.
+        $_SERVER['REQUEST_URI'] = '/index.php?action=all&filter_date=2024&x="><s>\'&amp;';
         ob_start();
         csv_download_link();
-        self::assertSame('<br style="clear: both;" /><center><a href="/index.php?action=all&filter_date=2024&x=&quot;><s>&#039;&format=csv">Als CSV Datei herunterladen</a></center>', ob_get_clean());
+        self::assertSame('<br style="clear: both;" /><center><a href="/index.php?action=all&amp;filter_date=2024&amp;x=&quot;&gt;&lt;s&gt;&#039;&amp;amp;&amp;format=csv">Als CSV Datei herunterladen</a></center>', ob_get_clean());
 
         $GLOBALS['make_csv'] = true;
         ob_start();
@@ -133,9 +132,21 @@ final class FunctionsTest extends FunctionsTestCase
             // Tabs and line breaks inside a cell would split the
             // tab-separated cell or row.
             'tab in a cell' => array(array('td', "one\ttwo"), "<td>one\ttwo</td>\n", "one two\t"),
-            'carriage return in a cell' => array(array('td', "one\rtwo"), "<td>one\rtwo</td>\n", "one two\t"),
+            'carriage return in a cell' => array(array('td', "one\rtwo"), "<td>one\rtwo</td>\n", "one / two\t"),
+            'carriage return in other tags' => array(array('th', "one\rtwo"), "<th>one\rtwo</th>\n", 'one / two'),
             'windows line break in a cell' => array(array('td', "one\r\ntwo"), "<td>one\r\ntwo</td>\n", "one / two\t"),
-            'leading tab' => array(array('td', "\t=1"), "<td>\t=1</td>\n", " =1\t"),
+            'leading tab' => array(array('td', "\t=1"), "<td>\t=1</td>\n", "' =1\t"),
+            'formula after spaces' => array(array('td', '  @SUM(A1)'), "<td>  @SUM(A1)</td>\n", "'  @SUM(A1)\t"),
+            'number after a space' => array(array('td', ' -5'), "<td> -5</td>\n", "' -5\t"),
+            'text after a space' => array(array('td', ' x=1'), "<td> x=1</td>\n", " x=1\t"),
+            // A leading double quote would start a quoted field that the
+            // spreadsheet unquotes (and evaluates) or merges with the next cells.
+            'leading double quote' => array(array('td', '"=1"'), "<td>\"=1\"</td>\n", "'\"=1\"\t"),
+            'double quote after a space' => array(array('td', ' "x'), "<td> \"x</td>\n", "' \"x\t"),
+            'double quote inside' => array(array('td', 'a"b'), "<td>a\"b</td>\n", "a\"b\t"),
+            // Amounts have a decimal point; other characters are no amount.
+            'formula with euro sign' => array(array('td', '-1+2€'), "<td>-1+2€</td>\n", "'-1+2€\t"),
+            'euro amount without decimals' => array(array('td', '-12€'), "<td>-12€</td>\n", "-12€\t"),
             'tabs of a row are kept' => array(array('tr', "a\tb\t"), "<tr>a\tb\t</tr>\n", "a\tb\t\n"),
             'formula character inside' => array(array('td', 'a=b+c-d@e'), "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"),
             'formula character in other tags' => array(array('tr', '=x'), "<tr>=x</tr>\n", "=x\n"),
@@ -175,14 +186,6 @@ final class FunctionsTest extends FunctionsTestCase
         $GLOBALS['make_csv'] = true;
         self::assertSame('<b>Jörg "Q" O\'Brien & Co</b>', listing_text('<b>Jörg "Q" O\'Brien & Co</b>'));
         self::assertNull(listing_text(null));
-    }
-
-    public function testHtmlEscapeAttributeEncodesQuotesOnly()
-    {
-        self::assertSame('/index.php?action=all&amp;x=1', html_escape_attribute('/index.php?action=all&amp;x=1'));
-        self::assertSame('/index.php?action=all&filter_amount=>0&x=&quot;><s>&#039;ä', html_escape_attribute('/index.php?action=all&filter_amount=>0&x="><s>\'ä'));
-        self::assertSame('', html_escape_attribute(null));
-        self::assertSame('42', html_escape_attribute(42));
     }
 
     /**

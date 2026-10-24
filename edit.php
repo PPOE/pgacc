@@ -253,15 +253,15 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
 if (isset($_POST["changed"]))
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
-        $voucher = get_voucher($part+1,$rights);
+        $voucher = get_voucher($part+1,$rights,false);
 else if ($new_part)
 {
-        $voucher = get_voucher($part-1,$rights);
+        $voucher = get_voucher($part-1,$rights,false);
         $voucher['file'] = -1;
         $voucher['bid'] = 0;
 }
 else
-        $voucher = get_voucher($part,$rights);
+        $voucher = get_voucher($part,$rights,false);
 }
 else
 {

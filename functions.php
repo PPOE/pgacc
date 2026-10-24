@@ -28,7 +28,7 @@ function csv_download_link($i = -1)
   echo "<br style=\"clear: both;\" /><center>";
   if ($i >= 0)
     echo "$i Umsätze gefunden<br /><br />";
-  echo "<a href=\"" . html_escape_attribute($link) . "\">Als CSV Datei herunterladen</a></center>";
+  echo "<a href=\"" . html_escape($link) . "\">Als CSV Datei herunterladen</a></center>";
 }
 function getfilter()
 {
@@ -99,17 +99,17 @@ function tag($tag, $text)
   global $make_csv;
   if ($make_csv)
   {
-    $text = str_replace(array("\r\n", "\n"),array(' / ', ' / '),$text === null ? '' : $text);
-    // Tabs and carriage returns would split the tab-separated cell.
+    $text = str_replace(array("\r\n", "\n", "\r"),array(' / ', ' / ', ' / '),$text === null ? '' : $text);
+    // A tab would split the tab-separated cell.
     if ($tag == 'td')
-      $text = str_replace(array("\t", "\r"),array(' ', ' '),$text);
-    if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
+      $text = str_replace(array("\t"),array(' '),$text);
+    if (preg_match('/^-?\d+(\.\d+)?€$/',$text) == 1)
     {
       $text = str_replace(array("."),array(","),$text);
     }
-    // A cell that a spreadsheet would read as a formula (not a number) starts
-    // with a quote.
-    else if ($tag == 'td' && preg_match('/^[=+\-@]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+    // A cell that a spreadsheet would read as a formula or a quoted field (not
+    // a number), also after leading spaces, starts with a single quote.
+    else if ($tag == 'td' && preg_match('/^\s*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
       $text = "'" . $text;
     if ($tag == 'tr')
       return "$text\n";
@@ -135,13 +135,6 @@ function listing_text($text)
   if ($make_csv)
     return $text;
   return html_escape($text);
-}
-// A request value in a double-quoted attribute (links, filter fields): quotes
-// as entities. & < > stay, so ordinary links and amount filters (">0") keep
-// their bytes; they cannot end the attribute.
-function html_escape_attribute($text)
-{
-  return str_replace(array('"', "'"), array('&quot;', '&#039;'), strval($text));
 }
 function acc_header($dbconn,$page = "index",$year = 2015)
 {

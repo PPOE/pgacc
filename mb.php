@@ -107,7 +107,7 @@ $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td><a href=\"index.php?action=edit&id={$line['voucher_id']}\">{$line['voucher_id']}</a></td>
   <td>".($line['amount']/100.0)."</td>
-  <td>".intval($line['name'])."</td></tr>";
+  <td>".html_escape($line['name'])."</td></tr>";
 }
 echo "</table>";
 pg_free_result($result);

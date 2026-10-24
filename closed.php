@@ -6,40 +6,42 @@ function sortlink($action,$sort,$text)
     return $text;
   $filters = "";
   if (isset($_GET['filter_id']) && strlen($_GET['filter_id']) > 0)
-    $filters .= "&filter_id=" . html_escape_attribute($_GET['filter_id']);
+    $filters .= "&filter_id=" . rawurlencode($_GET['filter_id']);
   if (isset($_GET['filter_bid']) && strlen($_GET['filter_bid']) > 0)
-    $filters .= "&filter_bid=" . html_escape_attribute($_GET['filter_bid']);
+    $filters .= "&filter_bid=" . rawurlencode($_GET['filter_bid']);
   if (isset($_GET['filter_date']) && strlen($_GET['filter_date']) > 0)
-    $filters .= "&filter_date=" . html_escape_attribute($_GET['filter_date']);
+    $filters .= "&filter_date=" . rawurlencode($_GET['filter_date']);
   if (isset($_GET['filter_type']) && strlen($_GET['filter_type']) > 0)
-    $filters .= "&filter_type=" . html_escape_attribute($_GET['filter_type']);
+    $filters .= "&filter_type=" . rawurlencode($_GET['filter_type']);
   if (isset($_GET['filter_lo']) && strlen($_GET['filter_lo']) > 0)
-    $filters .= "&filter_lo=" . html_escape_attribute($_GET['filter_lo']);
+    $filters .= "&filter_lo=" . rawurlencode($_GET['filter_lo']);
   if (isset($_GET['filter_member_id']) && strlen($_GET['filter_member_id']) > 0)
-    $filters .= "&filter_member_id=" . html_escape_attribute($_GET['filter_member_id']);
+    $filters .= "&filter_member_id=" . rawurlencode($_GET['filter_member_id']);
   if (isset($_GET['filter_gk']) && strlen($_GET['filter_gk']) > 0)
-    $filters .= "&filter_gk=" . html_escape_attribute($_GET['filter_gk']);
+    $filters .= "&filter_gk=" . rawurlencode($_GET['filter_gk']);
   if (isset($_GET['filter_k']) && strlen($_GET['filter_k']) > 0)
-    $filters .= "&filter_k=" . html_escape_attribute($_GET['filter_k']);
+    $filters .= "&filter_k=" . rawurlencode($_GET['filter_k']);
   if (isset($_GET['filter_vk']) && strlen($_GET['filter_vk']) > 0)
-    $filters .= "&filter_vk=" . html_escape_attribute($_GET['filter_vk']);
+    $filters .= "&filter_vk=" . rawurlencode($_GET['filter_vk']);
   if (isset($_GET['filter_amount']) && strlen($_GET['filter_amount']) > 0)
-    $filters .= "&filter_amount=" . html_escape_attribute($_GET['filter_amount']);
+    $filters .= "&filter_amount=" . rawurlencode($_GET['filter_amount']);
   if (isset($_GET['filter_text']) && strlen($_GET['filter_text']) > 0)
-    $filters .= "&filter_text=" . html_escape_attribute($_GET['filter_text']);
+    $filters .= "&filter_text=" . rawurlencode($_GET['filter_text']);
   if (isset($_GET['filter_comment']) && strlen($_GET['filter_comment']) > 0)
-    $filters .= "&filter_comment=" . html_escape_attribute($_GET['filter_comment']);
+    $filters .= "&filter_comment=" . rawurlencode($_GET['filter_comment']);
   if (isset($_GET['filter_comm']) && strlen($_GET['filter_comm']) > 0)
-    $filters .= "&filter_comm=" . html_escape_attribute($_GET['filter_comm']);
+    $filters .= "&filter_comm=" . rawurlencode($_GET['filter_comm']);
   if (isset($_GET['filter_ack']) && strlen($_GET['filter_ack']) > 0)
-    $filters .= "&filter_ack=" . html_escape_attribute($_GET['filter_ack']);
+    $filters .= "&filter_ack=" . rawurlencode($_GET['filter_ack']);
   if (isset($_GET['filter_ack_old']) && strlen($_GET['filter_ack_old']) > 0)
-    $filters .= "&filter_ack_old=" . html_escape_attribute($_GET['filter_ack_old']);
+    $filters .= "&filter_ack_old=" . rawurlencode($_GET['filter_ack_old']);
+  if (isset($_GET['filter_refund']) && strlen($_GET['filter_refund']) > 0)
+    $filters .= "&filter_refund=" . rawurlencode($_GET['filter_refund']);
   if (isset($_GET['filter_bel']) && strlen($_GET['filter_bel']) > 0)
-    $filters .= "&filter_bel=" . html_escape_attribute($_GET['filter_bel']);
+    $filters .= "&filter_bel=" . rawurlencode($_GET['filter_bel']);
   if (isset($_GET['filter_name']) && strlen($_GET['filter_name']) > 0)
-    $filters .= "&filter_name=" . html_escape_attribute($_GET['filter_name']);
-  return "<a href=\"index.php?action=$action&sort=".getoppsort($sort)."$filters\">$text</a>";
+    $filters .= "&filter_name=" . rawurlencode($_GET['filter_name']);
+  return "<a href=\"" . html_escape("index.php?action=$action&sort=".getoppsort($sort).$filters) . "\">$text</a>";
 }
 // Whether the user hid listing column $col (users.hide, ?hide=N). Columns
 // without a stored preference are shown.
@@ -96,62 +98,62 @@ if (!$make_csv)
 <td><input type="hidden" name="action" value="'.$action.'" />
 ';
 if (isset($_GET['sort']))
-  echo '<input type="hidden" name="sort" value="'.html_escape_attribute($_GET['sort']).'" />';
+  echo '<input type="hidden" name="sort" value="'.html_escape($_GET['sort']).'" />';
 $tabc = 1;
 global $user_prefs_hide;
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_id" value="'.(isset($_GET['filter_id'])?html_escape_attribute($_GET['filter_id']):'').'" size="1" />';
+  echo '<input type="text" name="filter_id" value="'.(isset($_GET['filter_id'])?html_escape($_GET['filter_id']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_bid" value="'.(isset($_GET['filter_bid'])?html_escape_attribute($_GET['filter_bid']):'').'" size="1" />';
+  echo '<input type="text" name="filter_bid" value="'.(isset($_GET['filter_bid'])?html_escape($_GET['filter_bid']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_date" value="'.(isset($_GET['filter_date'])?html_escape_attribute($_GET['filter_date']):'').'" size="4" />';
+  echo '<input type="text" name="filter_date" value="'.(isset($_GET['filter_date'])?html_escape($_GET['filter_date']):'').'" size="4" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_type" value="'.(isset($_GET['filter_type'])?html_escape_attribute($_GET['filter_type']):'').'" size="5" />';
+  echo '<input type="text" name="filter_type" value="'.(isset($_GET['filter_type'])?html_escape($_GET['filter_type']):'').'" size="5" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_lo" value="'.(isset($_GET['filter_lo'])?html_escape_attribute($_GET['filter_lo']):'').'" size="5" />';
+  echo '<input type="text" name="filter_lo" value="'.(isset($_GET['filter_lo'])?html_escape($_GET['filter_lo']):'').'" size="5" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_member_id" value="'.(isset($_GET['filter_member_id'])?html_escape_attribute($_GET['filter_member_id']):'').'" size="1" />';
+  echo '<input type="text" name="filter_member_id" value="'.(isset($_GET['filter_member_id'])?html_escape($_GET['filter_member_id']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<select type="text" name="filter_gk" value="'.(isset($_GET['filter_gk'])?html_escape_attribute($_GET['filter_gk']):'').'" size="1" />';
+  echo '<select type="text" name="filter_gk" value="'.(isset($_GET['filter_gk'])?html_escape($_GET['filter_gk']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?html_escape_attribute($_GET['filter_k']):'').'" size="7" />';
+  echo '<input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?html_escape($_GET['filter_k']):'').'" size="7" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_vk" value="'.(isset($_GET['filter_vk'])?html_escape_attribute($_GET['filter_vk']):'').'" size="7" />';
+  echo '<input type="text" name="filter_vk" value="'.(isset($_GET['filter_vk'])?html_escape($_GET['filter_vk']):'').'" size="7" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?html_escape_attribute($_GET['filter_amount']):'').'" size="1" />';
+  echo '<input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?html_escape($_GET['filter_amount']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?html_escape_attribute($_GET['filter_text']):'').'" size="15" />';
+  echo '<input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?html_escape($_GET['filter_text']):'').'" size="15" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_comment" value="'.(isset($_GET['filter_comment'])?html_escape_attribute($_GET['filter_comment']):'').'" size="15" />';
+  echo '<input type="text" name="filter_comment" value="'.(isset($_GET['filter_comment'])?html_escape($_GET['filter_comment']):'').'" size="15" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?html_escape_attribute($_GET['filter_comm']):'').'" size="1" />';
+  echo '<input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?html_escape($_GET['filter_comm']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?html_escape_attribute($_GET['filter_ack']):'').'" size="3" />';
+  echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?html_escape($_GET['filter_ack']):'').'" size="3" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_ack_old" value="'.(isset($_GET['filter_ack_old'])?html_escape_attribute($_GET['filter_ack_old']):'').'" size="3" />';
+  echo '<input type="text" name="filter_ack_old" value="'.(isset($_GET['filter_ack_old'])?html_escape($_GET['filter_ack_old']):'').'" size="3" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="checkbox" name="filter_refund" value="'.(isset($_GET['filter_refund'])?html_escape_attribute($_GET['filter_refund']):'').'" size="1" />';
+  echo '<input type="checkbox" name="filter_refund" value="'.(isset($_GET['filter_refund'])?html_escape($_GET['filter_refund']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?html_escape_attribute($_GET['filter_bel']):'').'" size="1" />';
+  echo '<input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?html_escape($_GET['filter_bel']):'').'" size="1" />';
 echo '</td><td>';
 if (!listing_column_hidden($tabc++))
-  echo '<input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?html_escape_attribute($_GET['filter_name']):'').'" size="1" />';
+  echo '<input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?html_escape($_GET['filter_name']):'').'" size="1" />';
 echo '<input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
 </td>
 </tr></form>';
