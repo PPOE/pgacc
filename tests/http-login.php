@@ -42,6 +42,16 @@ function authenticated_as_problems($cookies, $baseUrl = null)
     return array();
 }
 
+function not_authenticated_problems($cookies)
+{
+    $response = http_request('/index.php?action=login', 'GET', array(), $cookies);
+    if (strpos($response['body'], 'Login erforderlich') === false
+        || strpos($response['body'], 'Login erfolgreich!') !== false) {
+        return array('cookies were accepted as an authenticated session');
+    }
+    return array();
+}
+
 // Set-Cookie attributes after the value, keyed by lowercase name; e.g.
 // "expires=Sat, 24-Oct-2026 10:00:00 GMT; Max-Age=86400" becomes
 // array('expires' => 'Sat, 24-Oct-2026 10:00:00 GMT', 'max-age' => '86400').
@@ -145,7 +155,8 @@ function login_state($userId)
 {
     $result = @pg_query_params(
         database_connection(),
-        "SELECT cookie::text AS cookie, login > now() - '1 minute'::interval AS recent FROM users WHERE id = $1",
+        "SELECT cookie::text AS cookie, login::text AS login, login > now() - '1 minute'::interval AS recent"
+        . ' FROM users WHERE id = $1',
         array($userId)
     );
     if ($result === false || pg_num_rows($result) !== 1) {
@@ -154,13 +165,27 @@ function login_state($userId)
     return pg_fetch_assoc($result);
 }
 
+// The pp_pgacc_login cookie of a session: an HMAC of the user id, the
+// users.cookie nonce and users.login under a key derived from $key
+// (functions.php, login_session_token()).
+function expected_login_token($userId, $nonce, $login)
+{
+    include __DIR__ . '/runtime/test-constants.php';
+    $sessionKey = hash_hmac('sha256', 'pgacc-session-key', $key, true);
+    return hash_hmac('sha256', 'pgacc-login|' . $userId . '|' . $nonce . '|' . $login, $sessionKey);
+}
+
 function login_state_problems($response, $userId)
 {
     $cookies = response_cookies($response);
     $state = login_state($userId);
     $problems = array();
-    if (!isset($cookies['pp_pgacc_login']) || $state['cookie'] !== $cookies['pp_pgacc_login']) {
-        $problems[] = "users.cookie was {$state['cookie']}, expected the pp_pgacc_login cookie";
+    // users.cookie (an integer column) holds a random 31-bit nonce, never 0.
+    if (preg_match('/^[1-9]\d*$/', (string) $state['cookie']) !== 1 || intval($state['cookie']) > 2147483647) {
+        $problems[] = 'users.cookie was ' . var_export($state['cookie'], true) . ', expected a positive 31-bit nonce';
+    } elseif (!isset($cookies['pp_pgacc_login'])
+        || $cookies['pp_pgacc_login'] !== expected_login_token($userId, $state['cookie'], $state['login'])) {
+        $problems[] = "the pp_pgacc_login cookie was not the session token of users.cookie {$state['cookie']}";
     }
     if ($state['recent'] !== 't') {
         $problems[] = 'users.login was not updated';
@@ -230,6 +255,49 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
     check('valid login cookies authenticate', authenticated_as_problems($cookies));
 }
 
+// Every login replaces the token: the cookies of the previous login of the
+// same user no longer authenticate. Tokens are random, not derived from the
+// user or the time alone.
+$relogin = login_request('synthetic-admin', 'correct-password');
+check('second login', array_merge(login_response_problems($relogin, 'index.php', 1), login_state_problems($relogin, 1)));
+$reloginCookies = response_cookies($relogin);
+if (isset($cookies['pp_pgacc_login']) && isset($reloginCookies['pp_pgacc_login'])) {
+    $rotationProblems = $cookies['pp_pgacc_login'] === $reloginCookies['pp_pgacc_login']
+        ? array('the second login reused the token') : array();
+    check('second login replaces the token', $rotationProblems);
+    check('previous login cookies are rejected', not_authenticated_problems($cookies));
+    check('second login cookies authenticate', authenticated_as_problems($reloginCookies));
+    $cookies = $reloginCookies;
+}
+
+// Wrong tokens: one changed hex digit, upper case, the users.cookie nonce
+// itself (the token format before the fix), another user's token, empty, too
+// long, and an array.
+if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
+    $token = $cookies['pp_pgacc_login'];
+    $state = login_state(1);
+    $otherLogin = response_cookies(login_request('synthetic-read-only-two', 'read-only-two-password'));
+    $lastDigit = substr($token, -1) === '0' ? '1' : '0';
+    foreach (array(
+        'changed digit' => substr($token, 0, 63) . $lastDigit,
+        'upper case' => strtoupper($token) === $token ? 'x' : strtoupper($token),
+        'users.cookie nonce' => $state['cookie'],
+        "another user's token" => isset($otherLogin['pp_pgacc_login']) ? $otherLogin['pp_pgacc_login'] : 'none',
+        'empty' => '',
+        'too long' => $token . '0',
+        'array' => null,
+    ) as $label => $wrongToken) {
+        $wrongCookies = $wrongToken === null
+            ? array('pp_pgacc_login[]' => $token, 'pp_pgacc_id' => '1')
+            : array('pp_pgacc_login' => $wrongToken, 'pp_pgacc_id' => '1');
+        check("wrong token rejected ($label)", not_authenticated_problems($wrongCookies));
+    }
+    check('right token with another user id rejected', not_authenticated_problems(
+        array('pp_pgacc_login' => $token, 'pp_pgacc_id' => isset($otherLogin['pp_pgacc_id']) ? $otherLogin['pp_pgacc_id'] : '0')
+    ));
+    check('valid login cookies still authenticate', authenticated_as_problems($cookies));
+}
+
 // Valid login with a hex-encoded target redirects to that target.
 $target = 'index.php?action=all&filter_date=2024';
 $targetLogin = login_request('synthetic-reviewer', 'reviewer-password', $target);
@@ -247,6 +315,26 @@ $spacedLogin = http_request('/index.php?action=login', 'POST', array(
     'target' => '69 6e 64 65 78 2E 70 68 70 3F 61 3D 31',
 ));
 check('valid login with spaced lowercase hex target', login_response_problems($spacedLogin, 'index.php?a=1', 3));
+
+// A login older than 24 hours no longer authenticates. The token binds
+// users.login, so the test stores an older login and computes its token.
+function aged_session_cookies($userId, $age)
+{
+    if (@pg_query_params(
+        database_connection(),
+        'UPDATE users SET login = now() - $1::interval WHERE id = $2',
+        array($age, $userId)
+    ) === false) {
+        fail_test("could not age the login of user $userId");
+    }
+    $state = login_state($userId);
+    return array(
+        'pp_pgacc_login' => expected_login_token($userId, $state['cookie'], $state['login']),
+        'pp_pgacc_id' => strval($userId),
+    );
+}
+check('login of 23 hours ago authenticates', authenticated_as_problems(aged_session_cookies(3, '23 hours')));
+check('login older than 24 hours rejected', not_authenticated_problems(aged_session_cookies(3, '25 hours')));
 
 // The login form always posts a target field, empty unless the login page was
 // opened with ?target=. An empty target is used as is: "Location:" is empty.

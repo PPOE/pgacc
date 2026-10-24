@@ -320,6 +320,30 @@ with synthetic users and covered by a mutation target.
   and `FunctionsTest`, mutations in `rights-checks`; the empty voucher page
   and the reset button are not mutated (the first raises the open
   `$vouchers` finding, the second is hidden by `end_of_form()` anyway).
+- [x] Login session token (`login()`, `checklogin()`, helpers in
+  `functions.php`). The `pp_pgacc_login` cookie was the `mt_rand()` value
+  stored in `users.cookie`. `users.cookie` stays an `integer` column (no
+  schema change): it now holds a nonce of 31 random bits (1 to 2147483647)
+  from a CSPRNG (`openssl_random_pseudo_bytes()` with a strong result, else
+  `mcrypt_create_iv()` with `/dev/urandom`; PHP 5.3 has no `random_bytes()`),
+  replaced by every login. The cookie is
+  `hash_hmac('sha256', "pgacc-login|<id>|<nonce>|<users.login>", K)` in hex
+  (64 digits) with the session key
+  `K = hash_hmac('sha256', 'pgacc-session-key', $key, true)`, derived from the
+  configured `$key` of `constants.php`. `checklogin()` selects the user by
+  the id cookie and compares the token in constant time
+  (`login_token_equals()`; PHP 5.3 has no `hash_equals()`). Neither the
+  cookie nor `users.cookie` alone lets anyone forge a session without
+  `$key`. Fails closed: without a valid `$key` (at least 16 characters, not
+  the `CHANGE-ME` placeholder) or a CSPRNG, nobody can log in (the login form
+  is shown again). Tests in `tests/http-login.php` (token format, rotation,
+  wrong, old-format and other users' tokens, 24-hour expiry) and
+  `LoginSessionTest`, mutations in `login-logout`.
+  **Deploy:** check that `constants.php` sets a valid `$key` (also needed for
+  receipts, see the receipt key runbook). Every user is logged out once by
+  the deploy (old cookies are numbers, no longer valid tokens). Changing
+  `$key` later logs everyone out again; the receipt migration does not
+  change `$key`.
 - [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
   `bgf`); not requested by the tests.
 
@@ -1065,7 +1089,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
@@ -1081,7 +1105,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
-| `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
+| `setcookie()` value is an int | `index.php:27` | **Fixed** with the login session token (the cookie is a hex string now); baseline entry removed. |
 | Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |
 
 ### Not detected by either tool

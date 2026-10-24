@@ -79,12 +79,6 @@ parameters:
 			path: ../../index.php
 
 		-
-			message: '#^Parameter \#2 \$value of function setcookie expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: ../../index.php
-
-		-
 			message: '#^Variable \$datakey might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1

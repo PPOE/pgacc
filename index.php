@@ -19,12 +19,12 @@ function login($user, $pass)
     return 0;
   while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
   {
-    if ($line['success'] == 't')
+    // Fails closed without a valid $key or a CSPRNG (functions.php).
+    if ($line['success'] == 't' && ($nonce = login_new_nonce()) !== false)
     {
       $id = $line['id'];
-      $rand = mt_rand();
-      pg_query("UPDATE users SET cookie = $rand, login = now() WHERE id = $id");
-      setcookie("pp_pgacc_login", $rand, time()+86400);
+      $session = pg_query("UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");
+      setcookie("pp_pgacc_login", login_session_token($id, $nonce, pg_fetch_result($session, 0, 0)), time()+86400);
       setcookie("pp_pgacc_id", $id, time()+86400);
       pg_free_result($data);
       if (isset($_POST['target']))
@@ -73,13 +73,16 @@ function checklogin($get = 'name', $redir = true)
 {
   global $user_id;
   global $user_prefs_hide;
-  if (isset($_COOKIE["pp_pgacc_login"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_login"]) == 1 && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
+  if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
-    $data = pg_query("SELECT * FROM users WHERE cookie = {$_COOKIE["pp_pgacc_login"]} AND id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
+    $data = pg_query("SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
     if (!$data)
       return $get == 'id'?0:'';
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
     {
+      // The session token of this login (functions.php), compared in constant time.
+      if (!login_token_equals(login_session_token($line['id'], $line['cookie'], $line['login']), $_COOKIE["pp_pgacc_login"]))
+        continue;
       $user_id = $line['id'];
       $hide_cols = explode(",",$line['hide']);
       foreach ($hide_cols as $col)

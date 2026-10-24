@@ -1000,4 +1000,86 @@ function membership_decrypt($datakey, $data)
   return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
+/*
+ * Login sessions. users.cookie (an integer column) holds a random nonce that
+ * every login replaces and logout clears. The pp_pgacc_login cookie is an
+ * HMAC of the user id, that nonce and users.login under a session key derived
+ * from the configured $key of constants.php: without a valid $key nobody can
+ * log in, and changing $key ends every session.
+ */
+
+// $length bytes from a CSPRNG, or false. PHP 5.3 has no random_bytes():
+// openssl (only a cryptographically strong result), else mcrypt's
+// /dev/urandom source. The function names are parameters for the tests.
+function login_random_bytes($length, $openssl = 'openssl_random_pseudo_bytes', $mcrypt = 'mcrypt_create_iv')
+{
+  if (function_exists($openssl))
+  {
+    $strong = false;
+    $bytes = $openssl($length, $strong);
+    /** @var bool $strong set by reference */
+    if ($strong === true && strlen($bytes) == $length)
+      return $bytes;
+  }
+  if (function_exists($mcrypt))
+  {
+    // 1 is MCRYPT_DEV_URANDOM (undefined without the mcrypt extension).
+    $bytes = $mcrypt($length, 1);
+    if (strlen($bytes) == $length)
+      return $bytes;
+  }
+  return false;
+}
+
+// The session key, or false without a valid $key (at least 16 characters,
+// not the CHANGE-ME placeholder).
+function login_session_key()
+{
+  // constants.php is required in global scope (index.php).
+  $key = isset($GLOBALS['key']) ? $GLOBALS['key'] : '';
+  if (!is_string($key) || strlen($key) < 16 || strpos($key, 'CHANGE-ME') !== false)
+    return false;
+  return hash_hmac('sha256', 'pgacc-session-key', $key, true);
+}
+
+// The users.cookie nonce (1 to 2147483647) for four random bytes, else false.
+function login_nonce($bytes)
+{
+  if (strlen($bytes) != 4)
+    return false;
+  $value = unpack('N', $bytes);
+  return max(1, $value[1] & 0x7FFFFFFF);
+}
+
+// A new users.cookie nonce, or false without a valid $key or a CSPRNG: the
+// login then fails.
+function login_new_nonce()
+{
+  if (login_session_key() === false)
+    return false;
+  return login_nonce(login_random_bytes(4));
+}
+
+// The pp_pgacc_login cookie of a session (64 hex digits), or false without a
+// valid $key.
+function login_session_token($id, $nonce, $login)
+{
+  $sessionKey = login_session_key();
+  if ($sessionKey === false)
+    return false;
+  return hash_hmac('sha256', 'pgacc-login|' . $id . '|' . $nonce . '|' . $login, $sessionKey);
+}
+
+// Whether $known and $given are the same string, in a time that does not
+// depend on where they differ (PHP 5.3 has no hash_equals()).
+function login_token_equals($known, $given)
+{
+  if (!is_string($known) || !is_string($given) || strlen($known) != strlen($given))
+    return false;
+  $difference = 0;
+  for ($i = 0; $i < strlen($known); $i++)
+    $difference |= ord($known[$i]) ^ ord($given[$i]);
+  return $difference === 0;
+}
+
 ?>

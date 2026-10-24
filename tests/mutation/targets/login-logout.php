@@ -1,7 +1,7 @@
 <?php
 /*
  * Login and logout handling: login() in index.php (password check, session
- * cookies, redirect), the logout and login_redirect() blocks that index.php
+ * cookies, redirect), the session check of checklogin(), the logout and login_redirect() blocks that index.php
  * answers before acc_header(), login_redirect() and page_login() in
  * login.php, and the page_new_buchung() signature in new.php (compiled on
  * every request). This is page code that only the HTTP tests reach. See
@@ -11,6 +11,7 @@ $login = array('start' => 'function login($user, $pass)', 'end' => 'require("con
 $logout = array('start' => 'if ($page == "logout")', 'end' => 'if ($page == "login" && login_redirect())');
 $loginBlock = array('start' => 'if ($page == "login" && login_redirect())', 'end' => '$year = date(\'Y\');');
 $loginRedirect = array('start' => 'function login_redirect()', 'end' => 'function page_login()');
+$checklogin = array('start' => 'function checklogin(', 'end' => '$page = "index";');
 $pageLogin = array('start' => 'function page_login()', 'end' => '<h1>Login erforderlich:</h1>');
 
 // The early-answer blocks of index.php and the start of the page, used to
@@ -37,50 +38,78 @@ return array(
         array(
             'id' => 'login-password-check-inverted',
             'region' => $login,
-            'search' => "if (\$line['success'] == 't')",
-            'replace' => "if (\$line['success'] != 't')",
+            'search' => "if (\$line['success'] == 't' &&",
+            'replace' => "if (\$line['success'] != 't' &&",
             'rationale' => 'Only a matching password hash may log in.',
         ),
         array(
             'id' => 'login-password-check-removed',
             'region' => $login,
-            'search' => "if (\$line['success'] == 't')",
-            'replace' => 'if (true)',
+            'search' => "if (\$line['success'] == 't' &&",
+            'replace' => 'if (true &&',
             'rationale' => 'Fail-open: any password for an existing user logs in.',
+        ),
+        array(
+            'id' => 'login-without-nonce',
+            'region' => $login,
+            'search' => '($nonce = login_new_nonce()) !== false',
+            'replace' => '($nonce = login_new_nonce()) === false',
+            'rationale' => 'A login needs a new nonce; it fails only without a valid key or CSPRNG.',
         ),
         array(
             'id' => 'login-session-not-stored',
             'region' => $login,
-            'search' => 'pg_query("UPDATE users SET cookie = $rand, login = now() WHERE id = $id");',
-            'replace' => 'true;',
-            'rationale' => 'The session token and login time must be stored, or the cookies cannot authenticate.',
+            'search' => '$session = pg_query("UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");',
+            'replace' => '$session = pg_query("SELECT login FROM users WHERE id = $id");',
+            'rationale' => 'The nonce and login time must be stored, or the cookies cannot authenticate.',
+        ),
+        array(
+            'id' => 'login-nonce-not-stored',
+            'region' => $login,
+            'search' => 'SET cookie = $nonce, login = now()',
+            'replace' => 'SET login = now()',
+            'rationale' => 'Every login replaces the nonce, so the cookies of the previous login stop working.',
         ),
         array(
             'id' => 'login-cookie-renamed',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_login", $rand,',
-            'replace' => 'setcookie("pp_pgacc_session", $rand,',
+            'search' => 'setcookie("pp_pgacc_login", login_session_token(',
+            'replace' => 'setcookie("pp_pgacc_session", login_session_token(',
             'rationale' => 'checklogin() reads the pp_pgacc_login cookie.',
         ),
         array(
             'id' => 'login-cookie-value',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_login", $rand, time()+86400);',
-            'replace' => 'setcookie("pp_pgacc_login", $rand + 1, time()+86400);',
-            'rationale' => 'The login cookie must carry the token stored in users.cookie.',
+            'search' => 'login_session_token($id, $nonce, pg_fetch_result($session, 0, 0))',
+            'replace' => 'login_session_token($id, $nonce + 1, pg_fetch_result($session, 0, 0))',
+            'rationale' => 'The login cookie must be the token of the nonce stored in users.cookie.',
+        ),
+        array(
+            'id' => 'login-cookie-is-nonce',
+            'region' => $login,
+            'search' => 'login_session_token($id, $nonce, pg_fetch_result($session, 0, 0))',
+            'replace' => '$nonce',
+            'rationale' => 'The cookie is the HMAC token, never the stored nonce (the format before the fix).',
+        ),
+        array(
+            'id' => 'login-cookie-without-login-time',
+            'region' => $login,
+            'search' => 'login_session_token($id, $nonce, pg_fetch_result($session, 0, 0))',
+            'replace' => 'login_session_token($id, $nonce, \'\')',
+            'rationale' => 'The token binds the stored login time.',
         ),
         array(
             'id' => 'login-cookie-expires-immediately',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_login", $rand, time()+86400);',
-            'replace' => 'setcookie("pp_pgacc_login", $rand, time()-86400);',
+            'search' => 'pg_fetch_result($session, 0, 0)), time()+86400);',
+            'replace' => 'pg_fetch_result($session, 0, 0)), time()-86400);',
             'rationale' => 'A browser discards an already expired cookie, so the session would be lost.',
         ),
         array(
             'id' => 'login-cookie-expiry',
             'region' => $login,
-            'search' => 'setcookie("pp_pgacc_login", $rand, time()+86400);',
-            'replace' => 'setcookie("pp_pgacc_login", $rand, time()+3600);',
+            'search' => 'pg_fetch_result($session, 0, 0)), time()+86400);',
+            'replace' => 'pg_fetch_result($session, 0, 0)), time()+3600);',
             'rationale' => 'The login cookie lasts 24 hours, not one.',
         ),
         array(
@@ -156,10 +185,47 @@ return array(
         array(
             'id' => 'login-raises-hidden-notice',
             'region' => $login,
-            'search' => '$rand = mt_rand();',
-            'replace' => '$rand = mt_rand() + $pgacc_undefined;',
+            'search' => "\$id = \$line['id'];",
+            'replace' => "\$id = \$line['id'] + \$pgacc_undefined;",
             'rationale' => 'Same response, but a new (hidden) undefined-variable notice: the diagnostics '
                 . 'check in the HTTP tests must kill it.',
+        ),
+
+        // The session check of checklogin() in index.php.
+        array(
+            'id' => 'checklogin-token-not-checked',
+            'region' => $checklogin,
+            'search' => "      if (!login_token_equals(login_session_token(\$line['id'], \$line['cookie'], \$line['login']), \$_COOKIE[\"pp_pgacc_login\"]))\n        continue;",
+            'replace' => "      if (false)\n        continue;",
+            'rationale' => 'Fail-open: any pp_pgacc_login value would authenticate as the pp_pgacc_id user.',
+        ),
+        array(
+            'id' => 'checklogin-token-check-inverted',
+            'region' => $checklogin,
+            'search' => 'if (!login_token_equals(',
+            'replace' => 'if (login_token_equals(',
+            'rationale' => 'Only the session token of the stored nonce and login time authenticates.',
+        ),
+        array(
+            'id' => 'checklogin-nonce-is-token',
+            'region' => $checklogin,
+            'search' => "login_token_equals(login_session_token(\$line['id'], \$line['cookie'], \$line['login']), ",
+            'replace' => "login_token_equals(\$line['cookie'], ",
+            'rationale' => 'The stored nonce itself (the token format before the fix) must not authenticate.',
+        ),
+        array(
+            'id' => 'checklogin-login-time-not-bound',
+            'region' => $checklogin,
+            'search' => "login_session_token(\$line['id'], \$line['cookie'], \$line['login'])",
+            'replace' => "login_session_token(\$line['id'], \$line['cookie'], \$line['name'])",
+            'rationale' => 'The token is bound to the login time of the session.',
+        ),
+        array(
+            'id' => 'checklogin-session-expiry',
+            'region' => $checklogin,
+            'search' => "login > now() - '24 hours'::interval",
+            'replace' => "login > now() - '48 hours'::interval",
+            'rationale' => 'A session ends 24 hours after the login.',
         ),
 
         // The logout block of index.php, answered before acc_header().
