@@ -5,14 +5,19 @@ name: Tests
 #   PHP 8.5 / 18, static analysis, the PHP 5 reference comparison on 5.3, 7.4
 #   and 8.5, and mutation testing of the changed lines only
 #   (tests/mutation/run.sh --changed-since);
-# - weekly, pull requests to master and manual runs: additionally PHP 7.4 /
-#   PostgreSQL 8.4, every mutation target in full on every mutation lane, and
-#   Infection.
+# - weekly, manual runs and pull requests labelled `full-ci`: additionally
+#   PHP 7.4 / PostgreSQL 8.4, every mutation target in full on every mutation
+#   lane, and Infection.
+# Pushes to branches other than master run through their pull request only,
+# so each push starts one run.
 on:
   push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
+    types: [opened, synchronize, reopened, labeled]
   schedule:
     # Mondays 03:17 UTC.
     - cron: '17 3 * * 1'
@@ -40,6 +45,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_REF: ${{ github.base_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
@@ -55,8 +61,18 @@ jobs:
               fi
               ;;
             pull_request)
-              full=true
-              base="origin/$BASE_REF"
+              # Full run only when the pull request carries the full-ci label
+              # (e.g. once before merging to master); otherwise per-push mode
+              # against the previous head of the pull request.
+              case ",$LABELS," in
+                *,full-ci,*) full=true ;;
+                *) full=false ;;
+              esac
+              if [ "$full" = false ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
+                base=$BEFORE
+              else
+                base="origin/$BASE_REF"
+              fi
               ;;
             *)
               full=true
