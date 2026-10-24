@@ -276,7 +276,8 @@ final class ReceiptStorageTest extends FunctionsTestCase
         file_put_contents($path, $file);
         $receipt = receipt_v2_open_with($vector['key'], $vector['number'], $path);
         self::assertSame(strlen($plain), $receipt['length']);
-        self::assertSame(substr($plain, 0, 16), $receipt['head']);
+        // (string): substr() of an empty string is false on PHP 5.3.
+        self::assertSame((string) substr($plain, 0, 16), $receipt['head']);
         ob_start();
         receipt_v2_send($receipt);
         self::assertTrue(ob_get_clean() === $plain);
