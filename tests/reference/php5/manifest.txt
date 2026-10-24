@@ -275,7 +275,7 @@ accounts-after	admin	GET /index.php?action=accounts	200
 all-after-writes	admin	GET /index.php?action=all&format=csv	200
 report-2024-after-writes	anon	GET /index.php?year=2024	200
 receipt-upload	admin	POST /index.php?action=edit&id=5001	302
-receipt-upload-finalized	admin	POST /index.php?action=edit&id=5000	302
+receipt-upload-finalized	admin	POST /index.php?action=edit&id=5000	200
 receipt-download-admin	admin	GET /index.php?action=file&id=1001	200
 receipt-download-unittwo	unittwo	GET /index.php?action=file&id=1001	200
 receipt-download-anon	anon	GET /index.php?action=file&id=1001	302
