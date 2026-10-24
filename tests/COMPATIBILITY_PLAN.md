@@ -940,6 +940,19 @@ Recommendation (owner decision):
   line, break `git blame`, and shift the line numbers that the diagnostics
   baseline and mutation targets depend on.
 
+### Deferred tooling improvements
+
+Proposals from the development-workflow review; not implemented.
+
+- [ ] A supported focused-test entry point that manages the warm setup,
+  fixture reset, image freshness and cleanup.
+- [ ] Show the selected mutant count and IDs before a run, including why a
+  changed target expanded to a full run.
+- [ ] Fail explicitly when a requested coverage or diff input is missing,
+  instead of silently skipping the gate.
+- [ ] A machine-readable verification manifest (source, base, command, exit
+  status) so evidence can be reused safely across commits.
+
 ## Static-analysis findings
 
 Produced by `sh tests/static-analysis.sh --report` on 2026-10-23 (PHPCompatibility
