@@ -1,2 +1,4 @@
 constants.php
 vendor/
+build/
+tests/mutation/results/

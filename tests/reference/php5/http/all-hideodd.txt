@@ -1,0 +1,370 @@
+# step: all-hideodd
+# request: GET /index.php?action=all&filter_date=2024 as hideodd
+status: 200
+header: Content-type: text/html
+--- body (10791 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page all">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026" class="selected">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<table><tr><td><a href="index.php?action=all&hide=-1"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=bida&filter_date=2024">Buchungszeile</a><a href="index.php?action=all&hide=2"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-3"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=typea&filter_date=2024">Art</a><a href="index.php?action=all&hide=4"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-5"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=membera&filter_date=2024">Mitglied</a><a href="index.php?action=all&hide=6"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-7"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=ka&filter_date=2024">Konto</a><a href="index.php?action=all&hide=8"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-9"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=ama&filter_date=2024">Betrag</a><a href="index.php?action=all&hide=10"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-11"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=commenta&filter_date=2024">Kommentar</a><a href="index.php?action=all&hide=12"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-13"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=acka&filter_date=2024">Bestätigt</a><a href="index.php?action=all&hide=14"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-15"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=refunda&filter_date=2024">Rück.</a><a href="index.php?action=all&hide=16"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+<td><a href="index.php?action=all&hide=-17"><img class="icon" src="icons/add.png"></a></td>
+<td><b><a href="index.php?action=all&sort=namea&filter_date=2024">Name/Adresse</a><a href="index.php?action=all&hide=18"><img class="icon" src="icons/delete.png"></a></b>
+</td>
+</tr>
+<form action="index.php" method="GET"> <tr>
+<td><input type="hidden" name="action" value="all" />
+</td><td><input type="text" name="filter_bid" value="" size="1" /></td><td></td><td><input type="text" name="filter_type" value="" size="5" /></td><td></td><td><input type="text" name="filter_member_id" value="" size="1" /></td><td></td><td><input type="text" name="filter_k" value="" size="7" /></td><td></td><td><input type="text" name="filter_amount" value="" size="1" /></td><td></td><td><input type="text" name="filter_comment" value="" size="15" /></td><td></td><td><input type="text" name="filter_ack" value="" size="3" /></td><td></td><td><input type="checkbox" name="filter_refund" value="" size="1" /></td><td></td><td><input type="text" name="filter_name" value="" size="1" /><input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
+</td>
+</tr></form><tr><td></td>
+<td>101</td>
+<td></td>
+<td>Synthetic donation</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>120.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Donor   </td>
+</tr><tr><td></td>
+<td>102</td>
+<td></td>
+<td>Synthetic legacy donation</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>30.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Donor   </td>
+</tr><tr><td></td>
+<td>220</td>
+<td></td>
+<td>Synthetic expense</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-12.34€</td>
+<td></td>
+<td></td>
+<td></td>
+<td> </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Statement Supplier   </td>
+</tr><tr><td></td>
+<td>221</td>
+<td></td>
+<td>Synthetic bank charges</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-0.50€</td>
+<td></td>
+<td></td>
+<td></td>
+<td> </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Bank   </td>
+</tr><tr><td></td>
+<td>214</td>
+<td></td>
+<td>Synthetic bank charges</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-7.50€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Bank   </td>
+</tr><tr><td></td>
+<td>103</td>
+<td></td>
+<td>Synthetic expense</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-50.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Supplier   </td>
+</tr><tr><td></td>
+<td>104</td>
+<td></td>
+<td>Synthetic legacy expense</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-15.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Supplier   </td>
+</tr><tr><td></td>
+<td>105</td>
+<td></td>
+<td>Synthetic expense</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-25.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td> </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Draft   </td>
+</tr><tr><td></td>
+<td>222</td>
+<td></td>
+<td>Synthetic bank charges</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-7.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td> </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Bank   </td>
+</tr><tr><td></td>
+<td>107</td>
+<td></td>
+<td>Synthetic donation</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>0.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Donor   </td>
+</tr><tr><td></td>
+<td>110</td>
+<td></td>
+<td>Synthetic donation</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>10.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Donor   </td>
+</tr><tr><td></td>
+<td>212</td>
+<td></td>
+<td>Synthetic in-kind donation</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>99.99€</td>
+<td></td>
+<td>Kommentar <b>GF</b></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Jörg "Quote" O'Brien Gasse 2 8010 Graz</td>
+</tr><tr><td></td>
+<td>213</td>
+<td></td>
+<td>Synthetic in-kind service</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>0.05€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a </td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Synthetic Service Donor   </td>
+</tr><tr><td></td>
+<td>215</td>
+<td></td>
+<td>Synthetic private refund</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-42.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Ja</td>
+<td></td>
+<td>Private Person   </td>
+</tr><tr><td></td>
+<td>216</td>
+<td></td>
+<td>Synthetic internal transfer in</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>1000.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Intern   </td>
+</tr><tr><td></td>
+<td>217</td>
+<td></td>
+<td>Synthetic internal transfer out</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-1000.00€</td>
+<td></td>
+<td></td>
+<td></td>
+<td>reviewer-a reviewer-b</td>
+<td></td>
+<td>Nein</td>
+<td></td>
+<td>Intern   </td>
+</tr></table>
+</div>
+<br style="clear: both;" /><center><a href="/index.php?action=all&filter_date=2024&format=csv">Als CSV Datei herunterladen</a></center>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=logout">Logout</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

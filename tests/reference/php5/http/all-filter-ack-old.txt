@@ -1,0 +1,9 @@
+# step: all-filter-ack-old
+# request: GET /index.php?action=all&format=csv&filter_ack_old=reviewer as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (156 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+

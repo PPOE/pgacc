@@ -1,8 +1,11 @@
 name: pgacc-test
 
 services:
+  # PGACC_TEST_PG_* are set by tests/postgres-version.sh (PGACC_TEST_PG); the
+  # defaults are the PostgreSQL 18 server. database-test uses the same image so
+  # that psql matches the server version.
   database:
-    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    image: ${PGACC_TEST_PG_IMAGE:-postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc}
     environment:
       POSTGRES_DB: accounting
       POSTGRES_USER: pgacc_test
@@ -16,7 +19,7 @@ services:
     networks:
       - test
     tmpfs:
-      - /var/lib/postgresql/data
+      - ${PGACC_TEST_PG_DATA:-/var/lib/postgresql}
 
   php-lint:
     image: php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
@@ -30,7 +33,7 @@ services:
     working_dir: /app
 
   database-test:
-    image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+    image: ${PGACC_TEST_PG_IMAGE:-postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc}
     depends_on:
       database:
         condition: service_healthy
@@ -53,7 +56,7 @@ services:
     working_dir: /app
 
   application:
-    image: pgacc-test-application
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     build:
       context: .
       dockerfile: tests/php-runtime.Dockerfile
@@ -66,11 +69,14 @@ services:
       PGDATABASE: accounting
       PGUSER: pgacc_test
       PGPASSWORD: pgacc_test
+      PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       TZ: UTC
     command:
       - php
       - -d
       - output_buffering=4096
+      - -d
+      - auto_prepend_file=/app/tests/runtime/diagnostics-prepend.php
       - -S
       - 0.0.0.0:8080
       - -t
@@ -90,10 +96,12 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-      - /app/files
+    volumes:
+      - diagnostics:/diagnostics
+      - receipts:/app/files
 
   application-test:
-    image: pgacc-test-application
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     depends_on:
       application:
         condition: service_healthy
@@ -104,6 +112,7 @@ services:
       PGDATABASE: accounting
       PGUSER: pgacc_test
       PGPASSWORD: pgacc_test
+      PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       TZ: UTC
     command: ["sh", "tests/application-tests.sh"]
     init: true
@@ -112,7 +121,25 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - diagnostics:/diagnostics
+      # tests/http-receipts.php checks and plants the server's receipt files.
+      - receipts:/app/files
 
 networks:
   test:
     internal: true
+
+volumes:
+  # Per-request PHP diagnostics written by tests/runtime/diagnostics-prepend.php
+  # on the test servers and read by the HTTP tests. Removed with the project.
+  diagnostics:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  # The application's files/ directory (receipt storage), shared with the
+  # tests. Synthetic receipts only; removed with the project.
+  receipts:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs

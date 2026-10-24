@@ -2,8 +2,11 @@
 function relocate($loc)
 {
   global $dbconn;
+  // Discard the page buffered by index.php and end the request.
+  ob_end_clean();
   pg_close($dbconn);
   header("Location: " . $loc);
+  exit;
 }
 function page_edit_finalize($rights)
 {
@@ -20,12 +23,17 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
 
+if (!has_right($rights, 'bgf'))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 echo "<h1>Buchung finalisiert - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=2\">Zurück zur Buchung</a>";
@@ -53,6 +61,11 @@ if ($bid1 == 0 || $bid2 == 0)
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div><br /><br /><br />';
   return;
 }
+if (!has_right($rights, 'root'))
+{
+  echo '<div class="slot_error" id="slot_error">WARNUNG: Diese Funktion sollte nur von Admins verwendet um Fehlerfälle zu beheben. Bitte kontaktiere einen der Admins.</div><br /><br /><br />';
+  return;
+}
 $rightssql = rights2orgasql($rights);
 
 $name = pg_escape_string(checklogin('name'));
@@ -78,12 +91,17 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
 
+if (!has_right($rights, 'bgf'))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 echo "<h1>Bestätigungen wurden zurückgesetzt - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=3\">Zurück zur Buchung</a>";
@@ -95,6 +113,12 @@ relocate("index.php?action=edit&id=$id&hint=3");
 }
 function page_edit_ack($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
@@ -108,13 +132,27 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";
+$rightssql = rights2orgasql($rights);
+// A user who sees no row of the voucher gets the answer for a voucher
+// without a receipt, whether or not it is finalized.
+$query = "SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
+
+// A finalized row blocks the approval of the whole voucher, also a row of
+// another organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
@@ -122,8 +160,6 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         return;
 }
 pg_free_result($result);
-
-$rightssql = rights2orgasql($rights);
 
 $hasfile = false;
 $query = "SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
@@ -159,6 +195,12 @@ relocate("index.php?action=edit&id=$id&hint=4");
 }
 function page_edit_save($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
@@ -172,7 +214,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -211,6 +253,11 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
+if (!posted_organizations_allowed($parts, $rights))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=5\">Zurück zur Buchung</a>";

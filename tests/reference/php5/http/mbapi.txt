@@ -1,0 +1,7 @@
+# step: mbapi
+# request: GET /mbapi.php as anon
+status: 200
+header: Content-type: text/html
+--- body (85 bytes) ---
+b70b1e13be502cfd6bfa2b4eb67cad5fd2efc2bb
+WLePJrbhz9LdP5KdlvP+OdJNCC7PwTpjs8tedTAMFzI=

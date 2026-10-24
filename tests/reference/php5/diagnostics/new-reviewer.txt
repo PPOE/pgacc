@@ -1,0 +1,1 @@
+E_NOTICE new.php:648: Undefined variable: bgfandack

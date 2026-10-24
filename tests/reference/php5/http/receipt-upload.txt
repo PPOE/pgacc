@@ -1,0 +1,8 @@
+# step: receipt-upload
+# request: POST /index.php?action=edit&id=5001 as admin
+# form: id=5001&parts=1&bid0=1001&fileupload=PDF+Hochladen+%28OHNE+SPEICHERN%29
+# file: file0 receipt.pdf (application/pdf, 667 bytes)
+status: 302
+header: Location: index.php?action=edit&id=5001&bid=1001&hint=1
+header: Content-type: text/html
+--- body (0 bytes) ---

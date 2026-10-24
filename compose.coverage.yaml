@@ -1,0 +1,41 @@
+# PHP 7.4 lane only (added by tests/run.sh): measures coverage of the
+# application server process during the HTTP and write-workflow tests and
+# merges it with the PHPUnit coverage. See tests/README.md, "Coverage".
+services:
+  application:
+    environment:
+      # "develop" is Xdebug's default mode, which the server already ran with;
+      # keep it so error output is unchanged and only add coverage.
+      XDEBUG_MODE: develop,coverage
+      PGACC_COVERAGE_DIR: /coverage/http
+      PGACC_COVERAGE_BRANCHES: ${PGACC_COVERAGE_BRANCHES:-1}
+      # PHP allows only one auto_prepend_file: the coverage prepend replaces
+      # the diagnostics recorder from compose.test.yaml and includes it itself.
+      PGACC_COVERAGE_CHAINED_PREPEND: /app/tests/runtime/diagnostics-prepend.php
+    # Same as compose.test.yaml, except for the auto_prepend_file.
+    command:
+      - php
+      - -d
+      - output_buffering=4096
+      - -d
+      - auto_prepend_file=/app/tests/coverage/prepend.php
+      - -S
+      - 0.0.0.0:8080
+      - -t
+      - /app
+    volumes:
+      - coverage:/coverage
+
+  application-test:
+    environment:
+      PGACC_COVERAGE_DIR: /coverage
+      PGACC_COVERAGE_BRANCHES: ${PGACC_COVERAGE_BRANCHES:-1}
+      PGACC_COVERAGE_STRICT_BRANCHES: ${PGACC_COVERAGE_STRICT_BRANCHES:-0}
+      PGACC_COVERAGE_REPORT_DIR: /coverage-report
+      PGACC_COVERAGE_OWNER: ${PGACC_COVERAGE_OWNER:-}
+    volumes:
+      - coverage:/coverage
+      - ${PGACC_COVERAGE_HOST_DIR:-./build/coverage}:/coverage-report
+
+volumes:
+  coverage: {}

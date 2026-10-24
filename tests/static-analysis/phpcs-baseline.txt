@@ -1,0 +1,7 @@
+# PHP_CodeSniffer baseline: reviewed existing findings, one per line.
+# file<TAB>sniff<TAB>message; duplicates are separate findings.
+# A finding missing here fails CI; an entry no longer reported fails
+# CI until it is removed. Regenerate with:
+#   sh tests/static-analysis.sh --update-baselines
+import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling fgetcsv() as its default value will change in a future PHP version.
+import.php	PHPCompatibility.ParameterValues.RemovedProprietaryCSVEscaping.DeprecatedParamNotPassed	The $escape parameter must be passed when calling str_getcsv() as its default value will change in a future PHP version.

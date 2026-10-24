@@ -4,3 +4,5 @@ constants.php
 files
 proxy
 vendor
+build
+tests/mutation/results

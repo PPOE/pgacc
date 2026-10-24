@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="pgacc-compatibility">
+  <description>Correctness and PHP-version compatibility checks for pgacc. No formatting rules.</description>
+
+  <!-- Production runs PHP 5.3.3 (until the php5-last tag); the target is PHP 8.5. -->
+  <config name="testVersion" value="5.3-8.5"/>
+
+  <arg name="extensions" value="php"/>
+  <arg name="report-width" value="120"/>
+  <arg value="s"/>
+
+  <rule ref="PHPCompatibility"/>
+
+  <!-- `<?` depends on short_open_tag; with it disabled PHP emits the source as text. -->
+  <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+</ruleset>

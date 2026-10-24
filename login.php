@@ -1,20 +1,34 @@
 <?php
-function page_login()
+// Sends the login redirect, and the cookies of a new login, before any
+// output. Returns true when the response is complete; otherwise
+// page_login() renders the page.
+function login_redirect()
 {
   if (checklogin('id',false) > 0)
   {
     if (isset($_POST['target']))
+    {
       header("Location: " . hex2ascii($_POST['target']));
-    echo '<h1>Login erfolgreich!</h1><br>';
-    return;
+      return true;
+    }
+    return false;
   }
   $submit = isset($_POST['submit']) ? $_POST['submit'] : '';
   $name = isset($_POST['name']) ? $_POST['name'] : '';
   $pass = isset($_POST['pass']) ? $_POST['pass'] : '';
-  $target = isset($_POST['target']) ? $_POST['target'] : '';
   if ($submit == "Anmeldung")
   {
-    login($name, $pass);
+    return login($name, $pass) > 0;
+  }
+  return false;
+}
+
+function page_login()
+{
+  if (checklogin('id',false) > 0)
+  {
+    echo '<h1>Login erfolgreich!</h1><br>';
+    return;
   }
   $target = isset($_GET['target']) ? $_GET['target'] : '';
   echo '<h1>Login erforderlich:</h1><br>';

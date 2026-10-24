@@ -1,0 +1,6 @@
+# step: accounts-anon
+# request: GET /index.php?action=accounts as anon
+status: 302
+header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D6163636F756E7473
+header: Content-type: text/html
+--- body (0 bytes) ---

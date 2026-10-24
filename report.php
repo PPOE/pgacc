@@ -128,6 +128,8 @@ $months = "";
 $last = "31.12.$year";
 $prev = "31.12." . ($year-1);
 $prev_cond = "AND date < '".(intval($year))."-01-01'";
+// unit_report() never reads its first parameter; it always received null.
+$prevcond = null;
 $cond = date_condition($year,1);
 $precond = "";
 $condall = date_condition($year,0);

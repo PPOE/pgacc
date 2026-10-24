@@ -1,0 +1,59 @@
+# step: impressum-anon
+# request: GET /index.php?action=impressum as anon
+status: 200
+header: Content-type: text/html
+--- body (3547 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page impressum">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+</div><br />
+
+      <div class="main" id="default">
+        <div class="slot_default" id="slot_default"><br /><div>
+<span style="font-weight: bold;">Diensteanbieter:</span></div><br />
+Piratenpartei Österreichs<br />
+Schadinagasse 3<br />
+1170 Wien<br />
+<br /><br />
+<div><span style="font-weight: bold;">Dieser Dienst ist mit folgender Software realisiert worden:</span></div><br />
+<div><table class="ui_list"><thead class="ui_list_head"><tr><th class="">Software</th><th class="">Version</th><th class="">Lizenz</th></tr></thead><tbody class="ui_list_body"><tr class="ui_list_row ui_list_odd"><td class=""><a href="https://github.com/PPOE/pgacc">pgacc</a></td><td class=""><div>0.0.1</div></td><td class=""><a href="#">N/A</a></td></tr><tr class="ui_list_row ui_list_odd"><td class=""><a href="http://www.php.net">PHP</a></td><td class=""><div>{{php-version}}</div></td><td class=""><a href="http://www.php.net/license/3_01.txt">PHP License</a></td></tr><tr class="ui_list_row ui_list_odd"><td class=""><a href="http://www.postgresql.org/">PostgreSQL</a></td><td class=""><div>{{pg-version}}</div></td><td class=""><a href="http://www.postgresql.org/about/licence">BSD</a></td></tr></tbody></table></div><br />
+<br /><br />
+      </div>
+      <br style="clear: both;" />
+    </div>
+
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=login">Login</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

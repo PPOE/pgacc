@@ -1,5 +1,7 @@
 <?php
 include "constants.php";
+require "vendor/autoload.php";
+require "functions.php";
 
 $dbconn = pg_connect("dbname=accounting")
   or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
@@ -14,7 +16,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $text .= $line['member_id']."\t".$line['amount']."\t".date('Y')."-12-31\n";
 }
 echo sha1($text)."\n";
-$encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($datakey), $text, MCRYPT_MODE_CBC, md5(md5($datakey))));
+$encrypted = base64_encode(membership_encrypt($datakey, $text));
 echo $encrypted;
 pg_free_result($result);
 pg_close($dbconn);

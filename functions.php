@@ -11,7 +11,7 @@ function hex2ascii($hex){
 function ascii2hex($ascii) {
         $hex = '';
         for ($i = 0; $i < strlen($ascii); $i++) {
-                $byte = strtoupper(dechex(ord($ascii{$i})));
+                $byte = strtoupper(dechex(ord($ascii[$i])));
                 $byte = str_repeat('0', 2 - strlen($byte)).$byte;
                 $hex.=$byte." ";
                 }
@@ -85,7 +85,7 @@ function getfilter()
   if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
     $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
   if (isset($_GET['filter_ack_old']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack_old']) == 1)
-    $filter .= " AND (ack1_old LIKE '%" . $_GET['filter_ack'] . "%' OR ack2_old LIKE '%" . $_GET['filter_ack'] . "%') ";
+    $filter .= " AND (ack1_old LIKE '%" . pg_escape_string(isset($_GET['filter_ack']) ? $_GET['filter_ack'] : '') . "%' OR ack2_old LIKE '%" . pg_escape_string(isset($_GET['filter_ack']) ? $_GET['filter_ack'] : '') . "%') ";
   if (isset($_GET['filter_refund']))
     $filter .= " AND refund ";
   if (isset($_GET['filter_bel']))
@@ -99,7 +99,7 @@ function tag($tag, $text)
   global $make_csv;
   if ($make_csv)
   {
-    $text = str_replace(array("\n"),array(' / '),$text);
+    $text = str_replace(array("\n"),array(' / '),$text === null ? '' : $text);
     if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
     {
       $text = str_replace(array("."),array(","),$text);
@@ -176,11 +176,15 @@ echo '<a href="donations"'.($page == "donations"?' class="selected"':'').'>Spend
 <a href="vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>
 ';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
 ';*/
-if (strlen($rights) > 0)
+if (strlen($rights === null ? '' : $rights) > 0)
 {
-  echo '<br /><a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
-  echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
-  echo '<a href="index.php?action=import2"'.($page == "import2"?' class="selected"':'').'>Belege Import</a>';
+  echo '<br />';
+  if (write_rights($rights) !== false)
+  {
+    echo '<a href="index.php?action=new"'.($page == "new"?' class="selected"':'').'>Erfassen</a>';
+    echo '<a href="index.php?action=import"'.($page == "import"?' class="selected"':'').'>Import</a>';
+    echo '<a href="index.php?action=import2"'.($page == "import2"?' class="selected"':'').'>Belege Import</a>';
+  }
   echo '<a href="index.php?action=open&filter_date='.$year.'"'.($page == "open"?' class="selected"':'').'>Offen</a>';
   echo '<a href="index.php?action=closed&filter_date='.$year.'"'.($page == "closed"?' class="selected"':'').'>Abgeschlossen</a>';
   echo '<a href="index.php?action=all&filter_date='.$year.'"'.($page == "all"?' class="selected"':'').'>Alles</a>';
@@ -225,9 +229,9 @@ echo '
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
 ';
-if (strlen($rights) == 0)
+if (strlen($rights === null ? '' : $rights) == 0)
   echo '<a href="index.php?action=login">Login</a>';
-if (strlen($rights) != 0)
+if (strlen($rights === null ? '' : $rights) != 0)
   echo '<a href="index.php?action=logout">Logout</a>';
 echo '      </div>
     </div>
@@ -254,12 +258,37 @@ function format_date($date)
   }
   return $date;
 }
+// Whether the comma-separated rights contain exactly this right ("bgf" is
+// not contained in "Rbgf").
+function has_right($rights, $right)
+{
+  return in_array($right, explode(",", $rights === null ? '' : $rights), true);
+}
+// Rights for changing data. The read-only right "Rbgf" (see accounts.php)
+// does not count: false for a user who has no other right, otherwise the
+// other rights. Rights without "Rbgf" are returned unchanged.
+function write_rights($rights)
+{
+  $tokens = explode(",", $rights === null ? '' : $rights);
+  if (!in_array('Rbgf', $tokens, true))
+    return $rights;
+  $rights_w = array();
+  foreach ($tokens as $right)
+  {
+    if ($right !== 'Rbgf' && $right !== '')
+      $rights_w[] = $right;
+  }
+  if (count($rights_w) == 0)
+    return false;
+  return implode(",", $rights_w);
+}
 function rights2orgasql($rights)
 {
-  $rights_r = explode(",", $rights);
+  $rights_r = explode(",", $rights === null ? '' : $rights);
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-    $rights_r = explode(",", $rights);
+    $rights_r = explode(",", $rights === null ? '' : $rights);
+    $rights2 = array();
     foreach ($rights_r as $right)
     {
       if (preg_match('/^\d+$/', $right) == 1)
@@ -494,6 +523,159 @@ function vouchers_reset_ack($id, $rightssql) {
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   }
   pg_free_result($result);
+}
+
+/*
+ * Replacement for the removed mcrypt extension, byte-compatible with
+ * mcrypt_encrypt()/mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $data,
+ * MCRYPT_MODE_CBC, $iv): Rijndael with a 256-bit block (not AES), CBC mode,
+ * data zero-padded to whole 32-byte blocks (at least one), padding kept on
+ * decryption. Keys and IVs are 32-byte md5 hex strings. phpseclib uses the
+ * mcrypt extension where it is loaded and its own implementation elsewhere;
+ * both give the same bytes.
+ * Contract vectors: tests/fixtures/mcrypt/vectors.json.
+ */
+function rijndael256_cbc($key, $iv)
+{
+  $cipher = new \phpseclib\Crypt\Rijndael(\phpseclib\Crypt\Base::MODE_CBC);
+  $cipher->setBlockLength(256);
+  $cipher->setKey($key);
+  $cipher->setIV($iv);
+  $cipher->disablePadding();
+  return $cipher;
+}
+
+function rijndael256_zero_pad($data)
+{
+  $blocks = max(1, intval(ceil(strlen($data) / 32)));
+  return str_pad($data, $blocks * 32, "\0");
+}
+
+function rijndael256_encrypt($key, $data, $iv)
+{
+  return rijndael256_cbc($key, $iv)->encrypt(rijndael256_zero_pad($data));
+}
+
+function rijndael256_decrypt($key, $data, $iv)
+{
+  return rijndael256_cbc($key, $iv)->decrypt(rijndael256_zero_pad($data));
+}
+
+/*
+ * Receipt files, keyed by the voucher ID: key and IV, shared by encryption
+ * and decryption. See the mcrypt and receipt key items in
+ * tests/COMPATIBILITY_PLAN.md before changing the key derivation.
+ */
+function receipt_cipher_params($id, $key)
+{
+  return array(md5($id . $key . $id), md5($key . $id));
+}
+
+function receipt_encrypt($id, $key, $data)
+{
+  list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+  return rijndael256_encrypt($cipherKey, $data, $iv);
+}
+
+function receipt_decrypt($id, $key, $data)
+{
+  list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+  return rijndael256_decrypt($cipherKey, $data, $iv);
+}
+
+/*
+ * Receipt storage in files/: <n>.v2.aes is encrypted with the configured $key
+ * of constants.php; the legacy <n>.aes with an empty key part (the callers
+ * never read the configured key). migrate-receipt-key.php re-encrypts legacy
+ * files. See the receipt key item in tests/COMPATIBILITY_PLAN.md.
+ */
+function receipt_configured_key()
+{
+  // constants.php is required in global scope (index.php).
+  if (isset($GLOBALS['key']) && is_string($GLOBALS['key']))
+    return $GLOBALS['key'];
+  return '';
+}
+
+function receipt_v2_path($directory, $number)
+{
+  return $directory . '/' . $number . '.v2.aes';
+}
+
+function receipt_legacy_path($directory, $number)
+{
+  return $directory . '/' . $number . '.aes';
+}
+
+// PDF or JPEG: the receipt types that the download recognizes.
+function receipt_has_known_type($plain)
+{
+  return substr($plain, 0, 4) === '%PDF' || substr($plain, 0, 3) === "\xFF\xD8\xFF";
+}
+
+// Writes a temporary file next to $path and renames it over $path, so readers
+// never see a partly written file. Run one writer per file at a time.
+function receipt_write_file($path, $bytes)
+{
+  $temp = $path . '.tmp';
+  if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path))
+    return true;
+  @unlink($temp);
+  return false;
+}
+
+// Stores a new receipt as <n>.v2.aes, encrypted with the configured key.
+// Fails closed: without a configured key nothing is written.
+function receipt_store($directory, $number, $id, $data)
+{
+  $receiptKey = receipt_configured_key();
+  if ($receiptKey === '')
+  {
+    error_log('pgacc: receipt not stored: no receipt key ($key) configured');
+    return false;
+  }
+  if (!receipt_write_file(receipt_v2_path($directory, $number), receipt_encrypt($id, $receiptKey, $data)))
+  {
+    error_log("pgacc: receipt $number.v2.aes could not be written");
+    return false;
+  }
+  return true;
+}
+
+// The plain text of a <n>.v2.aes file ($name), or false. Content that does not
+// decrypt to a PDF or JPEG with the configured key is tried with the legacy
+// scheme; both cases are logged.
+function receipt_decrypt_v2($id, $data, $name)
+{
+  $plain = receipt_decrypt($id, receipt_configured_key(), $data);
+  if (receipt_has_known_type($plain))
+    return $plain;
+  $plain = receipt_decrypt($id, '', $data);
+  if (receipt_has_known_type($plain))
+  {
+    error_log("pgacc: receipt $name decrypted with the legacy scheme");
+    return $plain;
+  }
+  error_log("pgacc: receipt $name could not be decrypted");
+  return false;
+}
+
+// Membership-system exchange (getusers.php, mbapi.php): key and IV.
+function membership_cipher_params($datakey)
+{
+  return array(md5($datakey), md5(md5($datakey)));
+}
+
+function membership_encrypt($datakey, $data)
+{
+  list($cipherKey, $iv) = membership_cipher_params($datakey);
+  return rijndael256_encrypt($cipherKey, $data, $iv);
+}
+
+function membership_decrypt($datakey, $data)
+{
+  list($cipherKey, $iv) = membership_cipher_params($datakey);
+  return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
 ?>

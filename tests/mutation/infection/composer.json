@@ -1,0 +1,14 @@
+{
+  "description": "Test-only Infection installation for the PHP 7.4 lane; the published PHARs do not run on PHP 7.4.",
+  "require": {
+    "infection/infection": "0.26.6"
+  },
+  "config": {
+    "platform": {
+      "php": "7.4.33"
+    },
+    "allow-plugins": {
+      "infection/extension-installer": false
+    }
+  }
+}

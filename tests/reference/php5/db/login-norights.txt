@@ -1,0 +1,3 @@
+## users
+- 11	synthetic-norights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		\N
++ 11	synthetic-norights	{{md5-crypt}}	{{now}}	{{cookie}}		\N

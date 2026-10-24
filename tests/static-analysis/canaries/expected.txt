@@ -1,0 +1,14 @@
+# Findings the canary self-test requires, one per line:
+# tool<TAB>file<TAB>line<TAB>sniff code or PHPStan identifier
+# Each canary reproduces a bug class that was fixed or reproduced at runtime
+# (php54-only-syntax.php and php7-only-syntax.php instead guard the PHP 5.3
+# floor of testVersion);
+# if a tool or configuration change stops reporting one, the check fails.
+phpcs	curly-string-offset.php	7	PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess.Removed
+phpcs	optional-before-required.php	4	PHPCompatibility.FunctionDeclarations.RemovedOptionalBeforeRequiredParam.Deprecated80
+phpcs	short-open-tag.php	1	Generic.PHP.DisallowShortOpenTag.Found
+phpcs	php54-only-syntax.php	6	PHPCompatibility.Syntax.NewShortArray.Found
+phpcs	php7-only-syntax.php	6	PHPCompatibility.Operators.NewOperators.t_coalesceFound
+phpstan	uninitialized-array.php	11	variable.undefined
+phpstan	query-result-array.php	9	variable.undefined
+phpstan	function-scope-global.php	6	variable.undefined

@@ -1,0 +1,39 @@
+# step: transactions-filter-csv
+# request: GET /index.php?action=transactions&format=csv&filter_lo=2 as anon
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=transactions.csv
+--- body (2564 bytes) ---
+﻿<h1>Kontobewegungen der Piratenpartei Österreichs</h1>
+Datum	Art	LO	Konto	Betrag	
+2012-03-01	Synthetic donation	Synthetic National Unit	TEST-ACCOUNT-1	3,33€	
+2012-03-02	Synthetic donation	Synthetic National Unit	TEST-ACCOUNT-1	6,67€	
+2012-10-15	Synthetic expense	Synthetic Piratenpartei Six	TEST-ACCOUNT-6	-1234,56€	
+2012-11-01	Synthetic donation	Synthetic Piratenpartei Six	TEST-ACCOUNT-6	500,05€	
+2012-12-31	Synthetic expense	Synthetic National Unit	TEST-ACCOUNT-1	-0,01€	
+2013-07-01	Synthetic legacy expense	Synthetic Federal Unit	TEST-ACCOUNT-10	-21474836,47€	
+2013-08-01	Synthetic in-kind donation	Synthetic Piratenpartei Six	TEST-ACCOUNT-6	21474836,47€	
+2024-02-01	Synthetic donation	Synthetic National Unit	TEST-ACCOUNT-1	120,00€	
+2024-03-01	Synthetic legacy donation	Synthetic National Unit	TEST-ACCOUNT-1	30,00€	
+2024-03-15	Synthetic expense	Synthetic Regional Unit	AT6060000Piratenpartei Kärnten	-12,34€	
+2024-03-31	Synthetic bank charges	Synthetic Regional Unit	AT6060000Piratenpartei Kärnten	-0,50€	
+2024-03-31	Synthetic bank charges	Synthetic Regional Unit	TEST-ACCOUNT-2	-7,50€	
+2024-04-01	Synthetic expense	Synthetic Regional Unit	TEST-ACCOUNT-2	-50,00€	
+2024-04-01	Synthetic legacy expense	Synthetic Regional Unit	TEST-ACCOUNT-2	-15,00€	
+2024-05-01	Synthetic expense	Synthetic Regional Unit	TEST-ACCOUNT-2	-25,00€	
+2024-06-30	Synthetic bank charges	Synthetic Regional Unit	AT6060000Piratenpartei Kärnten	-7,00€	
+2024-08-01	Synthetic donation	Synthetic National Unit	TEST-ACCOUNT-1	10,00€	
+2024-10-01	Synthetic in-kind donation	Synthetic Regional Unit	TEST-ACCOUNT-2	99,99€	
+2024-10-02	Synthetic in-kind service	Synthetic National Unit	TEST-ACCOUNT-1	0,05€	
+2024-11-11	Synthetic private refund	Synthetic Regional Unit	TEST-ACCOUNT-2	-42,00€	
+2024-12-01	Synthetic internal transfer in	Synthetic National Unit	TEST-ACCOUNT-1	1000,00€	
+2024-12-01	Synthetic internal transfer out	Synthetic Regional Unit	TEST-ACCOUNT-2	-1000,00€	
+2025-01-01	Synthetic donation	Synthetic National Unit	TEST-ACCOUNT-1	25,00€	
+2025-11-03	Synthetic membership fee	Synthetic Regional Unit	TEST-ACCOUNT-1	24,00€	
+2026-01-15	Synthetic membership fee	Synthetic Regional Unit	TEST-ACCOUNT-1	19,99€	
+2026-02-01	Synthetic membership fee	Synthetic Federal Unit	TEST-ACCOUNT-1	0,01€	
+2026-02-01	Synthetic membership fee	Synthetic Federal Unit	TEST-ACCOUNT-1	19,99€	
+2026-05-31	Synthetic expense	Synthetic Ünit Vier	TEST-ACCOUNT-4	-0,99€	
+2026-06-01	Synthetic other income	Synthetic Ünit Vier	TEST-ACCOUNT-4	0,10€	
+

@@ -1,0 +1,4 @@
+Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile 1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile 2;Ersterfassungsreferenz;Auftraggeber Kontonr./IBAN;Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC
+Giro;20.02.2024;+99,99;EUR;20.02.2024;Gutschrift;Spende;Synthetic Sparer;REF1;;ER1;AT00;STSPAT2G;Synthetic Sparer;AT999999999999999999;STSPAT2GXXX
+Giro;21.02.2024;0,00;EUR;21.02.2024;Null;;;;;;;;;;
+Giro;22.02.2024;-10,00;EUR;22.02.2024;Lastschrift;Gebühr;;;;;;;Synthetic Bank;;

@@ -1,0 +1,3 @@
+## users
+- 10	synthetic-readonly	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
++ 10	synthetic-readonly	{{md5-crypt}}	{{now}}	{{cookie}}	Rbgf	

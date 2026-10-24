@@ -126,6 +126,22 @@ if (isset($_GET["print_empty"]))
   $print_empty = true;
 }
 
+// Before any output (the CSV byte order mark or acc_header()): protected
+// pages send visitors who are not logged in the login redirect (checklogin()
+// then returns nothing), and the member search sends its redirect.
+if (in_array($page,array("all","mb","open","merge","edit","new","closed","deleted","recover","accounts","import","import2")) && checklogin('id') === null)
+{
+  pg_close($dbconn);
+  return;
+}
+if ($page == "search")
+{
+  $rights = checklogin('rights',false);
+  page_search($rights);
+  pg_close($dbconn);
+  return;
+}
+
 global $make_csv;
 $make_csv = false;
 if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"],array("search","all","open","transactions","spendings","closed","deleted")))
@@ -170,6 +186,27 @@ if (isset($_GET["hide"]))
   pg_free_result($data);
 }
 
+// relocate() (edit.php) answers edit and merge requests with a redirect
+// instead of the page: buffer the page so that it can be discarded.
+if ($page == "edit" || $page == "merge")
+  ob_start();
+
+// Login and logout send cookies and redirects: answer them before
+// acc_header() starts the page.
+if ($page == "logout")
+{
+  setcookie("pp_pgacc_login", "", time() - 3600);
+  setcookie("pp_pgacc_id", "", time() - 3600);
+  header("Location: index.php");
+  pg_close($dbconn);
+  return;
+}
+if ($page == "login" && login_redirect())
+{
+  pg_close($dbconn);
+  return;
+}
+
 $year = date('Y');
 
 if (!$make_csv)
@@ -199,15 +236,10 @@ else if ($page == "open")
   $rights = checklogin('rights');
   page_open($rights);
 }
-else if ($page == "search")
-{
-  $rights = checklogin('rights');
-  page_search($rights);
-}
 else if ($page == "merge")
 {
   $rights = checklogin('rights');
-  page_edit_merge($rights,intval($_POST["bid1"]),intval($_POST["bid2"]));
+  page_edit_merge($rights);
 }
 else if ($page == "edit")
 {
@@ -283,21 +315,21 @@ else if ($page == "login")
 {
   page_login();
 }
-else if ($page == "logout")
-{
-  setcookie("pp_pgacc_login", "", time() - 3600);
-  setcookie("pp_pgacc_id", "", time() - 3600);
-  header("Location: index.php");
-}
 else if ($page == "import")
 {
   $rights = checklogin('rights');
-  page_import($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import($rights);
 }
 else if ($page == "import2")
 {
   $rights = checklogin('rights');
-  page_import2($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import2(write_rights($rights));
 }
 else if ($page == "statistics")
 {

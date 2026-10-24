@@ -1,4 +1,4 @@
-<?
+<?php
 function getUsers()
 {
 global $datakey;
@@ -17,7 +17,7 @@ $query = 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid intege
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 pg_free_result($result);
 
-$decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($datakey), base64_decode($sData), MCRYPT_MODE_CBC, md5(md5($datakey))), "\0");
+$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
 $query = 'INSERT INTO ppmembers (id, name, lo, paid) VALUES ';
 $lines = explode("\n",$decrypted);
 $count = 0;

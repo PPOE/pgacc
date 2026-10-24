@@ -41,17 +41,24 @@ function sortlink($action,$sort,$text)
     $filters .= "&filter_name=" . $_GET['filter_name'];
   return "<a href=\"index.php?action=$action&sort=".getoppsort($sort)."$filters\">$text</a>";
 }
+// Whether the user hid listing column $col (users.hide, ?hide=N). Columns
+// without a stored preference are shown.
+function listing_column_hidden($col)
+{
+  global $user_prefs_hide;
+  return isset($user_prefs_hide[$col]) && $user_prefs_hide[$col] == 1;
+}
 function gentab($tabc,$action,$s,$t)
 {
   global $user_prefs_hide, $make_csv;
   if ($make_csv)
   {
-    if ($user_prefs_hide[$tabc] == 1)
+    if (listing_column_hidden($tabc))
       return "";
     else
       return "$t\t";
   }
-  if ($user_prefs_hide[$tabc] == 1)
+  if (listing_column_hidden($tabc))
     return tag("td",'<a href="index.php?action='.$action.'&hide=-'.$tabc.'"><img class="icon" src="icons/add.png"></a>');
   else
     return tag("td",tag("b",sortlink($action,$s,$t) . '<a href="index.php?action='.$action.'&hide='.$tabc.'"><img class="icon" src="icons/delete.png"></a>'));
@@ -92,58 +99,58 @@ if (isset($_GET['sort']))
   echo '<input type="hidden" name="sort" value="'.$_GET['sort'].'" />';
 $tabc = 1;
 global $user_prefs_hide;
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_id" value="'.(isset($_GET['filter_id'])?$_GET['filter_id']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_bid" value="'.(isset($_GET['filter_bid'])?$_GET['filter_bid']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_date" value="'.(isset($_GET['filter_date'])?$_GET['filter_date']:'').'" size="4" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_type" value="'.(isset($_GET['filter_type'])?$_GET['filter_type']:'').'" size="5" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_lo" value="'.(isset($_GET['filter_lo'])?$_GET['filter_lo']:'').'" size="5" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_member_id" value="'.(isset($_GET['filter_member_id'])?$_GET['filter_member_id']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<select type="text" name="filter_gk" value="'.(isset($_GET['filter_gk'])?$_GET['filter_gk']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_k" value="'.(isset($_GET['filter_k'])?$_GET['filter_k']:'').'" size="7" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_vk" value="'.(isset($_GET['filter_vk'])?$_GET['filter_vk']:'').'" size="7" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_amount" value="'.(isset($_GET['filter_amount'])?$_GET['filter_amount']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_text" value="'.(isset($_GET['filter_text'])?$_GET['filter_text']:'').'" size="15" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_comment" value="'.(isset($_GET['filter_comment'])?$_GET['filter_comment']:'').'" size="15" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="checkbox" name="filter_comm" value="'.(isset($_GET['filter_comm'])?$_GET['filter_comm']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_ack" value="'.(isset($_GET['filter_ack'])?$_GET['filter_ack']:'').'" size="3" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_ack_old" value="'.(isset($_GET['filter_ack_old'])?$_GET['filter_ack_old']:'').'" size="3" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="checkbox" name="filter_refund" value="'.(isset($_GET['filter_refund'])?$_GET['filter_refund']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="checkbox" name="filter_bel" value="'.(isset($_GET['filter_bel'])?$_GET['filter_bel']:'').'" size="1" />';
 echo '</td><td>';
-if ($user_prefs_hide[$tabc++] != 1)
+if (!listing_column_hidden($tabc++))
   echo '<input type="text" name="filter_name" value="'.(isset($_GET['filter_name'])?$_GET['filter_name']:'').'" size="1" />';
 echo '<input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
 </td>
@@ -155,7 +162,7 @@ function emptytag($tag)
 {
   global $make_csv;
   if (!$make_csv)
-    echo tag($tag);
+    echo tag($tag, '');
 }
 
 function page_listing_line($line, $action = "edit")
@@ -164,7 +171,7 @@ global $user_prefs_hide,$make_csv;
 if (!$make_csv)
 echo "<tr>";
 $tabc = 1;
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
 {
@@ -173,18 +180,18 @@ else
   else
     echo tag("td", '<a href="index.php?action='.$action.'&id=' . $line["voucher_id"] . '&bid='.$line["id"].'">' . $line["voucher_id"] . "</a>");
 }
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["id"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line2["name"]);
@@ -193,13 +200,13 @@ pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line2["name"]);
 }
 pg_free_result($result2);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
 {
@@ -208,51 +215,51 @@ else
   else
     echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
 }
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["contra_account"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["account"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["vaccount"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["comment"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["commentgf"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["committed"] == 't' ? 'Ja' : 'Nein');
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["ack1"] . " " . $line["ack2"]);
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", "<del>" . $line["ack1_old"] . "</del> <del>" . $line["ack2_old"] . "</del>");
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["refund"] == 't' ? 'Ja' : 'Nein');
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["file"] != 0 ? 'Ja' : 'Nein');
-if ($user_prefs_hide[$tabc++] == 1)
+if (listing_column_hidden($tabc++))
   echo emptytag("td");
 else
   echo tag("td", $line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]);

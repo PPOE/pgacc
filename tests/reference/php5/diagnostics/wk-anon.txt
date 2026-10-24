@@ -1,0 +1,7 @@
+E_NOTICE wk.php:145: Undefined variable: year
+E_NOTICE wk.php:151: Undefined variable: year
+E_NOTICE wk.php:157: Undefined variable: year
+E_NOTICE wk.php:163: Undefined variable: year
+E_NOTICE wk.php:167: Undefined variable: year
+E_NOTICE wk.php:175: Undefined variable: year
+E_NOTICE wk.php:180: Undefined variable: year

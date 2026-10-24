@@ -1,0 +1,12 @@
+# step: all-filter-amount-comma
+# request: GET /index.php?action=all&format=csv&filter_amount=%3C-50%2C00 as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (814 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+2008	208	2012-10-15	Synthetic expense	Synthetic Piratenpartei Six	Nein	SYNTHETIC-208	TEST-ACCOUNT-6	TEST-VIRTUAL-6	-1234,56€	Plakate Graz		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Campaign Printer   	
+2010	210	2013-07-01	Synthetic legacy expense	Synthetic Federal Unit	Nein	SYNTHETIC-210	TEST-ACCOUNT-10	TEST-VIRTUAL-10	-21474836,47€	NRW 2013 int4 limit		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Agency   	
+2016	217	2024-12-01	Synthetic internal transfer out	Synthetic Regional Unit	Nein		TEST-ACCOUNT-2		-1000,00€	Umbuchung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Intern   	
+

@@ -1,0 +1,192 @@
+## balance (3 rows)
+id	value	orga	date
+1	100000	1	2023-12-31 00:00:00
+2	109500	1	2024-12-31 00:00:00
+3	-2147483648	2	2025-12-31 00:00:00
+## donation_type (1 rows)
+id	name
+1	Synthetic monetary donation
+## import (19 rows)
+line
+15.02.2024;12,50;Handkassa;KaffeeMilch;GFKommentar;FREMD-1;Ja;Nein;SyntheticKassa;0;2;Weg1;1010;Wien
+15.03.2024,10:00:00,CET,SyntheticPayPalDonor,Spende,Abgeschlossen,EUR,25.00,-0.78,24.22,donor@example.invalid,spende@piratenpartei.at,SYNTH0000000001,,,SpendeWahlkampf,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,
+16.02.2024;7;Handkassa;Porto;;;Nein;Ja;TestaMitglied;9031;0;;;
+16.03.2024,11:00:00,CET,SyntheticRefund,Rückzahlung,Abgeschlossen,EUR,-5.00,0.20,-4.80,spende@piratenpartei.at,refund@example.invalid,SYNTH0000000002,,,,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,
+2024-02-18;-3.5;Handkassa;ISODatum;;;1;Wahr;SyntheticKassa;abc;99;;;
+AT376000050110117326;ZinsenBG/000000301;31.03.2024;31.03.2024;+0,05;EUR
+AT406000050110117369;Spende1e3BAWAATWWAT555555555555555555SyntheticO'Quote;08.01.2024;08.01.2024;+0,10;EUR
+AT496000020810070324;Rückzahlung€BAWAATWWAT777777777777777777ZoëSynthetisch;13.01.2024;13.01.2024;-5,00;EUR
+AT596000050110117318;SpendeBAWAATWWAT444444444444444444Dr.GerlindeTitelträgerin;06.01.2024;06.01.2024;+15,00;EUR
+AT606000050110117300;MB2024OPSKATWWAT111111111111111111TestaMitglied;03.01.2024;03.01.2024;+24,00;EUR
+AT606000050110117300;Rechnung4711BAWAATWWAT222222222222222222SyntheticLieferantGmbH;04.01.2024;04.01.2024;-1.234,56;EUR
+AT606000050110117300;SpendeBAWAATWWAT611904300234573201SyntheticSpender;02.01.2024;02.01.2024;+50,00;EUR
+AT686000050110117350;Dauerauftrag1234567890MariaSynthetisch;07.01.2024;07.01.2024;+1.000.000,00;EUR
+AT716000020810070316;SpendefürBüroBAWAATWWAT666666666666666666JörgÖsterreicher;12.01.2024;12.01.2024;+12,34;EUR
+AT716000050110117393;Bargeld;09.01.2024;09.01.2024;-0,01;EUR
+AT916000050110110437;MitgliedsbeitragGerlindeTitelträgerinAT333333;05.01.2024;05.01.2024;+20,00;EUR
+Giro;20.02.2024;+99,99;EUR;20.02.2024;Gutschrift;Spende;SyntheticSparer;REF1;;ER1;AT00;STSPAT2G;SyntheticSparer;AT999999999999999999;STSPAT2GXXX
+Giro;22.02.2024;-10,00;EUR;22.02.2024;Lastschrift;Gebühr;;;;;;;SyntheticBank;;
+synthetic-import-line
+## lo (9 rows)
+id	name
+1	Synthetic National Unit
+10	Synthetic Federal Unit
+2	Synthetic Regional Unit
+3	Synthetic Unit Three
+4	Synthetic Ünit Vier
+5	Synthetic Unit Five
+6	Synthetic Piratenpartei Six
+8	Synthetic Unit Eight
+9	Synthetic Unit Nine
+## oo (2 rows)
+id	name	lo
+1	Synthetic Local Unit	2
+2	Synthetic Piratenpartei Local	6
+## person_type (5 rows)
+id	name	description	used	public
+1	Synthetic organization	Test-only legal entity	1	t
+2	Synthetic person	Test-only private person	2	f
+3	Synthetic association	Test-only association	3	t
+4	Synthetic company	Test-only company	4	t
+5	Synthetic public body	Test-only public body	5	t
+## ppmembers (35 rows)
+id	name	lo	paid
+9001	Anna Synthetisch-Müller	9	1
+9002	Bernd Synthetisch	1	0
+9003	Carla Synthetisch	3	0
+9004	Dieter Synthetisch	2	1
+9005	Emma Synthetisch	4	0
+9006	Franz Synthetisch-Müller	5	0
+9007	Gerda Synthetisch	6	1
+9008	Hannes Synthetisch	10	0
+9009	Iris Synthetisch	8	0
+9010	Jörg Synthetisch	10	1
+9011	Käthe Synthetisch-Müller	9	0
+9012	Lukas Synthetisch	1	0
+9013	Maria Synthetisch	3	1
+9014	Norbert Synthetisch	2	0
+9015	Olga Synthetisch	4	0
+9016	Paul Synthetisch-Müller	5	1
+9017	Rosa Synthetisch	6	0
+9018	Stefan Synthetisch	10	0
+9019	Theresa Synthetisch	8	1
+9020	Ulrich Synthetisch	10	0
+9021	Vera Synthetisch-Müller	9	0
+9022	Walter Synthetisch	1	1
+9023	Xaver Synthetisch	3	0
+9024	Yvonne Synthetisch	2	0
+9025	Zoë Synthetisch	4	1
+9026	Ömer Synthetisch-Müller	5	0
+9027	Ännchen Synthetisch	6	0
+9028	Ludwig Synthetisch	10	1
+9029	Sophie Synthetisch	8	0
+9030	Max Synthetisch	10	0
+9031	Testa Mitglied	2	1
+9032	Mitglied Zweitname	1	0
+9033	O'Brien Synthetisch	8	1
+9034	Gerlinde Titelträgerin	3	0
+9035	Synthetica	5	1
+## type (14 rows)
+id	name	used	income	realtype
+1	Synthetic membership fee	20	1	1
+1029	Synthetic private refund	0	-1	20
+11	Synthetic in-kind donation	1	1	11
+12	Synthetic in-kind service	1	1	12
+13	Synthetic member credit	0	1	13
+14	Synthetic other income	3	1	14
+18	Synthetic legacy donation	5	1	8
+20	Synthetic expense	10	-1	20
+21	Synthetic legacy expense	5	-1	20
+23	Synthetic member credit offset	0	-1	23
+28	Synthetic bank charges	2	-1	28
+29	Synthetic internal transfer in	0	1	29
+30	Synthetic internal transfer out	0	-1	30
+8	Synthetic donation	10	1	8
+## users (12 rows)
+id	name	hash	login	cookie	rights	hide
+1	synthetic-admin	{{md5-crypt}}	{{now}}	{{cookie}}	root,bgf	
+10	synthetic-readonly	{{md5-crypt}}	{{now}}	{{cookie}}	Rbgf	
+100	synthetic-created	{{md5-crypt}}	\N	\N	3	\N
+11	synthetic-norights	{{md5-crypt}}	{{now}}	{{cookie}}		\N
+2	synthetic-reviewer	{{md5-crypt}}	{{now}}	{{cookie}}	bgf	
+3	synthetic-unit-one	{{md5-crypt}}	{{now}}	{{cookie}}	1,2	
+4	synthetic-hide-odd	{{md5-crypt}}	{{now}}	{{cookie}}	root,bgf	1,3,5,7,9,11,13,15,17
+5	synthetic-hide-even	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	2,4,6,8,10,12,14,16,18
+6	synthetic-unit-two	{{md5-crypt}}	{{now}}	{{cookie}}	2	
+7	synthetic-no-rights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		
+8	synthetic-read-only	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
+9	synthetic-read-only-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf,2	
+## vouchers (60 rows)
+id	voucher_id	type	orga	member	member_id	contra_account	name	street	plz	city	amount	account	comment	committed	receipt_received	deleted	date	ack1	ack2	person_type	file	save_date	save_user	commentgf	refund	vaccount	ack1_old	ack2_old	ack_rp1	ack_rp2	ack_rp1_old	ack_rp2_old
+1000	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-1234	TESTACCOUNT2	Reference created expense	f	t	f	2024-09-15 00:00:00	\N	\N	1	101	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
+1001	5001	8	1	f	9001	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	10050	TESTACCOUNT2	Reference two parts income	f	f	f	2024-09-15 00:00:00	\N	\N	2	100	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
+1002	5001	21	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-99	TESTACCOUNT2	Reference two parts campaign	f	f	f	2024-09-16 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
+1003	5002	8	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	700	TESTACCOUNT2	Reference unit one own	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1004	5004	20	2	f	0	SYNTHETICREF	Jörg Ä. Österreicher	Test Street 1	0000	Test City	0	TESTACCOUNT2	Reference Ümlaut "Zitat" O'Brien\nZeile 2	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1005	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3000	TESTACCOUNT2	Reference revised draft	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1006	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-100	TESTACCOUNT2	Reference merge target	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1007	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-200	TESTACCOUNT2	Reference merge source	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1008	5007	8	2	f	0	BAWAATWW AT611904300234573201	Synthetic Spender				5000	AT606000050110117300	Spende\nBAWAATWW AT611904300234573201 Synthetic Spender	f	f	f	2024-01-02 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1009	5008	1	2	t	9031	OPSKATWW AT111111111111111111	Testa Mitglied				2400	AT606000050110117300	MB 2024\nOPSKATWW AT111111111111111111 Testa Mitglied	f	f	f	2024-01-03 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+101	1001	8	1	f	\N	SYNTHETIC-001	Synthetic Donor	\N	\N	\N	12000	TEST-ACCOUNT-1	Closed donation	t	t	f	2024-02-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+1010	5009	28	2	f	0	BAWAATWW AT222222222222222222	Synthetic Lieferant GmbH				-123456	AT606000050110117300	Rechnung 4711\nBAWAATWW AT222222222222222222 Synthetic Lieferant GmbH	f	f	f	2024-01-04 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1011	5010	1	10	t	0						2000	AT916000050110110437	Mitgliedsbeitrag\nGerlinde Titelträgerin AT33 3333	f	f	f	2024-01-05 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1012	5011	1	3	t	9034	BAWAATWW AT444444444444444444	Dr. Gerlinde Titelträgerin				1500	AT596000050110117318	Spende\nBAWAATWW AT444444444444444444 Dr. Gerlinde Titelträgerin	f	f	f	2024-01-06 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1013	5012	14	4	f	0						5	AT376000050110117326	Zinsen BG/000000301	f	f	f	2024-03-31 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1014	5013	1	5	t	9013	12345 67890	Maria Synthetisch				100000000	AT686000050110117350	Dauerauftrag\n12345 67890 Maria Synthetisch	f	f	f	2024-01-07 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1015	5014	8	6	f	0	BAWAATWW AT555555555555555555	Synthetic O'Quote				10	AT406000050110117369	Spende 1e3\nBAWAATWW AT555555555555555555 Synthetic O'Quote	f	f	f	2024-01-08 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1016	5015	28	8	f	0						-1	AT716000050110117393	Bargeld\n	f	f	f	2024-01-09 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1017	5018	8	6	f	0	BAWAATWW AT666666666666666666	Jörg Österreicher				1234	AT716000020810070316	Spende für Büro\nBAWAATWW AT666666666666666666 Jörg Österreicher	f	f	f	2024-01-12 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1018	5019	28	6	t	9025	BAWAATWW AT777777777777777777	Zoë Synthetisch				-500	AT496000020810070324	Rückzahlung €\nBAWAATWW AT777777777777777777 Zoë Synthetisch	f	f	f	2024-01-13 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1019	5020	8	2	f	0	FREMD-1	Synthetic Kassa				1250	Handkassa	Kaffee\nMilch	f	f	f	2024-02-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+102	1002	18	1	f	\N	SYNTHETIC-002	Synthetic Donor	\N	\N	\N	3000	TEST-ACCOUNT-1	Partially reviewed legacy donation	t	t	f	2024-03-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+1020	5021	1	10	t	9031		Testa Mitglied				700	Handkassa	Porto	f	f	f	2024-02-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1021	5022	28	99	f	0		Synthetic Kassa				-35	Handkassa	ISO Datum	f	f	f	2024-02-18 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1022	5023	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1023	5024	28	6	f	0	 	Synthetic Bank				-1000	20815 6659403	Lastschrift; Gebühr; 	f	f	f	2024-02-22 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1024	5025	8	10	f	0	donor@example.invalid	Synthetic PayPal Donor				2500	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1025	5025	20	10	f	0		Paypal				-78	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1026	5026	28	10	f	0	refund@example.invalid	Synthetic Refund				-500	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1027	5026	20	10	f	0		Paypal				20	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+103	1003	20	2	f	\N	SYNTHETIC-003	Synthetic Supplier	\N	\N	\N	-5000	TEST-ACCOUNT-2	Closed expense with attachment	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	42	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+104	1003	21	2	f	\N	SYNTHETIC-004	Synthetic Supplier	\N	\N	\N	-1500	TEST-ACCOUNT-2	Second row of attached voucher	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+105	1004	20	2	f	\N	SYNTHETIC-005	Synthetic Draft	\N	\N	\N	-2500	TEST-ACCOUNT-2	Unreviewed expense	t	f	f	2024-05-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+106	1005	8	1	f	\N	SYNTHETIC-006	Synthetic Donor	\N	\N	\N	9000	TEST-ACCOUNT-1	Deleted donation	t	t	t	2024-06-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+107	1006	8	1	f	\N	SYNTHETIC-007	Synthetic Donor	\N	\N	\N	0	TEST-ACCOUNT-1	Zero-value closed voucher	t	t	f	2024-07-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+108	1007	8	1	f	\N	SYNTHETIC-008	Synthetic Donor	\N	\N	\N	5000	TEST-ACCOUNT-1	Voucher before public transaction cutoff	t	t	f	2011-12-31 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+109	1008	8	1	f	\N	SYNTHETIC-009	Synthetic Future Donor	\N	\N	\N	2500	TEST-ACCOUNT-1	Different reporting year	t	t	f	2025-01-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+110	1009	8	1	f	\N	SYNTHETIC-010	Synthetic Donor	\N	\N	\N	1000	TEST-ACCOUNT-1	Partially reviewed donation	t	t	f	2024-08-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+201	2001	1	2	t	9001	AT000000000000009001	Anna Synthetisch-Müller	Teststraße 1	1010	Wien	2400	TEST-ACCOUNT-1	MB 2026	t	t	f	2025-11-03 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+202	2002	1	2	t	9004		Dieter Synthetisch				1999	TEST-ACCOUNT-1	Mitgliedsbeitrag knapp	t	t	f	2026-01-15 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+203	2003	1	10	t	9031		Testa Mitglied				1	TEST-ACCOUNT-1	MB Teil 1	t	f	f	2026-02-01 00:00:00	\N	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+204	2003	1	10	t	9031		Testa Mitglied				1999	TEST-ACCOUNT-1	MB Teil 2	t	f	f	2026-02-01 00:00:00	\N	\N	2	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+205	2005	8	1	f	\N	SYNTHETIC-205	Synthetic Donor 2012				333	TEST-ACCOUNT-1	Year 2012 a	t	t	f	2012-03-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+206	2006	8	1	f	\N	SYNTHETIC-206	Synthetic Donor 2012				667	TEST-ACCOUNT-1	Year 2012 b	t	t	f	2012-03-02 00:00:00	\N	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+207	2007	20	1	f	\N	SYNTHETIC-207	Synthetic Supplier 2012				-1	TEST-ACCOUNT-1	Year 2012 c	t	t	f	2012-12-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+208	2008	20	6	f	\N	SYNTHETIC-208	Synthetic Campaign Printer				-123456	TEST-ACCOUNT-6	Plakate Graz	t	t	f	2012-10-15 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+209	2009	8	6	f	\N	SYNTHETIC-209	Synthetic Campaign Donor				50005	TEST-ACCOUNT-6	Wahlkampfspende	t	t	f	2012-11-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+210	2010	21	10	f	\N	SYNTHETIC-210	Synthetic Agency				-2147483647	TEST-ACCOUNT-10	NRW 2013 int4 limit	t	t	f	2013-07-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-10	\N	\N	\N	\N	\N	\N
+211	2011	11	6	f	\N	SYNTHETIC-211	Synthetic In-Kind Donor				2147483647	TEST-ACCOUNT-6	NRW 2013 Sachspende	t	t	f	2013-08-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-6	\N	\N	\N	\N	\N	\N
+212	2012	11	2	f	\N	BG/123456789 12	Jörg "Quote" O'Brien	Gasse 2	8010	Graz	9999	TEST-ACCOUNT-2	Sachspende Österreich\nzweite Zeile BG/123456789 12	t	t	f	2024-10-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1	Kommentar <b>GF</b>	f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+213	2013	12	1	f	\N	SYNTHETIC-213	Synthetic Service Donor				5	TEST-ACCOUNT-1	Dienstleistung	t	t	f	2024-10-02 00:00:00	reviewer-a	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
+214	2014	28	2	f	\N		Bank				-750	TEST-ACCOUNT-2	Entgelt für Kontoführung	t	t	f	2024-03-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+215	2015	1029	2	f	\N	AT000000000000000215	Private Person				-4200	TEST-ACCOUNT-2	Rückerstattung	t	t	f	2024-11-11 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		t	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
+216	2016	29	1	f	\N		Intern				100000	TEST-ACCOUNT-1	Umbuchung	t	t	f	2024-12-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+217	2016	30	2	f	\N		Intern				-100000	TEST-ACCOUNT-2	Umbuchung	t	t	f	2024-12-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+218	2018	14	4	f	\N	SYNTHETIC-218	Synthetic Other Income				10	TEST-ACCOUNT-4	Zinsen	f	f	f	2026-06-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-4	\N	\N	\N	\N	\N	\N
+219	2019	20	4	f	\N	SYNTHETIC-219	Synthetic Supplier				-99	TEST-ACCOUNT-4	Büromaterial	t	t	f	2026-05-31 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-4	\N	\N	\N	\N	\N	\N
+220	2020	20	2	f	\N	SYNTHETIC-220	Synthetic Statement Supplier				-1234	AT606000050110117300	Lastschrift BG/000000220	t	f	f	2024-03-15 00:00:00	\N	\N	1	102	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+221	2021	28	2	f	\N		Bank				-50	AT606000050110117300	Zinsen BG/000000221	t	f	f	2024-03-31 00:00:00	\N	\N	1	103	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+222	2022	28	2	f	\N		Bank				-700	AT606000050110117300	Entgelt für Kontoführung	t	f	f	2024-06-30 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
+## (sequences) (10 rows)
+sequence	last_value	is_called
+balance_id_seq	1	f
+donation_type_id_seq	1	f
+file_number	103	t
+lo_id_seq	1	f
+oo_id_seq	1	f
+person_type_id_seq	1	f
+type_id_seq	1	f
+users_id_seq	100	t
+voucher_number	5026	t
+vouchers_id_seq	1027	t

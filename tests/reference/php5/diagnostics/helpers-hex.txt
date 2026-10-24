@@ -1,0 +1,2 @@
+hex2ascii(array(int(0) => string(2) "41")): 2 strlen() expects parameter 1 to be string, array given
+ascii2hex(array(int(0) => string(1) "a")): 2 strlen() expects parameter 1 to be string, array given

@@ -34,7 +34,7 @@ else if ($voucher['dir'] == 'bel')
     $part = $part - 1;
 }
 
-$voucher['date'] = format_date(get_param($part, 'date', null, '/^((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1)))$/'));
+$voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
 $default_lo = 10;
 $rights2 = explode(",", $rights);
@@ -61,6 +61,21 @@ $voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
 $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
+}
+// Whether the organizations posted for the parts of a voucher may be used:
+// any for bgf, otherwise only the user's own (numeric) organizations.
+function posted_organizations_allowed($parts, $rights)
+{
+if (has_right($rights, 'bgf'))
+  return true;
+$rights2 = explode(",", $rights === null ? '' : $rights);
+for ($part = 0; $part < $parts; $part++)
+{
+  $lo = get_param($part, 'lo', null, '/^\d+$/');
+  if ($lo !== null && !in_array($lo, $rights2, true))
+    return false;
+}
+return true;
 }
 function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
 {
@@ -155,8 +170,8 @@ VALUES
   '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
   '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
   {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},".
-  ($ack1_old == null ? "NULL" : "'" . $ack1_old . "'").",".
-  ($ack2_old == null ? "NULL" : "'" . $ack2_old . "'").
+  ($ack1_old == null ? "NULL" : "'" . pg_escape_string($ack1_old) . "'").",".
+  ($ack2_old == null ? "NULL" : "'" . pg_escape_string($ack2_old) . "'").
   ");";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -164,12 +179,23 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 return $voucher_number;
 }
-function page_new_save()
+function page_new_save($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
 
+if (!posted_organizations_allowed($parts, $rights))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $query = "SELECT nextval('voucher_number') AS num;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -186,6 +212,12 @@ for ($i = 0; $i < $parts; $i++)
 }
 function page_new_file($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = intval($_POST["parts"]);
@@ -223,7 +255,7 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -247,9 +279,12 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
-$targetpath = getcwd() . '/files/' . $file_number . ".aes";
 $data = file_get_contents($sourcepath);
-file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
+if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
+  return;
+}
 
   vouchers_reset_ack($id, $rightssql);
 
@@ -447,7 +482,7 @@ echo '
 block_end();
 }
 
-function page_new_buchung($part = 0, $part_to_remove,$rights,$add)
+function page_new_buchung($part, $part_to_remove,$rights,$add)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
 	$voucher = get_voucher($part+1,$rights);
@@ -616,7 +651,7 @@ end_of_form($parts,$rights,$bgfandack,$rights,true,false);
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)
 {
 $rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2)))
+if (write_rights($rights) !== false && (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2))))
 {
 if ($bgfandack)
 {

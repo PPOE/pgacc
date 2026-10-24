@@ -1,0 +1,40 @@
+# step: all-csv-hideodd
+# request: GET /index.php?action=all&format=csv as hideodd
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (3223 bytes) ---
+﻿Buchungszeile	Art	Mitglied	Konto	Betrag	Kommentar	Bestätigt	Rück.	Name/Adresse	
+108	Synthetic donation	Nein	TEST-ACCOUNT-1	50,00€		reviewer-a reviewer-b	Nein	Synthetic Donor   	
+205	Synthetic donation	Nein	TEST-ACCOUNT-1	3,33€		reviewer-a 	Nein	Synthetic Donor 2012   	
+206	Synthetic donation	Nein	TEST-ACCOUNT-1	6,67€		 	Nein	Synthetic Donor 2012   	
+208	Synthetic expense	Nein	TEST-ACCOUNT-6	-1234,56€		reviewer-a reviewer-b	Nein	Synthetic Campaign Printer   	
+209	Synthetic donation	Nein	TEST-ACCOUNT-6	500,05€		reviewer-a reviewer-b	Nein	Synthetic Campaign Donor   	
+207	Synthetic expense	Nein	TEST-ACCOUNT-1	-0,01€		reviewer-a reviewer-b	Nein	Synthetic Supplier 2012   	
+210	Synthetic legacy expense	Nein	TEST-ACCOUNT-10	-21474836,47€		reviewer-a reviewer-b	Nein	Synthetic Agency   	
+211	Synthetic in-kind donation	Nein	TEST-ACCOUNT-6	21474836,47€		reviewer-a reviewer-b	Nein	Synthetic In-Kind Donor   	
+101	Synthetic donation	Nein	TEST-ACCOUNT-1	120,00€		reviewer-a reviewer-b	Nein	Synthetic Donor   	
+102	Synthetic legacy donation	Nein	TEST-ACCOUNT-1	30,00€		reviewer-a 	Nein	Synthetic Donor   	
+220	Synthetic expense	Nein	AT606000050110117300	-12,34€		 	Nein	Synthetic Statement Supplier   	
+221	Synthetic bank charges	Nein	AT606000050110117300	-0,50€		 	Nein	Bank   	
+214	Synthetic bank charges	Nein	TEST-ACCOUNT-2	-7,50€		reviewer-a reviewer-b	Nein	Bank   	
+103	Synthetic expense	Nein	TEST-ACCOUNT-2	-50,00€		reviewer-a reviewer-b	Nein	Synthetic Supplier   	
+104	Synthetic legacy expense	Nein	TEST-ACCOUNT-2	-15,00€		reviewer-a reviewer-b	Nein	Synthetic Supplier   	
+105	Synthetic expense	Nein	TEST-ACCOUNT-2	-25,00€		 	Nein	Synthetic Draft   	
+222	Synthetic bank charges	Nein	AT606000050110117300	-7,00€		 	Nein	Bank   	
+107	Synthetic donation	Nein	TEST-ACCOUNT-1	0,00€		reviewer-a reviewer-b	Nein	Synthetic Donor   	
+110	Synthetic donation	Nein	TEST-ACCOUNT-1	10,00€		reviewer-a 	Nein	Synthetic Donor   	
+212	Synthetic in-kind donation	Nein	TEST-ACCOUNT-2	99,99€	Kommentar <b>GF</b>	reviewer-a reviewer-b	Nein	Jörg "Quote" O'Brien Gasse 2 8010 Graz	
+213	Synthetic in-kind service	Nein	TEST-ACCOUNT-1	0,05€		reviewer-a 	Nein	Synthetic Service Donor   	
+215	Synthetic private refund	Nein	TEST-ACCOUNT-2	-42,00€		reviewer-a reviewer-b	Ja	Private Person   	
+216	Synthetic internal transfer in	Nein	TEST-ACCOUNT-1	1000,00€		reviewer-a reviewer-b	Nein	Intern   	
+217	Synthetic internal transfer out	Nein	TEST-ACCOUNT-2	-1000,00€		reviewer-a reviewer-b	Nein	Intern   	
+109	Synthetic donation	Nein	TEST-ACCOUNT-1	25,00€		reviewer-a 	Nein	Synthetic Future Donor   	
+201	Synthetic membership fee	9001	TEST-ACCOUNT-1	24,00€		reviewer-a reviewer-b	Nein	Anna Synthetisch-Müller Teststraße 1 1010 Wien	
+202	Synthetic membership fee	9004	TEST-ACCOUNT-1	19,99€		reviewer-a 	Nein	Dieter Synthetisch   	
+203	Synthetic membership fee	9031	TEST-ACCOUNT-1	0,01€		 	Nein	Testa Mitglied   	
+204	Synthetic membership fee	9031	TEST-ACCOUNT-1	19,99€		 	Nein	Testa Mitglied   	
+219	Synthetic expense	Nein	TEST-ACCOUNT-4	-0,99€		reviewer-a reviewer-b	Nein	Synthetic Supplier   	
+218	Synthetic other income	Nein	TEST-ACCOUNT-4	0,10€		 	Nein	Synthetic Other Income   	
+

@@ -1,6 +1,8 @@
+ARG PHP_IMAGE=php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
+
 FROM composer:2.2.25@sha256:be23a9c3f73293f966a981be03896f9aaaade6c2cc9415f4cf828d1f39c5005c AS composer
 
-FROM php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
+FROM ${PHP_IMAGE}
 
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 

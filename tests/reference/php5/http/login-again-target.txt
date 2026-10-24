@@ -1,0 +1,7 @@
+# step: login-again-target
+# request: POST /index.php?action=login as admin
+# form: submit=Anmeldung&target=696E6465782E7068703F616374696F6E3D6F70656E
+status: 302
+header: Location: index.php?action=open
+header: Content-type: text/html
+--- body (0 bytes) ---

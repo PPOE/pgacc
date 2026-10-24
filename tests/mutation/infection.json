@@ -1,0 +1,24 @@
+{
+    "source": {
+        "directories": ["/tmp/infection-src"]
+    },
+    "phpUnit": {
+        "configDir": "/app/tests/mutation/infection",
+        "customPath": "/app/vendor/bin/phpunit"
+    },
+    "bootstrap": "/tmp/infection-src/functions.php",
+    "initialTestsPhpOptions": "-d xdebug.mode=coverage",
+    "timeout": 20,
+    "tmpDir": "/tmp/infection",
+    "logs": {
+        "text": "/results/infection.log",
+        "summary": "/results/summary.log",
+        "json": "/results/infection.json",
+        "perMutator": "/results/per-mutator.md",
+        "html": "/results/infection.html"
+    },
+    "mutators": {
+        "@default": true,
+        "@function_signature": false
+    }
+}

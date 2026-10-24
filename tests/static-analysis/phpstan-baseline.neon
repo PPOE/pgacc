@@ -1,0 +1,175 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
+			identifier: whitespace.fileEnd
+			count: 1
+			path: ../../check.php
+
+		-
+			message: '#^Variable \$i might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: ../../check.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 2
+			path: ../../donations.php
+
+		-
+			message: '#^Loose comparison using \=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: equal.alwaysFalse
+			count: 1
+			path: ../../edit.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: ../../edit.php
+
+		-
+			message: '#^Variable \$vouchers might not be defined\.$#'
+			identifier: variable.undefined
+			count: 13
+			path: ../../edit.php
+
+		-
+			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../../functions.php
+
+		-
+			message: '#^Regex pattern is invalid\: Compilation failed\: quantifier does not follow a repeatable item at offset 1 in pattern\: /\^\*\-\?\\d\+\(\(\\\.\|,\)\(\\d\\d\)\?\)\?\$/$#'
+			identifier: regexp.pattern
+			count: 1
+			path: ../../functions.php
+
+		-
+			message: '#^Loose comparison using \=\= between ''Paypal'' and ''Paypal'' will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 1
+			path: ../../import.php
+
+		-
+			message: '#^Loose comparison using \=\= between 0 and 0 will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 1
+			path: ../../import.php
+
+		-
+			message: '#^Regex pattern is invalid\: Unknown modifier ''g'' in pattern\: /\[A\-Z\]\{2\}\\/\\d\{9\}/g$#'
+			identifier: regexp.pattern
+			count: 1
+			path: ../../import.php
+
+		-
+			message: '#^Variable \$file_number might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../../import2.php
+
+		-
+			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
+			identifier: whitespace.fileEnd
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Function page_import invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Function page_kdonations invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Function page_new_ack not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Function page_transfer not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Parameter \#2 \$value of function setcookie expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../../index.php
+
+		-
+			message: '#^Variable \$datakey might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../../mbapi.php
+
+		-
+			message: '#^Binary operation "\*" between \(array\<string\>\|string\) and 100\.0 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: ../../new.php
+
+		-
+			message: '#^Undefined variable\: \$bgfandack$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../../new.php
+
+		-
+			message: '#^Variable \$file_number might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../../new.php
+
+		-
+			message: '#^Variable \$queries might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../../new.php
+
+		-
+			message: '#^Variable \$voucher_number might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../../new.php
+
+		-
+			message: '#^Function pg_prev_error not found\.$#'
+			identifier: function.notFound
+			count: 2
+			path: ../../report.php
+
+		-
+			message: '#^Variable \$unit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: ../../tinyreport.php
+
+		-
+			message: '#^Variable \$unit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: ../../vreport.php
+
+		-
+			message: '#^Undefined variable\: \$year$#'
+			identifier: variable.undefined
+			count: 7
+			path: ../../wk.php
