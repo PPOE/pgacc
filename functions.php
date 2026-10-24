@@ -631,7 +631,7 @@ function receipt_configured_key()
   return '';
 }
 
-// Identifies a key in logs and in the migration's output without revealing it.
+// Identifies a key in the migration's output without revealing it.
 function receipt_key_fingerprint($key)
 {
   return substr(hash_hmac('sha256', 'pgacc-key-fingerprint', $key), 0, 8);
@@ -700,8 +700,11 @@ function receipt_v2_encrypt($key, $number, $data, $iv = null)
   if ($iv === null)
     $iv = \phpseclib\Crypt\Random::string(16);
   list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
-  $body = 'PGR2' . $iv . receipt_v2_cipher($encryptionKey, $iv)->encrypt($data);
-  return $body . hash_hmac('sha256', $body, $macKey, true);
+  $ciphertext = receipt_v2_cipher($encryptionKey, $iv)->encrypt($data);
+  $mac = hash_init('sha256', HASH_HMAC, $macKey);
+  hash_update($mac, 'PGR2' . $iv);
+  hash_update($mac, $ciphertext);
+  return 'PGR2' . $iv . $ciphertext . hash_final($mac, true);
 }
 
 // The plain text of <number>.v2.aes bytes, or false: the MAC is checked first,
@@ -711,10 +714,13 @@ function receipt_v2_decrypt($key, $number, $file)
   if (!is_string($file) || strlen($file) < 68 || substr($file, 0, 4) !== 'PGR2')
     return false;
   list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
-  $body = substr($file, 0, -32);
-  if (!receipt_equals(hash_hmac('sha256', $body, $macKey, true), substr($file, -32)))
+  $ciphertext = substr($file, 20, -32);
+  $mac = hash_init('sha256', HASH_HMAC, $macKey);
+  hash_update($mac, substr($file, 0, 20));
+  hash_update($mac, $ciphertext);
+  if (!receipt_equals(hash_final($mac, true), substr($file, -32)))
     return false;
-  return receipt_v2_cipher($encryptionKey, substr($body, 4, 16))->decrypt(substr($body, 20));
+  return receipt_v2_cipher($encryptionKey, substr($file, 4, 16))->decrypt($ciphertext);
 }
 
 // Writes a temporary file next to $path and renames it over $path, so readers
@@ -746,8 +752,8 @@ function receipt_store($directory, $number, $data)
   return true;
 }
 
-// The plain text of files/<number>.v2.aes ($path), or false (logged with the
-// key fingerprint, to compare with the migration's output).
+// The plain text of files/<number>.v2.aes ($path), or false (logged; neither
+// the key nor its fingerprint goes to the web server's log).
 function receipt_read_v2($path, $number)
 {
   $receiptKey = receipt_configured_key();
@@ -758,8 +764,7 @@ function receipt_read_v2($path, $number)
   }
   $plain = receipt_v2_decrypt($receiptKey, $number, @file_get_contents($path));
   if ($plain === false)
-    error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file; key fingerprint "
-      . receipt_key_fingerprint($receiptKey) . ')');
+    error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file)");
   return $plain;
 }
 
