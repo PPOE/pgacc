@@ -59,12 +59,17 @@ Next steps, in order:
   behaviour; the two PHPCompatibility findings are gone). `csrf` is in the
   `ci.sh` list, and the CI harness job is blocking. `sh tests/run.sh` passes
   (exit 0).
-- [ ] (b) `smalot/pdfparser` ^2, so that the PDF bank-statement import
-  (`import2.php`) works on PHP 8.x: the locked v0.9.23 declares a class
-  `Object` (fatal since 7.2) and its TCPDF 6.2.6 does not parse on PHP 8
-  (curly-brace offsets). Update the `RD-PDFPARSER-PHP72-*` reference entries,
-  the skipped PDF import in `tests/http-receipts.php` and add a PDF round trip
-  to `tests/release-vendor-check.php`.
+- [x] (b) `smalot/pdfparser` ^2 (locked v2.13.1, with
+  `symfony/polyfill-mbstring` v1.43.0; TCPDF 6.2.6 left the lock), so that
+  the PDF bank-statement import (`import2.php`) works on PHP 8.5: v0.9.23
+  declared a class `Object` (fatal since 7.2) and its TCPDF did not parse on
+  PHP 8 (curly-brace offsets). `import2.php` is unchanged (same
+  `parseContent()`/`getText()` API). The PDF import in
+  `tests/http-receipts.php` runs again, `tests/release-vendor-check.php`
+  parses a synthetic statement, and the `RD-PDFPARSER-PHP72-*` reference
+  entries are removed: on 8.5 the import2 pages, the imported receipt's
+  download and view, `db/final.txt` and the manifest match `php5/` (only
+  `RD-CHARSET-DEFAULT` remains, as on every page).
 - [ ] (c) phpseclib: 2.0.55 reproduces all 21 mcrypt contract vectors on PHP
   8.5 without diagnostics (release check) and `CryptoTest` passes, also after
   (a). Moving to v3 is optional.
@@ -914,7 +919,7 @@ decision. The differences of the other lanes are reviewed entries in
 | `import.php:118`, `donations.php:4-6`, `sprintf('%1.2f', ...)` sums | Numeric strings differ between 5.6 and 7.x: `intval('1e3')` is 1 on 5.6 and 1000 on 7.1+ (an import amount `1e3,2` becomes `PHP_INT_MAX` on 7.4); hex strings such as `'0x1A'` are numeric (26) on 5.6 only (`helpers/idioms-values.txt`, `helpers/page-helpers.txt`). | Validate amount and year formats before `intval()`. Allowlisted as `todo`: `RD-INTVAL-EXPONENT-VALUES`, `RD-INTVAL-EXPONENT-DATES`, `RD-HEX-NUMERIC-STRING` (7.4+). |
 | `functions.php:275` `konto2lo()`, `switch`/`==` idioms | PHP 8 string-number comparison: an account number with a trailing space (`'50110117300 '`) maps to organization 2 on PHP 8 but falls through on 5.6/7.4; `0 == 'abc'` is no longer true; `sort()` already orders mixed values differently on 7.4 than on 5.6 (`helpers/konto2lo.txt`, `helpers/idioms-*.txt`). | Normalize (trim) account numbers and compare strictly where the input is a string. Allowlisted as `todo`: `RD-PHP8-KONTO2LO-WHITESPACE`, `RD-PHP8-STRING-NUMBER-*`, `RD-SORT-ORDER`. |
 | `edit.php:348`, `import.php:27`, `import2.php:24`; `new.php:46`; `getfilter()`/`get_param()`/`hex2ascii()`/`rights2orgasql()` | PHP 8 `TypeError`s: `count(null)` (unknown or foreign voucher, import forms without an upload) gives HTTP 500; arithmetic on non-numeric amount strings; array request parameters. PHP 8.4 `round()`: an amount of 1,005 EUR is stored as 100 instead of 101 cents. | PHP 8 track. Allowlisted as `todo`: `RD-PHP8-COUNT-NULL-*`, `RD-PHP8-NONNUMERIC-ARITHMETIC`, `RD-PHP8-ARRAY-ARG-*`, `RD-PHP84-ROUND`. |
-| `import2.php` (smalot/pdfparser 0.9.23, TCPDF 6.2.6) | The PDF statement import dies on PHP 7.2+ (the libraries do not compile: class `Object`, curly-brace offsets): HTTP 500, no receipts attached (also the later download and voucher view). | Upgrade pdfparser (see [Dependencies](#dependencies)). Allowlisted as `todo`: `RD-PDFPARSER-PHP72-*`. |
+| `import2.php` (smalot/pdfparser 0.9.23, TCPDF 6.2.6) | The PDF statement import died on PHP 7.2+ (the libraries do not compile: class `Object`, curly-brace offsets): HTTP 500, no receipts attached (also the later download and voucher view). | **Fixed**: pdfparser v2.13.1 ("PHP 8.5-only migration", step b); the `RD-PDFPARSER-PHP72-*` entries are removed. |
 
 ### 32-bit production integers
 
@@ -1274,7 +1279,9 @@ Recommendation (owner decision):
   uploads (cover page, one ID, several IDs) and compare the extracted text
   of v0.9.23 on PHP 5.6 with the new version: only the synthetic PDFs above
   were compared.
-- [ ] After dropping PHP 5.6 and 7.0: move to `^2.13` (clean on 7.4-8.5).
+- [x] After dropping PHP 5.6 and 7.0: move to `^2.13` (clean on 7.4-8.5).
+  Done after `php5-last`: `^2`, locked v2.13.1 ("PHP 8.5-only migration",
+  step b).
 - [ ] Until then, any `composer update` without a package name upgrades
   pdfparser to 2.x with a polyfill for PHP 7.2+: the PHP 5.6 image then fails
   `composer check-platform-reqs`, and without that check every page would
