@@ -254,7 +254,18 @@ final class FunctionsTest extends FunctionsTestCase
             'own organization' => array('2', '1,2', true),
             'own organization as integer' => array(2, '2', true),
             'foreign organization' => array('3', '1,2', false),
-            'padded organization' => array('01', '1', false),
+            'padded organization' => array('01', '1', true),
+            'padded right' => array('3', '03', true),
+            'padded both' => array(3, '1,003', true),
+            'other number' => array('13', '1,3', false),
+            'zero' => array('0', '00', true),
+            'spaced right' => array('2', '1, 2', true),
+            'spaced bgf' => array('7', '2, bgf', true),
+            'spaced root' => array('7', ' root', true),
+            'spaced read-only bgf' => array('7', ' Rbgf', false),
+            'non-numeric organization' => array('2x', '2x', false),
+            'empty token is not organization 0' => array('0', '1,', false),
+            'empty organization' => array('', '0', false),
             'read-only bgf is not bgf' => array('7', 'Rbgf', false),
             'substring of root' => array('7', 'xroot', false),
             'no rights' => array('10', '', false),
@@ -287,6 +298,8 @@ final class FunctionsTest extends FunctionsTestCase
             'empty rights unchanged' => array('', ''),
             'null rights unchanged' => array(null, null),
             'substring is not read-only bgf' => array('xRbgf', 'xRbgf'),
+            'spaced read-only bgf' => array('Rbgf, 2', '2'),
+            'spaced read-only bgf alone' => array(' Rbgf ', false),
         );
     }
 
@@ -476,6 +489,9 @@ final class FunctionsTest extends FunctionsTestCase
             'case sensitive' => array('BGF', 'bgf', false),
             'organization id' => array('1,2', '2', true),
             'numeric comparison is not used' => array('02', '2', false),
+            'tokens are trimmed' => array('bgf, root', 'root', true),
+            'trimmed tokens stay exact' => array(' Rbgf ', 'bgf', false),
+            'trimmed read-only bgf' => array('2, Rbgf', 'Rbgf', true),
             'empty rights' => array('', 'bgf', false),
             'null rights' => array(null, 'bgf', false),
         );

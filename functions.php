@@ -262,23 +262,36 @@ function format_date($date)
 // not contained in "Rbgf").
 function has_right($rights, $right)
 {
-  return in_array($right, explode(",", $rights === null ? '' : $rights), true);
+  return in_array($right, rights_tokens($rights), true);
+}
+// The comma-separated rights, without surrounding whitespace.
+function rights_tokens($rights)
+{
+  return array_map('trim', explode(",", $rights === null ? '' : $rights));
 }
 // Whether the rights may use this organization for a voucher: any for the
 // exact bgf or root right, otherwise only the numeric organizations of the
-// rights, compared as written ("01" is not "1").
+// rights, compared as numbers like the database does ("03" is 3).
 function organization_allowed($lo, $rights)
 {
   if (has_right($rights, 'bgf') || has_right($rights, 'root'))
     return true;
-  return has_right($rights, strval($lo));
+  $lo = strval($lo);
+  if (preg_match('/^\d+$/D', $lo) != 1)
+    return false;
+  foreach (rights_tokens($rights) as $right)
+  {
+    if (preg_match('/^\d+$/D', $right) == 1 && ltrim($right, '0') === ltrim($lo, '0'))
+      return true;
+  }
+  return false;
 }
 // Rights for changing data. The read-only right "Rbgf" (see accounts.php)
 // does not count: false for a user who has no other right, otherwise the
 // other rights. Rights without "Rbgf" are returned unchanged.
 function write_rights($rights)
 {
-  $tokens = explode(",", $rights === null ? '' : $rights);
+  $tokens = rights_tokens($rights);
   if (!in_array('Rbgf', $tokens, true))
     return $rights;
   $rights_w = array();

@@ -104,6 +104,16 @@ with synthetic users and covered by a mutation target.
   no regression for root): the exact `root` right may post any
   organization too, like `bgf`, as the form offers it; the check is
   `organization_allowed()` in `functions.php`.
+  Second review fix: rights tokens are trimmed (`rights_tokens()`, used by
+  `has_right()`, `write_rights()` and `organization_allowed()`), so
+  `bgf, root` keeps `root` (still exact: ` Rbgf ` is not `bgf`), and
+  organizations are compared as numbers like the database compares the
+  rights SQL (`03` allows organization 3, `01` posts organization 1). The
+  voucher form's organization list uses `organization_allowed()`, so it
+  offers exactly what the save allows (before, `bgf`/`root` with spaces saw
+  only their numeric organizations). [ ] Open: `rights2orgasql()` (reads)
+  does not trim, so ` 2` or ` bgf` in a rights string widens writes but
+  not reads; trimming it as well widens reads (owner decision).
   Review fix: a part without a posted organization is checked with the
   organization `get_voucher()` falls back to (`default_organization()`: the
   user's single organization, otherwise 10). Behaviour difference: users

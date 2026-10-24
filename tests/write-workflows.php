@@ -674,12 +674,42 @@ $twoUnitsRevision = edit_request(
 );
 assert_contains($twoUnitsRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision without organization by a user of two organizations');
 assert_database_count($database, $commentQuery, array('Synthetic revision without organization'), 0, 'revision without organization by a user of two organizations');
-// Organizations are compared as written ('01' is not organization 1).
+// Organizations are compared as numbers, as the database compares them
+// ('01' is organization 1), and spaces around rights do not count.
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
 $paddedForm['lo0'] = '01';
-$padded = http_request('/index.php?action=new', 'POST', $paddedForm, $unitOneCookies);
-assert_contains($padded['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation with a padded organization');
-assert_database_count($database, $commentQuery, array('Synthetic voucher with a padded organization'), 0, 'voucher with a padded organization');
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, $paddedForm, $unitOneCookies)),
+    'orga',
+    '1',
+    'voucher with a padded organization'
+);
+$spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
+// (The voucher form of the edit page; the new-voucher page raises the open
+// $bgfandack finding.)
+// The draft is in organization 1: the listings' rights SQL (rights2orgasql())
+// does not trim the rights, so '1, bgf' reads organization 1 only (open
+// finding), while it may write to every organization.
+$optionsDraftId = create_voucher_from_form(
+    $database,
+    array_merge(voucher_form('Synthetic draft for the organization options', '-6.68', 0), array('lo0' => '1')),
+    $adminCookies
+);
+$spacedForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $spacedCookies);
+assert_contains($spacedForm['body'], '>Synthetic National Unit</option>', 'voucher form for spaced rights');
+assert_contains($spacedForm['body'], '>Synthetic Regional Unit</option>', 'voucher form for spaced rights');
+$spacedVoucher = voucher_form('Synthetic voucher of spaced rights', '-6.67', 0);
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, $spacedVoucher, $spacedCookies)),
+    'orga',
+    '2',
+    'voucher of spaced rights'
+);
+$adminNewForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $adminCookies);
+$unitTwoOptions = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $twoUnitsCookies);
+assert_contains($adminNewForm['body'], '>Synthetic National Unit</option>', 'voucher form for root,bgf');
+assert_contains($adminNewForm['body'], '>Synthetic Regional Unit</option>', 'voucher form for root,bgf');
+assert_contains($unitTwoOptions['body'], '>Synthetic Regional Unit</option>', 'voucher form for 1,2');
 // The second part of a two-part voucher is in organization 2.
 $foreignPartForm = two_organization_form('Synthetic voucher with a foreign second part', 0);
 $foreignPart = http_request('/index.php?action=new', 'POST', $foreignPartForm, $unitOneCookies);
