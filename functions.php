@@ -108,8 +108,8 @@ function tag($tag, $text)
       $text = str_replace(array("."),array(","),$text);
     }
     // A cell that a spreadsheet would read as a formula or a quoted field (not
-    // a number), also after leading spaces, starts with a single quote.
-    else if ($tag == 'td' && preg_match('/^\s*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+    // a number), also after leading whitespace, starts with a single quote.
+    else if ($tag == 'td' && preg_match('/^[ \t\n\r\f\x0B]*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
       $text = "'" . $text;
     if ($tag == 'tr')
       return "$text\n";

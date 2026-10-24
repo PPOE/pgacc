@@ -183,7 +183,7 @@ function page_vreport($rights)
       {
         $k = substr($line2['vaccount'],-3,3);
       }
-      echo "<li><a href=\"vreport?konto=" . html_escape($k) . "\">Konto '".html_escape($k)."'</a></li>";
+      echo "<li><a href=\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\">Konto '".html_escape($k)."'</a></li>";
     }
     echo "</ul>";
     pg_free_result($result2);

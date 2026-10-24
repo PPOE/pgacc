@@ -33,7 +33,7 @@ function page_login()
   $target = isset($_GET['target']) ? login_form_target($_GET['target']) : '';
   echo '<h1>Login erforderlich:</h1><br>';
   block_start();
-  echo '<div class="main" id="default"><form class="login" action="index.php?action=login" method="POST"><div><label for="username_field" class="ui_field_label">Anmeldename</label> <input id="username_field" type="text" name="name" value="" /></div><div><label for="unique_hmyzqgytvlkhwnwshqbmbvvcvvlvdcmq" class="ui_field_label">Kennwort</label> <input id="unique_hmyzqgytvlkhwnwshqbmbvvcvvlvdcmq" type="password" name="pass" value="" /> <input name="target" type="hidden" value="'.htmlspecialchars($target, ENT_QUOTES, 'ISO-8859-1').'" /></div><input value="Anmeldung" type="submit" name="submit" /></form></div>';
+  echo '<div class="main" id="default"><form class="login" action="index.php?action=login" method="POST"><div><label for="username_field" class="ui_field_label">Anmeldename</label> <input id="username_field" type="text" name="name" value="" /></div><div><label for="unique_hmyzqgytvlkhwnwshqbmbvvcvvlvdcmq" class="ui_field_label">Kennwort</label> <input id="unique_hmyzqgytvlkhwnwshqbmbvvcvvlvdcmq" type="password" name="pass" value="" /> <input name="target" type="hidden" value="'.html_escape($target).'" /></div><input value="Anmeldung" type="submit" name="submit" /></form></div>';
   block_end();
 
 }

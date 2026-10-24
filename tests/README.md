@@ -190,7 +190,7 @@ the CSV export keeps the raw text, prefixes formula and quoted cells (`=`,
 breaks from splitting cells. Forms shown again from posted values keep
 quotes and backslashes as entered, and saving stores them unchanged. It removes its rows afterwards. Pages
 with known diagnostics outside its scope are attributed to the known
-failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR`, `KF-NEW-UNDEFINED-BGFANDACK` and
+failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR`, `KF-NEW-UNDEFINED-BGFANDACK`, `KF-ACCOUNTS-QUERY-ERROR` (the warning of the deliberately failing user query) and
 `KF-REPORT-UNDEFINED-UNIT` (see `COMPATIBILITY_PLAN.md`), which must still
 occur.
 

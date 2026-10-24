@@ -13,7 +13,8 @@
  */
 $csvNumber = "preg_match('/^-?\\d+([.,]\\d+)?$/', \$text) != 1";
 $csvClass = "[=+\\-@\"]";
-$csvCheck = "    else if (\$tag == 'td' && preg_match('/^\\s*$csvClass/', \$text) == 1 && $csvNumber)\n      \$text = \"'\" . \$text;";
+$csvSpace = "[ \\t\\n\\r\\f\\x0B]*";
+$csvCheck = "    else if (\$tag == 'td' && preg_match('/^$csvSpace$csvClass/', \$text) == 1 && $csvNumber)\n      \$text = \"'\" . \$text;";
 $csvBreaks = "str_replace(array(\"\\r\\n\", \"\\n\", \"\\r\"),array(' / ', ' / ', ' / ')";
 $csvTab = "    if (\$tag == 'td')\n      \$text = str_replace(array(\"\\t\"),array(' '),\$text);";
 $amount = "if (preg_match('/^-?\\d+(\\.\\d+)?€$/',\$text) == 1)";
@@ -76,13 +77,13 @@ $mutations = array(
     array(
         'id' => 'csv-formula-unanchored',
         'search' => $csvCheck,
-        'replace' => str_replace("'/^\\s*[", "'/[", $csvCheck),
+        'replace' => str_replace("'/^$csvSpace", "'/", $csvCheck),
         'rationale' => 'Only a leading formula character makes a formula.',
     ),
     array(
         'id' => 'csv-formula-leading-space-ignored',
         'search' => $csvCheck,
-        'replace' => str_replace("'/^\\s*[", "'/^[", $csvCheck),
+        'replace' => str_replace($csvSpace, '', $csvCheck),
         'rationale' => 'Spreadsheets skip leading spaces before a formula.',
     ),
     array(
@@ -160,6 +161,13 @@ $mutations = array(
         'rationale' => 'Saving puts the posted text unescaped into SQL.',
     ),
     array(
+        'id' => 'import-upload-error-name-unencoded',
+        'file' => 'import.php',
+        'search' => "(\".html_escape(\$_FILES['uploadcsv']['name'][\$i]).\") wurde nicht erfolgreich hochgeladen",
+        'replace' => "(\".(\$_FILES['uploadcsv']['name'][\$i]).\") wurde nicht erfolgreich hochgeladen",
+        'rationale' => 'The file name of an upload error is echoed raw.',
+    ),
+    array(
         'id' => 'sortlink-refund-dropped',
         'file' => 'closed.php',
         'search' => "    \$filters .= \"&filter_refund=\" . rawurlencode(\$_GET['filter_refund']);",
@@ -167,6 +175,15 @@ $mutations = array(
         'rationale' => 'The sort links keep the refund filter like the other filters.',
     ),
 );
+// Tabs, \n and \r are replaced before the check, so only these can lead a cell.
+foreach (array('space' => ' ', 'vertical-tab' => '\\x0B', 'form-feed' => '\\f') as $name => $space) {
+    $mutations[] = array(
+        'id' => "csv-formula-after-$name-allowed",
+        'search' => $csvCheck,
+        'replace' => str_replace($csvSpace, str_replace($space, '', $csvSpace), $csvCheck),
+        'rationale' => 'Spreadsheets skip this whitespace before a formula (the class is explicit, so PCRE 8 and PCRE2 agree).',
+    );
+}
 foreach (array('equals' => '=', 'plus' => '+', 'minus' => '\\-', 'at' => '@', 'double-quote' => '"') as $name => $character) {
     $mutations[] = array(
         'id' => "csv-formula-$name-allowed",
@@ -192,6 +209,13 @@ foreach ($forms as $name => $form) {
     }
 }
 $callSites = array(
+    array(
+        'id' => 'accounts-html-escape-pg-last-error',
+        'file' => 'accounts.php',
+        'search' => '      $result = pg_query($query) or die(\'Abfrage fehlgeschlagen: \' . html_escape(pg_last_error()));',
+        'replace' => '      $result = pg_query($query) or die(\'Abfrage fehlgeschlagen: \' . (pg_last_error()));',
+        'rationale' => 'Unescaped output: html_escape() removed around pg_last_error().',
+    ),
     array(
         'id' => 'accounts-html-escape-line-name',
         'file' => 'accounts.php',
@@ -683,6 +707,34 @@ $callSites = array(
         'rationale' => 'Unescaped output: html_escape() removed around $_FILES[\'upload\'][\'type\'][$i].',
     ),
     array(
+        'id' => 'kdonations-listing-text-str-replace-array-spenden-mit-ausnahme-der-von',
+        'file' => 'kdonations.php',
+        'search' => '    echo tag("td",listing_text(str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'),array(\'Spenden\'),$line2["name"])));',
+        'replace' => '    echo tag("td",(str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'),array(\'Spenden\'),$line2["name"])));',
+        'rationale' => 'Unescaped output: listing_text() removed around str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachs.',
+    ),
+    array(
+        'id' => 'kdonations-listing-text-line2-name',
+        'file' => 'kdonations.php',
+        'search' => '    echo tag("td", listing_text($line2["name"]));',
+        'replace' => '    echo tag("td", ($line2["name"]));',
+        'rationale' => 'Unescaped output: listing_text() removed around $line2["name"].',
+    ),
+    array(
+        'id' => 'kdonations-listing-text-line-comment',
+        'file' => 'kdonations.php',
+        'search' => '  echo tag("td", preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'),array(\'\'),preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'),array(" <i>Kontodaten</i> "),listing_text($line["comment"]))));',
+        'replace' => '  echo tag("td", preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'),array(\'\'),preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'),array(" <i>Kontodaten</i> "),($line["comment"]))));',
+        'rationale' => 'Unescaped output: listing_text() removed around $line["comment"].',
+    ),
+    array(
+        'id' => 'kdonations-listing-text-line-name',
+        'file' => 'kdonations.php',
+        'search' => '  echo tag("td", listing_text($line["name"]));',
+        'replace' => '  echo tag("td", ($line["name"]));',
+        'rationale' => 'Unescaped output: listing_text() removed around $line["name"].',
+    ),
+    array(
         'id' => 'mb-html-escape-line-name',
         'file' => 'mb.php',
         'search' => '  $lo = html_escape($line[\'name\']);' . "\n" . '  $Samount += $line[\'amount\'];',
@@ -977,17 +1029,25 @@ $callSites = array(
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'tinyreport-html-escape-k',
+        'id' => 'tinyreport-html-escape-tinyreport-konto-rawurlencode-k',
         'file' => 'tinyreport.php',
-        'search' => '  echo "<li><a href=\\"tinyreport?konto=" . html_escape($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '  echo "<li><a href=\\"tinyreport?konto=" . ($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'rationale' => 'Unescaped output: html_escape() removed around $k.',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . ("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'rationale' => 'Unescaped output: html_escape() removed around "tinyreport?konto=" . rawurlencode($k).',
+        'equivalent' => array('reason' => 'The link holds only a fixed path and a rawurlencode()d value, which has no character that html_escape() changes; it stays as defence in depth.'),
     ),
     array(
-        'id' => 'tinyreport-html-escape-k-2',
+        'id' => 'tinyreport-rawurlencode-k',
         'file' => 'tinyreport.php',
-        'search' => '  echo "<li><a href=\\"tinyreport?konto=" . html_escape($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '  echo "<li><a href=\\"tinyreport?konto=" . html_escape($k) . "\\">Konto \'".($k)."\'</a></li>";',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . ($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'rationale' => 'Unencoded URL value: rawurlencode() removed around $k.',
+    ),
+    array(
+        'id' => 'tinyreport-html-escape-k',
+        'file' => 'tinyreport.php',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".($k)."\'</a></li>";',
         'rationale' => 'Unescaped output: html_escape() removed around $k.',
     ),
     array(
@@ -1026,56 +1086,71 @@ $callSites = array(
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'vreport-html-escape-k',
+        'id' => 'vreport-html-escape-vreport-konto-rawurlencode-k',
         'file' => 'vreport.php',
-        'search' => '      echo "<li><a href=\\"vreport?konto=" . html_escape($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '      echo "<li><a href=\\"vreport?konto=" . ($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'rationale' => 'Unescaped output: html_escape() removed around $k.',
+        'search' => '      echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '      echo "<li><a href=\\"" . ("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'rationale' => 'Unescaped output: html_escape() removed around "vreport?konto=" . rawurlencode($k).',
+        'equivalent' => array('reason' => 'The link holds only a fixed path and a rawurlencode()d value, which has no character that html_escape() changes; it stays as defence in depth.'),
     ),
     array(
-        'id' => 'vreport-html-escape-k-2',
+        'id' => 'vreport-rawurlencode-k',
         'file' => 'vreport.php',
-        'search' => '      echo "<li><a href=\\"vreport?konto=" . html_escape($k) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '      echo "<li><a href=\\"vreport?konto=" . html_escape($k) . "\\">Konto \'".($k)."\'</a></li>";',
+        'search' => '      echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '      echo "<li><a href=\\"" . html_escape("vreport?konto=" . ($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'rationale' => 'Unencoded URL value: rawurlencode() removed around $k.',
+    ),
+    array(
+        'id' => 'vreport-html-escape-k',
+        'file' => 'vreport.php',
+        'search' => '      echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '      echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'".($k)."\'</a></li>";',
         'rationale' => 'Unescaped output: html_escape() removed around $k.',
     ),
     array(
         'id' => 'wk-html-escape-line-name',
+        'file' => 'wk.php',
+        'search' => '      echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
+        'replace' => '      echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
+        'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
+    ),
+    array(
+        'id' => 'wk-html-escape-line-name-2',
         'file' => 'wk.php',
         'search' => '    echo "<tr><td><a href=\\"index.php?action=kdonations&type={$line[\'id\']}&from=$from&to=$to&unit=$unit\\">" . html_escape($line[\'name\']) . "</a></td><td>";',
         'replace' => '    echo "<tr><td><a href=\\"index.php?action=kdonations&type={$line[\'id\']}&from=$from&to=$to&unit=$unit\\">" . ($line[\'name\']) . "</a></td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'wk-html-escape-line-name-2',
+        'id' => 'wk-html-escape-line-name-3',
         'file' => 'wk.php',
-        'search' => '    echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
-        'replace' => '    echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
+        'search' => '  else' . "\n" . '    echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";' . "\n" . '      echo sprintf("%1.2f",$line2[\'sum\'] / 100.0) . "&nbsp;€</td></tr>\\n";',
+        'replace' => '  else' . "\n" . '    echo "<tr><td>" . ($line[\'name\']) . "</td><td>";' . "\n" . '      echo sprintf("%1.2f",$line2[\'sum\'] / 100.0) . "&nbsp;€</td></tr>\\n";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'wk-html-escape-line-name-3',
+        'id' => 'wk-html-escape-line-name-4',
         'file' => 'wk.php',
         'search' => '  echo "<tr><td><a href=\\"index.php?action=spendings&type={$line[\'id\']}&from=$from&to=$to&unit=$unit\\">" . html_escape($line[\'name\']) . "</a></td><td>";',
         'replace' => '  echo "<tr><td><a href=\\"index.php?action=spendings&type={$line[\'id\']}&from=$from&to=$to&unit=$unit\\">" . ($line[\'name\']) . "</a></td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'wk-html-escape-line-name-4',
+        'id' => 'wk-html-escape-line-name-5',
         'file' => 'wk.php',
         'search' => '    echo "<br /><h2><a name=\\"nrw" . html_escape($line[\'name\']) . "2013\\" href=\\"#" . html_escape($line[\'name\']) . "\\">" . html_escape($line[\'name\']) . "</a></h2>\\n";',
         'replace' => '    echo "<br /><h2><a name=\\"nrw" . ($line[\'name\']) . "2013\\" href=\\"#" . html_escape($line[\'name\']) . "\\">" . html_escape($line[\'name\']) . "</a></h2>\\n";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'wk-html-escape-line-name-5',
+        'id' => 'wk-html-escape-line-name-6',
         'file' => 'wk.php',
         'search' => '    echo "<br /><h2><a name=\\"nrw" . html_escape($line[\'name\']) . "2013\\" href=\\"#" . html_escape($line[\'name\']) . "\\">" . html_escape($line[\'name\']) . "</a></h2>\\n";',
         'replace' => '    echo "<br /><h2><a name=\\"nrw" . html_escape($line[\'name\']) . "2013\\" href=\\"#" . ($line[\'name\']) . "\\">" . html_escape($line[\'name\']) . "</a></h2>\\n";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
-        'id' => 'wk-html-escape-line-name-6',
+        'id' => 'wk-html-escape-line-name-7',
         'file' => 'wk.php',
         'search' => '    echo "<br /><h2><a name=\\"nrw" . html_escape($line[\'name\']) . "2013\\" href=\\"#" . html_escape($line[\'name\']) . "\\">" . html_escape($line[\'name\']) . "</a></h2>\\n";',
         'replace' => '    echo "<br /><h2><a name=\\"nrw" . html_escape($line[\'name\']) . "2013\\" href=\\"#" . html_escape($line[\'name\']) . "\\">" . ($line[\'name\']) . "</a></h2>\\n";',
@@ -1102,6 +1177,8 @@ return array(
     'file' => 'functions.php',
     'tests' => array(
         array('type' => 'phpunit', 'filter' => 'testHtmlEscape|testListingText|testTagRenders|testCsvDownloadLink'),
+        array('type' => 'phpunit', 'filter' => 'UnusedOutputTest', 'file' => 'tests/unit/UnusedOutputTest.php'),
+        array('type' => 'phpunit', 'filter' => 'testUploadErrorShowsTheEncodedFileName', 'file' => 'tests/unit/ImportMemberMatchTest.php'),
         array('type' => 'http', 'script' => 'tests/http-output-escaping.php'),
     ),
     'timeout' => 120,

@@ -109,6 +109,45 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         return $row;
     }
 
+    // An upload error reports the file with its name encoded. Browsers send no
+    // type with an upload error, so only a constructed upload reaches it.
+    public function testUploadErrorShowsTheEncodedFileName()
+    {
+        $key = 'synthetic-import-member-key';
+        $plain = '';
+        for ($i = 1; $i < 40; $i++) {
+            $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
+        }
+        ImportMemberListStream::$response = base64_encode(membership_encrypt($key, $plain));
+        $_FILES = array('uploadcsv' => array(
+            'name' => array('<i>a&b</i>.csv'),
+            'type' => array('text/csv'),
+            'tmp_name' => array(''),
+            'error' => array(UPLOAD_ERR_PARTIAL),
+            'size' => array(100),
+        ));
+        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
+        $GLOBALS['datakey'] = $key;
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'ImportMemberListStream');
+        $connection = pg_connect(pgacc_test_connection_string());
+        pg_query($connection, 'BEGIN');
+        ob_start();
+        try {
+            AppExitGuard::enter('page_import()');
+            page_import('bgf');
+            AppExitGuard::leave();
+        } finally {
+            $output = ob_get_clean();
+            stream_wrapper_restore('http');
+            pg_query($connection, 'ROLLBACK');
+            $GLOBALS['datakey'] = $datakey;
+            $_FILES = array();
+        }
+        self::assertStringContainsString('Datei 1 (&lt;i&gt;a&amp;b&lt;/i&gt;.csv) wurde nicht erfolgreich hochgeladen', $output);
+        self::assertStringNotContainsString('<i>a&b</i>', $output);
+    }
+
     public function testQuotedMemberNameMatches()
     {
         self::assertSame(

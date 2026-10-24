@@ -33,7 +33,7 @@ function page_accounts($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
       }
-      $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error() . $query);
+      $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . html_escape(pg_last_error()));
       while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
       }
       pg_free_result($result);

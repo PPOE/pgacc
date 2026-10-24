@@ -19,7 +19,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-      echo "<tr><td>{$line['name']}</td><td>";
+      echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }

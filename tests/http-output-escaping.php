@@ -1,16 +1,17 @@
 <?php
 /*
  * Output encoding of database and request values in the HTML pages, and
- * formula neutralization in the CSV export (html_escape(), listing_text(),
- * html_escape_url() and tag() in functions.php, and their call sites).
+ * formula neutralization in the CSV export (html_escape(), listing_text()
+ * and tag() in functions.php, and their call sites).
  *
  * Synthetic rows with markup, quotes, "&" and umlauts in every displayed text
  * column must appear as text: "<s>field</s> & "Ö" 'x'" is shown as
  * "&lt;s&gt;field&lt;/s&gt; &amp; &quot;Ö&quot; &#039;x&#039;", never as
  * markup, while umlauts and ordinary values stay unchanged. The CSV export
  * keeps the raw text (no HTML entities) and prefixes cells that start with
- * = + - @ with a single quote; tabs and carriage returns inside a cell
- * become spaces, so they cannot split cells.
+ * = + - @ " (also after leading whitespace) with a single quote; a tab
+ * inside a cell becomes a space and a line break (\r\n, \n or \r) " / ", so
+ * they cannot split cells.
  *
  * Runs last on the lane's database and removes its rows again.
  * Must stay compatible with PHP 5.6.
@@ -136,6 +137,10 @@ insert_voucher($database, $voucherColumns, array(9002, 9002, 91, 90, 'false', nu
 insert_voucher($database, $voucherColumns, array(9003, 9003, 91, 90, 'false', null, 'AT12 3456', 'Jürgen Müller-Größ',
     'Hauptstraße 1', '8010', 'Graz-Ödön', -300, 'TEST-ESCAPING', 'Büromaterial für Österreich', 'false', 'false',
     'false', '2024-07-03', 'reviewer-a', 'reviewer-b', 1, 0, 1, 'Grüße', 'false', 'TEST-ÄÖÜ', null, null));
+// Account names with characters that a query string must encode.
+insert_voucher($database, $voucherColumns, array(9008, 9008, 91, 90, 'false', null, '', 'Escaping URL account',
+    '', '', '', -50, 'A&B+C#D%E', 'Escaping URL account', 'false', 'false',
+    'false', '2024-07-07', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'false', 'A&B+C#D%E', null, null));
 // CSV cells that a spreadsheet would read as formulas.
 insert_voucher($database, $voucherColumns, array(9004, 9004, 91, 90, 'false', null, '-2+3', '+cmd|x',
     "\tTab", "\rCR", '@SUM(A1)', -400, 'TEST-ESCAPING', '=HYPERLINK("http://example.invalid")', 'false', 'false',
@@ -277,6 +282,21 @@ $accounts = page('/index.php?action=accounts', $admin);
 assert_contains($accounts, '<tr><td>' . escaped('user') . '</td><td><input type="password" name="password90" value="******"></td><td><input type="text" name="rights90" value="' . escaped('rights') . '" /></td>', 'accounts row');
 assert_escaped($accounts, 'user', 'accounts');
 assert_escaped($accounts, 'rights', 'accounts');
+// A failing user query (a duplicate name) shows the escaped database error,
+// never the query with the new password.
+$duplicate = with_expected_diagnostics('KF-ACCOUNTS-QUERY-ERROR', array(array('accounts.php', 'pg_query()')), function () use ($admin) {
+    return page('/index.php?action=accounts', $admin, 'POST', array('submit' => 'Benutzer -1 erstellen', 'name-1' => payload('user'),
+        'password-1' => 'secret-new-password', 'rights-1' => ''));
+});
+// The test server displays the pg_query() warning (with the call's
+// arguments) before it; the application's own message is what follows.
+assert_contains($duplicate, 'Abfrage fehlgeschlagen: ', 'failing user query');
+$message = substr($duplicate, strpos($duplicate, 'Abfrage fehlgeschlagen: '));
+// PostgreSQL 8.4 names only the constraint, 9.0+ also the duplicate value.
+assert_contains($message, 'unique constraint &quot;users_name_key&quot;', 'failing user query');
+assert_not_contains($message, '<s>user</s>', 'failing user query');
+assert_not_contains($message, 'secret-new-password', 'failing user query');
+assert_not_contains($message, 'INSERT INTO users', 'failing user query');
 
 // Public pages.
 $report = page('/index.php?year=2024&print_empty=1');
@@ -330,15 +350,17 @@ assert_contains($spendingsCsv, "\n9004\t2024-07-04\t" . payload('type-out') . "\
 $vreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('vreport.php', 'Undefined variable')), function () {
     return page('/index.php?action=vreport&konto=TEST');
 });
-assert_contains($vreport, '<li><a href="vreport?konto=' . escaped('vaccount') . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
-assert_contains($vreport, "<li><a href=\"vreport?konto=TEST-ÄÖÜ\">Konto 'TEST-ÄÖÜ'</a></li>", 'vreport account with umlauts');
+assert_contains($vreport, '<li><a href="vreport?konto=' . rawurlencode(payload('vaccount')) . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
+assert_contains($vreport, "<li><a href=\"vreport?konto=TEST-%C3%84%C3%96%C3%9C\">Konto 'TEST-ÄÖÜ'</a></li>", 'vreport account with umlauts');
+assert_contains($vreport, "<li><a href=\"vreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'vreport account with URL characters');
 foreach (array('vaccount', 'type-in', 'type-out') as $field) {
     assert_escaped($vreport, $field, 'vreport');
 }
 $tinyreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('tinyreport.php', 'Undefined variable')), function () use ($admin) {
     return page('/index.php?action=tinyreport&konto=TEST', $admin);
 });
-assert_contains($tinyreport, '<li><a href="tinyreport?konto=' . escaped('account') . '">Konto \'' . escaped('account') . '\'</a></li>', 'tinyreport account');
+assert_contains($tinyreport, '<li><a href="tinyreport?konto=' . rawurlencode(payload('account')) . '">Konto \'' . escaped('account') . '\'</a></li>', 'tinyreport account');
+assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'tinyreport account with URL characters');
 foreach (array('account', 'type-in', 'type-out') as $field) {
     assert_escaped($tinyreport, $field, 'tinyreport');
 }
@@ -401,7 +423,7 @@ assert_contains($receipt, 'Datei 1 (&lt;i id=pdf&gt;&amp;ä.pdf):<br />Hat ein u
 assert_not_contains($receipt, '<i id=', 'receipt import');
 
 // Remove the rows again and restore the changed names.
-pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9001 AND 9007'));
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9001 AND 9008'));
 pg_free_result(escaping_query($database, "DELETE FROM vouchers WHERE comment LIKE '%csvline%'"));
 pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE name = $1', array($entered)));
 pg_free_result(escaping_query($database, 'DELETE FROM users WHERE id = 90'));

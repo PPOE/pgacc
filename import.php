@@ -56,7 +56,7 @@ function page_import($rights)
     }
     if ($_FILES['uploadcsv']['error'][$i] != 0)
     {
-      echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") wurde nicht erfolgreich hochgeladen und konnte daher nicht importiert werden.<br />";
+      echo "Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i]).") wurde nicht erfolgreich hochgeladen und konnte daher nicht importiert werden.<br />";
       continue;
     }
     if ($_FILES['uploadcsv']['size'][$i] < 10)

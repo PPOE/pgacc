@@ -138,6 +138,8 @@ final class FunctionsTest extends FunctionsTestCase
             'leading tab' => array(array('td', "\t=1"), "<td>\t=1</td>\n", "' =1\t"),
             'formula after spaces' => array(array('td', '  @SUM(A1)'), "<td>  @SUM(A1)</td>\n", "'  @SUM(A1)\t"),
             'number after a space' => array(array('td', ' -5'), "<td> -5</td>\n", "' -5\t"),
+            'formula after a vertical tab' => array(array('td', "\x0B=1"), "<td>\x0B=1</td>\n", "'\x0B=1\t"),
+            'formula after a form feed' => array(array('td', "\f@x"), "<td>\f@x</td>\n", "'\f@x\t"),
             'text after a space' => array(array('td', ' x=1'), "<td> x=1</td>\n", " x=1\t"),
             // A leading double quote would start a quoted field that the
             // spreadsheet unquotes (and evaluates) or merges with the next cells.

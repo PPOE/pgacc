@@ -427,14 +427,23 @@ Open security findings (not changed here; owner decisions):
   `html_escape()` (`htmlspecialchars($v, ENT_QUOTES, 'ISO-8859-1')`) where
   they are echoed into HTML text or attributes: the ledger listings
   (`closed.php` rows, sort links and filter inputs, also used by `all`,
-  `open`, `deleted`, `transactions`, `spendings`, `kdonations`), the voucher
+  `open`, `deleted`, `transactions`, `spendings` and the `kdonations` header,
+  which the HTTP tests do not request), the voucher
   form and approvals (`new.php`, `edit.php`), the user list
   (`accounts.php`), the public report, campaign, transaction, spending and
   virtual-account pages (`report.php`, `wk.php`, `transactions.php`,
   `spendings.php`, `vreport.php`), the account report (`tinyreport.php`),
   the membership-fee page (`mb.php`, also the member names from the
-  membership system) and the file names, MIME types and rejected lines of
-  the imports (`import.php`, `import2.php`). Listing cells shared with the
+  membership system), the file names, MIME types and rejected lines of
+  the imports (`import.php`, `import2.php`) and the database error of a
+  failing user change (`accounts.php`, which no longer prints the query
+  with the new password; tested with a duplicate user name, whose
+  `pg_query()` warning is the known failure `KF-ACCOUNTS-QUERY-ERROR`. A
+  server that displays errors still shows that warning with the query). The account links of `vreport.php` and
+  `tinyreport.php` carry the account `rawurlencode()`d. The two sinks that
+  no page calls, `kdonations_page_listing_line()` (donor list, disabled for
+  legal reasons) and the `wk` variant of `wk_unit_report()`, are encoded too
+  and tested directly (`tests/unit/UnusedOutputTest.php`). Listing cells shared with the
   CSV export use `listing_text()`, which leaves the CSV unchanged. The sort
   links carry the filter values `rawurlencode()`d (so `&`, `#`, `%` and `+`
   survive a re-sort) and the whole link, like the CSV link, is
@@ -451,22 +460,33 @@ Open security findings (not changed here; owner decisions):
   change** for values containing these characters: they are shown as text
   instead of being interpreted (e.g. a stored `&uuml;` now displays as
   written, not as `ü`). Tests: `tests/unit/FunctionsTest.php`,
-  `tests/http-output-escaping.php`; mutation target `output-escaping`.
-  Not changed: `login.php` (the login `target`, handled with the login
-  redirect fix), values that are already digits or validated by a
-  pattern without these characters (IDs, dates, `konto` of the reports),
-  `import.php`'s upload-error message (PHP leaves the MIME type empty for
-  upload errors, so the type check reports the file first), and dead code
-  (the `wk` variant of `wk_unit_report()`, `kdonations_page_listing_line()`).
+  `tests/http-output-escaping.php`, `tests/unit/UnusedOutputTest.php`;
+  mutation target `output-escaping`. `login.php` uses `html_escape()` for
+  its (hex-only) target. Not encoded: values that are already digits or
+  validated by a pattern without these characters (IDs, dates, the `konto`
+  heading of the reports). `import.php`'s upload-error message is encoded
+  and tested with a constructed upload (`ImportMemberMatchTest`): browsers'
+  upload errors arrive without a MIME type, so the type check reports the
+  file first.
 - [x] CSV export cells that start with `=`, `+`, `-`, `@` or `"`, also
-  after leading spaces, are prefixed with `'` (`tag()`), so spreadsheets
+  after leading whitespace (an explicit class, so PCRE 8 on PHP 5.3 and
+  PCRE2 agree on the vertical tab), are prefixed with `'` (`tag()`), so spreadsheets
   neither evaluate them as formulas nor unquote them (a leading `"` would
   also merge cells). Tabs inside a cell become spaces, and `\r\n` and a
   lone `\r` become ` / ` like `\n`, so a cell can no longer split the
   tab-separated row (before, `one<TAB>two` added a field). The amount
-  pattern now requires a decimal point (`-1+2€` passed as an amount). Amount cells (`-12,50€`) and plain numbers
+  pattern's decimal point is escaped (`-1+2€` passed as an amount); an
+  amount without decimals such as `-12€` still counts as one. Amount cells (`-12,50€`) and plain numbers
   (`-5`, `-5,25`) are unchanged. **Behaviour change** for such cells only
   (e.g. a name `+43 ...` or a text starting with `-` or `=`).
+- [ ] CSV export opened by Excel with the locale's list separator (`;` or
+  `,`) instead of the tab: a formula after such a separator inside one cell
+  starts a new cell and escapes the formula guard. Options: name the file
+  `.tsv`, add a `sep=` first line, or neutralize after separators too; owner
+  decision.
+- [ ] `tag()` could encode its text by default (with an explicit raw
+  variant for markup) instead of each listing caller using
+  `listing_text()`, so a new caller cannot forget it.
 - [x] Bug fix: the voucher form shown again from the posted values (adding
   or removing a part, `get_voucher()` in `new.php`) showed the SQL-escaped
   text, so `O'Brien` became `O''Brien` (and a backslash doubled on
