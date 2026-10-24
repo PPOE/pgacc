@@ -147,6 +147,7 @@ final class FunctionsTest extends FunctionsTestCase
             // Amounts have a decimal point; other characters are no amount.
             'formula with euro sign' => array(array('td', '-1+2€'), "<td>-1+2€</td>\n", "'-1+2€\t"),
             'euro amount without decimals' => array(array('td', '-12€'), "<td>-12€</td>\n", "-12€\t"),
+            'text after an amount' => array(array('td', '-12.50€x'), "<td>-12.50€x</td>\n", "'-12.50€x\t"),
             'tabs of a row are kept' => array(array('tr', "a\tb\t"), "<tr>a\tb\t</tr>\n", "a\tb\t\n"),
             'formula character inside' => array(array('td', 'a=b+c-d@e'), "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"),
             'formula character in other tags' => array(array('tr', '=x'), "<tr>=x</tr>\n", "=x\n"),
