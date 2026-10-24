@@ -103,6 +103,9 @@ jobs:
     # The 8.4 server and the PHP 5.3 lane build squeeze i386 images; full runs
     # mutation-test every target.
     timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
+    # PHP 8.5 fails by design until PHP 5 support is dropped (implicit
+    # connection deprecations, tests/COMPATIBILITY_PLAN.md): reported, not blocking.
+    continue-on-error: ${{ matrix.php == '8.5' }}
     strategy:
       fail-fast: false
       matrix:
