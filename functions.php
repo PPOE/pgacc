@@ -1045,13 +1045,12 @@ function login_random_bytes($length, $random = 'random_bytes', $openssl = 'opens
   return false;
 }
 
-// The session key, or false without a valid $key (at least 16 characters,
-// not the CHANGE-ME placeholder).
+// The session key, or false without a valid $key: the same key and check
+// as the receipts (receipt_configured_key()).
 function login_session_key()
 {
-  // constants.php is required in global scope (index.php).
-  $key = isset($GLOBALS['key']) ? $GLOBALS['key'] : '';
-  if (!is_string($key) || strlen($key) < 16 || strpos($key, 'CHANGE-ME') !== false)
+  $key = receipt_configured_key();
+  if ($key === '')
     return false;
   return hash_hmac('sha256', 'pgacc-session-key', $key, true);
 }
@@ -1103,15 +1102,10 @@ function login_session_token($id, $nonce, $login)
 }
 
 // Whether $known and $given are the same string, in a time that does not
-// depend on where they differ (PHP 5.3 has no hash_equals()).
+// depend on where they differ (receipt_equals()); false for other types.
 function login_token_equals($known, $given)
 {
-  if (!is_string($known) || !is_string($given) || strlen($known) != strlen($given))
-    return false;
-  $difference = 0;
-  for ($i = 0; $i < strlen($known); $i++)
-    $difference |= ord($known[$i]) ^ ord($given[$i]);
-  return $difference === 0;
+  return is_string($known) && is_string($given) && receipt_equals($known, $given);
 }
 
 // The Set-Cookie header of a login cookie: secure, HttpOnly and SameSite=Lax

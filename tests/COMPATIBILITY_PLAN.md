@@ -333,10 +333,10 @@ with synthetic users and covered by a mutation target.
   `K = hash_hmac('sha256', 'pgacc-session-key', $key, true)`, derived from the
   configured `$key` of `constants.php`. `checklogin()` selects the user by
   the id cookie and compares the token in constant time
-  (`login_token_equals()`; PHP 5.3 has no `hash_equals()`). Neither the
-  cookie nor `users.cookie` alone lets anyone forge a session without
-  `$key`. Fails closed: without a valid `$key` (at least 16 characters, not
-  the `CHANGE-ME` placeholder) or a CSPRNG, or when the session cannot be
+  (`login_token_equals()`, through `receipt_equals()`: `hash_equals()`, or
+  its fallback on PHP 5.3). Neither the cookie nor `users.cookie` alone lets
+  anyone forge a session without `$key`. Fails closed: without a valid `$key`
+  (`receipt_configured_key()`, the same check as for receipts) or a CSPRNG, or when the session cannot be
   stored, nobody can log in (the login form is shown again);
   `login_start_session()` logs the reason (`pgacc: login refused: ...`,
   without key material), so that operators can tell it from a wrong
