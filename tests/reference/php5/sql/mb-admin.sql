@@ -44,7 +44,7 @@ INSERT INTO ppmembers (id, name, lo, paid) VALUES (9001,'Anna Synthetisch-Mülle
 -- next
 SELECT id,paid FROM ppmembers WHERE paid = 1;
 -- next
-SELECT name,COUNT(member_id) AS count,SUM(amount) AS amount FROM (SELECT lo.name,member_id,SUM(amount) AS amount FROM vouchers LEFT JOIN ppmembers ON ppmembers.id = vouchers.member_id LEFT JOIN lo ON lo.id = ppmembers.lo WHERE NOT deleted AND type = 1 AND date >= '2025-10-01' GROUP BY lo.name,member_id) A GROUP BY name;
+SELECT name,COUNT(member_id) AS count,SUM(amount) AS amount FROM (SELECT lo.name,MIN(lo.id) AS lo_id,member_id,SUM(amount) AS amount FROM vouchers LEFT JOIN ppmembers ON ppmembers.id = vouchers.member_id LEFT JOIN lo ON lo.id = ppmembers.lo WHERE NOT deleted AND type = 1 AND date >= '2025-10-01' GROUP BY lo.name,member_id) A GROUP BY name ORDER BY MIN(lo_id);
 -- next
 SELECT lo.name,SUM(amount) AS amount FROM vouchers LEFT JOIN lo ON orga = lo.id WHERE NOT deleted AND type = 1 AND date >= '2025-10-01' GROUP BY lo.name ORDER BY lo.name;
 -- next
