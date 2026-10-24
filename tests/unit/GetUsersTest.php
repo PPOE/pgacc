@@ -67,6 +67,9 @@ final class GetUsersTest extends FunctionsTestCase
             // getUsers() dies on a short response, an empty key or an SQL error.
             AppExitGuard::enter('getUsers()');
             getUsers();
+            // Inside the test's transaction getUsers() uses a savepoint and
+            // leaves the transaction open.
+            $status = pg_transaction_status($connection);
             $result = pg_query($connection, 'SELECT id, name, lo, paid FROM ppmembers ORDER BY id');
             $rows = pg_fetch_all($result);
             pg_free_result($result);
@@ -78,6 +81,7 @@ final class GetUsersTest extends FunctionsTestCase
             $GLOBALS['datakey'] = $datakey;
         }
 
+        self::assertSame(PGSQL_TRANSACTION_INTRANS, $status);
         self::assertSame(array('https://mitglieder.piratenpartei.at/adm_api/adm_names.php'), MembershipStubStream::$requested);
         self::assertCount(32, $rows);
         self::assertSame(array('id' => '2001', 'name' => 'Synthetic Member 00', 'lo' => '9', 'paid' => '0'), $rows[0]);

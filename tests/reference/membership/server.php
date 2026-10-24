@@ -16,6 +16,8 @@
  *   short    the first 200 bytes of it
  *   garbage  1,536 bytes of base64 that decrypt to noise (wrong key or
  *            damaged data)
+ *   empty    a list encrypted like adm_names.b64 (key: $datakey of the
+ *            image's constants.php) whose lines are all too short
  *   error    HTTP 500
  * /__stub/health answers 200 for the health check; anything else is 404.
  */
@@ -26,7 +28,7 @@ if ($server === false) {
     exit(1);
 }
 $modeFile = '/tmp/pgacc-membership-stub-mode';
-$modes = array('ok', 'short', 'garbage', 'error');
+$modes = array('ok', 'short', 'garbage', 'empty', 'error');
 
 function membership_stub_response($uri, $modeFile, $modes)
 {
@@ -57,6 +59,18 @@ function membership_stub_response($uri, $modeFile, $modes)
                 $bytes .= hash('sha256', "pgacc synthetic garbage $i", true);
             }
             return array('200 OK', base64_encode($bytes));
+        case 'empty':
+            // As membership_encrypt() of functions.php: Rijndael-256/CBC,
+            // key md5($datakey), IV md5(md5($datakey)), zero padding.
+            require_once '/app/vendor/autoload.php';
+            require '/app/constants.php';
+            $cipher = new \phpseclib\Crypt\Rijndael(\phpseclib\Crypt\Base::MODE_CBC);
+            $cipher->setBlockLength(256);
+            $cipher->setKey(md5($datakey));
+            $cipher->setIV(md5(md5($datakey)));
+            $cipher->disablePadding();
+            $plain = str_pad(str_repeat("abc\n", 300), 1216, "\0");
+            return array('200 OK', base64_encode($cipher->encrypt($plain)));
         case 'error':
             return array('500 Internal Server Error', "synthetic failure\n");
         default:

@@ -197,4 +197,14 @@ return array(
             . 'tests/COMPATIBILITY_PLAN.md for the application paths where this matters.',
         'category' => 'accepted',
     ),
+    // Last, so that the entries above keep the separators of their own changes.
+    array(
+        'id' => 'RD-GETUSERS-TRANSACTION',
+        'php' => array('8.5'),
+        'files' => 'sql/*.sql',
+        'lines' => '/^\+(BEGIN;|COMMIT;|-- next)$/',
+        'reason' => 'Intended fix: getusers() replaces ppmembers in one transaction (drop, create and the same '
+            . 'INSERT between BEGIN and COMMIT). See "Member-list refresh" in tests/COMPATIBILITY_PLAN.md.',
+        'category' => 'accepted',
+    ),
 );

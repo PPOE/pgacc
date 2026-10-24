@@ -172,7 +172,7 @@ image with the server certificate (`/etc/pgacc-test-tls/membership.pem`), so
 the reference image, which builds on it, gets both too. The certificates are
 valid from 2020 to 2099 because the reference runs fake the application's
 clock. `GET https://mitglieder.piratenpartei.at/__stub/mode?set=<mode>` switches
-the member-list response (`ok`, `short`, `garbage`, `error`; see the header of
+the member-list response (`ok`, `short`, `garbage`, `empty`, `error`; see the header of
 `server.php`); `tests/http-import.php` uses it for the failure cases.
 
 All test servers run with `output_buffering=4096`, but no redirect depends on

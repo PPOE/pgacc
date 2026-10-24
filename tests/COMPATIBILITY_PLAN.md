@@ -1231,6 +1231,30 @@ differences above are only visible for out-of-range input.
   of `?action=new` raises diagnostics (`count()` of the missing upload,
   undefined `$bgfandack`); the test fixtures do not advance the `users` id
   sequence, so a user created over HTTP gets id 1 next to `synthetic-admin`.
+- [x] Member-list refresh (`getusers.php`): fetched over plain HTTP, and a
+  short, damaged or undecryptable response (no MAC) or an SQL error left an
+  empty or garbage `ppmembers` table. Now `https://` with PHP's default
+  certificate verification (needs TLS 1.2, i.e. the new server; PHP 5.3 with
+  OpenSSL 0.9.8 cannot fetch it). The response is decrypted and parsed
+  first; a failed fetch or HTTP error status ("Mitgliederliste konnte nicht
+  abgerufen werden!"), a short response (unchanged), a line of five or more
+  characters without the five tab-separated fields, or a list without any
+  member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
+  before the table is touched. Behaviour change (owner review): before, such
+  a line was imported as member 0 with PHP warnings, and a list without
+  member lines left an empty table. Drop, create and insert run in one
+  transaction (a savepoint inside a caller's transaction, as in the unit
+  tests); an SQL error rolls back and stops the page. The member-fee, import
+  and voucher pages still drop `ppmembers` after each view, so a failed
+  refresh shows the error instead of serving an older list. Tests:
+  `tests/http-import.php` (stub modes `short`, `garbage`, `empty`, `error`,
+  a `ppmembers` view for the SQL error), `GetUsersTest`; the stub speaks
+  HTTPS with a per-build test CA (`tests/README.md`).
+- [ ] Open follow-up (not changed with the HTTPS refresh): the member list is
+  still fetched on every GET of the import and member-fee pages (`import.php`
+  `page_import()`, `mb.php` `page_mb()`) and when a member voucher is saved
+  (`new.php`). Moving the refresh off GET (an explicit action, or a cache
+  with an age) is a separate owner decision.
 
 ## Dependencies
 

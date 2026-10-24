@@ -261,6 +261,7 @@ $members = member_rows($database);
 $failures = array(
     'short' => 'Daten von Mitgliederverwaltung zu kurz!',
     'garbage' => 'Daten von Mitgliederverwaltung ungültig!',
+    'empty' => 'Daten von Mitgliederverwaltung ungültig!',
     'error' => 'Mitgliederliste konnte nicht abgerufen werden!',
 );
 foreach ($failures as $mode => $message) {
@@ -274,8 +275,21 @@ foreach ($failures as $mode => $message) {
     }
 }
 membership_stub_mode('ok');
-if (@pg_query($database, 'DROP TABLE ppmembers') === false) {
-    fail_test('dropping the planted ppmembers failed: ' . pg_last_error($database));
+// An SQL error in the refresh (here: ppmembers is a view, which DROP TABLE
+// refuses) rolls the transaction back.
+foreach (array('DROP TABLE ppmembers', "CREATE VIEW ppmembers AS SELECT 8803 AS id, 'Synthetic View Member'::text AS name, 1 AS lo, 1 AS paid") as $query) {
+    if (@pg_query($database, $query) === false) {
+        fail_test('planting the ppmembers view failed: ' . pg_last_error($database));
+    }
+}
+$members = member_rows($database);
+$failed = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
+assert_contains($failed['body'], 'Abfrage fehlgeschlagen: ', 'mb with a ppmembers view');
+if (member_rows($database) !== $members) {
+    fail_test('mb with a ppmembers view changed it');
+}
+if (@pg_query($database, 'DROP VIEW ppmembers') === false) {
+    fail_test('dropping the ppmembers view failed: ' . pg_last_error($database));
 }
 
 pg_close($database);
