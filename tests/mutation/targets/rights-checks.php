@@ -159,6 +159,35 @@ return array(
             'rationale' => 'A new user gets the entered rights, not those of the creating root user.',
         ),
         array(
+            'id' => 'accounts-own-password-keeps-sessions',
+            'file' => 'accounts.php',
+            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL WHERE id = \$id\";",
+            'replace' => "crypt('\$pass', gen_salt('md5')) WHERE id = \$id\";",
+            'rationale' => 'An own password change ends the sessions of that user (stolen cookies stop working).',
+        ),
+        array(
+            'id' => 'accounts-root-password-keeps-sessions',
+            'file' => 'accounts.php',
+            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL\":\"\")",
+            'replace' => "crypt('\$pass', gen_salt('md5'))\":\"\")",
+            'rationale' => 'A password change by root ends the sessions of that user.',
+        ),
+        array(
+            'id' => 'accounts-own-id-rechecked',
+            'file' => 'accounts.php',
+            'search' => '$id = $ownId;',
+            'replace' => '$id = checklogin("id");',
+            'rationale' => 'After an own password change the session has ended; the page still lists the own account '
+                . '(a second session check would redirect to the login page).',
+        ),
+        array(
+            'id' => 'accounts-rights-change-ends-sessions',
+            'file' => 'accounts.php',
+            'search' => "cookie = NULL\":\"\").\" WHERE id = \$id\";",
+            'replace' => "cookie = NULL\":\", cookie = NULL\").\" WHERE id = \$id\";",
+            'rationale' => 'A change of the rights only keeps the sessions.',
+        ),
+        array(
             'id' => 'new-account-rights-unescaped',
             'file' => 'accounts.php',
             'search' => '? pg_escape_string($_POST["rights$id"]) :',

@@ -1499,6 +1499,66 @@ assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'membe
 // (The page itself is not requested for bgf: on the synthetic data it divides
 // by zero, an open finding in tests/COMPATIBILITY_PLAN.md.)
 
+// A password change ends the sessions of that user (users.cookie is cleared,
+// so stolen cookies stop working); a change of the rights only does not.
+function session_accepted($cookies)
+{
+    $response = http_request('/index.php?action=login', 'GET', array(), $cookies);
+    return strpos($response['body'], 'Login erfolgreich!') !== false;
+}
+function assert_session_ended($database, $userId, $cookies, $label)
+{
+    assert_database_field(
+        database_row($database, 'SELECT cookie FROM users WHERE id = $1', array($userId), $label),
+        'cookie',
+        null,
+        $label
+    );
+    if (session_accepted($cookies)) {
+        fail_test("$label: the old cookies still authenticate");
+    }
+}
+$ownPasswordCookies = create_test_user($database, 55, 'synthetic-own-password', 'own-password', '2');
+$otherPasswordCookies = create_test_user($database, 56, 'synthetic-other-password', 'other-password', '2');
+$rightsOnlyCookies = create_test_user($database, 57, 'synthetic-rights-only', 'rights-only-password', '2');
+$ownPasswordChange = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 55 aktualisieren', 'password55' => 'own-password-changed'),
+    $ownPasswordCookies
+);
+assert_status($ownPasswordChange, 200, 'own password change');
+assert_session_ended($database, 55, $ownPasswordCookies, 'session after an own password change');
+login_user('synthetic-own-password', 'own-password-changed');
+$otherPasswordChange = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 56 aktualisieren', 'password56' => 'other-password-changed', 'rights56' => '2'),
+    $adminCookies
+);
+assert_status($otherPasswordChange, 200, 'password change by root');
+assert_session_ended($database, 56, $otherPasswordCookies, 'session after a password change by root');
+login_user('synthetic-other-password', 'other-password-changed');
+if (!session_accepted($adminCookies)) {
+    fail_test('the session of root ended with the password change of another user');
+}
+$rightsOnlyChange = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 57 aktualisieren', 'password57' => '******', 'rights57' => '2,1'),
+    $adminCookies
+);
+assert_status($rightsOnlyChange, 200, 'rights change by root');
+assert_database_field(
+    database_row($database, 'SELECT rights FROM users WHERE id = 57', array(), 'rights after the change'),
+    'rights',
+    '2,1',
+    'rights after the change'
+);
+if (!session_accepted($rightsOnlyCookies)) {
+    fail_test('a change of the rights only ended the session');
+}
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

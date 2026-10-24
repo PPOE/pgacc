@@ -362,6 +362,14 @@ with synthetic users and covered by a mutation target.
   user (all sessions of a user share `users.cookie`, as before: a new login
   also ends the previous one). Tests in `tests/http-login.php`, mutations in
   `login-logout`.
+- [x] A password change ends the sessions of that user (`accounts.php`
+  clears `users.cookie` with the new hash, for an own change and a change by
+  root), so stolen cookies stop working. A change of the rights only keeps
+  the sessions. Behaviour change: a user who changes the own password is
+  logged out and logs in again with the new one (`page_accounts()` checks
+  the session once, so the page after the change still shows the own
+  account). Tests in
+  `tests/write-workflows.php`, mutations in `rights-checks`.
 - [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
   with `setcookie()` and only an expiry: readable by scripts, sent over plain
   HTTP and on cross-site requests. `index.php` now sends both Set-Cookie

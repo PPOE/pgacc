@@ -1,6 +1,9 @@
 <?php
 function page_accounts($rights)
 {
+ // Read once: an own password change ends the session (users.cookie), and
+ // the page still lists the own account afterwards.
+ $ownId = checklogin('id');
  if (isset($_POST['submit']))
   {
     $parts = explode(" ", $_POST['submit']);
@@ -8,7 +11,7 @@ function page_accounts($rights)
     {
       $id = intval($parts[1]);
       $rights = write_rights($rights);
-      if ($rights === false || $id != checklogin('id') && !has_right($rights, 'root'))
+      if ($rights === false || $id != $ownId && !has_right($rights, 'root'))
       {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
@@ -22,9 +25,9 @@ function page_accounts($rights)
         else
           $query = "SELECT 1";
       else if (!has_right($rights, 'root') && $pass != "******")
-        $query = "UPDATE users SET hash = crypt('$pass', gen_salt('md5')) WHERE id = $id";
+        $query = "UPDATE users SET hash = crypt('$pass', gen_salt('md5')), cookie = NULL WHERE id = $id";
       else if (has_right($rights, 'root')) 
-        $query = "UPDATE users SET rights = '$nrights'".($pass != "******" ?", hash = crypt('$pass', gen_salt('md5'))":"")." WHERE id = $id";
+        $query = "UPDATE users SET rights = '$nrights'".($pass != "******" ?", hash = crypt('$pass', gen_salt('md5')), cookie = NULL":"")." WHERE id = $id";
       else
       {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -48,7 +51,7 @@ if (has_right($rights, 'root'))
 echo '<form action="index.php?action=accounts" method="POST"><table>
 <tr><td><b>Name</b></td><td><b>Passwort</b></td>'.(has_right($rights, 'root') ? '<td><b>Rechte</b></td>':'').'</tr>
 ';
-$id = checklogin("id");
+$id = $ownId;
 $restrict = "";
 if (!has_right($rights, 'root'))
 {
