@@ -62,7 +62,7 @@ docker compose $p run --rm database-test          # load (or reset) the fixtures
 docker compose $p build application               # after EVERY source or test edit
 docker compose $p run --rm --no-deps application env XDEBUG_MODE=off \
   php vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result \
-  --filter ReceiptStorageTest::testConfiguredKeyIsTheGlobalKey
+  --filter ReceiptStorageTest::testConfiguredKeyIsTheValidGlobalKey
 docker compose $p down --volumes --remove-orphans # when done
 ```
 
@@ -130,9 +130,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
   hint; visitors get only the login redirect and change nothing. `synthetic-unit-one`,
   `synthetic-unit-two` and `synthetic-no-rights` cover the organization scope.
 - `http-receipts.php`: receipt upload, PDF import (PHP 5.3 server only: the
-  locked `smalot/pdfparser` does not load on 7.2+), download and the
-  `mbapi.php` export against the mcrypt contract vectors in
-  `tests/fixtures/mcrypt/`.
+  locked `smalot/pdfparser` does not load on 7.2+), download of `<n>.v2.aes`
+  and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
+  migration script's 404 and the `mbapi.php` export. It reads and writes the
+  server's `files/` through a volume shared with the client.
 
 The membership system never leaves the test network: `compose.test.yaml` runs
 the reference stub (`tests/reference/membership/router.php`) as the service
@@ -156,9 +157,12 @@ rendering and the two PostgreSQL helpers), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
 (vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
 (stubbed `http://` stream wrapper), `ImportMemberMatchTest.php`,
-`ReceiptImportTest.php`,
-`ReceiptStorageTest.php`, `ReceiptMigrationTest.php`
-(`migrate-receipt-key.php` on synthetic files) and `ShortOpenTagTest.php`. Tests that pass null capture
+`ReceiptImportTest.php` (the import's `<n>.v2.aes`, refusals without a valid
+key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
+short reads via `ShortReadStream.php`, and the 20 MB memory check
+`tests/receipt-memory.php`), `ReceiptMigrationTest.php` and
+`ReceiptMigrationCommandTest.php` (`migrate-receipt-key.php` on synthetic
+files) and `ShortOpenTagTest.php`. Tests that pass null capture
 every diagnostic with their own error handler, because PHPUnit 9 only prints
 deprecations. The suite also passes in random order, as Infection runs it.
 
@@ -470,9 +474,9 @@ PostgreSQL 18 the prepend sets `PGOPTIONS=-c application_name=...`
 (`PGACC_REFERENCE_PGOPTIONS`; 8.4 servers reject it). `helpers.php` runs on the 5.3 CLI; scenario,
 comparison and stub run from an image on the PHP 5.6 client.
 
-Re-record, and review the diff, when an intended behaviour change lands; the
-security-hardening and receipt-key changes will need a re-recording. Do not
-re-record while related branches are still changing behaviour.
+Re-record, and review the diff, when an intended behaviour change lands (the
+recording includes the security hardening and the receipt v2 downloads). Do
+not re-record while related branches are still changing behaviour.
 
 ## Static analysis
 
