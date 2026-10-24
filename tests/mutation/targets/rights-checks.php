@@ -55,8 +55,8 @@ return array(
         array(
             'id' => 'posted-organization-ignored',
             'file' => 'new.php',
-            'search' => "\$voucher['lo'] = get_param(\$part, 'lo', \$default_lo,",
-            'replace' => "\$voucher['lo'] = get_param(\$part, 'lx', \$default_lo,",
+            'search' => "\$voucher['lo'] = get_param(\$part, 'lo', default_organization(",
+            'replace' => "\$voucher['lo'] = get_param(\$part, 'lx', default_organization(",
             'rationale' => 'A posted organization is saved as given.',
         ),
         array(
@@ -94,11 +94,11 @@ return array(
             'rationale' => 'Organizations are compared as strings: a padded ID is not one of the user\'s.',
         ),
         array(
-            'id' => 'posted-organization-default-checked',
+            'id' => 'default-organization-unchecked',
             'file' => 'new.php',
-            'search' => 'if ($lo !== null && !organization_allowed($lo, $rights))',
-            'replace' => 'if (!organization_allowed($lo, $rights))',
-            'rationale' => 'Without a posted organization the default applies and is not refused.',
+            'search' => '  if (!organization_allowed($lo, $rights))',
+            'replace' => '  if ($lo != default_organization($rights) && !organization_allowed($lo, $rights))',
+            'rationale' => 'The default organization of a part without a posted one is checked too.',
         ),
         array(
             'id' => 'posted-organization-first-part-only',

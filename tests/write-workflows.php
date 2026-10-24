@@ -650,6 +650,30 @@ assert_database_field(
     '1',
     'voucher created in organization 1 by root'
 );
+// Without a posted organization the default one (get_voucher(): the user's
+// single organization, otherwise 10) must be allowed too: a user without
+// rights or with several organizations who posts none is refused.
+$twoUnitsCookies = create_test_user($database, 53, 'synthetic-two-units', 'two-units-password', '1,2');
+foreach (array('without rights' => $noRightsCookies, 'of two organizations' => $twoUnitsCookies) as $userLabel => $cookies) {
+    $comment = "Synthetic voucher without organization by a user $userLabel";
+    $response = http_request('/index.php?action=new', 'POST', voucher_form_without_organization($comment, '-6.63', 0), $cookies);
+    assert_contains($response['body'], 'FEHLER: Keine Zugriffsrechte.', "creation without organization by a user $userLabel");
+    assert_database_count($database, $commentQuery, array($comment), 0, "voucher without organization by a user $userLabel");
+}
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, voucher_form('Synthetic voucher of two organizations', '-6.64', 0), $twoUnitsCookies)),
+    'orga',
+    '2',
+    'voucher created with a posted organization by a user of two organizations'
+);
+$twoUnitsDraftId = create_voucher($database, 'Synthetic draft for two organizations', '-6.65', 0, $adminCookies);
+$twoUnitsRevision = edit_request(
+    $twoUnitsDraftId,
+    array_diff_key(revision_form($twoUnitsDraftId, 'Synthetic revision without organization', '-6.66'), array('lo0' => true)),
+    $twoUnitsCookies
+);
+assert_contains($twoUnitsRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision without organization by a user of two organizations');
+assert_database_count($database, $commentQuery, array('Synthetic revision without organization'), 0, 'revision without organization by a user of two organizations');
 // Organizations are compared as written ('01' is not organization 1).
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
 $paddedForm['lo0'] = '01';

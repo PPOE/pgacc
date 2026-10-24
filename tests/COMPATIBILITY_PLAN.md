@@ -88,6 +88,12 @@ with synthetic users and covered by a mutation target.
   no regression for root): the exact `root` right may post any
   organization too, like `bgf`, as the form offers it; the check is
   `organization_allowed()` in `functions.php`.
+  Review fix: a part without a posted organization is checked with the
+  organization `get_voucher()` falls back to (`default_organization()`: the
+  user's single organization, otherwise 10). Behaviour difference: users
+  without rights, and users of several organizations who post none, can
+  no longer save vouchers into organization 10 (the form always posts an
+  organization for several organizations).
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

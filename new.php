@@ -13,6 +13,18 @@ if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name 
         $value = $default_if_true;
 return $value;
 }
+// The organization of a voucher part that posts none: the user's single
+// organization, otherwise 10.
+function default_organization($rights)
+{
+$default_lo = 10;
+$rights2 = explode(",", $rights);
+if (count($rights2) == 1 && is_numeric($rights))
+{
+  $default_lo = intval($rights);
+}
+return $default_lo;
+}
 function get_voucher($part,$rights)
 {
   $filepart = $part;
@@ -36,13 +48,7 @@ else if ($voucher['dir'] == 'bel')
 
 $voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
-$default_lo = 10;
-$rights2 = explode(",", $rights);
-if (count($rights2) == 1 && is_numeric($rights))
-{
-  $default_lo = intval($rights);
-}
-$voucher['lo'] = get_param($part, 'lo', $default_lo, '/^\d+$/');
+$voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
 if ($voucher['type'] == 45)
   $voucher['amount'] = "0.00";
@@ -62,14 +68,15 @@ $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
-// Whether the organizations posted for the parts of a voucher may be used
-// (organization_allowed()).
+// Whether the organizations of the parts of a voucher may be used
+// (organization_allowed()): the posted ones, or the default one of
+// get_voucher() for a part that posts none.
 function posted_organizations_allowed($parts, $rights)
 {
 for ($part = 0; $part < $parts; $part++)
 {
-  $lo = get_param($part, 'lo', null, '/^\d+$/');
-  if ($lo !== null && !organization_allowed($lo, $rights))
+  $lo = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
+  if (!organization_allowed($lo, $rights))
     return false;
 }
 return true;
