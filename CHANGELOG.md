@@ -1,0 +1,91 @@
+# Changelog
+
+All notable changes to pgacc are documented in this file. The format is based
+on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [1.0.0] - unreleased (php5-last)
+
+First tagged release, also tagged `php5-last`: the last release that supports
+PHP 5.3. Production runs PHP 5.3.3 on Debian 6 with PostgreSQL 8.4; this
+release runs on PHP 5.3 to 8.5 and PostgreSQL 8.4 and 18. It hardens
+authorization, login sessions, receipt encryption and output encoding, removes
+the obsolete voucher finalization and fixes a number of bugs. Read the upgrade
+notes before deploying: a valid `$key` is required and every user has to log in
+again.
+
+### Security
+
+- Authorization: writes stay within the organizations a user may access, roles
+  are checked by exact rights, and merging, approval resets and read-only
+  (`Rbgf`) access require the matching right.
+- SQL: voucher IDs are validated and request values and membership data are
+  escaped or cast before they are used in queries.
+- Receipts: new receipts are stored as `files/<n>.v2.aes`, encrypted and
+  authenticated (AES-256-CBC with HMAC-SHA256) with keys derived from the
+  configured `$key`.
+  `migrate-receipt-key.php` (command line only) re-encrypts existing receipts;
+  legacy `<n>.aes` files stay readable until they are migrated.
+- Login sessions: the login cookie is a random, server-side session token
+  bound to the configured key; logout and password changes end sessions on
+  the server. Cookies are sent `secure`, `HttpOnly` and `SameSite=Lax`. The
+  login redirect target is restricted to pages of the application.
+- Output: database and request values are HTML-escaped in listings, forms,
+  reports and import results. CSV exports neutralize cells that a spreadsheet
+  would treat as formulas, and tabs and line breaks no longer split cells.
+- CSRF protection and POST-only state changes. <!-- TODO CSRF PR -->
+
+### Changed
+
+- Voucher finalization is removed (no button since 2015). Existing finalized
+  vouchers stay locked against approval, revision and receipt upload.
+- Any change to a voucher (revision, receipt upload, PDF receipt import)
+  resets the approvals of the whole voucher.
+- Bank CSV import: lines with an invalid date or a disallowed organization are
+  reported and skipped instead of stopping the import; a summary is shown.
+- A password change ends that user's sessions, including your own.
+- Every user is logged out once after the upgrade, and again whenever `$key`
+  changes.
+- Receipt uploads are refused without a valid `$key` or when the file cannot
+  be stored.
+- Stored values containing HTML entities (e.g. `&uuml;`) are shown literally.
+- Member-fee page ("MB Zahlungen nach LO"): rows are ordered by organization,
+  with "Keine" last, and "Keine" now includes every unknown organization.
+
+### Fixed
+
+- New users created by root get the rights entered in the form.
+- Annual report cut off on newer PostgreSQL versions.
+- Listings with hidden columns, the donations page and the open-loans names on
+  the member-fee page.
+- Login and logout redirects and cookies failed when output was sent first.
+- Forms shown again after adding or removing a part doubled quotes and
+  backslashes.
+- Sort links lost the refund filter.
+- Bank import: member names are matched literally and lines after a member
+  match are imported.
+- Division by zero on an empty member-fee page.
+
+### Compatibility
+
+- PHP 5.3 to 8.5; PostgreSQL 8.4 and 18.
+- `mcrypt` is no longer required: `phpseclib` (via Composer) replaces it with
+  byte-identical results and uses `mcrypt` for speed when it is loaded.
+- Short open tags are no longer needed.
+- PHP 8.5 still emits known deprecations (see `tests/COMPATIBILITY_PLAN.md`).
+- Characterization test harness, CI on PHP 5.3/7.4/8.5 × PostgreSQL 8.4/18,
+  mutation testing.
+
+### Upgrade notes
+
+1. Back up the database, `files/` and `constants.php`.
+2. Make sure `constants.php` sets a valid `$key`: at least 16 characters, not
+   `CHANGE-ME` (a random 32+ character string is recommended). Do not change
+   it after the upgrade.
+3. Deploy the code including `vendor/` (or use the release archive). Check that
+   `mbstring.func_overload` does not include string overloading.
+4. Migrate the receipts with `migrate-receipt-key.php` following the runbook in
+   [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md): dry run,
+   migrate, `sync`, spot checks, and `--delete-legacy` later.
+5. Configure the web server to deny access to `files/`, `vendor/`, `tests/`,
+   `constants.php` and `migrate-receipt-key.php`.
+6. Tell users that everyone has to log in again.
