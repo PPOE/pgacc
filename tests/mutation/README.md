@@ -1,7 +1,6 @@
 # Mutation testing
 
-Two tools, both on the PHP 7.4 and 8.5 lanes (PHP 5.3 has no built-in server,
-and no Infection release runs on PHP 5):
+Two tools, both on the PHP 8.5 lane (the only lane after `php5-last`):
 
 - [Infection](https://infection.github.io/) generates mutants for the
   PHPUnit-tested helpers in `functions.php` (through a class wrapper) and
@@ -19,21 +18,21 @@ and no Infection release runs on PHP 5):
 ## Infection
 
 ```sh
-sh tests/mutation/infection.sh 7.4    # or 8.5; extra arguments go to Infection
+sh tests/mutation/infection.sh 8.5    # extra arguments go to Infection
 PGACC_TEST_ID=mine sh tests/mutation/infection.sh 8.5 --min-covered-msi=67
-PGACC_INFECTION_TARGET=shim sh tests/mutation/infection.sh 7.4   # the wrapper itself
+PGACC_INFECTION_TARGET=shim sh tests/mutation/infection.sh 8.5   # the wrapper itself
 ```
 
 The script starts a synthetic database in its own Compose project
-(`pgacc-test[-ID]-infection-php74|php85`), builds the lane's application image,
+(`pgacc-test[-ID]-infection-php85`), builds the lane's application image,
 layers the pinned Infection tools on top (`infection.Dockerfile`, image
-`pgacc-test-infection-php74|php85[-ID]`) and runs Infection on an internal
+`pgacc-test-infection-php85[-ID]`) and runs Infection on an internal
 network with a read-only root filesystem. Reports go to
-`tests/mutation/results/php74|php85[-shim]/` (ignored by Git) or to the
+`tests/mutation/results/php85[-shim]/` (ignored by Git) or to the
 absolute path in `PGACC_INFECTION_RESULTS`: `infection.log` (escaped mutants
 with diffs), `summary.log`, `infection.json`, `per-mutator.md`,
 `infection.html`. The exit status is nonzero only for a failed initial test
-run or a `--min-msi`/`--min-covered-msi` option. CI runs both lanes and both
+run or a `--min-msi`/`--min-covered-msi` option. CI runs both
 targets (`functions`, `shim`) on full runs only, with `continue-on-error`, and
 uploads the reports.
 
@@ -44,22 +43,15 @@ every edit.
 
 | Lane | Infection | Installation | Coverage driver | Run time (8 threads) |
 |---|---|---|---|---:|
-| PHP 7.4.33 | 0.26.6 | locked Composer project in `infection/` | Xdebug 3.1.6 (initial run only) | ~30 s |
 | PHP 8.5 | 0.35.8 | PHAR, SHA-256 pinned | PCOV 1.0.12, SHA-256 pinned | ~45 s |
 
-- 0.26.6 is the last release for PHP 7.4. Its published PHARs (0.25.0-0.26.6)
-  do not start on PHP 7.4 (`Class 'Symfony\Polyfill\Php80\Php80' not found`),
-  so it is installed from `infection/composer.lock`, separate from the
-  application's lock. It runs from `/tmp`, because the binary also loads the
-  project autoloader from its working directory, whose `nikic/php-parser` 5
-  conflicts with Infection 0.26's version 4.
 - The 0.35.8 PHAR was checked against its GPG signature
   (`C6D76C329EBADE2FB9C458CFC5095986493B4AA0`) before its SHA-256 was pinned.
-- Both accept the locked PHPUnit 9.6.38 and php-code-coverage 9.2.32.
-- Infection 0.26 reads only strict JSON, so `infection.json` uses only keys both
-  versions know. 0.35 skips uncovered code unless `--with-uncovered`, which the
-  script passes on PHP 8.5 so both lanes report the same metrics.
-- On PHP 7.4, mutant runs use `xdebug.mode=off` (3.5 minutes became 30 s).
+- It accepts the locked PHPUnit 9.6.38 and php-code-coverage 9.2.32.
+- 0.35 skips uncovered code unless `--with-uncovered`, which the script passes.
+- The base image's Xdebug stays off (`xdebug.mode=off`); PHPUnit uses PCOV.
+- The PHP 7.4 lane (Infection 0.26.6 from a locked Composer project, Xdebug
+  3.1.6) was removed after `php5-last`.
 
 ### Global functions and the wrapper
 
@@ -196,8 +188,7 @@ initialization. Keep the runner's `rights2orgasql` target for this helper.
   than on a percentage that hides regressions behind new kills; (2) add
   `minCoveredMsi`/`minMsi` floors just below the current values and raise them
   as tests improve; (3) require no escaped mutants on changed lines except
-  listed equivalents. Gate on PHP 8.5, which reports missing-key warnings; keep
-  PHP 7.4 as a report.
+  listed equivalents. Gate on PHP 8.5, which reports missing-key warnings.
 - Feed the runner generated mutants: Infection's JSON diffs for helpers and a
   small `nikic/php-parser` generator for top-level page code, selecting HTTP
   checks per mutant from server-process coverage.
@@ -206,23 +197,21 @@ initialization. Keep the runner's `rights2orgasql` target for this helper.
 
 ## Target-driven runner
 
-`run.sh` mutation-tests code against the existing suites on PHP 7.4 and 8.5
-(either PostgreSQL server, `PGACC_TEST_PG`). Each target is a reviewable file
+`run.sh` mutation-tests code against the existing suites on PHP 8.5 /
+PostgreSQL 18. Each target is a reviewable file
 of hand-written mutations: a targeted check of assertion strength, not a
 generated score.
 
 ```sh
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout
-PGACC_TEST_ID=mine PGACC_TEST_PG=8.4 sh tests/mutation/run.sh 7.4 rights2orgasql
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --changed-since=origin/master
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --only=login-target-ignored,logout-redirect-removed
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --check   # definitions only
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 --self-test            # runner unit tests
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 8.5 login-logout
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 8.5 login-logout --changed-since=origin/master
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 8.5 login-logout --only=login-target-ignored,logout-redirect-removed
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 8.5 login-logout --check   # definitions only
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 8.5 --self-test            # runner unit tests
 ```
 
 The target is a file name in `targets/`. Results go to
-`build/mutation/<target>-php<lane>/` (`-pg84`/`-pg18` suffix for a non-default
-`PGACC_TEST_PG`; override with `PGACC_MUTATION_HOST_DIR`): `results.json`,
+`build/mutation/<target>-php85/` (override with `PGACC_MUTATION_HOST_DIR`): `results.json`,
 `summary.txt`, and a test log and server log per mutant. `PGACC_TEST_ID`
 isolates concurrent runs; remove the tagged image with `docker rmi` afterwards.
 
@@ -265,17 +254,18 @@ its baseline. `run.sh` takes the diff on the host
 
 ### CI (`ci.sh`)
 
-`sh tests/mutation/ci.sh <7.4|8.5> [--changed-since=<base>]` runs the
-self-test and the lane's target list, attempting every target: all 13 on PHP
-7.4 (either server), `rights2orgasql` and `null-arguments` on PHP 8.5, where
-the other baselines fail on PHP 8.5 diagnostics. CI passes `--changed-since`
-on per-push runs and runs every target on full runs (weekly, manual, `full-ci`
-pull requests), also on PHP 7.4 / PostgreSQL 8.4.
+`sh tests/mutation/ci.sh 8.5 [--changed-since=<base>]` runs the self-test
+and the target list, attempting every target: the 13 targets that ran on the
+former PHP 7.4 lane (`csrf` is not in the CI list, as before). Until the
+implicit-connection fix (`tests/COMPATIBILITY_PLAN.md`, "PHP 8.5-only
+migration", step a) most of their baselines fail on PHP 8.5 (exit 2) and the
+job is non-blocking. CI passes `--changed-since` on per-push runs and runs
+every target on full runs (weekly, manual, `full-ci` pull requests).
 
 ### How a run works
 
 `run.sh` builds the lane's application image and starts its PostgreSQL and
-membership-stub services in their own Compose project (`pgacc-mutation[-ID]-php74|php85`, without
+membership-stub services in their own Compose project (`pgacc-mutation[-ID]-php85`, without
 `compose.coverage.yaml`), then runs `runner.php` in a one-off container of the
 application service (same image, environment, internal network, read-only
 root, `/tmp` tmpfs). `runner.php`:
@@ -335,7 +325,7 @@ return array(
             'replace' => 'header("Location: index.php");',
             'rationale' => 'A login with a target returns to that page.',
             // Optional, only after review:
-            // 'equivalent' => array('reason' => '...', 'php' => array('7.4')),
+            // 'equivalent' => array('reason' => '...', 'php' => array('8.5')),
         ),
     ),
 );
@@ -375,17 +365,16 @@ Changing a target definition makes `--changed-since` select the whole target
 
 `lib.php` holds target validation, mutation application, exact-match
 enforcement, outcome classification, summaries and the process runner;
-`runner.php` is the orchestration. `sh tests/mutation/run.sh 7.4 --self-test`
+`runner.php` is the orchestration. `sh tests/mutation/run.sh 8.5 --self-test`
 runs their PHPUnit 9.6 tests (`tests/`), reports line and branch coverage of
-`lib.php` on PHP 7.4 and fails on anything uncovered, and loads every committed
+`lib.php` (Xdebug) and fails on anything uncovered, and loads every committed
 target and applies all its mutations to the current sources, so an application
 change that breaks a definition fails there first. `runner.php` is exercised
 end to end by the target runs.
 
 ### Targets
 
-All targets run on PHP 7.4 (`ci.sh`); `rights2orgasql` and `null-arguments`
-also on PHP 8.5. The target files hold each mutation's rationale.
+Targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rationale.
 
 | Target | Code | Tests |
 |---|---|---|
@@ -408,13 +397,9 @@ also on PHP 8.5. The target files hold each mutation's rationale.
 Accepted equivalents (reasons in the target files):
 
 - `login-logout`: `logout-cookie-expiry-in-future` (`setcookie()` ignores the
-  expiry for an empty value); `page-new-buchung-default-restored` on PHP 7.4
-  only (a default before required parameters is silent before PHP 8.0);
-  `logout-trusts-id-cookie` and `logout-without-session` (since the
+  expiry for an empty value); `logout-trusts-id-cookie` and `logout-without-session` (since the
   form-token check a logout POST reaches the logout block only with a valid
   session; the guards stay as defence in depth).
-- `null-arguments`: the guard removals on PHP 7.4 (null is accepted silently
-  before PHP 8.1); PHP 8.5 kills them.
 - `redirects`: `search-requires-login` (`page_search()` replaces the login
   `Location`).
 - `rights-checks`: `ack-visibility-check-counts-deleted` (the receipt check
@@ -434,22 +419,26 @@ Deliberately not mutated: an unprotected import page (`redirects`) and the bank
 import check (`read-only-rights`), because the page would call the external
 membership system. On PHP 8.5 every target except `rights2orgasql` and
 `null-arguments` fails its baseline (exit 2) on the implicit-connection
-deprecations (see `tests/COMPATIBILITY_PLAN.md`).
+deprecations (see `tests/COMPATIBILITY_PLAN.md`). The PHP 7.4-only accepted
+equivalents (`checklogin-implicit-connection`, `logout-implicit-connection`,
+`page-new-buchung-default-restored`, the `null-arguments` guard removals) were
+removed with that lane: PHP 8.5 kills those mutants.
 
 ### Required step for fixes
 
 Fix pull requests that change code reached by a target report red and green
-mutation evidence on PHP 7.4: the new test kills the relevant mutants, which
+mutation evidence on PHP 8.5: the new test kills the relevant mutants, which
 survive on the old code (or the old code fails the baseline). While developing
 use the focused test and `--only`; at readiness run each affected target once
 with `--changed-since=<real PR base>` and report the actual selection,
 including the full-target fallback when a definition changed (see
 [Iterating versus readiness](#iterating-versus-readiness)). A new behaviour
 needs a mutation in the relevant target (or a new target), and the change must
-not introduce survivors. CI runs `tests/mutation/ci.sh` on the PHP 7.4 and 8.5
-lanes: changed lines on per-push runs, every target on full runs (weekly,
-manual, `full-ci` pull requests; also on PHP 7.4 / PostgreSQL 8.4). The PHP 8.5
-list is `rights2orgasql` and `null-arguments` (see `tests/COMPATIBILITY_PLAN.md`);
-the PHP 8.5 job is non-blocking. The `import-checks` target needs the
+not introduce survivors. CI runs `tests/mutation/ci.sh` on the PHP 8.5
+lane: changed lines on per-push runs, every target on full runs (weekly,
+manual, `full-ci` pull requests). The job is non-blocking until most targets'
+baselines pass on PHP 8.5 (see `tests/COMPATIBILITY_PLAN.md`). Until then,
+red/green evidence for HTTP-reached code is only possible for
+`rights2orgasql` and `null-arguments`; other targets need step (a) first. The `import-checks` target needs the
 membership stub of `compose.test.yaml`, which the runner starts with the
 database.

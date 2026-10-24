@@ -4,10 +4,79 @@ Reviewed against the synthetic Docker harness on 2026-10-23. This list separates
 completed changes from reproducible failures and configuration-dependent risks.
 Application changes beyond the completed fixes listed below remain follow-up work.
 
-Test lanes since 2026-10-24 (owner decision): PHP 5.3 / PostgreSQL 8.4.20 (the
-production pair), PHP 7.4 / 18 (coverage) and 7.4 / 8.4, PHP 8.5 / 18. The PHP
-5.6 and 8.0 lanes, the separate syntax matrix and the PostgreSQL 9.4, 14 and 17
-servers were removed; findings below that name them are historical.
+Test lanes after the 1.0.0 release (tag `php5-last`; owner decision 2026-10-25):
+PHP 8.5 / PostgreSQL 18 only (see [PHP 8.5-only migration](#php-85-only-migration)).
+The PHP 5.3 / 8.4.20 production-pair lane, the PHP 7.4 lanes (18 and 8.4),
+and earlier the PHP 5.6 and 8.0 lanes, the separate syntax matrix and the
+PostgreSQL 9.4, 14 and 17 servers were removed; findings below that name them
+are historical.
+
+## PHP 8.5-only migration
+
+Owner decision 2026-10-25: after the 1.0.0 release (tag `php5-last`, PHP 5.3)
+the application supports and tests only PHP 8.5 and PostgreSQL 18, on a new
+server. First step (branch `php85/lanes`, CI and harness only, no application
+code): the PHP 5.3, 7.4 / 18 and 7.4 / 8.4 lanes, the PHP 5.6 client image,
+`tests/php53/`, `tests/postgres84/`, `PGACC_TEST_PG`, the reference
+re-recording (`record.sh`), the Infection 0.26 project, the 5.3 floor canaries
+and the PHP 7.4-only mutation equivalents were removed. Coverage (Xdebug
+3.5.3), the changed-line gate, the mutation runner, Infection and the reference
+comparison run on the PHP 8.5 / 18 lane; `composer.json` has `platform.php`
+8.5.0 (lock unchanged apart from its hash); PHPCompatibility `testVersion`
+8.5-, PHPStan `phpVersion` 8.5; the release check of `vendor/` runs on 8.5
+(`tests/release-vendor-check.php`).
+
+State of the lane at that step (`sh tests/run.sh`, exit 1): 9 of 12 groups
+fail (8 HTTP scripts, and PHPUnit with 2 `UnusedOutputTest` failures), all from PHP
+8.5's implicit-connection deprecation: 86 unexpected diagnostic sites (73
+`pg_query()`, 12 `pg_escape_string()`, 1 `pg_version()`; 7727 occurrences)
+and their consequences (4 "headers already sent" warnings, non-empty or
+broken redirects, deprecation text in pages, downloads and CSV). The
+reference comparison passes (0 unaccepted differences, 2 accepted and 25 `todo`
+entries). The mutation self-test passes; most targets' baselines fail on the
+same deprecations (no `tests/known-diagnostics.php` entries are added for
+them).
+
+Next steps, in order:
+
+- [ ] (a) Pass `$dbconn` explicitly to every `pg_*` call (application code,
+  minimal diffs; the mutation targets `checklogin-implicit-connection` and
+  `logout-implicit-connection` show the pattern). Then make the CI harness job
+  blocking (remove `continue-on-error` in `.github/workflows/tests.yaml`) and
+  check that every mutation target's baseline passes on 8.5. The `fgetcsv()` /
+  `str_getcsv()` `$escape` deprecation (`import.php:73`, `:163`; static-analysis
+  findings) is the next diagnostic the lane will show once (a) lands; it is
+  currently attributed to `KF-IMPORT-REGEX-G`.
+- [ ] (b) `smalot/pdfparser` ^2, so that the PDF bank-statement import
+  (`import2.php`) works on PHP 8.x: the locked v0.9.23 declares a class
+  `Object` (fatal since 7.2) and its TCPDF 6.2.6 does not parse on PHP 8
+  (curly-brace offsets). Update the `RD-PDFPARSER-PHP72-*` reference entries,
+  the skipped PDF import in `tests/http-receipts.php` and add a PDF round trip
+  to `tests/release-vendor-check.php`.
+- [ ] (c) phpseclib: 2.0.55 reproduces all 21 mcrypt contract vectors on PHP
+  8.5 without diagnostics (release check) and `CryptoTest` passes; re-check
+  after (a). Moving to v3 is optional.
+- [ ] (d) Re-baseline the reference on PHP 8.5 (a new recording next to
+  `tests/reference/php5/`, which stays the historical PHP 5 golden master),
+  once each `todo` difference from `php5/` is explained or fixed.
+- [ ] (e) Later: receipt v3 with sodium `secretstream`.
+
+Harness follow-ups found in the first step (not done there):
+
+- [ ] HTTP branch coverage looks incomplete on PHP 8.5: most HTTP-only pages
+  report 0% branches while their lines are covered. Likely cause: OPcache is
+  on for `php -S` (`opcache.enable`), so Xdebug sees branch data only when a
+  file is compiled. Line coverage and the changed-line gate are not affected;
+  the branch report is advisory (`PGACC_COVERAGE_STRICT_BRANCHES=0`).
+  Candidate fix: `-d opcache.enable=0` for the coverage server, which also
+  makes compile-time deprecations appear on every request (owner decision).
+- [ ] Remove the inert pre-9.x PostgreSQL branches (`tests/database-smoke.sh`,
+  `pgacc_mutation_fixture_files()`/`pgacc_mutation_drop_database_sql()`,
+  `tests/fixtures/plpgsql-*.sql`, the reference statement log and
+  `PGACC_REFERENCE_PGOPTIONS` in `tests/reference/runtime/prepend.php`) and
+  the PHP 5.x remarks in test comments.
+- [ ] `ci.sh` lists the 13 targets of the former PHP 7.4 lane; `csrf` was
+  never in the CI list. Decide whether to add it.
 
 ## Completed and verified
 
@@ -971,7 +1040,7 @@ differences above are only visible for out-of-range input.
     downloads, the error cases, merges, the script over HTTP; it shares the
     server's `files/` through a Compose volume). Mutation target
     `receipt-crypto`; Infection also runs `ReceiptStorageTest`.
-  - [ ] `KD-PHPSECLIB-OPENSSL-53` (PHP 5.3 only, hidden): phpseclib's AES-CBC
+  - [x] `KD-PHPSECLIB-OPENSSL-53` (PHP 5.3 only, hidden; entry removed with the PHP 5.3 lane): phpseclib's AES-CBC
     decryption on PHP 5.3 (no `OPENSSL_RAW_DATA`) encrypts one ECB block
     under `@` (`Crypt/Base.php:1159`), which warns about the empty IV that
     ECB never uses. Harmless; `ReceiptStorageTest` checks the v2 vectors on
@@ -1274,7 +1343,7 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`)
+### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`, 2 with `testVersion` 8.5-)
 
 | Finding | Locations | Status |
 |---|---|---|
