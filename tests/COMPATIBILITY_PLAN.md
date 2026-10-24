@@ -384,8 +384,25 @@ Open security findings (not changed here; owner decisions):
   (`rights_tokens()`, null-safe) and accepts only digits, like
   `organization_allowed()`, so `2 ` is organization 2 on every version and
   hex or exponent notation falls back to 10.
-- [ ] The login `target` is redirected to without a check
-  (`login_redirect()`, `login()`).
+- [x] The login `target` was redirected to without a check
+  (`login_redirect()`, `login()`): any URL, and on PHP 5.3 line breaks that
+  add headers. Now only a page of this application is allowed
+  (`login_target_allowed()`): empty (the form's default, sent as an empty
+  `Location` as before), `index.php` with an optional query or fragment, or
+  an absolute path such as the `/index.php?...` targets of `checklogin()`;
+  printable ASCII only, without spaces, backslashes, a scheme or `//`.
+  Anything else, also a target that is not hex, redirects to `index.php`.
+  The login form (`page_login()`) echoed `?target=` unescaped into its
+  hidden field; it now keeps only an allowed hex target (else empty) and
+  escapes it. Behaviour change: targets with raw non-ASCII characters or
+  spaces (browsers send them percent-encoded) and relative paths other than
+  `index.php` now lead to `index.php`. Other `Location` headers were
+  reviewed: `relocate()` (`edit.php`, `new.php`) builds them from
+  `intval()` IDs, `page_search()` from an `intval()` member id, and
+  `checklogin()` hex-encodes the request URI; the HTTPS redirect of
+  `index.php` uses the request's own host and URI (only for requests that
+  did not come through the proxy). Tests in `tests/http-login.php` and
+  `LoginSessionTest`, mutations in `login-logout`.
 - [x] Old approval names posted with a revision were stored as given
   (`page_edit_save()`); fixed with the approval reset (they
   come from the database).

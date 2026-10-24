@@ -191,6 +191,73 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertTrue(abs(strtotime(substr($short, strlen('Set-Cookie: pp_pgacc_id=7; expires='), 29)) - time() - 1) <= 1, $short);
     }
 
+    public static function allowedTargets()
+    {
+        return array('', 'index.php', 'index.php?action=all&filter_date=2024', 'index.php#top', 'index.php?',
+            '/', '/index.php?action=all', '/a', '/.', '/~x/%2F', '/!', '/[x]', 'index.php?a=~&b=!');
+    }
+
+    public static function rejectedTargets()
+    {
+        return array('https://evil.example/', 'http://evil.example', '//evil.example', '/\\evil.example',
+            '\\\\evil.example', '\\', 'javascript:alert(1)', 'index.php://evil.example', 'index.phpevil',
+            'index.php/x', 'index_php', "index.php\r\nSet-Cookie: a=1", "index.php\n", "/x\n", "/\n", "\n",
+            ' /x', 'index.php?a=1 b', '/a b', "/\tx", "/x\x7f", "/x\x00", "index.php?\x00", 'evil.php',
+            "/\xc3\xa4", "/x\\y", 'index.php?\\', 'index.php#\\x', 'x/index.php', '?a=1', '#x');
+    }
+
+    // Targets that are not hex are refused before hex2ascii(), whose hexdec()
+    // reports other characters on PHP 7.4+.
+    public function testTargetsThatAreNotHexRaiseNoDiagnostics()
+    {
+        $diagnostics = array();
+        set_error_handler(function ($type, $message) use (&$diagnostics) {
+            $diagnostics[] = $message;
+            return true;
+        });
+        $results = array();
+        foreach (array('"><script>', '2F x', "2F\n", "\n2F", 'x2F', '2Fx') as $hex) {
+            $results[] = login_target($hex);
+            $results[] = login_form_target($hex);
+        }
+        restore_error_handler();
+        self::assertSame(array(), $diagnostics);
+        self::assertSame(array_fill(0, 6, 'index.php'), array_values(array_filter($results)));
+    }
+
+    public function testLoginTargets()
+    {
+        foreach (self::allowedTargets() as $target) {
+            self::assertTrue(login_target_allowed($target), var_export($target, true));
+            self::assertSame($target, login_target(bin2hex($target)), var_export($target, true));
+            self::assertSame(strtoupper(bin2hex($target)), login_form_target(strtoupper(bin2hex($target))));
+        }
+        foreach (self::rejectedTargets() as $target) {
+            self::assertFalse(login_target_allowed($target), var_export($target, true));
+            self::assertSame('index.php', login_target(bin2hex($target)), var_export($target, true));
+            self::assertSame('', login_form_target(bin2hex($target)), var_export($target, true));
+        }
+        self::assertSame('index.php?a=1', login_target('69 6e 64 65 78 2E 70 68 70 3F 61 3D 31'));
+        self::assertSame('69 6e 64 65 78 2E 70 68 70', login_form_target('69 6e 64 65 78 2E 70 68 70'));
+        self::assertSame('index.php', login_target(array('2F')));
+        self::assertSame('', login_form_target(array('2F')));
+        self::assertFalse(login_target_decode('2F x'));
+        self::assertSame('/', login_target_decode('2F'));
+        self::assertSame('/', login_target('2F'));
+        self::assertSame('index.php', login_target('2F x'));
+        self::assertSame('index.php', login_target('"><script>'));
+        self::assertSame('index.php', login_target(null));
+        self::assertSame('', login_form_target(null));
+        // Not hex: refused before hex2ascii().
+        self::assertSame('', login_form_target('2F x'));
+        self::assertSame('', login_form_target('2Fg'));
+        self::assertSame('', login_form_target("2F\n"));
+        self::assertSame('', login_form_target('"><script>'));
+        // Odd hex decodes to a control character.
+        self::assertSame('', login_form_target('ABC'));
+        self::assertSame('index.php', login_target('ABC'));
+    }
+
     public function testTokenComparison()
     {
         $token = str_repeat('ab', 32);

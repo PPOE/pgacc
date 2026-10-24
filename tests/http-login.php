@@ -211,8 +211,11 @@ function rejected_login_problems($response)
 
 // A logged-in user posting to the login page is redirected to the posted
 // target without a new login (no cookies, database state unchanged).
-function logged_in_target_problems($cookies, $target, $baseUrl = null)
+function logged_in_target_problems($cookies, $target, $baseUrl = null, $expectedLocation = null)
 {
+    if ($expectedLocation === null) {
+        $expectedLocation = $target;
+    }
     $before = login_state($cookies['pp_pgacc_id']);
     $response = http_request(
         '/index.php?action=login',
@@ -231,8 +234,8 @@ function logged_in_target_problems($cookies, $target, $baseUrl = null)
         $problems[] = "returned HTTP {$response['status']}, expected 302";
     }
     $location = response_header($response, 'Location');
-    if ($location !== $target) {
-        $problems[] = 'Location was ' . var_export($location, true) . ', expected ' . var_export($target, true);
+    if ($location !== $expectedLocation) {
+        $problems[] = 'Location was ' . var_export($location, true) . ', expected ' . var_export($expectedLocation, true);
     }
     if (count(response_cookies($response)) !== 0) {
         $problems[] = 'issued cookies';
@@ -365,6 +368,58 @@ if (isset($adminCookies['pp_pgacc_login']) && isset($adminCookies['pp_pgacc_id']
     check('login page when already logged in, with target', array('no login cookies to test with'));
 }
 
+// Login targets must be pages of this application: empty (the form's
+// default), index.php with an optional query, or an absolute path (the
+// targets of checklogin()). Anything else (other hosts, schemes, "//",
+// backslashes, control characters, line breaks that would add headers,
+// spaces) redirects to index.php instead, after a login and when already
+// logged in.
+foreach (array('index.php', '/index.php?action=all&filter_date=2024', '/', 'index.php#top') as $allowedTarget) {
+    check("valid login with target " . var_export($allowedTarget, true), login_response_problems(
+        login_request('synthetic-unit-two', 'unit-two-password', $allowedTarget),
+        $allowedTarget,
+        6
+    ));
+}
+foreach (array(
+    'absolute URL' => 'https://evil.example/index.php',
+    'plain HTTP URL' => 'http://evil.example/',
+    'scheme-relative URL' => '//evil.example/',
+    'backslash host' => '/\\evil.example/',
+    'backslashes' => '\\\\evil.example',
+    'javascript URL' => 'javascript:alert(1)',
+    'index.php as scheme' => 'index.php://evil.example/',
+    'index.php prefix' => 'index.phpevil',
+    'CRLF header injection' => "index.php\r\nSet-Cookie: injected=1",
+    'LF header injection' => "/index.php\nX-Injected: 1",
+    'final newline' => "index.php\n",
+    'leading space' => ' //evil.example/',
+    'space in query' => 'index.php?a=1 b',
+    'tab' => "/\tevil.example",
+    'relative path' => 'evil.php',
+    'NUL byte' => "index.php\0",
+) as $label => $badTarget) {
+    $badLogin = login_request('synthetic-unit-two', 'unit-two-password', $badTarget);
+    check("login with target ($label) redirects to index.php", array_merge(
+        login_response_problems($badLogin, 'index.php', 6),
+        redirect_body_problems($badLogin)
+    ));
+    $badLoginCookies = response_cookies($badLogin);
+    if (isset($badLoginCookies['pp_pgacc_login']) && isset($badLoginCookies['pp_pgacc_id'])) {
+        check(
+            "logged-in login page with target ($label) redirects to index.php",
+            logged_in_target_problems($badLoginCookies, $badTarget, null, 'index.php')
+        );
+    }
+}
+$arrayTarget = http_request('/index.php?action=login', 'POST', array(
+    'submit' => 'Anmeldung',
+    'name' => 'synthetic-unit-two',
+    'pass' => 'unit-two-password',
+    'target' => array('41'),
+));
+check('login with an array target redirects to index.php', login_response_problems($arrayTarget, 'index.php', 6));
+
 // Rejected logins render the form: no redirect and no cookies. Quotes in the
 // user name or password are escaped, so they are rejected like any other
 // wrong credentials (no SQL error).
@@ -378,7 +433,8 @@ foreach (array(
     check("rejected login ($label)", rejected_login_problems($rejected));
 }
 $stateBefore = login_state(1);
-$rejectedWithTarget = http_request('/index.php?action=login&target=ABC', 'POST', array(
+$formTarget = strtoupper(bin2hex('/index.php?action=all'));
+$rejectedWithTarget = http_request('/index.php?action=login&target=' . $formTarget, 'POST', array(
     'submit' => 'Anmeldung',
     'name' => 'synthetic-admin',
     'pass' => 'wrong-password',
@@ -386,7 +442,7 @@ $rejectedWithTarget = http_request('/index.php?action=login&target=ABC', 'POST',
 ));
 $rejectedWithTargetProblems = rejected_login_problems($rejectedWithTarget);
 // The form keeps the target from the URL, not the posted one.
-if (strpos($rejectedWithTarget['body'], '<input name="target" type="hidden" value="ABC" />') === false) {
+if (strpos($rejectedWithTarget['body'], '<input name="target" type="hidden" value="' . $formTarget . '" />') === false) {
     $rejectedWithTargetProblems[] = 'form did not carry the URL target';
 }
 if (login_state(1) !== $stateBefore) {
@@ -401,6 +457,29 @@ if (strpos($form['body'], '<input name="target" type="hidden" value="" />') === 
     $formProblems[] = 'form target was not empty';
 }
 check('login form', $formProblems);
+
+// The form keeps only a target that is hex for a page of this application
+// (see above); anything else, also markup, becomes an empty target.
+foreach (array(
+    'lowercase spaced hex' => array('2f 69 6e', '2f 69 6e'),
+    'odd hex' => array('ABC', ''),
+    'hex of another host' => array(strtoupper(bin2hex('https://evil.example/')), ''),
+    'markup' => array('"><script>alert(1)</script>', ''),
+    'quote' => array("2F' onfocus='alert(1)", ''),
+) as $label => $case) {
+    $targetForm = http_request('/index.php?action=login&target=' . rawurlencode($case[0]));
+    $targetFormProblems = rejected_login_problems($targetForm);
+    if (strpos($targetForm['body'], '<input name="target" type="hidden" value="' . $case[1] . '" />') === false) {
+        $targetFormProblems[] = 'form target was not ' . var_export($case[1], true);
+    }
+    if (strpos($targetForm['body'], '<script>alert') !== false || strpos($targetForm['body'], 'onfocus') !== false) {
+        $targetFormProblems[] = 'form contained the target markup';
+    }
+    check("login form with target ($label)", $targetFormProblems);
+}
+$arrayTargetForm = http_request('/index.php?action=login&target[]=41');
+check('login form with an array target', strpos($arrayTargetForm['body'], '<input name="target" type="hidden" value="" />') === false
+    ? array('form target was not empty') : array());
 
 // Logout redirects to index.php and clears both cookies. It also ends the
 // session on the server (users.cookie is cleared), so the cookies of that

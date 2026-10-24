@@ -1091,4 +1091,38 @@ function login_cookie_header($name, $value, $maxAge)
   return 'Set-Cookie: ' . $name . '=' . $value . '; expires=' . gmdate('D, d M Y H:i:s', $expires) . ' GMT; Max-Age=' . $maxAge . '; secure; HttpOnly; SameSite=Lax';
 }
 
+// Login targets (hex, see ascii2hex()) must be pages of this application:
+// empty (the login form's default), index.php with an optional query or
+// fragment, or an absolute path (checklogin() sends the request URI). No
+// scheme or host ("//", backslashes), control characters or spaces.
+function login_target_allowed($target)
+{
+  return preg_match('/^(index\.php([?#][\x21-\x5b\x5d-\x7e]*)?|\/([\x21-\x2e\x30-\x5b\x5d-\x7e][\x21-\x5b\x5d-\x7e]*)?)?$/D', $target) == 1;
+}
+
+// The decoded target if $hex is hex (digits and spaces, see hex2ascii()) of
+// an allowed target, else false. Other characters are refused before
+// hex2ascii(), whose hexdec() reports them on PHP 7.4+.
+function login_target_decode($hex)
+{
+  if (!is_string($hex) || strspn($hex, '0123456789ABCDEFabcdef ') != strlen($hex))
+    return false;
+  $target = hex2ascii($hex);
+  return login_target_allowed($target) ? $target : false;
+}
+
+// The login target for the Location header, else index.php.
+function login_target($hex)
+{
+  $target = login_target_decode($hex);
+  return $target === false ? 'index.php' : $target;
+}
+
+// The hidden target of the login form: $hex if it is an allowed target,
+// else empty.
+function login_form_target($hex)
+{
+  return login_target_decode($hex) === false ? '' : $hex;
+}
+
 ?>

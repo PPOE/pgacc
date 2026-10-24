@@ -28,7 +28,7 @@ function login($user, $pass)
       header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
       pg_free_result($data);
       if (isset($_POST['target']))
-        header("Location: " . hex2ascii($_POST['target']));
+        header("Location: " . login_target($_POST['target']));
       else
         header("Location: index.php");
       return $id;

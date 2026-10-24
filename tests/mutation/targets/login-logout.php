@@ -1,10 +1,11 @@
 <?php
 /*
  * Login and logout handling: login() in index.php (password check, session
- * cookies, redirect), the session check of checklogin(), the logout and login_redirect() blocks that index.php
- * answers before acc_header(), login_redirect() and page_login() in
- * login.php, and the page_new_buchung() signature in new.php (compiled on
- * every request). This is page code that only the HTTP tests reach. See
+ * cookies, redirect target), the session check of checklogin(), the logout
+ * and login_redirect() blocks that index.php answers before acc_header(),
+ * login_redirect() and page_login() in login.php, and the page_new_buchung()
+ * signature in new.php (compiled on every request). The helpers in
+ * functions.php are covered by LoginSessionTest and Infection. This is page code that only the HTTP tests reach. See
  * tests/mutation/README.md for the format.
  */
 $login = array('start' => 'function login($user, $pass)', 'end' => 'require("constants.php");');
@@ -155,16 +156,23 @@ return array(
         array(
             'id' => 'login-target-ignored',
             'region' => $login,
-            'search' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
             'replace' => 'header("Location: index.php");',
             'rationale' => 'A login with a target returns to that page.',
         ),
         array(
             'id' => 'login-target-not-decoded',
             'region' => $login,
-            'search' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
             'replace' => 'header("Location: " . $_POST[\'target\']);',
             'rationale' => 'The posted target is hex-encoded and must be decoded.',
+        ),
+        array(
+            'id' => 'login-target-unchecked',
+            'region' => $login,
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
+            'replace' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'rationale' => 'Only targets within the application are redirected to (open redirect, header injection).',
         ),
         array(
             'id' => 'login-default-redirect-removed',
@@ -371,9 +379,25 @@ return array(
             'id' => 'logged-in-target-not-decoded',
             'file' => 'login.php',
             'region' => $loginRedirect,
-            'search' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
             'replace' => 'header("Location: " . $_POST[\'target\']);',
             'rationale' => 'The posted target is hex-encoded and must be decoded.',
+        ),
+        array(
+            'id' => 'logged-in-target-unchecked',
+            'file' => 'login.php',
+            'region' => $loginRedirect,
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
+            'replace' => 'header("Location: " . hex2ascii($_POST[\'target\']));',
+            'rationale' => 'Only targets within the application are redirected to (open redirect, header injection).',
+        ),
+        array(
+            'id' => 'logged-in-target-ignored',
+            'file' => 'login.php',
+            'region' => $loginRedirect,
+            'search' => 'header("Location: " . login_target($_POST[\'target\']));',
+            'replace' => 'header("Location: index.php");',
+            'rationale' => 'An already logged-in user with a target is redirected to that page.',
         ),
         array(
             'id' => 'logged-in-target-continues',
@@ -416,6 +440,20 @@ return array(
             'search' => "if (checklogin('id',false) > 0)",
             'replace' => 'if (false)',
             'rationale' => 'An already logged-in user sees the success message, not the login form.',
+        ),
+        array(
+            'id' => 'page-login-target-unchecked',
+            'file' => 'login.php',
+            'search' => "login_form_target(\$_GET['target'])",
+            'replace' => "\$_GET['target']",
+            'rationale' => 'The form keeps only allowed hex targets (reflected markup, open redirect).',
+        ),
+        array(
+            'id' => 'page-login-target-dropped',
+            'file' => 'login.php',
+            'search' => "login_form_target(\$_GET['target'])",
+            'replace' => "''",
+            'rationale' => 'The form carries the target of the login redirect, so the login returns to that page.',
         ),
 
         // page_new_buchung() in new.php, compiled on every request.
