@@ -9,6 +9,9 @@
  * tests/http-output-escaping.php (call sites: synthetic rows and request
  * values with markup, quotes, "&", backslashes and umlauts). The call-site
  * mutations remove one encoding call each, so the raw value reaches the page.
+ * The mb-lo-* and mb-sum-* mutations cover the member payments per
+ * organization (mb.php: merge into "Keine", lo.id order, empty average),
+ * which the same script checks.
  * See tests/mutation/README.md for the format.
  */
 $csvNumber = "preg_match('/^-?\\d+([.,]\\d+)?$/', \$text) != 1";
@@ -768,6 +771,76 @@ $callSites = array(
         'search' => '  <td>".html_escape($line[\'name\'])."</td></tr>";',
         'replace' => '  <td>".($line[\'name\'])."</td></tr>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
+    ),
+    array(
+        'id' => 'mb-lo-order-by-name',
+        'file' => 'mb.php',
+        'search' => 'GROUP BY name ORDER BY MIN(lo_id);',
+        'replace' => 'GROUP BY name ORDER BY name;',
+        'rationale' => 'Member payments per organization ordered by name instead of lo.id.',
+    ),
+    array(
+        'id' => 'mb-lo-unknown-strict-empty',
+        'file' => 'mb.php',
+        'search' => "  if (\$line['name'] == '')\n  {\n    \$errcount",
+        'replace' => "  if (\$line['name'] === '')\n  {\n    \$errcount",
+        'rationale' => 'Only the empty name counts as unknown: the NULL row is listed on its own.',
+    ),
+    array(
+        'id' => 'mb-lo-unknown-count-last',
+        'file' => 'mb.php',
+        'search' => "    \$errcount += \$line['count'];",
+        'replace' => "    \$errcount = \$line['count'];",
+        'rationale' => 'Only the last unknown-organization row counts towards "Keine" (count).',
+    ),
+    array(
+        'id' => 'mb-lo-unknown-amount-last',
+        'file' => 'mb.php',
+        'search' => "    \$erramount += \$line['amount'];",
+        'replace' => "    \$erramount = \$line['amount'];",
+        'rationale' => 'Only the last unknown-organization row counts towards "Keine" (amount).',
+    ),
+    array(
+        'id' => 'mb-lo-keine-in-order',
+        'file' => 'mb.php',
+        'search' => "    \$keine = \$line;",
+        'replace' => "    \$rows[] = \$line;",
+        'rationale' => '"Keine" is listed in lo.id order, without the unknown rows.',
+    ),
+    array(
+        'id' => 'mb-lo-keine-dropped',
+        'file' => 'mb.php',
+        'search' => "if (\$keine !== null)",
+        'replace' => "if (\$keine === null)",
+        'rationale' => 'The "Keine" row is not listed.',
+    ),
+    array(
+        'id' => 'mb-lo-keine-count-unmerged',
+        'file' => 'mb.php',
+        'search' => "  \$keine['count'] += \$errcount;",
+        'replace' => "  \$keine['count'] += 0;",
+        'rationale' => 'The unknown rows do not count towards the "Keine" count.',
+    ),
+    array(
+        'id' => 'mb-lo-keine-amount-unmerged',
+        'file' => 'mb.php',
+        'search' => "  \$keine['amount'] += \$erramount;",
+        'replace' => "  \$keine['amount'] += 0;",
+        'rationale' => 'The unknown rows do not count towards the "Keine" amount.',
+    ),
+    array(
+        'id' => 'mb-sum-average-zero-divided',
+        'file' => 'mb.php',
+        'search' => '$Scount > 0 ? $Samount / 100.0 / $Scount : 0',
+        'replace' => '$Scount >= 0 ? $Samount / 100.0 / $Scount : 0',
+        'rationale' => 'The sum average divides by zero without member payments.',
+    ),
+    array(
+        'id' => 'mb-sum-average-zero-value',
+        'file' => 'mb.php',
+        'search' => '$Scount > 0 ? $Samount / 100.0 / $Scount : 0',
+        'replace' => '$Scount > 0 ? $Samount / 100.0 / $Scount : 1',
+        'rationale' => 'The sum average without member payments is not 0.00 €.',
     ),
     array(
         'id' => 'new-html-escape-line-name',

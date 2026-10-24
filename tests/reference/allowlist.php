@@ -46,17 +46,6 @@ return array(
 
     // ---------------------------------------------------------------- todo
     array(
-        'id' => 'RD-PG-UNORDERED-MB-LO',
-        'php' => array('7.4', '8.5'),
-        'pg' => array('18'),
-        'files' => 'http/mb-admin.txt',
-        'lines' => '/^[-+]<h2>MB Zahlungen nach LO<\/h2><table><tr><td>Teilorganisation<\/td>/',
-        'reason' => 'mb.php:19 groups the membership payments by organization without ORDER BY: PostgreSQL 8.4 '
-            . '(production) and 18 return the groups in a different order, so the "MB Zahlungen nach LO" table '
-            . 'rows swap. Adding ORDER BY name is an owner decision (COMPATIBILITY_PLAN, "PostgreSQL version matrix").',
-        'category' => 'todo',
-    ),
-    array(
         'id' => 'RD-PDFPARSER-PHP72-HTTP',
         'php' => array('7.4', '8.5'),
         'files' => 'http/import2-[cnst]*.txt',

@@ -323,9 +323,9 @@ Test-side adaptations for 8.4 (application SQL unchanged):
   (`tests/reference/runtime/postgres-statement-log.sh`); 8.4 has no
   `application_name` (see [PHP 5 reference recordings](#php-5-reference-recordings)).
 
-`tests/known-diagnostics.php` has no PostgreSQL-specific entries. The only page
-difference between 8.4 and 18 is the row order of an unordered `GROUP BY` in
-`mb.php` (`RD-PG-UNORDERED-MB-LO`).
+`tests/known-diagnostics.php` has no PostgreSQL-specific entries. The reference
+pages are the same on 8.4 and 18 (the unordered `GROUP BY` in `mb.php`,
+formerly `RD-PG-UNORDERED-MB-LO`, is ordered by `lo.id` now).
 
 ## Continuous integration
 

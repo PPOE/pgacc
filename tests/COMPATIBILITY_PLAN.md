@@ -410,8 +410,11 @@ with synthetic users and covered by a mutation target.
   does not change what browsers send there. Tests in `tests/http-login.php`
   (the HTTP test client sends cookies itself, so the attributes do not
   affect it) and `LoginSessionTest`, mutations in `login-logout`.
-- [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
-  `bgf`); not requested by the tests.
+- [x] `mb.php` divided by zero on the synthetic data (member-fee page for
+  `bgf`): the average of the sum row without member payments in the period.
+  Fixed: it shows `0.00 €`, the value PHP 5.3 printed (with a warning);
+  PHP 7.4 printed `NaN €`, PHP 8 stopped with `DivisionByZeroError`. Tested in
+  `tests/http-output-escaping.php`, mutations `mb-sum-*` in `output-escaping`.
 
 Open security findings (not changed here; owner decisions):
 
@@ -739,10 +742,17 @@ The PHP 5 reference is now recorded on PHP 5.3 / PostgreSQL 8.4. Compared with
 the earlier recording on 5.3 / 17, SQL, database changes and helper output
 are identical; one page differs:
 
-- [ ] `mb.php:19` (member fees per organization) groups by `lo.name` without
+- [x] `mb.php:19` (member fees per organization) grouped by `lo.name` without
   `ORDER BY`; 8.4 and 17/18 return the groups in a different order
-  (`RD-PG-UNORDERED-MB-LO`, todo, PostgreSQL 18 lanes). Owner decision:
-  add `ORDER BY name` (a visible order change on production).
+  (`RD-PG-UNORDERED-MB-LO`, removed). The loop added the unknown-organization
+  row (name NULL or empty) to "Keine" only when it came before "Keine", and
+  only the last of them. Fixed (owner decision): all rows are read first, every
+  unknown row counts towards "Keine" (still dropped when there is no "Keine"
+  row, as before), and the rows follow `lo.id` (`ORDER BY MIN(lo_id)`) with
+  "Keine" last. Visible changes on production: row order, and "Keine" now
+  includes every unknown row. Reference re-recorded. Tested in
+  `tests/http-output-escaping.php` on 8.4 and 18, mutations `mb-lo-*` in
+  `output-escaping`.
 
 Still open from the 8.4 review:
 
