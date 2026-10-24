@@ -387,6 +387,7 @@ assert_database_field($oldRevision, 'deleted', 'f', 'revision after authorized r
 $unbufferedUrl = start_unbuffered_server(8083);
 $unbufferedVoucherId = create_voucher($database, 'Synthetic unbuffered expense', '-3.21', 9002, $adminCookies);
 $unbufferedRevisionId = create_voucher($database, 'Synthetic unbuffered draft', '-4.00', 0, $adminCookies);
+$unbufferedCorrectedId = create_voucher($database, 'Synthetic unbuffered draft to correct', '-4.00', 0, $adminCookies);
 $unbufferedMergeTargetId = create_voucher($database, 'Synthetic unbuffered merge target', '-1.50', 0, $adminCookies);
 $unbufferedMergeSourceId = create_voucher($database, 'Synthetic unbuffered merge source', '-2.50', 0, $adminCookies);
 $unbufferedSteps = array(
@@ -407,6 +408,12 @@ $unbufferedSteps = array(
         revision_form($unbufferedRevisionId, 'Synthetic unbuffered revision', '-4.50'),
         $adminCookies,
         edit_location($unbufferedRevisionId, 5),
+    ),
+    'corrected revision' => array(
+        '/index.php?action=edit&id=' . rawurlencode($unbufferedCorrectedId),
+        array_merge(revision_form($unbufferedCorrectedId, 'Synthetic unbuffered corrected revision', '-4.50'), array('date0' => '')),
+        $adminCookies,
+        edit_location($unbufferedCorrectedId, 5) . '&warn=date',
     ),
     'merge' => array(
         '/index.php?action=merge',
@@ -1270,6 +1277,81 @@ foreach ($dateForms as $date => $stored) {
     $dated = database_row($database, 'SELECT date FROM vouchers WHERE comment = $1', array($dateComment), $dateComment);
     assert_database_field($dated, 'date', $stored, $dateComment);
 }
+
+// A revision whose values page_save_buchung() corrects still saves and
+// redirects; warn= names the corrections and the edit page shows a fixed
+// note for each known code.
+$warnNotes = array(
+    'date' => 'Gespeichert, aber: kein Datum angegeben – das Datum wurde auf 1800-01-01 gesetzt.',
+    'refund' => 'Gespeichert, aber: eine Kostenrückerstattung ist nur bei einer Ausgabe möglich – die Kostenrückerstattung wurde entfernt.',
+    'purpose' => 'Gespeichert, aber: eine Zweckwidmung ist nur bei einer Spende möglich – die Zweckwidmung wurde entfernt.',
+);
+$correctionCases = array(
+    'date' => array(array('date0' => ''), 'date', '1800-01-01 00:00:00'),
+    'refund' => array(array('dir0' => 'in', 'refund0' => '1'), 'refund', 'f'),
+    'purpose' => array(array('dir0' => 'out', 'purpose0' => '1'), 'committed', 'f'),
+);
+foreach ($correctionCases as $code => $case) {
+    $label = "revision with a corrected $code";
+    $correctedId = create_voucher($database, "Synthetic draft with a corrected $code", '-3.00', 0, $adminCookies);
+    $correctedForm = array_merge(revision_form($correctedId, "Synthetic revision with a corrected $code", '-3.50'), $case[0]);
+    assert_redirect(edit_request($correctedId, $correctedForm, $adminCookies), edit_location($correctedId, 5) . "&warn=$code", $label);
+    $corrected = database_row($database, 'SELECT voucher_id, date, refund, committed FROM vouchers WHERE comment = $1 AND NOT deleted', array("Synthetic revision with a corrected $code"), $label);
+    assert_database_field($corrected, 'voucher_id', (string) $correctedId, $label);
+    assert_database_field($corrected, $case[1], $case[2], $label);
+    $correctedPage = http_request('/' . edit_location($correctedId, 5) . "&warn=$code", 'GET', array(), $adminCookies);
+    assert_status($correctedPage, 200, "$label: edit page");
+    assert_contains($correctedPage['body'], 'Buchung aktualisiert', "$label: edit page");
+    foreach ($warnNotes as $noteCode => $note) {
+        if ($noteCode === $code) {
+            assert_contains($correctedPage['body'], $note, "$label: edit page");
+        } else {
+            assert_not_contains($correctedPage['body'], $note, "$label: edit page");
+        }
+    }
+}
+// Only known codes show a note; other warn= text is not echoed.
+$warnPage = http_request('/' . edit_location($correctedId, 5) . '&warn=' . rawurlencode('synthetic-unknown,refund,<b>x'), 'GET', array(), $adminCookies);
+assert_contains($warnPage['body'], $warnNotes['refund'], 'edit page with unknown warn codes');
+assert_not_contains($warnPage['body'], 'synthetic-unknown', 'edit page with unknown warn codes');
+assert_not_contains($warnPage['body'], '<b>x', 'edit page with unknown warn codes');
+assert_not_contains($warnPage['body'], $warnNotes['date'], 'edit page with unknown warn codes');
+$plainPage = http_request('/' . edit_location($correctedId, 5), 'GET', array(), $adminCookies);
+foreach ($warnNotes as $note) {
+    assert_not_contains($plainPage['body'], $note, 'edit page without warn');
+}
+
+// Two parts, only the second one corrected: one code for the revision.
+$twoPartId = create_voucher($database, 'Synthetic draft with two parts', '-3.00', 0, $adminCookies);
+$twoPartForm = two_organization_form('Synthetic two-part revision', 0);
+$twoPartForm = array_merge(revision_form($twoPartId, 'Synthetic two-part revision', '-1.00'), $twoPartForm);
+$twoPartForm['date1'] = '';
+$twoPartForm['id'] = $twoPartId;
+$twoPartResponse = http_request('/index.php?action=edit&id=' . $twoPartId, 'POST', $twoPartForm, $adminCookies);
+assert_redirect($twoPartResponse, edit_location($twoPartId, 5) . '&warn=date', 'two-part revision with a corrected second part');
+assert_database_count($database, "SELECT count(*) FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND date = '1800-01-01'", array($twoPartId), 1, 'two-part revision with a corrected second part');
+assert_database_count($database, "SELECT count(*) FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND date = '2024-09-15'", array($twoPartId), 1, 'two-part revision with a corrected second part');
+// Both parts corrected the same way: the code is named once.
+$bothPartsId = create_voucher($database, 'Synthetic draft with two undated parts', '-3.00', 0, $adminCookies);
+$twoPartForm['id'] = $bothPartsId;
+$twoPartForm['date0'] = '';
+$bothPartsResponse = http_request('/index.php?action=edit&id=' . $bothPartsId, 'POST', $twoPartForm, $adminCookies);
+assert_redirect($bothPartsResponse, edit_location($bothPartsId, 5) . '&warn=date', 'two-part revision with two corrected parts');
+
+// A purpose-bound donation followed by a Beleg part: the Beleg part copies
+// the purpose of the donation and clears it (as before) without a warning.
+$donationId = create_voucher($database, 'Synthetic draft donation with a receipt part', '3.00', 0, $adminCookies);
+$donationForm = revision_form($donationId, 'Synthetic purpose-bound donation', '3.00');
+$donationForm['dir0'] = 'in';
+$donationForm['purpose0'] = '1';
+$donationForm['bid1'] = '0';
+$donationForm['dir1'] = 'bel';
+$donationForm['file1'] = '0';
+$donationForm['parts'] = '2';
+$donationResponse = http_request('/index.php?action=edit&id=' . $donationId, 'POST', $donationForm, $adminCookies);
+assert_redirect($donationResponse, edit_location($donationId, 5), 'purpose-bound donation with a Beleg part');
+assert_database_count($database, 'SELECT count(*) FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND type = 8 AND committed', array($donationId), 1, 'purpose-bound donation with a Beleg part');
+assert_database_count($database, 'SELECT count(*) FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND type = 45 AND NOT committed', array($donationId), 1, 'purpose-bound donation with a Beleg part');
 
 // The old-approval filter of the listings (filter_ack_old) filters by its own
 // value (before the fix it used filter_ack's); values outside its pattern

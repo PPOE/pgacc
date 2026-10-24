@@ -90,24 +90,34 @@ for ($part = 0; $part < $parts; $part++)
 }
 return true;
 }
-function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
+// Each correction of a posted value is also added to $warnings ('date',
+// 'refund', 'purpose'), for the redirect of the revision.
+function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null, &$warnings = null)
 {
 global $dbconn;
 $voucher = get_voucher($part,$rights);
 if ($voucher['date'] == null)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Kein Datum angegeben.</div><br /><br /><br />';
+  $warnings[] = 'date';
   $voucher['date'] = '1800-01-01';
 }
 if ($voucher['refund'] == 'true' && $voucher['dir'] == 'in')
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Eine Kostenrückerstattung ist nur bei einer Ausgabe möglich.</div><br /><br /><br />';
+  $warnings[] = 'refund';
   $voucher['refund'] = 'false';
 }
 
 if ($voucher['purpose'] == 'true' && ($voucher['dir'] == 'out' || $voucher['in_type'] != 8))
 {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Eine Zweckwidmung ist nur bei einer Spende möglich.</div><br /><br /><br />';
+  // A Beleg part copies the purpose of the part before it: cleared
+  // without a message.
+  if ($voucher['dir'] != 'bel')
+  {
+    echo '<div class="slot_error" id="slot_error">FEHLER: Eine Zweckwidmung ist nur bei einer Spende möglich.</div><br /><br /><br />';
+    $warnings[] = 'purpose';
+  }
   $voucher['purpose'] = 'false';
 }
 
