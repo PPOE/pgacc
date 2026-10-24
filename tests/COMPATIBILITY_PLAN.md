@@ -699,6 +699,14 @@ differences above are only visible for out-of-range input.
   actions only on POST. Several actions are currently triggered by GET links
   (for example merge); convert those links to small forms and refuse GET for
   them. Until then, those links carry the CSRF token in the query string.
+  GET-triggered writes found in the security review: merge
+  (`?action=merge&bid1=&bid2=`, root only), recovery
+  (`?action=recover&id=&bid=&doit=1`, root only) and the column preferences
+  (`?hide=`, own user only).
+- [ ] Bug: merge (`page_edit_merge()`) redirects with "Buchungen
+  zusammengeführt" even when its `UPDATE` changed no row (unknown or
+  invisible second voucher). Fix the message together with the POST
+  conversion.
 
 ## Dependencies
 
