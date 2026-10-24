@@ -3,7 +3,7 @@
 All notable changes to pgacc are documented in this file. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.0.0] - unreleased (php5-last)
+## [1.0.0] - 2026-10-25 (php5-last)
 
 First tagged release, also tagged `php5-last`: the last release that supports
 PHP 5.3. Production runs PHP 5.3.3 on Debian 6 with PostgreSQL 8.4; this
