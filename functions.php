@@ -955,6 +955,18 @@ function receipt_v2_read_with($key, $number, $path)
   return $complete ? implode('', $chunks) : false;
 }
 
+// True if files/<number>.v2.aes ($path) decrypts through the chunked path;
+// nothing is kept, so memory does not grow with the receipt.
+function receipt_v2_verify_with($key, $number, $path)
+{
+  $receipt = receipt_v2_open_with($key, $number, $path);
+  return $receipt !== false && receipt_v2_decrypt_chunks($receipt, 'receipt_v2_discard');
+}
+
+function receipt_v2_discard($chunk)
+{
+}
+
 function receipt_v2_echo($chunk)
 {
   echo $chunk;

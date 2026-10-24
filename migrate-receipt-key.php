@@ -203,7 +203,7 @@ function receipt_migration_file($connection, $options, $key, $number)
         return array('pending', "not migrated yet; $number.aes kept");
     }
     // An existing <n>.v2.aes is checked the way a download reads it.
-    $invalidV2 = !$options['delete-legacy'] && $hasV2 && receipt_v2_read_with($key, $number, $v2Path) === false;
+    $invalidV2 = !$options['delete-legacy'] && $hasV2 && !receipt_v2_verify_with($key, $number, $v2Path);
     if (!$options['delete-legacy'] && $hasV2 && !$invalidV2) {
         return array('present', "already migrated; $number.aes kept until --delete-legacy");
     }
