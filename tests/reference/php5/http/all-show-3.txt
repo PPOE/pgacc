@@ -1,5 +1,6 @@
 # step: all-show-3
-# request: GET /index.php?action=all&format=csv&filter_date=2024&hide=-3 as admin
+# request: POST /index.php?action=all&format=csv&filter_date=2024 as admin
+# form: hide=-3&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8

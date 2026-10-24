@@ -1,5 +1,7 @@
 SELECT * FROM users WHERE id = 2 AND login > now() - '24 hours'::interval
 -- next
+SELECT * FROM users WHERE id = 2 AND login > now() - '24 hours'::interval
+-- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2013-01-01' AND date < '2014-01-01' AND NOT deleted;

@@ -1,6 +1,6 @@
 # step: new-invalid
 # request: POST /index.php?action=new as admin
-# form: speichern=Speichern&parts=1&bid0=0&dir0=sideways&in_type0=8&out_type0=20&wk_type0=21&date0=31.02.2024&person_type0=1&lo0=x&amount0=abc&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+invalid+%27+quote&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0
+# form: speichern=Speichern&parts=1&bid0=0&dir0=sideways&in_type0=8&out_type0=20&wk_type0=21&date0=31.02.2024&person_type0=1&lo0=x&amount0=abc&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+invalid+%27+quote&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 200
 header: Content-type: text/html
 --- body (2683 bytes) ---

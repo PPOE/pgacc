@@ -1,6 +1,6 @@
 # step: drop-acks
 # request: POST /index.php?action=edit&id=5001 as admin
-# form: id=5001&parts=2&belegfehler=Fehler
+# form: id=5001&parts=2&belegfehler=Fehler&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 302
 header: Location: index.php?action=edit&id=5001&hint=3
 header: Content-type: text/html

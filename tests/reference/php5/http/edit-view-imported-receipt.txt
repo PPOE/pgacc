@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=2020 as admin
 status: 200
 header: Content-type: text/html
---- body (14655 bytes) ---
+--- body (15294 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -28,7 +28,7 @@ header: Content-type: text/html
 <a href="transactions">Kontobeweg.</a>
 <a href="vreport">Virt. Konten</a>
 <br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
-
+<form id="mergeform" action="index.php?action=merge" method="post" style="display: none"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><input type="hidden" name="bid1" value="2020" /><input type="hidden" name="bid2" value="" /></form>
 <script type="text/javascript">
 function deleteB(part)
 {
@@ -137,6 +137,7 @@ function clicked(init)
 }
 </script>
 <form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action=edit" method="post">
+<input type="hidden" name="csrf_token" value="{{csrf-token}}" />
 <input type="hidden" name="id" value="2020" />
 <input type="hidden" name="acks" value="0" />
 <input type="hidden" name="ack1" value="" />
@@ -148,8 +149,17 @@ function clicked(init)
 <script type="text/javascript">
 function merge()
 {
+  // The first click asks for the other voucher, the second one merges.
+  var form = document.getElementById("mergeform");
+  if (form.bid2.value != "")
+  {
+    form.submit();
+    return;
+  }
   var bid = prompt("Merge mit welcher anderen Buchung?", "");
-  document.getElementById("mergelink").href = "index.php?action=merge&bid1=2020&bid2=" + bid;
+  if (bid === null || bid == "")
+    return;
+  form.bid2.value = bid;
   document.getElementById("mergelink").innerHTML = "Merge mit Buchung " + bid;
 }
 </script>
@@ -298,7 +308,7 @@ function merge()
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
-<a href="index.php?action=logout">Logout</a>      </div>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
     </div>
     </div>
     </div>

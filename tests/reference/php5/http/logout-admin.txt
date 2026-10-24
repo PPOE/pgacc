@@ -1,5 +1,6 @@
 # step: logout-admin
-# request: GET /index.php?action=logout as admin
+# request: POST /index.php?action=logout as admin
+# form: csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 302
 header: Set-Cookie: pp_pgacc_login=deleted; expires=Thu, 01 Jan 1970 {{time}} GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax
 header: Set-Cookie: pp_pgacc_id=deleted; expires=Thu, 01 Jan 1970 {{time}} GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax

@@ -2,6 +2,8 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
+-- next
 UPDATE users SET hide = '' WHERE id = 1
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
