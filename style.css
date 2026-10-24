@@ -338,6 +338,7 @@ form.unit_selector {
 .initiative_head,
 .issues .issue,
 .ui_tabs_links a,
+.ui_tabs_links button.link,
 .ui_filter a,
 .help,
 .use_terms,
@@ -576,7 +577,8 @@ a.delegation_info:focus {
   line-height: 300%;
 }
 
-.ui_tabs_links a {
+.ui_tabs_links a,
+.ui_tabs_links button.link {
   padding: 7px 10px;
   background: -webkit-linear-gradient(top, #777, #000);
   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #777), color-stop(100%,#000));
@@ -596,6 +598,8 @@ a.delegation_info:focus {
 
 .ui_tabs_links a:hover,
 .ui_tabs_links a:focus,
+.ui_tabs_links button.link:hover,
+.ui_tabs_links button.link:focus,
 .ui_tabs_links a.selected {
   margin: 0;
   margin-right: 2px;
@@ -1584,3 +1588,18 @@ table tr:nth-child(even) {
     background-color: #DFDFDF;
 }
 
+
+/* POST forms that look like links (logout, merge, listing columns) */
+form.inline {
+  display: inline;
+  margin: 0;
+}
+button.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

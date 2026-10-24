@@ -101,11 +101,13 @@ constraints; no backup table, owners, permissions, credentials or rows).
   expired tokens are rejected. A logged-in user gets "Login erfolgreich!" or
   the posted target. Rejected logins (wrong password, unknown user, quotes in
   user name or password) return 200 with the form, no `Location`, no cookies
-  and no database change. Logout returns an empty 302 to `index.php`, clears
-  both cookies and ends the session on the server.
+  and no database change. Logout (POST with the form token) returns an empty
+  302 to `index.php`, clears both cookies and ends the session on the server;
+  a GET request or a request without a session ends nothing.
 - `http-session-lifecycle.php`: session invalidation (logout, also a token
-  computed for the cleared nonce; own and root password changes end that
-  user's sessions, rights-only changes keep them). `php
+  computed for the cleared nonce; a new login replaces the form token and
+  logout ends it; own and root password changes end that user's sessions,
+  rights-only changes keep them). `php
   tests/http-session-lifecycle.php logout|password` runs one scenario for
   focused red evidence; reset the fixtures after a red failure.
 - `http-redirects.php`: every protected page (also CSV listings and `?hide=`)
@@ -122,7 +124,18 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-listing-prefs.php`: the ledger (`?action=all`, `closed.php`) with hidden
   columns. `synthetic-hide-odd`/`synthetic-hide-even` hide each of the 18
   columns once; header, filter row, voucher rows and CSV must match the output
-  for `synthetic-admin`, and `?hide=-3`/`?hide=1` change the stored preference.
+  for `synthetic-admin`. The column buttons (POST `hide=-3`/`hide=1` with the
+  form token) change the stored preference; the old GET `?hide=` does not.
+- `http-csrf.php` (last in every lane): form tokens. For every write action
+  (voucher creation, revision, approval, approval reset, receipt upload,
+  merge, recovery, accounts, both imports, column preferences, logout) a
+  missing, a wrong and another session's token return 200 with "FEHLER:
+  Ungültiges Formular-Token" and change no table or sequence; GET merge,
+  recovery, `?hide=` and logout write nothing; the forms carry the token of
+  their session; the valid token works; a new login replaces the token. The
+  HTTP helper adds the session's token to every POST with session cookies
+  (`session_csrf_token()`, read from the user list) unless a test sets
+  `csrf_token` itself (`null`: none).
 - `http-donations.php`: the donation list answers the captcha like a browser.
   2024 (above the 100 € threshold) and 2025 show heading, year links, notice
   and an empty table; no donor name (plain or base64), row or sum may appear

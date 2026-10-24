@@ -20,6 +20,12 @@ return array(
     'timeout' => 180,
     'mutations' => array(
         array(
+            'id' => 'import-form-without-token',
+            'search' => "method=\"POST\">\n'.csrf_field().'\n",
+            'replace' => "method=\"POST\">\n'.''.'\n",
+            'rationale' => 'The import form carries the form token of the session.',
+        ),
+        array(
             'id' => 'import-date-unchecked',
             'search' => 'if (!import_date_valid($voucher[\'date\']) || !organization_allowed($voucher[\'lo\'], $rights))',
             'replace' => 'if (!organization_allowed($voucher[\'lo\'], $rights))',

@@ -14,3 +14,4 @@ php tests/http-donations.php
 php tests/write-workflows.php
 php tests/http-receipts.php
 php tests/http-output-escaping.php
+php tests/http-csrf.php

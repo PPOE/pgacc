@@ -10,6 +10,9 @@ global $user_id;
 $user_id = 0;
 global $user_prefs_hide;
 $user_prefs_hide = array();
+// The form token of the session that checklogin() accepted (csrf_field()).
+global $csrf_token;
+$csrf_token = false;
 function login($user, $pass)
 {
   global $dbconn;
@@ -75,6 +78,8 @@ function checklogin($get = 'name', $redir = true)
   global $user_id;
   global $user_prefs_hide;
   global $dbconn;
+  global $csrf_token;
+  $csrf_token = false;
   if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
     $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
@@ -90,6 +95,7 @@ function checklogin($get = 'name', $redir = true)
       if (!$tokenMatches || !$line || strval($line['cookie']) === '')
         continue;
       $user_id = $line['id'];
+      $csrf_token = csrf_session_token($line['id'], $line['cookie'], $line['login']);
       $hide_cols = explode(",",$line['hide']);
       foreach ($hide_cols as $col)
       {
@@ -143,6 +149,23 @@ if (in_array($page,array("all","mb","open","merge","edit","new","closed","delete
   pg_close($dbconn);
   return;
 }
+// Form tokens (CSRF): every POST request except the login form and the
+// public captcha forms must carry the form token of its session
+// (csrf_field()), checked before anything is written. Merge, recovery, the
+// column preferences and logout write only on POST.
+$csrf_exempt = in_array($page,array("login","donations","kdonations"));
+if (request_is_post() && !$csrf_exempt)
+{
+  checklogin('id', false);
+  if (!csrf_request_valid())
+  {
+    acc_header($dbconn,$page,date('Y'));
+    echo '<div class="slot_error" id="slot_error">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';
+    acc_footer();
+    pg_close($dbconn);
+    return;
+  }
+}
 if ($page == "search")
 {
   $rights = checklogin('rights',false);
@@ -172,12 +195,12 @@ if ($page == "file")
     return;
   }
 }
-if (isset($_GET["hide"]))
+if (isset($_POST["hide"]) && !$csrf_exempt)
 {
   global $user_id;
   global $user_prefs_hide;
   $id = checklogin('id');
-  $col = intval($_GET["hide"]);
+  $col = intval($_POST["hide"]);
   if ($col > 0)
     $user_prefs_hide[$col] = 1;
   elseif ($col < 0)
@@ -202,7 +225,7 @@ if ($page == "edit" || $page == "merge")
 
 // Login and logout send cookies and redirects: answer them before
 // acc_header() starts the page.
-if ($page == "logout")
+if ($page == "logout" && request_is_post())
 {
   // Ends the session on the server too: its cookies stop working even if
   // a copy was kept. Wrong or missing cookies end nothing.
@@ -326,6 +349,11 @@ else if ($page == "accounts")
 else if ($page == "login")
 {
   page_login();
+}
+else if ($page == "logout")
+{
+  // A GET request (old link or bookmark) ends no session.
+  echo '<div class="slot_notice" id="slot_notice"><h1>Abmelden mit der Schaltfläche „Logout“.</h1></div>';
 }
 else if ($page == "import")
 {

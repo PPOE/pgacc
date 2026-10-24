@@ -79,8 +79,8 @@ $mutations = array(
     ),
     array(
         'id' => 'gentab-html-check-inverted',
-        'search' => "  if (listing_column_hidden(\$tabc))\n    return tag(\"td\",'<a href",
-        'replace' => "  if (!listing_column_hidden(\$tabc))\n    return tag(\"td\",'<a href",
+        'search' => "  if (listing_column_hidden(\$tabc))\n    return tag(\"td\",listing_column_form(",
+        'replace' => "  if (!listing_column_hidden(\$tabc))\n    return tag(\"td\",listing_column_form(",
         'rationale' => 'The HTML header shows the add icon exactly for hidden columns.',
     ),
     array(

@@ -10,12 +10,19 @@ function relocate($loc)
 }
 function page_edit_merge($rights)
 {
+// Only the form of the edit page merges (POST with the form token, checked
+// in index.php); an old link or bookmark writes nothing.
+if (!request_is_post())
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nur über die Schaltfläche „Merge“ der Buchung zusammenführen.</div><br /><br /><br />';
+  return;
+}
 $bid1 = 0;
 $bid2 = 0;
-if (isset($_GET["bid1"]))
-  $bid1 = intval($_GET["bid1"]);
-if (isset($_GET["bid2"]))
-  $bid2 = intval($_GET["bid2"]);
+if (isset($_POST["bid1"]))
+  $bid1 = intval($_POST["bid1"]);
+if (isset($_POST["bid2"]))
+  $bid2 = intval($_POST["bid2"]);
 if ($bid1 == 0 || $bid2 == 0)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div><br /><br /><br />';
@@ -33,7 +40,14 @@ $query = "UPDATE vouchers SET voucher_id = $bid1 WHERE voucher_id = $bid2 $right
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
+$merged = pg_affected_rows($result);
 pg_free_result($result);
+// No row moved: the second voucher does not exist or is not visible.
+if ($merged == 0)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div><br /><br /><br />';
+  return;
+}
 relocate("index.php?action=edit&id=$bid1&hint=6");
 }
 function page_edit_drop_acks($rights)
@@ -384,6 +398,9 @@ if ($vouchers[0]['ack1'] != null && strlen($vouchers[0]['ack1']) > 3)
   $acks++;
 if ($vouchers[0]['ack2'] != null && strlen($vouchers[0]['ack2']) > 3)
   $acks++;
+// The merge form (POST, see merge() below) cannot be nested in mainform.
+if (has_right($rights, 'root'))
+  echo '<form id="mergeform" action="index.php?action=merge" method="post" style="display: none">' . csrf_field() . '<input type="hidden" name="bid1" value="'.intval($id).'" /><input type="hidden" name="bid2" value="" /></form>';
 page_form_header("edit");
 echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="acks" value="'.intval($acks).'" />
@@ -399,8 +416,17 @@ if (has_right($rights, 'root'))
   echo '<script type="text/javascript">
 function merge()
 {
+  // The first click asks for the other voucher, the second one merges.
+  var form = document.getElementById("mergeform");
+  if (form.bid2.value != "")
+  {
+    form.submit();
+    return;
+  }
   var bid = prompt("Merge mit welcher anderen Buchung?", "");
-  document.getElementById("mergelink").href = "index.php?action=merge&bid1='.intval($id).'&bid2=" + bid;
+  if (bid === null || bid == "")
+    return;
+  form.bid2.value = bid;
   document.getElementById("mergelink").innerHTML = "Merge mit Buchung " + bid;
 }
 </script>

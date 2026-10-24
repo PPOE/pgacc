@@ -64,10 +64,26 @@ if ($database === false) {
 }
 
 if ($scenario === 'all' || $scenario === 'logout') {
-    $cookies = lifecycle_user($database, 58, 'synthetic-session-logout', 'logout-password', '2');
-    $logout = http_request('/index.php?action=logout', 'GET', array(), $cookies);
+    $firstCookies = lifecycle_user($database, 58, 'synthetic-session-logout', 'logout-password', '2');
+    $firstToken = session_csrf_token($firstCookies);
+    // A new login replaces the form token: forms opened before it are refused.
+    $cookies = login_user('synthetic-session-logout', 'logout-password');
+    $token = session_csrf_token($cookies);
+    if ($firstToken === null || $token === null || $firstToken === $token) {
+        fail_test('a new login did not replace the form token');
+    }
+    $staleLogout = http_request('/index.php?action=logout', 'POST', array('csrf_token' => $firstToken), $cookies);
+    assert_status($staleLogout, 200, 'logout with the form token of the previous login');
+    assert_contains($staleLogout['body'], 'Ungültiges Formular-Token', 'logout with the form token of the previous login');
+    if (!lifecycle_accepted($cookies)) {
+        fail_test('logout with the form token of the previous login ended the session');
+    }
+    $logout = http_request('/index.php?action=logout', 'POST', array(), $cookies);
     assert_status($logout, 302, 'session logout');
     lifecycle_ended($database, 58, $cookies, 'logout');
+    // The form token died with the session.
+    $afterLogout = http_request('/index.php?action=logout', 'POST', array('csrf_token' => $token), $cookies);
+    assert_contains($afterLogout['body'], 'Ungültiges Formular-Token', 'form token after logout');
     echo "Session logout regression passed\n";
 }
 

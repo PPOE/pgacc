@@ -27,8 +27,10 @@ if (!has_right($rights, 'root'))
     return;
 }
 
+// Only the confirmation form recovers (POST with the form token, checked in
+// index.php); a GET request with doit shows the form again.
 $doit = false;
-if (isset($_GET["doit"]))
+if (request_is_post() && isset($_POST["doit"]))
 {
   $doit = true;
 }
@@ -49,10 +51,8 @@ echo '
 <div class="wiki motd">BEACHTE: Das Wiederherstellen von Buchungen bzw. Buchungszeilen kann dazu führen dass Buchungen bzw. Buchungszeilen doppelt im System sind! Benutze diese Funktion nur wenn du dir ganz sicher bist dass deine Buchung überschrieben wurde und daher diese alte Buchung wiederherstellen möchtest!</div>
 <br /><br /><br />
 <center>
-<form action="index.php" method="GET">
-<input type="hidden" name="action" value="recover" />
-<input type="hidden" name="id" value="'.$id.'" />
-<input type="hidden" name="bid" value="'.$bid.'" />
+<form action="index.php?action=recover&amp;id='.$id.'&amp;bid='.$bid.'" method="post">
+'.csrf_field().'
 <input type="submit" name="doit" value="Ja, ich weiß was ich tue!" />
 </form>
 </center>

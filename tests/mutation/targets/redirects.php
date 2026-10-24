@@ -15,10 +15,21 @@ $protectedPages = array('all', 'mb', 'open', 'merge', 'edit', 'new', 'closed', '
     'import', 'import2');
 $protectedList = 'array("' . implode('","', $protectedPages) . '")';
 
+// The form token check of index.php (between the login check and the
+// member search).
+$csrfBlock = "// Form tokens (CSRF): every POST request except the login form and the\n"
+    . "// public captcha forms must carry the form token of its session\n"
+    . "// (csrf_field()), checked before anything is written. Merge, recovery, the\n"
+    . "// column preferences and logout write only on POST.\n"
+    . "\$csrf_exempt = in_array(\$page,array(\"login\",\"donations\",\"kdonations\"));\n"
+    . "if (request_is_post() && !\$csrf_exempt)\n{\n  checklogin('id', false);\n  if (!csrf_request_valid())\n  {\n"
+    . "    acc_header(\$dbconn,\$page,date('Y'));\n"
+    . "    echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';\n"
+    . "    acc_footer();\n    pg_close(\$dbconn);\n    return;\n  }\n}\n";
 // The early blocks and the CSV block that follows them, used to move the
 // early blocks back after the byte order mark.
 $earlyBlocks = "if (in_array(\$page,$protectedList) && checklogin('id') === null)\n{\n  pg_close(\$dbconn);\n"
-    . "  return;\n}\nif (\$page == \"search\")\n{\n  \$rights = checklogin('rights',false);\n"
+    . "  return;\n}\n" . $csrfBlock . "if (\$page == \"search\")\n{\n  \$rights = checklogin('rights',false);\n"
     . "  page_search(\$rights);\n  pg_close(\$dbconn);\n  return;\n}\n";
 $csvBlock = "global \$make_csv;\n\$make_csv = false;\n"
     . "if (isset(\$_GET[\"format\"]) && \$_GET[\"format\"] == 'csv' && in_array(\$_GET[\"action\"],array(\"search\","
@@ -46,8 +57,8 @@ $mutations = array(
     array(
         'id' => 'login-redirect-continues',
         'region' => $early,
-        'search' => "  pg_close(\$dbconn);\n  return;\n}\nif (\$page == \"search\")",
-        'replace' => "  pg_close(\$dbconn);\n  true;\n}\nif (\$page == \"search\")",
+        'search' => "  pg_close(\$dbconn);\n  return;\n}\n// Form tokens (CSRF)",
+        'replace' => "  pg_close(\$dbconn);\n  true;\n}\n// Form tokens (CSRF)",
         'rationale' => 'The login redirect ends the request: an empty body, no page code on a closed connection.',
     ),
     array(

@@ -418,8 +418,9 @@ with synthetic users and covered by a mutation target.
 
 Open security findings (not changed here; owner decisions):
 
-- [ ] No CSRF protection: every write action is a plain form POST or GET
-  link authenticated by cookies.
+- [x] No CSRF protection: every write action is a plain form POST or GET
+  link authenticated by cookies. Fixed: form tokens and POST-only writes
+  (see "Planned security follow-ups").
 - [x] Output is not HTML-escaped in several places, e.g. the user names in
   the user list (`accounts.php`, root only) and the listing filter fields
   (`closed.php`). Fixed: the voucher page (`page_edit()`) echoed the
@@ -1055,26 +1056,55 @@ differences above are only visible for out-of-range input.
   per-chunk authentication (STREAM, libsodium secretstream) would be the later
   principled fix. Tests: in-place same-size change with restored mtime (no
   changed byte sent), change in the first chunk, change in the padding block.
-- [ ] CSRF protection, before the `php5-last` tag. A stateless token per login:
-  `hash_hmac('sha256', <login cookie value>, $csrf_secret)` with an optional new
-  `$csrf_secret` in `constants.php`; when it is not set, fall back to a token
-  derived from the login cookie alone, so deploys without the new value keep
-  working. Add the token to every form and every link that changes data, and
-  verify it centrally in `index.php` before any state-changing action runs.
-  Test both modes, plus missing, wrong and other-user tokens with no database
-  change. A separate, droppable commit adds `SameSite=Lax` to the login cookies.
-- [ ] Later (behavior change, after the CSRF token): perform state-changing
-  actions only on POST. Several actions are currently triggered by GET links
-  (for example merge); convert those links to small forms and refuse GET for
-  them. Until then, those links carry the CSRF token in the query string.
-  GET-triggered writes found in the security review: merge
-  (`?action=merge&bid1=&bid2=`, root only), recovery
-  (`?action=recover&id=&bid=&doit=1`, root only) and the column preferences
-  (`?hide=`, own user only).
-- [ ] Bug: merge (`page_edit_merge()`) redirects with "Buchungen
+- [x] CSRF protection, before the `php5-last` tag. Done, with a different
+  derivation than first planned: `$key` is now a validated deploy
+  prerequisite (`receipt_configured_key()`), so no `$csrf_secret` and no
+  fallback are needed. `csrf_session_token()` (`functions.php`) is
+  `hash_hmac('sha256', 'pgacc-csrf|<id>|<nonce>|<login>', K)` with
+  `K = hash_hmac('sha256', 'pgacc-csrf-key', $key, true)`: the same session
+  data as the `pp_pgacc_login` cookie (user id, the `users.cookie` nonce,
+  the login time) under its own subkey. It changes with every login, stops
+  working when logout or a password change clears `users.cookie`, needs no
+  storage, and a page that shows it does not reveal the HttpOnly cookie
+  (an HMAC of the cookie value would have needed the extra secret for the
+  same property). `checklogin()` derives it for the accepted session;
+  `csrf_field()` adds it as a hidden field to every form that writes (voucher
+  form for new/edit including receipt upload, approval and reset, merge
+  form, recovery confirmation, user list, both imports, the listing column
+  buttons, the Logout button). `index.php` checks every POST request except
+  the login form and the public captcha forms (`donations`, `kdonations`)
+  right after the login check, before any page code: `csrf_request_valid()`
+  compares with `login_token_equals()` (constant time). On failure the page
+  shows "FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden." with
+  HTTP 200 and nothing is written. Tests: `tests/http-csrf.php` (missing,
+  wrong and other-session tokens per write action, no table or sequence
+  change), `LoginSessionTest`, mutations in `csrf`. Known limitations: the
+  login form has no token (login CSRF: a forged login into the attacker's
+  account stays possible; `SameSite=Lax` does not stop a top-level POST); a
+  POST larger than `post_max_size` arrives without fields and gets the token
+  error.
+- [x] State-changing actions only on POST (behaviour change, owner-approved
+  for the last PHP 5.x release): merge (`?action=merge&bid1=&bid2=`, root
+  only), recovery (`?action=recover&id=&bid=&doit=1`, root only), the column
+  preferences (`?hide=`, own user only) and logout. Their links are small
+  POST forms with the token (the merge link submits a hidden form after the
+  prompt; column icons and Logout are buttons styled as before). GET writes
+  nothing: merge shows "FEHLER: Buchungen nur über die Schaltfläche „Merge“
+  der Buchung zusammenführen.", recovery shows its confirmation form, `?hide=`
+  shows the listing unchanged, logout shows a hint to the Logout button and
+  keeps the session. A POST logout without a valid session gets the token
+  error (it used to clear the cookies and redirect). Old bookmarks of these
+  actions no longer write; forms opened before a new login become invalid.
+- [x] Bug: merge (`page_edit_merge()`) redirected with "Buchungen
   zusammengeführt" even when its `UPDATE` changed no row (unknown or
-  invisible second voucher). Fix the message together with the POST
-  conversion.
+  invisible second voucher). Fixed with the POST conversion: it now shows
+  "FEHLER: Buchungen nicht gefunden." (`pg_affected_rows()`).
+- [ ] Open, found with the CSRF work (not changed): the import and
+  member-fee pages refresh the `ppmembers` cache from the membership system
+  (`getusers()`) on every view, also on GET; a GET of `?action=import2` and
+  of `?action=new` raises diagnostics (`count()` of the missing upload,
+  undefined `$bgfandack`); the test fixtures do not advance the `users` id
+  sequence, so a user created over HTTP gets id 1 next to `synthetic-admin`.
 
 ## Dependencies
 

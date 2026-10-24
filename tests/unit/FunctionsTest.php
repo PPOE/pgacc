@@ -392,7 +392,7 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertSame('', ob_get_clean());
     }
 
-    public function testAccFooterShowsLoginOrLogoutLink()
+    public function testAccFooterShowsLoginLinkOrLogoutForm()
     {
         ob_start();
         acc_footer();
@@ -401,10 +401,15 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringNotContainsString('action=logout', $anonymous);
 
         $GLOBALS['functions_test_rights'] = 'root';
+        $GLOBALS['csrf_token'] = str_repeat('ab', 32);
         ob_start();
         acc_footer();
         $authenticated = ob_get_clean();
-        self::assertStringContainsString('action=logout', $authenticated);
+        unset($GLOBALS['csrf_token']);
+        // Logout is a POST form with the form token of the session.
+        self::assertStringContainsString('<form class="inline" action="index.php?action=logout" method="post">'
+            . '<input type="hidden" name="csrf_token" value="' . str_repeat('ab', 32) . '" />'
+            . '<button class="link" type="submit">Logout</button></form>', $authenticated);
         self::assertStringNotContainsString('action=login', $authenticated);
     }
 

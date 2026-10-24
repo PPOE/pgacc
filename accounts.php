@@ -48,7 +48,7 @@ if (has_right($rights, 'root'))
   echo '<p>Ein vorgestelltes R erzeugt einen read only Zugang. Beispiel: Rbgf. root hat Möglichkeit Buchungen zu mergen, sowie gelöschte Buchungszeilen wiederherzustellen</p>';
 }
   block_start();
-echo '<form action="index.php?action=accounts" method="POST"><table>
+echo '<form action="index.php?action=accounts" method="POST">'.csrf_field().'<table>
 <tr><td><b>Name</b></td><td><b>Passwort</b></td>'.(has_right($rights, 'root') ? '<td><b>Rechte</b></td>':'').'</tr>
 ';
 $id = $ownId;
