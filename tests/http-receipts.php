@@ -61,11 +61,12 @@ function receipt_file_number($database, $id)
     return $rows[0]['file'];
 }
 
-// $body is the expected response body: the plain text of a <n>.v2.aes, or
-// the zero-padded plain text of a legacy <n>.aes. Content-Length is its size
-// (for a legacy file the size of the stored ciphertext, which mcrypt also
-// padded to whole 32-byte blocks).
-function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber, $label)
+// $body is the expected response body: the plain text of a <n>.v2.aes
+// ($v2), or the zero-padded plain text of a legacy <n>.aes. Content-Length is
+// its size (for a legacy file the size of the stored ciphertext, which mcrypt
+// also padded to whole 32-byte blocks). v2 responses forbid content sniffing
+// and send other types as an attachment; legacy responses are unchanged.
+function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber, $label, $v2)
 {
     $response = http_request('/index.php?action=file&id=' . $id, 'GET', array(), $cookies);
     assert_status($response, 200, $label);
@@ -77,7 +78,9 @@ function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber
         'Content-Length' => strval(strlen($body)),
         'Content-Transfer-Encoding' => 'binary',
         'Accept-Ranges' => 'bytes',
-        'Content-Disposition' => $contentType === 'application/pdf' ? "inline; filename=\"$fileNumber.pdf\"" : null,
+        'Content-Disposition' => $contentType === 'application/pdf' ? "inline; filename=\"$fileNumber.pdf\""
+            : ($contentType === 'application/octet-stream' ? "attachment; filename=\"$fileNumber.bin\"" : null),
+        'X-Content-Type-Options' => $v2 ? 'nosniff' : null,
     );
     foreach ($headers as $name => $expected) {
         $actual = response_header($response, $name);
@@ -187,14 +190,14 @@ foreach ($uploads as $upload) {
     list($id, $voucherId, $name, $type, $content) = $upload;
     $fileNumber = upload_receipt($database, $adminCookies, $id, $voucherId, $name, $type, $content);
     assert_stored_receipt($fileNumber, $testKey, $content, "$name upload");
-    assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, "$name download");
+    assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, "$name download", true);
 }
 
 // A merge changes the voucher ID of the merged rows. A <n>.v2.aes is keyed on
 // the file number, so its receipt still downloads afterwards.
 $fileNumber = upload_receipt($database, $adminCookies, 9109, 4740, 'merged.pdf', 'application/pdf', $pdf);
 merge_vouchers($adminCookies, 4741, 4740);
-assert_receipt_download($adminCookies, 9109, $pdf, 'application/pdf', $fileNumber, 'v2 receipt after a merge');
+assert_receipt_download($adminCookies, 9109, $pdf, 'application/pdf', $fileNumber, 'v2 receipt after a merge', true);
 
 // Stored receipts with synthetic file numbers above the sequence.
 $filesDirectory = receipt_files_directory();
@@ -212,8 +215,17 @@ $storedCases = array(
     // Another type is sent as a download, not refused.
     array(9107, 4711, 990004, array('v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)),
         $png, 'application/octet-stream', 'v2 receipt of another type'),
-    // Errors: another key, a file copied from another number, a legacy file
-    // under the new name (no fallback), a modified file.
+    // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
+    // --delete-legacy, e.g. with another key): the legacy file is sent, as
+    // before, and logged.
+    array(9117, 4711, 990012, array('aes' => hex2bin($receiptVectors['pdf document']['cipher']),
+        'v2.aes' => receipt_v2_encrypt($otherKey, 990012, $pdf)), rijndael256_zero_pad($pdf), 'application/pdf',
+        'legacy receipt after a v2 key mismatch', 'legacy'),
+    array(9118, 815, 990013, array('aes' => hex2bin($receiptVectors['jpeg image']['cipher']),
+        'v2.aes' => 'not a v2 file'), rijndael256_zero_pad(hex2bin($receiptVectors['jpeg image']['plain'])), 'image/jpeg',
+        'legacy JPEG after an unreadable v2 file', 'legacy'),
+    // Errors without a legacy file: another key, a file copied from another
+    // number, a legacy file under the new name (no fallback), a modified file.
     array(9108, 4711, 990005, array('v2.aes' => receipt_v2_encrypt($otherKey, 990005, $pdf)),
         null, null, 'v2 receipt with another key'),
     array(9112, 4711, 990007, array('v2.aes' => receipt_v2_encrypt($testKey, 990008, $pdf)),
@@ -225,6 +237,7 @@ $storedCases = array(
 );
 foreach ($storedCases as $case) {
     list($id, $voucherId, $fileNumber, $files, $body, $type, $label) = $case;
+    $legacyServed = isset($case[7]);
     insert_receipt_voucher($database, $id, $voucherId, "Synthetic stored receipt $fileNumber");
     receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', array($fileNumber, $id), "file of voucher $id");
     foreach ($files as $suffix => $bytes) {
@@ -233,7 +246,7 @@ foreach ($storedCases as $case) {
     if ($body === null) {
         assert_undecryptable_download($adminCookies, $id, $label);
     } else {
-        assert_receipt_download($adminCookies, $id, $body, $type, $fileNumber, $label);
+        assert_receipt_download($adminCookies, $id, $body, $type, $fileNumber, $label, isset($files['v2.aes']) && !$legacyServed);
     }
 }
 
@@ -244,7 +257,7 @@ insert_receipt_voucher($database, 9115, 4742, 'Synthetic legacy receipt before a
 insert_receipt_voucher($database, 9116, 4743, 'Synthetic legacy merge target');
 receipts_query($database, 'UPDATE vouchers SET file = 990011 WHERE id = 9115', array(), 'file of voucher 9115');
 file_put_contents("$filesDirectory/990011.aes", receipt_encrypt('4742', '', $pdf));
-assert_receipt_download($adminCookies, 9115, rijndael256_zero_pad($pdf), 'application/pdf', 990011, 'legacy receipt before a merge');
+assert_receipt_download($adminCookies, 9115, rijndael256_zero_pad($pdf), 'application/pdf', 990011, 'legacy receipt before a merge', false);
 merge_vouchers($adminCookies, 4743, 4742);
 $merged = http_request('/index.php?action=file&id=9115', 'GET', array(), $adminCookies);
 assert_status($merged, 200, 'legacy receipt after a merge');
@@ -294,7 +307,7 @@ if (PHP_VERSION_ID < 70200) {
     assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4712&bid=9103">4712</a>', 'PDF import');
     $fileNumber = receipt_file_number($database, 9103);
     assert_stored_receipt($fileNumber, $testKey, $statement, 'PDF import');
-    assert_receipt_download($adminCookies, 9103, $statement, 'application/pdf', $fileNumber, 'imported PDF download');
+    assert_receipt_download($adminCookies, 9103, $statement, 'application/pdf', $fileNumber, 'imported PDF download', true);
 }
 
 // The receipt key migration is a command-line script; the web server must
