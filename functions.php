@@ -191,7 +191,7 @@ if (strlen($rights === null ? '' : $rights) > 0)
   echo '<a href="index.php?action=mb"'.($page == "mb"?' class="selected"':'').'>Mitgliedsbeiträge</a>';
   echo '<a href="index.php?action=tinyreport"'.($page == "tinyreport"?' class="selected"':'').'>Konten</a>';
   //echo '<a href="index.php?action=vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>';
-  if (strpos($rights,'bgf') !== false || strpos($rights,'root') !== false)
+  if (has_right($rights, 'bgf') || has_right($rights, 'Rbgf') || has_right($rights, 'root'))
     echo '<a href="index.php?action=deleted&filter_date='.$year.'"'.($page == "deleted"?' class="selected"':'').'>Alte Rev.</a>';
 //  if (strpos($rights,'root') !== false)
     echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzer</a>';

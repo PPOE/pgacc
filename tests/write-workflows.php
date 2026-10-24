@@ -1100,6 +1100,95 @@ $readOnlyImport = http_request('/index.php?action=import', 'GET', array(), $read
 assert_status($readOnlyImport, 200, 'bank import by read-only bgf');
 assert_contains($readOnlyImport['body'], 'FEHLER: Keine Zugriffsrechte.', 'bank import by read-only bgf');
 
+// Role checks match exact rights: "xroot" and "xbgf" are neither root nor
+// bgf (before, strpos() matched any right containing the word).
+function create_test_user($database, $id, $name, $password, $rights)
+{
+    $result = @pg_query_params(
+        $database,
+        "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
+        array($id, $name, $password, $rights)
+    );
+    if ($result === false) {
+        fail_test("could not create user $name: " . pg_last_error($database));
+    }
+    return login_user($name, $password);
+}
+$substringCookies = create_test_user($database, 51, 'synthetic-role-substrings', 'substring-password', '2,xroot,xbgf');
+$adminRights = database_row($database, 'SELECT rights FROM users WHERE id = 1', array(), 'admin rights');
+$substringAccounts = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 1 aktualisieren', 'password1' => '******', 'rights1' => '2'),
+    $substringCookies
+);
+assert_contains($substringAccounts['body'], 'FEHLER: Keine Zugriffsrechte.', 'rights change of another user by xroot');
+assert_database_field(
+    database_row($database, 'SELECT rights FROM users WHERE id = 1', array(), 'admin rights after xroot'),
+    'rights',
+    $adminRights['rights'],
+    'admin rights after a change by xroot'
+);
+$adminHash = database_row($database, 'SELECT hash FROM users WHERE id = 1', array(), 'admin password');
+$substringPassword = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 1 aktualisieren', 'password1' => 'hijacked-password'),
+    $substringCookies
+);
+assert_contains($substringPassword['body'], 'FEHLER: Keine Zugriffsrechte.', 'password change of another user by xroot');
+assert_database_field(
+    database_row($database, 'SELECT hash FROM users WHERE id = 1', array(), 'admin password after xroot'),
+    'hash',
+    $adminHash['hash'],
+    'admin password after a change by xroot'
+);
+$substringOwnRights = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 51 aktualisieren', 'password51' => '******', 'rights51' => 'bgf'),
+    $substringCookies
+);
+assert_contains($substringOwnRights['body'], 'FEHLER: Keine Zugriffsrechte.', 'own rights change by xroot');
+// Their own account: the password changes, the rights stay.
+$substringOwn = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 51 aktualisieren', 'password51' => 'changed-substring-password', 'rights51' => 'bgf'),
+    $substringCookies
+);
+assert_status($substringOwn, 200, 'own account change by xroot');
+assert_database_field(
+    database_row($database, 'SELECT rights FROM users WHERE id = 51', array(), 'xroot rights'),
+    'rights',
+    '2,xroot,xbgf',
+    'rights after an own account change by xroot'
+);
+$substringCookies = login_user('synthetic-role-substrings', 'changed-substring-password');
+$substringUserList = http_request('/index.php?action=accounts', 'GET', array(), $substringCookies);
+assert_not_contains($substringUserList['body'], 'synthetic-admin', 'user list for xroot');
+assert_not_contains($substringUserList['body'], 'name="rights51"', 'user list for xroot');
+assert_not_contains($substringUserList['body'], 'Benutzer -1 erstellen', 'user list for xroot');
+assert_contains($substringUserList['body'], '<tr><td>synthetic-role-substrings</td>', 'user list for xroot');
+$adminUserList = http_request('/index.php?action=accounts', 'GET', array(), $adminCookies);
+foreach (array('synthetic-admin', 'name="rights51"', 'Benutzer -1 erstellen', '<td><b>Rechte</b></td>', 'Ein vorgestelltes R') as $expected) {
+    assert_contains($adminUserList['body'], $expected, "user list for root ($expected)");
+    assert_not_contains($substringUserList['body'], $expected, "user list for xroot ($expected)");
+}
+pg_query($database, 'UPDATE vouchers SET deleted = true WHERE id = 105');
+$substringRecovery = http_request('/index.php?action=recover&id=1004&bid=105&doit=1', 'GET', array(), $substringCookies);
+assert_contains($substringRecovery['body'], 'nur von Admins', 'recovery by xroot');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE id = 105 AND deleted', array(), 1, 'row after recovery by xroot');
+$substringDraftId = create_voucher($database, 'Synthetic draft for role substrings', '-20.00', 0, $adminCookies);
+$substringVoucherPage = http_request('/index.php?action=edit&id=' . $substringDraftId, 'GET', array(), $substringCookies);
+assert_contains($substringVoucherPage['body'], 'value="Synthetic draft for role substrings"', 'voucher page for xroot');
+assert_not_contains($substringVoucherPage['body'], 'mergelink', 'voucher page for xroot');
+$substringMemberFees = http_request('/index.php?action=mb', 'GET', array(), $substringCookies);
+assert_status($substringMemberFees, 200, 'member fees for xbgf');
+assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'member fees for xbgf');
+// (The page itself is not requested for bgf: on the synthetic data it divides
+// by zero, an open finding in tests/COMPATIBILITY_PLAN.md.)
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

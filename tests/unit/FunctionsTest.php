@@ -192,6 +192,17 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringContainsString('action=open&filter_date=2024', $adminHtml);
     }
 
+    public function testAccHeaderShowsDeletedLinkForExactRolesOnly()
+    {
+        foreach (array('bgf' => true, 'Rbgf' => true, 'root' => true, '2,xbgf,xroot' => false, 'BGF' => false) as $rights => $shown) {
+            $GLOBALS['functions_test_rights'] = $rights;
+            ob_start();
+            acc_header(null, 'index', 2024);
+            $html = ob_get_clean();
+            self::assertSame($shown, strpos($html, 'action=deleted') !== false, $rights);
+        }
+    }
+
     public function testAccHeaderOffersNoWritePagesToReadOnlyRights()
     {
         $GLOBALS['functions_test_rights'] = 'bgf';

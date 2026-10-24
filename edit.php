@@ -350,7 +350,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 $parts = count($vouchers);
-if ($parts == 0 && strpos($rights, 'bgf') === false)
+if ($parts == 0 && !has_right($rights, 'bgf') && !has_right($rights, 'Rbgf'))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -378,7 +378,7 @@ echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
-if (strpos($rights, 'root') !== false)
+if (has_right($rights, 'root'))
 {
   echo '<script type="text/javascript">
 function merge()
@@ -414,7 +414,7 @@ if (isset($_POST["addB"]))
 }
 
 $user_name = checklogin('name');
-$bgfandack = strpos($rights, 'bgf') !== false && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
+$bgfandack = has_right($rights, 'bgf') && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 
 
 end_of_form($parts,$rights,$bgfandack,$rights);

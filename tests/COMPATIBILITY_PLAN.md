@@ -172,6 +172,26 @@ with synthetic users and covered by a mutation target.
   `read-only-rights` (the bank import check is not mutated, because its
   removal would contact the membership system).
 
+- [x] Exact role checks (review fix). Role checks used `strpos($rights,
+  'root'|'bgf')`, which matches any right containing the word (`xroot`,
+  `Rbgf`), so for example a user with a right `xroot` could change other
+  users' rights and passwords. All are exact tokens now (`has_right()`):
+  `accounts.php` (9 checks: other users, password and rights updates, user
+  list, help text, rights column and inputs, new-user row), `recover.php`
+  (root), the merge link (`edit.php`, root), the approval reset button
+  (`$bgfandack`, bgf). Read checks keep `Rbgf` explicitly: the empty
+  voucher page for bgf (`edit.php`, bgf or Rbgf), the member-fee page
+  (`mb.php`, bgf or Rbgf) and the old-revisions menu link (`functions.php`,
+  bgf, Rbgf or root). Behaviour difference: only for rights that contain
+  but are not `root`/`bgf`/`Rbgf`; real users are unaffected. The other
+  role checks (`in_array()` in `new.php`, `rights2orgasql()`) were already
+  exact. Tests in `tests/write-workflows.php` (a user with `2,xroot,xbgf`)
+  and `FunctionsTest`, mutations in `rights-checks`; the empty voucher page
+  and the reset button are not mutated (the first raises the open
+  `$vouchers` finding, the second is hidden by `end_of_form()` anyway).
+- [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
+  `bgf`); not requested by the tests.
+
 Open security findings (not changed here; owner decisions):
 
 - [ ] No CSRF protection: every write action is a plain form POST or GET
