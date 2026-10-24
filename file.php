@@ -15,17 +15,23 @@ pg_free_result($result);
 if ($file == 0)
   return false;
 
-$path = receipt_v2_path(getcwd() . '/files', $file);
+$directory = getcwd() . '/files';
+$path = receipt_v2_path($directory, $file);
+$data = false;
 if (file_exists($path))
 {
   // <n>.v2.aes: keyed on the file number and the configured key.
   $data = receipt_read_v2($path, $file);
-  if ($data === false)
+  if ($data === false && !file_exists(receipt_legacy_path($directory, $file)))
   {
     header('Content-Type: text/plain; charset=UTF-8', true, 500);
     echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
     return true;
   }
+}
+$v2 = $data !== false;
+if ($v2)
+{
   $type = receipt_content_type($data);
   $length = strlen($data);
 }
@@ -33,11 +39,17 @@ else
 {
   // Legacy <n>.aes, unchanged: keyed on the voucher ID with an empty key part
   // (see tests/COMPATIBILITY_PLAN.md); anything but a PDF is sent as JPEG.
-  $path = receipt_legacy_path(getcwd() . '/files', $file);
+  // Also sent while <n>.aes is kept and <n>.v2.aes does not decrypt (e.g. a
+  // key mismatch before the migration deletes the legacy files).
+  if (file_exists($path))
+    error_log("pgacc: receipt $file.v2.aes could not be decrypted; sent the legacy $file.aes");
+  $path = receipt_legacy_path($directory, $file);
   $data = receipt_decrypt($vid, '', file_get_contents($path));
   $type = substr($data,0,4) == '%PDF' ? 'application/pdf' : 'image/jpeg';
   $length = filesize($path);
 }
+if ($v2)
+  header('X-Content-Type-Options: nosniff');
 if ($type == 'application/pdf')
 {
   header("Content-Type: application/pdf");
@@ -50,6 +62,8 @@ if ($type == 'application/pdf')
 else
 {
   header("Content-Type: $type");
+  if ($type == 'application/octet-stream')
+    header("Content-Disposition: attachment; filename=\"$file.bin\"");
   header('Content-Transfer-Encoding: binary');
   header('Content-Length: ' . $length);
   header('Accept-Ranges: bytes');
