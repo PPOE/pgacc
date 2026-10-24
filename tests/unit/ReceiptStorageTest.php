@@ -11,6 +11,8 @@
  * check runs tests/receipt-memory.php in its own process.
  */
 
+require_once __DIR__ . '/ShortReadStream.php';
+
 final class ReceiptStorageTest extends FunctionsTestCase
 {
     const TEST_KEY = 'synthetic-test-only-encryption-key';
@@ -310,6 +312,98 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertNotSame(substr($third, 4, 16), substr($fourth, 4, 16));
         self::assertSame($plain, receipt_v2_decrypt(self::TEST_KEY, '42', $third));
         self::assertSame($plain, receipt_v2_decrypt(self::TEST_KEY, '42', $fourth));
+    }
+
+    public function testStreamEncryptionWithShortReads()
+    {
+        // Reads of 7 bytes: whole blocks are encrypted as they come, the rest
+        // waits for the next read; the bytes are those of one-shot encryption.
+        ShortReadStream::register();
+        $iv = str_repeat("\x5a", 16);
+        foreach (array('pdf document', 'three chunks and a bit') as $name) {
+            $plain = self::plain(self::vector($name));
+            $path = $this->directory . '/upload.tmp';
+            file_put_contents($path, $plain);
+            $in = fopen('pgacc-short://' . $path, 'rb');
+            $out = fopen('php://memory', 'w+');
+            self::assertTrue(receipt_v2_encrypt_stream(self::TEST_KEY, 42, $in, $out, $iv), $name);
+            fclose($in);
+            rewind($out);
+            self::assertTrue(stream_get_contents($out) === receipt_v2_encrypt(self::TEST_KEY, 42, $plain, $iv), $name);
+        }
+    }
+
+    public function testStreamEncryptionStopsOnAFailedRead()
+    {
+        // A read that returns nothing before the end of the file is an error,
+        // not a reason to keep reading.
+        ShortReadStream::register();
+        $path = $this->directory . '/upload.tmp';
+        file_put_contents($path, '%PDF synthetic');
+        $in = fopen('pgacc-short://' . $path, 'rb');
+        ShortReadStream::$stall = true;
+        $out = fopen('php://memory', 'w+');
+        self::assertFalse(receipt_v2_encrypt_stream(self::TEST_KEY, 42, $in, $out));
+        ShortReadStream::$stall = false;
+        fclose($in);
+    }
+
+    public function testSendStopsWhenTheFileChangesOrReadsComeBackShort()
+    {
+        $vector = self::vector('three chunks and a bit');
+        $file = self::file($vector);
+        $path = $this->directory . '/42.v2.aes';
+        $cases = array(
+            // Rewritten in place after the MAC pass (receipts are replaced by
+            // rename, which the open file does not see).
+            'truncated' => function ($path) {
+                $handle = fopen($path, 'r+');
+                ftruncate($handle, 100);
+                fclose($handle);
+            },
+            'modified' => function ($path) {
+                touch($path, time() + 3600);
+            },
+        );
+        foreach ($cases as $label => $change) {
+            file_put_contents($path, $file);
+            $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+            call_user_func($change, $path);
+            clearstatcache();
+            list($sent, $log) = self::logged(function () use ($receipt) {
+                ob_start();
+                receipt_v2_send($receipt);
+                return ob_get_clean();
+            });
+            self::assertSame('', $sent, $label);
+            self::assertStringContainsString('pgacc: receipt 42.v2.aes changed or could not be read while it was sent', $log, $label);
+        }
+
+        // Short reads in the decrypt pass: stops at the first one.
+        ShortReadStream::register();
+        file_put_contents($path, $file);
+        $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+        fclose($receipt['handle']);
+        $receipt['handle'] = fopen('pgacc-short://' . $path, 'rb');
+        ShortReadStream::$limit = 65536 - 16;
+        list($sent, $log) = self::logged(function () use ($receipt) {
+            ob_start();
+            receipt_v2_send($receipt);
+            return ob_get_clean();
+        });
+        self::assertSame('', $sent);
+        self::assertStringContainsString('changed or could not be read while it was sent', $log);
+    }
+
+    public function testReadV2()
+    {
+        // The whole plain text through the chunked path (the migration's check).
+        $vector = self::vector('three chunks and a bit');
+        $path = $this->directory . '/42.v2.aes';
+        file_put_contents($path, self::file($vector));
+        self::assertTrue(receipt_v2_read_with(self::TEST_KEY, '42', $path) === self::plain($vector));
+        self::assertFalse(receipt_v2_read_with(self::OTHER_KEY, '42', $path));
+        self::assertFalse(receipt_v2_read_with(self::TEST_KEY, '42', $this->directory . '/missing.v2.aes'));
     }
 
     public function testStreamReportsAFailedWrite()

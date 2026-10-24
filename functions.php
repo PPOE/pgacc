@@ -761,7 +761,8 @@ function receipt_v2_decrypt($key, $number, $file)
 }
 
 // Encrypts stream $in to stream $out as <number>.v2.aes bytes, 64 KiB at a
-// time, so memory does not grow with the receipt. False if a write failed.
+// time, so memory does not grow with the receipt. Short reads are fine; a
+// read that returns nothing before the end, or a failed write, returns false.
 function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
 {
   if ($iv === null)
@@ -774,11 +775,20 @@ function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
   $pending = '';
   while (true)
   {
-    $pending .= (string) fread($in, 65536);
+    $chunk = fread($in, 65536);
     if (feof($in))
+    {
+      $pending .= (string) $chunk;
       break;
-    // Whole blocks now; the rest (and the padding) with the last chunk.
+    }
+    if ((string) $chunk === '')
+      return false;
+    $pending .= $chunk;
+    // Whole blocks now; the rest (and the padding) with the last chunk. An
+    // empty encrypt() would reset phpseclib's continuous IV.
     $whole = strlen($pending) - strlen($pending) % 16;
+    if ($whole === 0)
+      continue;
     $ciphertext = $cipher->encrypt(substr($pending, 0, $whole));
     $pending = (string) substr($pending, $whole);
     hash_update($mac, $ciphertext);
@@ -893,18 +903,71 @@ function receipt_v2_open_with($key, $number, $path)
     return false;
   }
   return array('handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
-    'head' => substr($head, 0, min(16, $length)));
+    'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat));
+}
+
+// Size and change times of an open file: receipts are only ever replaced by
+// rename, which an open file does not see, so a difference means the file
+// was changed in place after receipt_v2_open() checked its MAC.
+function receipt_v2_identity($stat)
+{
+  return array($stat['size'], $stat['mtime'], $stat['ctime']);
+}
+
+/*
+ * Decrypts an opened <n>.v2.aes in 64 KiB chunks and passes each plain text
+ * chunk to $emit; closes the file. Returns false, and stops before passing
+ * on anything else, if the file changed since its MAC was checked or a read
+ * came back short (the bytes would not be the checked ones).
+ */
+function receipt_v2_decrypt_chunks($receipt, $emit)
+{
+  $in = $receipt['handle'];
+  $complete = receipt_v2_identity(fstat($in)) === $receipt['stat'];
+  $cipher = receipt_v2_stream_cipher($receipt['key'], $receipt['iv']);
+  fseek($in, 20);
+  $ciphertext = $receipt['stat'][0] - 52;
+  for ($left = $receipt['length']; $complete && $left > 0; $left -= 65536)
+  {
+    $expected = min(65536, $ciphertext);
+    $ciphertext -= $expected;
+    $chunk = (string) fread($in, $expected);
+    $complete = strlen($chunk) === $expected;
+    if ($complete)
+      call_user_func($emit, substr($cipher->decrypt($chunk), 0, min(65536, $left)));
+  }
+  $complete = $complete && receipt_v2_identity(fstat($in)) === $receipt['stat'];
+  fclose($in);
+  return $complete;
+}
+
+// The whole plain text of files/<number>.v2.aes ($path) through the same
+// chunked path as downloads, or false.
+function receipt_v2_read_with($key, $number, $path)
+{
+  $receipt = receipt_v2_open_with($key, $number, $path);
+  if ($receipt === false)
+    return false;
+  $chunks = array();
+  $complete = receipt_v2_decrypt_chunks($receipt, function ($chunk) use (&$chunks) {
+    $chunks[] = $chunk;
+  });
+  return $complete ? implode('', $chunks) : false;
+}
+
+function receipt_v2_echo($chunk)
+{
+  echo $chunk;
 }
 
 // Echoes the plain text of an opened <n>.v2.aes in 64 KiB chunks; closes it.
+// The headers are already sent, so a failure can only stop the body (the
+// client sees fewer bytes than Content-Length) and be logged.
 function receipt_v2_send($receipt)
 {
-  $in = $receipt['handle'];
-  $cipher = receipt_v2_stream_cipher($receipt['key'], $receipt['iv']);
-  fseek($in, 20);
-  for ($left = $receipt['length']; $left > 0; $left -= 65536)
-    echo substr($cipher->decrypt((string) fread($in, 65536)), 0, min(65536, $left));
-  fclose($in);
+  if (!receipt_v2_decrypt_chunks($receipt, 'receipt_v2_echo'))
+    error_log("pgacc: receipt {$receipt['number']}.v2.aes changed or could not be read while it was sent; "
+      . 'the download is incomplete');
 }
 
 // Membership-system exchange (getusers.php, mbapi.php): key and IV.
