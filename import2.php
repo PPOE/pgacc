@@ -146,7 +146,11 @@ function page_import2_process_multi_ids($rights, $i, $text)
 
 function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
 {
-  $query = "SELECT * FROM vouchers WHERE comment LIKE '%" . $id . "%' AND date = date '" . $date . " 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL)";
+  // Only rows of the user's organizations, of vouchers without a finalized
+  // row (of any organization).
+  $rightssql = rights2orgasql($rights);
+  $query = "SELECT * FROM vouchers WHERE comment LIKE '%" . $id . "%' AND date = date '" . $date . " 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL) $rightssql"
+    . " AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received)";
   if ($account !== null)
   {
     $query .= "AND account LIKE '%" . $account . "%'";
@@ -174,8 +178,6 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   $id = $voucher["voucher_id"];
   $bid = $voucher["id"];
 
-  $rightssql = rights2orgasql($rights);
-
   $query = "SELECT nextval('file_number') AS num;";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -183,20 +185,22 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   }
   pg_free_result($result);
 
+  // The receipt is stored only for a row that the scoped update matched.
+  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $updated = pg_affected_rows($result);
+  pg_free_result($result);
+
   $sourcepath = $_FILES["upload"]["tmp_name"][$i];
   $data = file_get_contents($sourcepath);
-  if (!receipt_store(getcwd() . '/files', $file_number, $id, $data)) {
+  if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $id, $data)) {
+    $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    pg_free_result($result);
     echo "Beleg konnte nicht gespeichert werden.<br />";
     return;
   }
 
   vouchers_reset_ack($id, $rightssql);
-
-  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  }
-  pg_free_result($result);
 
   echo 'done: <a href="index.php?action=edit&id=' . $voucher["voucher_id"] . '&bid='.$voucher["id"].'">' . $voucher["voucher_id"] . "</a><br />";
 }

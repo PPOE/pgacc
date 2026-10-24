@@ -93,7 +93,17 @@ with synthetic users and covered by a mutation target.
   lines of their own organizations (before, any line, e.g. PayPal and
   Sparkasse lines of organizations 10 and 6). The other CSV values were
   already escaped or `intval()`; `import2.php` uses only values matched by
-  digit/ID patterns (reviewed, unchanged). New `tests/http-import.php`
+  digit/ID patterns. Second review fix in `import2.php`
+  (`page_import2_match_voucher()`): the voucher lookup had no rights
+  restriction and no finalized check, so a statement could match a voucher
+  of another organization (the receipt was stored and "done" printed,
+  although the scoped update changed nothing) or a finalized voucher. The
+  lookup now uses the rights SQL and skips vouchers with a finalized row
+  of any organization ("Keine Buchung gefunden."), and the receipt is
+  stored only after the scoped update matched the row (otherwise "Beleg
+  konnte nicht gespeichert werden.", and a failed store resets the row's
+  file number). Tests in `ReceiptImportTest` (the PDF import itself runs
+  only on PHP < 7.2, see the dependency notes). New `tests/http-import.php`
   (synthetic CSV fixtures of `tests/reference/fixtures/import/` and the
   membership stub), mutation target `import-checks`.
 - [x] Posted organization of a new voucher or a revision. `get_voucher()`

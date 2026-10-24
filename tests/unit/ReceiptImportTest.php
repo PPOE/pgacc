@@ -146,6 +146,46 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame('', $log);
     }
 
+    /**
+     * @dataProvider refusedImportProvider
+     */
+    public function testImportOfAnInaccessibleVoucherStoresNothing($rights, $setup)
+    {
+        // A voucher of another organization, or one with a finalized row (also
+        // of another organization), is not matched: no receipt is stored and
+        // the voucher is unchanged.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'upload',
+            function () use ($rights, $setup) {
+                if ($setup !== null) {
+                    pg_query($setup);
+                }
+                page_import2_match_voucher($rights, 3, 'XY/987654321', '2024-09-15');
+            }
+        );
+        self::assertSame('Keine Buchung gefunden.<br />', $output);
+        self::assertSame('0', $file);
+        self::assertSame(array(), $stored);
+        self::assertSame(array(), $diagnostics);
+        self::assertSame('', $log);
+    }
+
+    public static function refusedImportProvider()
+    {
+        return array(
+            'other organization' => array('1', null),
+            'finalized row' => array('2', 'UPDATE vouchers SET receipt_received = true WHERE id = 9301'),
+            'finalized row of another organization' => array(
+                'bgf',
+                "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, receipt_received)
+                 VALUES (9302, 4711, 20, 1, 'Synthetic other row', timestamp '2024-09-15 00:00:00', 0, true)",
+            ),
+        );
+    }
+
     public function testImportWithoutAConfiguredKeyIsRefused()
     {
         $vector = self::receiptVector('pdf document');
