@@ -78,6 +78,14 @@ with synthetic users and covered by a mutation target.
   while the file was reported as imported), is removed. **Behaviour note:**
   such a line and the following ones are imported now. The bank import
   compares the line without spaces, so only one-word member names match.
+  Third PR review fix: the lookup escaped the already escaped line a
+  second time (quoted names never matched) and used member names as LIKE
+  patterns (`%`, `_` and an empty name matched every line, which since the
+  `break` fix led to wrong member vouchers). The line is escaped once, the
+  wildcards and the escape character of the name are escaped (`E''`
+  strings, so independent of `standard_conforming_strings`) and empty
+  names are skipped. Tests in `ImportMemberMatchTest` (synthetic member
+  list through a replaced stream wrapper), mutations in `import-checks`.
   Second review fix: `getusers()` inserted the member id of the membership
   list unchecked into `ppmembers` (a second-order value); it is `intval()`
   now. Name (escaped), organization (mapped by a `switch`) and paid flag

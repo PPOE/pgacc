@@ -260,8 +260,11 @@ function page_import($rights)
           $voucher['type'] = 14;
           if (strlen($voucher['name']) == 0)
           {
-            $csvline_esc = pg_escape_string($csvline);
-            $query = "SELECT * FROM ppmembers WHERE '$csvline_esc' ILIKE '%' || name || '%'";
+            // $csvline is escaped already. Member names are matched literally:
+            // their LIKE wildcards and the escape character are escaped (E''
+            // strings, independent of standard_conforming_strings), and an empty
+            // name matches nothing.
+            $query = "SELECT * FROM ppmembers WHERE name <> '' AND '$csvline' ILIKE '%' || replace(replace(replace(name, E'\\\\', E'\\\\\\\\'), '%', E'\\\\%'), '_', E'\\\\_') || '%' ESCAPE E'\\\\'";
             if ($result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error()))
             {
               if (pg_num_rows($result) == 1)

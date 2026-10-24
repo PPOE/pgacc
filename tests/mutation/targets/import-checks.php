@@ -14,6 +14,7 @@ return array(
     'file' => 'import.php',
     'tests' => array(
         array('type' => 'phpunit', 'filter' => 'testImport|testUpload', 'file' => 'tests/unit/ReceiptImportTest.php'),
+        array('type' => 'phpunit', 'filter' => 'ImportMemberMatchTest', 'file' => 'tests/unit/ImportMemberMatchTest.php'),
         array('type' => 'http', 'script' => 'tests/http-import.php'),
     ),
     'timeout' => 180,
@@ -141,6 +142,30 @@ return array(
             'search' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
             'replace' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true; break;",
             'rationale' => 'A member match does not end the import of the file.',
+        ),
+        array(
+            'id' => 'import-member-name-unescaped',
+            'search' => "\$voucher['name'] = pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
+            'replace' => "\$voucher['name'] = \$line['name'];\n                pg_free_result(\$result);\n                \$found = true;",
+            'rationale' => 'Removed escape: a member name with a quote is inserted as SQL.',
+        ),
+        array(
+            'id' => 'import-member-line-escaped-twice',
+            'search' => "WHERE name <> '' AND '\$csvline' ILIKE",
+            'replace' => "WHERE name <> '' AND '\" . pg_escape_string(\$csvline) . \"' ILIKE",
+            'rationale' => 'The line is escaped once: a quoted member name still matches.',
+        ),
+        array(
+            'id' => 'import-member-wildcards-unescaped',
+            'search' => "ILIKE '%' || replace(replace(replace(name,",
+            'replace' => "ILIKE '%' || name || '%' || replace(replace(replace(name,",
+            'rationale' => 'Member names are no LIKE patterns: % and _ match only themselves.',
+        ),
+        array(
+            'id' => 'import-member-empty-name-matches',
+            'search' => "WHERE name <> '' AND '\$csvline' ILIKE",
+            'replace' => "WHERE '\$csvline' ILIKE",
+            'rationale' => 'An empty member name matches no line.',
         ),
     ),
 );
