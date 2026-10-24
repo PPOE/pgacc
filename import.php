@@ -6,9 +6,10 @@ function convif($do,$data)
   return iconv('ISO-8859-15','UTF-8',$data);
 }
 // Reports a line that cannot be imported; the import stops there.
-function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline)
+// With $lineno the line is skipped (its number is part of the report).
+function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline, $lineno = null)
 {
-              echo "Ungültige Buchungszeile in Datei ".($i+1)." ({$_FILES['uploadcsv']['name'][$i]}) <br />\n";
+              echo "Ungültige Buchungszeile in Datei ".($i+1)." ({$_FILES['uploadcsv']['name'][$i]})".($lineno === null ? '' : ", Zeile $lineno")." <br />\n";
               echo "<pre>".$rawcsvline."</pre><br />\n";
               echo "<pre>".$csvline."</pre><br />\n";
               echo "Das erkannte CSV Format ist $csvformat.<br />\n";
@@ -67,8 +68,11 @@ function page_import($rights)
       if (($handle = fopen($_FILES['uploadcsv']['tmp_name'][$i],"r")) !== FALSE) {
         echo "<h2>Importiere " . $_FILES['uploadcsv']['name'][$i] . "</h2>\n"; 
         $voucher_number = 0;
+        $lineno = 0;
+        $skipped = array();
         while (($data = fgetcsv($handle, 0, ";")) !== FALSE)
         {
+          $lineno++;
           $voucher2 = array();
           $dovoucher2 = false;
           $csvline = implode(";",$data);
@@ -212,11 +216,13 @@ function page_import($rights)
           {
             die("Unbekanntes CSV Format\n");
           }
-          // Only dates, and organizations the user may use (organization_allowed()).
+          // Only dates, and organizations the user may use (organization_allowed()):
+          // other lines are reported and skipped.
           if (!import_date_valid($voucher['date']) || !organization_allowed($voucher['lo'], $rights))
           {
-              import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline);
-              return -1;
+              import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline, $lineno);
+              $skipped[] = $lineno;
+              continue;
           }
           $query = "SELECT nextval('voucher_number') AS num;";
           $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -356,6 +362,8 @@ function page_import($rights)
           pg_free_result($result);
         }
         fclose($handle);
+        if (count($skipped) > 0)
+          echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i]."): ".count($skipped)." Buchungszeilen übersprungen (Zeilen ".implode(", ", $skipped).")<br />\n";
         echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") wurde erfolgreich importiert<br />\n";
       }
   }

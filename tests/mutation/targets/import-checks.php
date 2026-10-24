@@ -2,7 +2,8 @@
 /*
  * Checks of every imported bank CSV line (import.php): the date must be a
  * date and the organization one the user may use (organization_allowed());
- * offending lines stop the import with "Ungültige Buchungszeile". Tested
+ * offending lines are reported ("Ungültige Buchungszeile", line number) and
+ * skipped, with a summary per file. Tested
  * with tests/http-import.php against the membership stub of
  * compose.test.yaml. See tests/mutation/README.md for the format.
  */
@@ -43,6 +44,24 @@ return array(
             'search' => '  return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));',
             'replace' => '  return true;',
             'rationale' => 'Out-of-range dates (month 13, February 30) do not reach the SQL.',
+        ),
+        array(
+            'id' => 'import-skip-aborts',
+            'search' => "              \$skipped[] = \$lineno;\n              continue;",
+            'replace' => "              \$skipped[] = \$lineno;\n              return -1;",
+            'rationale' => 'An offending line is skipped; the remaining lines and files are imported.',
+        ),
+        array(
+            'id' => 'import-skip-unrecorded',
+            'search' => "              \$skipped[] = \$lineno;",
+            'replace' => "              ;",
+            'rationale' => 'The summary lists the skipped lines.',
+        ),
+        array(
+            'id' => 'import-skip-line-number-dropped',
+            'search' => "import_invalid_line(\$i, \$rawcsvline, \$csvline, \$csvformat, \$handkassacsvline, \$lineno);",
+            'replace' => "import_invalid_line(\$i, \$rawcsvline, \$csvline, \$csvformat, \$handkassacsvline);",
+            'rationale' => 'The report of a skipped line names its line number.',
         ),
     ),
 );

@@ -6,7 +6,8 @@
  * dates must be dates, and the organization must be one the user may use
  * (organization_allowed(): any for bgf and root, otherwise the user's numeric
  * organizations). Offending lines get the existing "Ungültige Buchungszeile"
- * error, which stops the import as for unknown accounts. Runs after
+ * report with their line number and are skipped; the remaining lines and
+ * files are imported. Runs after
  * write-workflows.php on the same database. Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
@@ -64,6 +65,7 @@ function assert_import_refused($response, $label)
 {
     assert_status($response, 200, $label);
     assert_contains($response['body'], 'Ungültige Buchungszeile in Datei 1', $label);
+    assert_contains($response['body'], 'übersprungen', $label);
     assert_not_contains($response['body'], 'fehlgeschlagen', $label);
 }
 
@@ -92,7 +94,9 @@ assert_contains($importedPaypal['body'], 'wurde erfolgreich importiert', 'paypal
 
 // An unknown account is reported the same way (unchanged).
 $unknown = file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-unknown-account.csv');
-assert_import_refused(import_csv('bawag-unknown-account.csv', $unknown, $adminCookies), 'BAWAG unknown account');
+$unknownImport = import_csv('bawag-unknown-account.csv', $unknown, $adminCookies);
+assert_contains($unknownImport['body'], 'Ungültige Buchungszeile in Datei 1 (bawag-unknown-account.csv) <br />', 'BAWAG unknown account');
+assert_not_contains($unknownImport['body'], 'wurde erfolgreich importiert', 'BAWAG unknown account');
 
 // Dates must be dates (format_date() passes other text through).
 $badDates = array("15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag', '2024-13-45', '9999-99-99', '31.02.2024', '2023-02-29');
@@ -112,6 +116,37 @@ assert_contains($validDate['body'], 'wurde erfolgreich importiert', 'handkassa I
 $isoRow = import_orga($database, 'Synthetic import with an ISO date');
 if ($isoRow['date'] !== '2024-03-01 00:00:00') {
     fail_test('handkassa ISO date row: ' . var_export($isoRow, true));
+}
+
+// An offending line is skipped and reported with its line number; the other
+// lines and files are imported, and the file ends with a summary.
+$mixed = $handkassaHeader
+    . handkassa_line('02.04.2024', 'Synthetic import before a skipped line', '1')
+    . handkassa_line('02.04.2024', 'Synthetic import of a foreign line', '2')
+    . handkassa_line('2024-02-30', 'Synthetic import with an impossible date', '1')
+    . handkassa_line('03.04.2024', 'Synthetic import after skipped lines', '1');
+$second = $handkassaHeader . handkassa_line('04.04.2024', 'Synthetic import from a second file', '1');
+$mixedImport = with_known_failure('KF-IMPORT-REGEX-G', function () use ($mixed, $second, $unitOneCookies) {
+    return http_request(
+        '/index.php?action=import',
+        'POST',
+        array('MAX_FILE_SIZE' => '1000000'),
+        $unitOneCookies,
+        null,
+        array(
+            'uploadcsv[0]' => array('name' => 'mixed.csv', 'type' => 'text/csv', 'content' => $mixed),
+            'uploadcsv[1]' => array('name' => 'second.csv', 'type' => 'text/csv', 'content' => $second),
+        )
+    );
+});
+assert_contains($mixedImport['body'], 'Ungültige Buchungszeile in Datei 1 (mixed.csv), Zeile 3', 'mixed import');
+assert_contains($mixedImport['body'], 'Ungültige Buchungszeile in Datei 1 (mixed.csv), Zeile 4', 'mixed import');
+assert_contains($mixedImport['body'], 'Datei 1 (mixed.csv): 2 Buchungszeilen übersprungen (Zeilen 3, 4)', 'mixed import');
+assert_contains($mixedImport['body'], 'Datei 2 (second.csv) wurde erfolgreich importiert', 'mixed import');
+foreach (array('before a skipped line' => 1, 'of a foreign line' => 0, 'with an impossible date' => 0, 'after skipped lines' => 1, 'from a second file' => 1) as $label => $expected) {
+    if (import_count($database, "Synthetic import $label") !== $expected) {
+        fail_test("mixed import: line $label imported " . import_count($database, "Synthetic import $label") . " times, expected $expected");
+    }
 }
 
 // The organization of every line must be one the user may use.

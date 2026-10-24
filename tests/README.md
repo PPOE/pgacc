@@ -130,7 +130,8 @@ synthetic `$datakey` of its member list.
 `http-import.php` covers the bank CSV import (`import.php`) with the synthetic
 CSV files of `tests/reference/fixtures/import/` and the membership stub: the
 fixtures import as before, lines whose date is not a date or whose organization
-the user may not use are refused with "Ungültige Buchungszeile", and the
+the user may not use are reported with "Ungültige Buchungszeile" and their line
+number and skipped while the other lines and files are imported, and the
 `/g` regular-expression warning of every imported line is the known failure
 `KF-IMPORT-REGEX-G`.
 

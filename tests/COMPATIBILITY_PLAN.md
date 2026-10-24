@@ -81,9 +81,11 @@ with synthetic users and covered by a mutation target.
   February 30) and an
   organization the user may use (`organization_allowed()`, the rule of the
   voucher form; the bank import used the CSV's organization column or the
-  account's organization unchecked). Otherwise the existing "Ungültige
-  Buchungszeile" report is shown and the import stops there, as for an
-  unknown account. Behaviour difference: organization users can import only
+  account's organization unchecked). Otherwise the line gets the existing
+  "Ungültige Buchungszeile" report with its line number and is skipped; the
+  remaining lines and files are imported, and each file ends with a summary
+  of its skipped lines (second review fix; at first the import stopped
+  there, as it still does for an unknown account). Behaviour difference: organization users can import only
   lines of their own organizations (before, any line, e.g. PayPal and
   Sparkasse lines of organizations 10 and 6). The other CSV values were
   already escaped or `intval()`; `import2.php` uses only values matched by
