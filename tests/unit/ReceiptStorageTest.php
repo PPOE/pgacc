@@ -357,16 +357,19 @@ final class ReceiptStorageTest extends FunctionsTestCase
             return receipt_read_v2($path, '43');
         });
         self::assertFalse($plain);
-        self::assertStringContainsString('pgacc: receipt 43.v2.aes could not be decrypted (wrong key or modified file; '
-            . 'key fingerprint ' . $fingerprints[self::TEST_KEY] . ')', $log);
+        // Neither the key nor its fingerprint goes to the web server's log.
+        self::assertStringContainsString('pgacc: receipt 43.v2.aes could not be decrypted (wrong key or modified file)', $log);
         self::assertStringNotContainsString(self::TEST_KEY, $log);
+        self::assertStringNotContainsString($fingerprints[self::TEST_KEY], $log);
+        self::assertStringNotContainsString('fingerprint', $log);
 
         $GLOBALS['key'] = self::OTHER_KEY;
         list($plain, $log) = self::logged(function () use ($path) {
             return receipt_read_v2($path, '42');
         });
         self::assertFalse($plain);
-        self::assertStringContainsString('key fingerprint ' . $fingerprints[self::OTHER_KEY] . ')', $log);
+        self::assertStringContainsString('pgacc: receipt 42.v2.aes could not be decrypted (wrong key or modified file)', $log);
+        self::assertStringNotContainsString($fingerprints[self::OTHER_KEY], $log);
 
         $GLOBALS['key'] = self::TEST_KEY;
         $missing = $this->directory . '/missing.v2.aes';
