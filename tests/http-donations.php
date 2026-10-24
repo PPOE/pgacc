@@ -150,5 +150,22 @@ assert_not_contains($early, DONATIONS_CAPTCHA_INTRO, 'donations 2011');
 assert_not_contains($early, '<table id="donations"', 'donations 2011');
 assert_no_donor_data($early, 'donations 2011');
 
+// In-kind donations (kdonations.php): the captcha form, then, with the right
+// answer, the table header and the notice; publication stays disabled.
+$kdonations = http_request('/index.php?action=kdonations&year=2024');
+assert_status($kdonations, 200, 'kdonations GET');
+assert_contains($kdonations['body'], '<h1>Sachspendenliste der Piratenpartei Österreichs</h1>', 'kdonations GET');
+assert_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, 'kdonations GET');
+$kdonations = http_request('/index.php?action=kdonations&year=2024', 'POST', array(
+    'captcha_input' => '37',
+    'captcha' => '0',
+    'submit' => 'Bestätigen',
+));
+assert_status($kdonations, 200, 'kdonations list');
+assert_no_fatal_error($kdonations['body'], 'kdonations list');
+assert_not_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, 'kdonations list');
+assert_contains($kdonations['body'], '<table><tr><td><b><a href="index.php?action=kdonations&amp;sort=datea">Datum</a></b>', 'kdonations list header');
+assert_contains($kdonations['body'], DONATIONS_NOTICE . '</table>', 'kdonations list');
+
 assert_no_unexpected_diagnostics();
 echo "Donations HTTP characterization tests passed\n";

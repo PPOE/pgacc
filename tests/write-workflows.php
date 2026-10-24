@@ -955,6 +955,24 @@ $memberRow = database_row(
 assert_database_field($memberRow, 'name', "O'Brien Synthetisch", 'member voucher');
 assert_database_field($memberRow, 'member_id', '9033', 'member voucher');
 
+// Without a member number the member is looked up by name, also with first
+// and last name swapped ("Synthetisch Bernd" is member 9002, "Bernd
+// Synthetisch"); the posted name is kept.
+$lookupForm = voucher_form('Synthetic voucher of a member found by name', '-1.80', 0);
+$lookupForm['member0'] = '1';
+$lookupForm['name0'] = 'Synthetisch Bernd';
+$lookupVoucher = http_request('/index.php?action=new', 'POST', $lookupForm, $adminCookies);
+assert_contains($lookupVoucher['body'], 'Buchung erfasst', 'member voucher found by name');
+assert_not_contains($lookupVoucher['body'], 'fehlgeschlagen', 'member voucher found by name');
+$lookupRow = database_row(
+    $database,
+    'SELECT name, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member found by name'),
+    'member voucher found by name'
+);
+assert_database_field($lookupRow, 'name', 'Synthetisch Bernd', 'member voucher found by name');
+assert_database_field($lookupRow, 'member_id', '9002', 'member voucher found by name');
+
 // The voucher page of a voucher without current rows answers "Buchung nicht
 // gefunden" for every user, also bgf and Rbgf (before, they got an empty
 // form that the save refuses); deleted rows are restored with the recovery

@@ -94,6 +94,19 @@ if ($kaffee['orga'] !== '2' || $kaffee['date'] !== '2024-02-15 00:00:00') {
 $paypal = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal.csv');
 $importedPaypal = import_csv('paypal.csv', $paypal, $adminCookies);
 assert_contains($importedPaypal['body'], 'wurde erfolgreich importiert', 'paypal fixture');
+// Sparkasse statements (lo 6, account 20815 6659403): the comment joins
+// Umsatzzeile1, Zusatztext and Auftraggeber.
+$sparkasse = "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"
+    . "Kundendaten/Zahlungsreferenz;Umsatzzeile 2;Ersterfassungsreferenz;Auftraggeber Kontonr./IBAN;"
+    . "Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC\r\n"
+    . "Synthetic;15.05.2024;12,34;EUR;15.05.2024;Synthetic Sparkasse line;Zusatz;Auftraggeber;;;;;;"
+    . "Synthetic Partner;AT00 0000;SYNTATWW\r\n";
+$importedSparkasse = import_csv('sparkasse.csv', $sparkasse, $adminCookies);
+assert_contains($importedSparkasse['body'], 'wurde erfolgreich importiert', 'sparkasse import');
+$sparkasseRow = import_orga($database, 'Synthetic Sparkasse line; Zusatz; Auftraggeber');
+if ($sparkasseRow['orga'] !== '6' || $sparkasseRow['date'] !== '2024-05-15 00:00:00') {
+    fail_test('sparkasse row: ' . var_export($sparkasseRow, true));
+}
 
 // An unknown account is reported the same way (unchanged).
 $unknown = file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-unknown-account.csv');
