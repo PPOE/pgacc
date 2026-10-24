@@ -83,6 +83,18 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 - Security-relevant findings are tracked in `tests/COMPATIBILITY_PLAN.md`. Don't spell out or publicize
   unfixed ones elsewhere.
 
+## Context and token use
+
+- Keep command output small: redirect test, Docker and mutation runs to a log file and print only the exit
+  status plus a short `grep` of the result lines; open logs with `grep -n`/`sed -n` around a failure.
+- Don't read large docs whole: `grep -n` `tests/COMPATIBILITY_PLAN.md`, `tests/README.md` and
+  `tests/mutation/README.md` for the section you need.
+- Read agent transcripts, `~/.codex/sessions`, `~/.claude/projects` or saved tool outputs only in a subagent
+  that returns a short summary.
+- Subagent reports: at most ~2,500 characters — verdict first, then only failures or decisions with
+  `file:line`, then paths. Commit messages and the plan carry the details.
+- Start a fresh session (or `/clear`) between unrelated tasks; leave a short handoff note first.
+
 ## Git
 
 - Work on a branch. Keep commits focused: one fix, its tests and its baseline updates together.
