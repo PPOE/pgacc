@@ -3,8 +3,13 @@ set -eu
 
 # Target-driven mutation runner (see tests/mutation/README.md).
 #
-#   sh tests/mutation/run.sh <7.4|8.5> <target> [runner options]
+#   sh tests/mutation/run.sh <7.4|8.5> <target> [--changed-since=<base>] [runner options]
 #   sh tests/mutation/run.sh <lane> --self-test
+#
+# --changed-since=<base> (Git revision; its merge base with HEAD is used, as
+# for PGACC_COVERAGE_BASE) runs only the mutations whose search region
+# overlaps a line changed since then in the working tree, untracked files
+# included; with none, the target passes without running anything.
 #
 # Runs tests/mutation/runner.php in a one-off container of the lane's
 # application image, on the lane's isolated database and internal network.
@@ -26,7 +31,7 @@ export PGACC_TEST_SUFFIX
 
 usage()
 {
-  echo "Usage: sh tests/mutation/run.sh <7.4|8.5> <target|--self-test> [--only=id,...] [--check]" >&2
+  echo "Usage: sh tests/mutation/run.sh <7.4|8.5> <target|--self-test> [--changed-since=<base>] [--only=id,...] [--check]" >&2
   exit 2
 }
 
@@ -83,6 +88,23 @@ fi
 host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane$PGACC_TEST_PG_TAG}
 rm -rf "$host_dir"
 mkdir -p "$host_dir"
+
+# --changed-since: the diff is taken here (the container has no .git) and
+# passed to the runner as /results/changed.diff.
+for option; do
+  shift
+  case "$option" in
+    --changed-since=*)
+      merge_base=$(git merge-base "${option#--changed-since=}" HEAD)
+      git diff --no-color --no-ext-diff --unified=0 "$merge_base" >"$host_dir/changed.diff"
+      git ls-files --others --exclude-standard | while IFS= read -r file; do
+        git diff --no-color --no-ext-diff --unified=0 --no-index /dev/null "$file" || true
+      done >>"$host_dir/changed.diff"
+      set -- "$@" --changed-diff=/results/changed.diff
+      ;;
+    *) set -- "$@" "$option" ;;
+  esac
+done
 
 pgacc_test_pg_build
 compose up --detach --wait database

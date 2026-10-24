@@ -327,11 +327,99 @@ function pgacc_mutation_apply($source, $mutation)
     $replace = str_replace("\r\n", "\n", $mutation['replace'][$index]);
     $offset = $start + strpos($scope, $search);
     $mutant = substr_replace($lf, $replace, $offset, strlen($search));
+    $line = substr_count(substr($lf, 0, $offset), "\n") + 1;
+    // The search region in lines (for --changed-since): the region from its
+    // start marker to its end marker, or the matched search text.
+    if ($region === null) {
+        $span = array($line, $line + substr_count($search, "\n"));
+    } else {
+        $span = array(
+            substr_count(substr($lf, 0, $start), "\n") + 1,
+            substr_count(substr($lf, 0, $end), "\n") + 1 + substr_count($region['end'], "\n"),
+        );
+    }
     return array(
         'source' => $crlf ? str_replace("\n", "\r\n", $mutant) : $mutant,
-        'line' => substr_count(substr($lf, 0, $offset), "\n") + 1,
+        'line' => $line,
         'spelling' => $index,
+        'span' => $span,
     );
+}
+
+/*
+ * Changed lines for --changed-since (tests/mutation/run.sh), from a
+ * "git diff --unified=0" of the working tree against the base. Returns
+ * array(file => list of array(first, last)) in working-tree line numbers.
+ * Added or modified lines give their range. A pure deletion after line N
+ * gives array(N, N + 1), the lines around the removed ones, so that removing
+ * code inside a search region selects its mutants too. A new file is one
+ * added range; a deleted file has no lines left and is skipped.
+ */
+function pgacc_mutation_parse_diff($diff)
+{
+    $ranges = array();
+    $file = null;
+    $inHeader = false;
+    foreach (preg_split('/\r?\n/', $diff) as $line) {
+        if (strncmp($line, 'diff --git ', 11) === 0) {
+            $inHeader = true;
+            $file = null;
+            continue;
+        }
+        if ($inHeader && strncmp($line, '+++ ', 4) === 0) {
+            $path = rtrim(substr($line, 4), "\t");
+            $file = $path === '/dev/null' ? null : preg_replace('#^b/#', '', $path);
+            continue;
+        }
+        if (preg_match('/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/', $line, $match) === 1) {
+            $inHeader = false;
+            if ($file === null) {
+                continue;
+            }
+            $first = (int) $match[1];
+            $count = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : 1;
+            $ranges[$file][] = $count > 0
+                ? array($first, $first + $count - 1)
+                : array(max(1, $first), $first + 1);
+        }
+    }
+    return $ranges;
+}
+
+// Whether lines $first..$last of $file overlap a changed range.
+function pgacc_mutation_lines_changed($ranges, $file, $first, $last)
+{
+    if (!isset($ranges[$file])) {
+        return false;
+    }
+    foreach ($ranges[$file] as $range) {
+        if ($range[0] <= $last && $range[1] >= $first) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+ * The mutations to run for --changed-since: all of them when the target
+ * definition itself ($targetFile, relative to the application root) changed,
+ * otherwise those whose search region ($applied[id]['span'], see
+ * pgacc_mutation_apply()) overlaps a changed line of the mutated file.
+ * Changes to the tests alone select nothing (the full run covers them).
+ */
+function pgacc_mutation_select_changed($mutations, $applied, $ranges, $targetFile)
+{
+    if (isset($ranges[$targetFile])) {
+        return $mutations;
+    }
+    $selected = array();
+    foreach ($mutations as $mutation) {
+        $span = $applied[$mutation['id']]['span'];
+        if (pgacc_mutation_lines_changed($ranges, $mutation['file'], $span[0], $span[1])) {
+            $selected[] = $mutation;
+        }
+    }
+    return $selected;
 }
 
 /*

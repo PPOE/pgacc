@@ -4,7 +4,8 @@
  * one-off container of a lane's application image (see README.md):
  *
  *   php tests/mutation/runner.php --target=<name|path> --output=<dir>
- *       [--only=id,id] [--check] [--app=/app] [--work=/tmp/pgacc-mutation]
+ *       [--only=id,id] [--changed-diff=<file>] [--check] [--app=/app]
+ *       [--work=/tmp/pgacc-mutation]
  *
  * For the unmutated baseline and then for every mutant it:
  *   1. copies the application to a disposable directory and applies the
@@ -20,6 +21,9 @@
  * The baseline must pass, otherwise nothing is mutated (exit 2).
  *
  * --check only validates the target and that every mutation applies.
+ * --changed-diff (from run.sh --changed-since) runs only the mutations whose
+ * search region overlaps a changed line (pgacc_mutation_select_changed());
+ * with none selected it exits 0 without running the baseline.
  *
  * Exit status: 0 pass, 1 unaccepted survivors / invalid / stale equivalents,
  * 2 definition, setup, or baseline failure. Runs on the PHP 7.4 and 8.5 lanes.
@@ -34,11 +38,12 @@ function out($message)
 
 function parse_options($argv)
 {
-    $options = array('app' => '/app', 'work' => '/tmp/pgacc-mutation', 'only' => null, 'check' => false);
+    $options = array('app' => '/app', 'work' => '/tmp/pgacc-mutation', 'only' => null, 'check' => false,
+        'changed-diff' => null);
     foreach (array_slice($argv, 1) as $argument) {
         if ($argument === '--check') {
             $options['check'] = true;
-        } elseif (preg_match('/^--(target|output|only|app|work)=(.+)$/', $argument, $match) === 1) {
+        } elseif (preg_match('/^--(target|output|only|app|work|changed-diff)=(.+)$/', $argument, $match) === 1) {
             $options[$match[1]] = $match[2];
         } else {
             pgacc_mutation_fail("unknown argument $argument");
@@ -348,6 +353,28 @@ function main($argv)
         $http = $http || $test['type'] === 'http';
     }
     out(sprintf('Target %s: %d mutation(s) apply exactly once', $name, count($mutants)));
+    if ($options['changed-diff'] !== null) {
+        $diff = @file_get_contents($options['changed-diff']);
+        if ($diff === false) {
+            pgacc_mutation_fail('cannot read ' . $options['changed-diff']);
+        }
+        $targetFile = strpos($targetPath, $app . '/') === 0 ? substr($targetPath, strlen($app) + 1) : $targetPath;
+        $target['mutations'] = pgacc_mutation_select_changed($target['mutations'], $mutants,
+            pgacc_mutation_parse_diff($diff), $targetFile);
+        out(sprintf('Changed lines select %d mutation(s)', count($target['mutations'])));
+        if (count($target['mutations']) === 0 && !$options['check']) {
+            if (isset($options['output'])) {
+                $output = rtrim($options['output'], '/');
+                if (!is_dir($output) && !mkdir($output, 0777, true)) {
+                    pgacc_mutation_fail("cannot create $output");
+                }
+                file_put_contents($output . '/summary.txt',
+                    "Mutation target $name: no mutation's search region overlaps the changed lines\nResult: PASS\n");
+            }
+            out('Nothing to run: no search region overlaps the changed lines.');
+            return 0;
+        }
+    }
     if ($options['check']) {
         foreach ($target['mutations'] as $mutation) {
             out(sprintf('  %-40s %s:%d', $mutation['id'], $mutation['file'], $mutants[$mutation['id']]['line']));

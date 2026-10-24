@@ -254,6 +254,115 @@ class LibTest extends PHPUnit\Framework\TestCase
         }, 'mixes CRLF and LF');
     }
 
+    public function testApplyReportsTheSearchRegionInLines()
+    {
+        $source = "<?php\nfunction a() {\n  if (a == 1)\n    b();\n}\nfunction c() {}\n";
+        $plain = pgacc_mutation_apply($source, self::mutation("if (a == 1)\n    b();", "if (a != 1)\n    b();"));
+        $this->assertSame(array(3, 4), $plain['span']);
+        $region = array('start' => 'function a(', 'end' => 'function c(');
+        $inRegion = pgacc_mutation_apply($source, self::mutation('a == 1', 'a != 1', $region));
+        $this->assertSame(3, $inRegion['line']);
+        $this->assertSame(array(2, 6), $inRegion['span']);
+        $multiLineEnd = array('start' => 'function a(', 'end' => "}\nfunction c(");
+        $this->assertSame(array(2, 6), pgacc_mutation_apply($source,
+            self::mutation('a == 1', 'a != 1', $multiLineEnd))['span']);
+        $crlf = pgacc_mutation_apply(str_replace("\n", "\r\n", $source), self::mutation('a == 1', 'a != 1', $region));
+        $this->assertSame(array(2, 6), $crlf['span']);
+    }
+
+    public function testParseDiffReturnsChangedWorkingTreeLines()
+    {
+        $diff = implode("\n", array(
+            'diff --git a/edit.php b/edit.php',
+            'index 1111111..2222222 100644',
+            '--- a/edit.php',
+            '+++ b/edit.php',
+            '@@ -10 +10 @@ function x()',
+            '-old',
+            '+new',
+            '@@ -20,0 +21,3 @@',
+            '+a',
+            '+++ looks like a header but is an added line',
+            '+c',
+            '@@ -30,2 +33,0 @@',
+            '-gone',
+            '-gone too',
+            'diff --git a/removed.php b/removed.php',
+            'deleted file mode 100644',
+            '--- a/removed.php',
+            '+++ /dev/null',
+            '@@ -1,2 +0,0 @@',
+            '-x',
+            '-y',
+            'diff --git a/old.php b/renamed.php',
+            'similarity index 90%',
+            'rename from old.php',
+            'rename to renamed.php',
+            '--- a/old.php',
+            '+++ b/renamed.php',
+            '@@ -0,0 +1 @@',
+            '+first',
+            'diff --git a/top.php b/top.php',
+            '--- a/top.php',
+            '+++ b/top.php',
+            '@@ -1 +0,0 @@',
+            '-first line removed',
+            'diff --git a/new.txt b/new.txt',
+            'new file mode 100644',
+            '--- /dev/null',
+            '+++ b/new.txt',
+            '@@ -0,0 +1,2 @@',
+            '+one',
+            '+two',
+            '',
+        ));
+        $this->assertSame(array(
+            'edit.php' => array(array(10, 10), array(21, 23), array(33, 34)),
+            'renamed.php' => array(array(1, 1)),
+            'top.php' => array(array(1, 1)),
+            'new.txt' => array(array(1, 2)),
+        ), pgacc_mutation_parse_diff($diff));
+        $this->assertSame(array(), pgacc_mutation_parse_diff(''));
+        $this->assertSame(array('a.php' => array(array(2, 2))),
+            pgacc_mutation_parse_diff("diff --git a/a.php b/a.php\r\n--- a/a.php\r\n+++ b/a.php\r\n@@ -2 +2 @@\r\n-x\r\n+y\r\n"));
+    }
+
+    public function testLinesChangedChecksOverlapWithEveryRange()
+    {
+        $ranges = array('edit.php' => array(array(10, 12), array(30, 30)));
+        $this->assertTrue(pgacc_mutation_lines_changed($ranges, 'edit.php', 12, 20));
+        $this->assertTrue(pgacc_mutation_lines_changed($ranges, 'edit.php', 1, 10));
+        $this->assertTrue(pgacc_mutation_lines_changed($ranges, 'edit.php', 11, 11));
+        $this->assertTrue(pgacc_mutation_lines_changed($ranges, 'edit.php', 30, 30));
+        $this->assertTrue(pgacc_mutation_lines_changed($ranges, 'edit.php', 25, 40));
+        $this->assertFalse(pgacc_mutation_lines_changed($ranges, 'edit.php', 13, 29));
+        $this->assertFalse(pgacc_mutation_lines_changed($ranges, 'edit.php', 1, 9));
+        $this->assertFalse(pgacc_mutation_lines_changed($ranges, 'edit.php', 31, 99));
+        $this->assertFalse(pgacc_mutation_lines_changed($ranges, 'new.php', 10, 12));
+    }
+
+    public function testSelectChangedKeepsMutationsWhoseSearchRegionChanged()
+    {
+        $mutations = array(
+            array('id' => 'in-edit', 'file' => 'edit.php'),
+            array('id' => 'in-edit-later', 'file' => 'edit.php'),
+            array('id' => 'in-new', 'file' => 'new.php'),
+        );
+        $applied = array(
+            'in-edit' => array('span' => array(5, 9)),
+            'in-edit-later' => array('span' => array(40, 40)),
+            'in-new' => array('span' => array(5, 9)),
+        );
+        $ranges = array('edit.php' => array(array(9, 12)), 'tests/write-workflows.php' => array(array(1, 500)));
+        $selected = pgacc_mutation_select_changed($mutations, $applied, $ranges, 'tests/mutation/targets/t.php');
+        $this->assertSame(array($mutations[0]), $selected);
+        $this->assertSame(array(), pgacc_mutation_select_changed($mutations, $applied,
+            array('tests/write-workflows.php' => array(array(1, 500))), 'tests/mutation/targets/t.php'));
+        $this->assertSame($mutations, pgacc_mutation_select_changed($mutations, $applied,
+            array('tests/mutation/targets/t.php' => array(array(3, 3))), 'tests/mutation/targets/t.php'));
+        $this->assertSame(array(), pgacc_mutation_select_changed($mutations, $applied, array(), 'tests/mutation/targets/t.php'));
+    }
+
     public static function publicMutation($search, $replace, $region = null)
     {
         return self::mutation($search, $replace, $region);
