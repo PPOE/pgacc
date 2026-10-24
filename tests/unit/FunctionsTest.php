@@ -38,6 +38,31 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * @dataProvider csvDownloadLinkUriProvider
+     */
+    public function testCsvDownloadLinkSeparator($uri, $expected)
+    {
+        $_SERVER['REQUEST_URI'] = $uri;
+        ob_start();
+        csv_download_link();
+        self::assertSame('<br style="clear: both;" /><center><a href="' . $expected . '">Als CSV Datei herunterladen</a></center>', ob_get_clean());
+    }
+
+    public static function csvDownloadLinkUriProvider()
+    {
+        return array(
+            'no query string' => array('/index.php', '/index.php?format=csv'),
+            'root' => array('/', '/?format=csv'),
+            'empty' => array('', '?format=csv'),
+            'trailing question mark' => array('/index.php?', '/index.php?&amp;format=csv'),
+            'trailing ampersand' => array('/index.php?action=all&', '/index.php?action=all&amp;&amp;format=csv'),
+            'already csv' => array('/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv&amp;format=csv'),
+            'later format wins' => array('/index.php?action=all&format=csv&format=html', '/index.php?action=all&amp;format=csv&amp;format=html&amp;format=csv'),
+            'question mark in a value' => array('/index.php?action=all&filter_text=test?', '/index.php?action=all&amp;filter_text=test?&amp;format=csv'),
+        );
+    }
+
+    /**
      * @dataProvider filterProvider
      */
     public function testGetfilterBuildsExpectedConditions(array $get, $expected)

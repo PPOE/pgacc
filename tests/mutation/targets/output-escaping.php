@@ -60,6 +60,24 @@ $mutations = array(
         'rationale' => 'The request URI is echoed raw into the CSV link.',
     ),
     array(
+        'id' => 'csv-link-ampersand-without-query',
+        'search' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'?\') === false ? "?" : "&") . "format=csv";',
+        'replace' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'?\') === false ? "&" : "&") . "format=csv";',
+        'rationale' => 'Issue #2: a URI without a query string gets "&format=csv".',
+    ),
+    array(
+        'id' => 'csv-link-question-mark-with-query',
+        'search' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'?\') === false ? "?" : "&") . "format=csv";',
+        'replace' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'?\') === false ? "?" : "?") . "format=csv";',
+        'rationale' => 'A URI with a query string gets a second "?".',
+    ),
+    array(
+        'id' => 'csv-link-ampersand-checked',
+        'search' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'?\') === false ? "?" : "&") . "format=csv";',
+        'replace' => '  $link = $_SERVER[\'REQUEST_URI\'] . (strpos($_SERVER[\'REQUEST_URI\'], \'&\') === false ? "?" : "&") . "format=csv";',
+        'rationale' => 'The separator depends on "&" instead of the first "?".',
+    ),
+    array(
         'id' => 'csv-formula-not-neutralized',
         'search' => $csvCheck,
         'replace' => str_replace("\$text = \"'\" . \$text;", 'true;', $csvCheck),
