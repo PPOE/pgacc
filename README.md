@@ -99,7 +99,7 @@ Details: [tests/README.md](tests/README.md),
 Release notes come from the `## [X.Y.Z] - <date> (...)` section of
 [CHANGELOG.md](CHANGELOG.md). To cut a release (1.0.0 is also `php5-last`):
 
-1. Date the CHANGELOG.md section and merge to `master`.
+1. Add or date the version's section in CHANGELOG.md and merge to `master`.
 2. On the merged commit: `git tag -a v1.0.0 -m 'pgacc 1.0.0'` and
    `git tag -a php5-last -m 'Last release for PHP 5.3'`, then
    `git push origin v1.0.0 php5-last`.

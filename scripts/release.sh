@@ -3,7 +3,7 @@
 # (git archive, .gitattributes export-ignore) plus the locked vendor/, because
 # production cannot reach GitHub or Composer. See README.md, "Releases".
 #
-#   sh scripts/release.sh [--check-php53] [--publish-draft] <version>
+#   sh scripts/release.sh [--check-php53] [--publish-draft|--publish-only] <version>
 #
 # Output in build/release/: pgacc-<version>.tar.gz (top directory
 # pgacc-<version>/), pgacc-<version>.tar.gz.sha256 and notes-<version>.md (the
@@ -12,7 +12,10 @@
 #   --check-php53    load the built vendor/ on PHP 5.3 (tests/php53/vendor-check.php
 #                    in the tests/php53/runtime.Dockerfile image)
 #   --publish-draft  create a DRAFT GitHub release v<version> with the archive
-#                    and checksum (gh); the tag must exist on GitHub and point to HEAD
+#                    and checksum (gh); tag v<version> must point to HEAD
+#                    locally and on origin
+#   --publish-only   the same, for an archive already in build/release/ (CI:
+#                    built in a job without write access); no rebuild
 set -eu
 
 # Same pinned Composer 2.2 LTS image as tests/php53/runtime.Dockerfile (2.2
@@ -20,17 +23,19 @@ set -eu
 composer_image='composer:2.2.25@sha256:be23a9c3f73293f966a981be03896f9aaaade6c2cc9415f4cf828d1f39c5005c'
 
 usage() {
-  echo "Usage: sh scripts/release.sh [--check-php53] [--publish-draft] <version>" >&2
+  echo "Usage: sh scripts/release.sh [--check-php53] [--publish-draft|--publish-only] <version>" >&2
   exit 2
 }
 
 check_php53=false
 publish=false
+build=true
 version=
 for arg in "$@"; do
   case "$arg" in
     --check-php53) check_php53=true ;;
     --publish-draft) publish=true ;;
+    --publish-only) publish=true; build=false ;;
     -*) usage ;;
     *)
       [ -z "$version" ] || usage
@@ -80,6 +85,56 @@ fi
 # Title: "v1.0.0", plus a trailing "(...)" of the heading, e.g. "(php5-last)".
 title_suffix=$(printf '%s\n' "$changelog" | grep -m 1 -F "## [$version]" | sed -n 's/.*\(([^)]*)\) *$/\1/p')
 title="v$version${title_suffix:+ $title_suffix}"
+
+# Publishing: tag v<version> must point to HEAD, locally and on origin (gh
+# would otherwise create a missing tag from the default branch).
+if [ "$publish" = true ]; then
+  tag="v$version"
+  head_commit=$(git -C "$repo_dir" rev-parse HEAD)
+  tag_commit=$(git -C "$repo_dir" rev-parse --verify --quiet "refs/tags/$tag^{commit}") || {
+    echo "Tag $tag does not exist locally; create and push it first" >&2
+    exit 1
+  }
+  if [ "$tag_commit" != "$head_commit" ]; then
+    echo "Tag $tag ($tag_commit) does not point to HEAD ($head_commit)" >&2
+    exit 1
+  fi
+  # Annotated tags: the peeled "^{}" entry is the commit; lightweight tags
+  # have only the plain entry.
+  remote_refs=$(git -C "$repo_dir" ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}") || {
+    echo "Cannot list the tags on origin" >&2
+    exit 1
+  }
+  remote_commit=$(printf '%s\n' "$remote_refs" | awk -v ref="refs/tags/$tag^{}" '$2 == ref { print $1 }')
+  if [ -z "$remote_commit" ]; then
+    remote_commit=$(printf '%s\n' "$remote_refs" | awk -v ref="refs/tags/$tag" '$2 == ref { print $1 }')
+  fi
+  if [ -z "$remote_commit" ]; then
+    echo "Tag $tag is not on origin; push it first (git push origin $tag)" >&2
+    exit 1
+  fi
+  if [ "$remote_commit" != "$head_commit" ]; then
+    echo "Tag $tag on origin ($remote_commit) does not point to HEAD ($head_commit)" >&2
+    exit 1
+  fi
+fi
+
+if [ "$build" = false ]; then
+  for file in "$archive" "$archive.sha256"; do
+    [ -f "$file" ] || {
+      echo "--publish-only: $file is missing; build it first" >&2
+      exit 1
+    }
+  done
+  (cd "$out_dir" && sha256sum -c "$name.tar.gz.sha256" >/dev/null) || {
+    echo "--publish-only: the archive does not match its .sha256" >&2
+    exit 1
+  }
+  if [ "$(gzip -dc "$archive" | tar -t | head -n 1)" != "$name/" ]; then
+    echo "--publish-only: $archive is not the pgacc-$version archive" >&2
+    exit 1
+  fi
+else  # Build: up to the matching "fi" after the summary below.
 
 # Code at HEAD, without the export-ignore'd development files.
 rm -rf "$stage_root" "$archive" "$archive.sha256"
@@ -145,24 +200,12 @@ rm -rf "$stage_root"
 echo "Archive: build/release/$name.tar.gz ($(wc -c <"$archive" | tr -d ' ') bytes)"
 echo "Checksum: $(cat "$archive.sha256")"
 echo "Notes: build/release/notes-$version.md ($(wc -l <"$notes" | tr -d ' ') lines)"
+fi
 
 if [ "$publish" = true ]; then
-  tag="v$version"
-  tag_commit=$(git -C "$repo_dir" rev-parse --verify --quiet "refs/tags/$tag^{commit}") || {
-    echo "Tag $tag does not exist locally; create and push it first" >&2
-    exit 1
-  }
-  if [ "$tag_commit" != "$(git -C "$repo_dir" rev-parse HEAD)" ]; then
-    echo "Tag $tag does not point to HEAD" >&2
-    exit 1
-  fi
-  # gh would create a missing tag from the default branch: require it on GitHub.
-  if ! git -C "$repo_dir" ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
-    echo "Tag $tag is not on origin; push it first (git push origin $tag)" >&2
-    exit 1
-  fi
-  # The tag already exists, so --target is not used; gh creates no tag.
-  gh release create "$tag" --draft --title "$title" --notes-file "$notes" \
+  # The tag was checked before the build; gh uses the existing tag (no
+  # --target), so it creates none.
+  gh release create "v$version" --draft --title "$title" --notes-file "$notes" \
     "$archive" "$archive.sha256"
-  echo "Draft release $tag created; review and publish it on GitHub"
+  echo "Draft release v$version created; review and publish it on GitHub"
 fi
