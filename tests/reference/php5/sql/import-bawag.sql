@@ -156,6 +156,20 @@ SELECT nextval('voucher_number') AS num;
 -- next
 SELECT * FROM ppmembers WHERE 'AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR' ILIKE '%' || name || '%'
 -- next
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5016, '2024-01-10', 1,9,true,9035,'','Synthetica','','','',300,'AT856000010110123642','Spende ohne Gegenkonto Synthetica',false,false)
+-- next
+INSERT INTO import (line) VALUES ('AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR');
+-- next
+SELECT 1 FROM import WHERE line = 'AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR';
+-- next
+SELECT nextval('voucher_number') AS num;
+-- next
+SELECT * FROM ppmembers WHERE 'AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR' ILIKE '%' || name || '%'
+-- next
+INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5017, '2024-01-11', 14,2,false,0,'','','','','',400,'AT606000050110117300','Nach dem Abbruch',false,false)
+-- next
+INSERT INTO import (line) VALUES ('AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR');
+-- next
 DROP TABLE IF EXISTS ppmembers;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval

@@ -36,8 +36,7 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
--- ERROR 42601: syntax error at or near "root"
--- in: 
+
     UPDATE vouchers
     SET
       ack1_old = ack1,
@@ -47,5 +46,5 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
     WHERE
       NOT deleted AND
       (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
-      voucher_id = 5001 root,bgf;
+      voucher_id = 5001 ;
   

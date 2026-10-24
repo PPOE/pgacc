@@ -1,9 +1,0 @@
-E_NOTICE edit.php:356: Undefined variable: vouchers
-E_NOTICE edit.php:371: Undefined variable: vouchers
-E_NOTICE edit.php:373: Undefined variable: vouchers
-E_NOTICE edit.php:378: Undefined variable: vouchers
-E_NOTICE edit.php:379: Undefined variable: vouchers
-E_NOTICE edit.php:380: Undefined variable: vouchers
-E_NOTICE edit.php:381: Undefined variable: vouchers
-E_NOTICE edit.php:399: Undefined variable: vouchers
-E_NOTICE edit.php:399: Undefined variable: vouchers

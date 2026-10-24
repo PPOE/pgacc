@@ -196,6 +196,14 @@ SELECT name FROM type WHERE id = 28
 -- next
 SELECT name FROM lo WHERE id = 8
 -- next
+SELECT name FROM type WHERE id = 1
+-- next
+SELECT name FROM lo WHERE id = 9
+-- next
+SELECT name FROM type WHERE id = 14
+-- next
+SELECT name FROM lo WHERE id = 2
+-- next
 SELECT name FROM type WHERE id = 8
 -- next
 SELECT name FROM lo WHERE id = 6

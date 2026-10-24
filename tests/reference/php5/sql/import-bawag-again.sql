@@ -62,9 +62,7 @@ SELECT 1 FROM import WHERE line = 'AT716000050110117393;Bargeld;09.01.2024;09.01
 -- next
 SELECT 1 FROM import WHERE line = 'AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR';
 -- next
-SELECT nextval('voucher_number') AS num;
--- next
-SELECT * FROM ppmembers WHERE 'AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR' ILIKE '%' || name || '%'
+SELECT 1 FROM import WHERE line = 'AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR';
 -- next
 DROP TABLE IF EXISTS ppmembers;
 -- next

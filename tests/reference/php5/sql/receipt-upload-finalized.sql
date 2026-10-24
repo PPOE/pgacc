@@ -36,10 +36,6 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
--- next
-SELECT nextval('file_number') AS num;
--- next
-UPDATE vouchers SET file = 101 WHERE NOT deleted AND id = 1000 AND voucher_id = 5000 ;
+SELECT file FROM vouchers WHERE NOT deleted AND id = 1000 AND voucher_id = 5000 ;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval

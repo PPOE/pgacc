@@ -1,3 +1,0 @@
-E_WARNING functions.php:544: pg_query(): Query failed: ERROR:  syntax error at or near "root"
-LINE 11:       voucher_id = 5001 root,bgf;
-                                 ^

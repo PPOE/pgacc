@@ -253,7 +253,7 @@ finalize	admin	POST /index.php?action=edit&id=5000	200
 edit-finalized	admin	POST /index.php?action=edit&id=5000	302
 edit-view-finalized	admin	GET /index.php?action=edit&id=5000	200
 ack-two-parts	admin	POST /index.php?action=edit&id=5001	302
-drop-acks	admin	POST /index.php?action=edit&id=5001	200
+drop-acks	admin	POST /index.php?action=edit&id=5001	302
 revision	admin	POST /index.php?action=edit&id=1004	302
 revision-unitone-other-org	unitone	POST /index.php?action=edit&id=1004	200
 edit-view-revised	admin	GET /index.php?action=edit&id=1004	200
