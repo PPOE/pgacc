@@ -1,11 +1,12 @@
 <?php
 if (PHP_SAPI !== 'cli') {
-    header('HTTP/1.0 404 Not Found');
-    exit;
+    // A web request gets a 404; php-cgi run from a shell gets a message.
+    isset($_SERVER['REQUEST_METHOD']) ? header('HTTP/1.0 404 Not Found') : fwrite(fopen('php://stderr', 'w'), "migrate-receipt-key.php must be run with the php command-line binary.\n");
+    exit(1);
 }
 /*
- * Receipt key migration (command line only; the statement above answers web
- * requests with 404 before anything else runs). Re-encrypts legacy receipt
+ * Receipt key migration (command line only; the statement above stops any
+ * other server API, with a 404 for web requests, before anything else runs). Re-encrypts legacy receipt
  * files (files/<n>.aes: keyed on the voucher ID, empty key part) as
  * files/<n>.v2.aes (keyed on the file number and the configured $key, see
  * receipt_v2_encrypt() in functions.php). Runbook: "Receipt key" in the
@@ -19,9 +20,9 @@ if (PHP_SAPI !== 'cli') {
  * --delete-legacy decrypts both files again and deletes <n>.aes only where
  * <n>.v2.aes holds the same plain text. A legacy file is decrypted with the
  * voucher ID of a row that references it (the first 32-byte block is probed
- * per candidate) and must be a PDF or JPEG; other files, files above
- * --max-size and files whose voucher ID changed (a merge) are skipped and
- * listed, and keep working as legacy files.
+ * per candidate) and must be a complete PDF or JPEG; other files, files above
+ * --max-size, files whose voucher ID changed (a merge) and names that are not
+ * file numbers are skipped and listed, and keep working as legacy files.
  *
  *   --dry-run        report only; writes, deletes and locks nothing
  *   --delete-legacy  the second phase
@@ -32,6 +33,8 @@ if (PHP_SAPI !== 'cli') {
  *   --files          receipt directory (default: files/ next to this script)
  *   --constants      configuration; by default constants.php is included from
  *                    this directory exactly as index.php does
+ *                    (relative --files and --constants are relative to the
+ *                    working directory)
  *   --database       PostgreSQL connection string (default: dbname=accounting,
  *                    as the application)
  *
@@ -90,8 +93,10 @@ function receipt_migration_options($arguments)
             $options[substr($argument, 2)] = true;
         } elseif (preg_match('/^--(limit|max-size)=([1-9][0-9]*)$/', $argument, $match)) {
             $options[$match[1]] = intval($match[2]);
-        } elseif (preg_match('/^--(files|constants|database)=(.+)$/', $argument, $match)) {
-            $options[$match[1]] = $match[2];
+        } elseif (preg_match('/^--(files|constants)=(.+)$/', $argument, $match)) {
+            $options[$match[1]] = substr($match[2], 0, 1) === '/' ? $match[2] : getcwd() . '/' . $match[2];
+        } elseif (preg_match('/^--database=(.+)$/', $argument, $match)) {
+            $options['database'] = $match[1];
         } else {
             return false;
         }
@@ -110,23 +115,49 @@ function receipt_migration_key($constants)
     return isset($key) ? $key : null;
 }
 
-// File numbers of the legacy receipt files, in ascending order.
+// File numbers of the legacy receipt files, ascending, and the other *.aes
+// names (not <n>.v2.aes): array(numbers, names). A file number is canonical
+// and fits PostgreSQL's integer (and a 32-bit PHP integer).
 function receipt_migration_numbers($directory, $names)
 {
     $numbers = array();
+    $others = array();
     foreach ($names as $name) {
-        if (preg_match('/^([0-9]+)\.aes$/', $name, $match) && is_file("$directory/$name")) {
-            $numbers[] = $match[1];
+        if (!is_file("$directory/$name") || substr($name, -4) !== '.aes' || substr($name, -7) === '.v2.aes') {
+            continue;
+        }
+        $number = substr($name, 0, -4);
+        if (preg_match('/^[1-9][0-9]{0,9}$/', $number) && (strlen($number) < 10 || strcmp($number, '2147483647') <= 0)) {
+            $numbers[] = $number;
+        } else {
+            $others[] = $name;
         }
     }
     sort($numbers, SORT_NUMERIC);
-    return $numbers;
+    sort($others, SORT_STRING);
+    return array($numbers, $others);
+}
+
+// A decrypted legacy receipt (whole 32-byte blocks, less than one block of
+// zero padding) that ends like a PDF ("%%EOF" in its last 1024 bytes) or a
+// JPEG (FF D9).
+function receipt_migration_is_complete($plain)
+{
+    $data = rtrim($plain, "\0");
+    if (strlen($plain) % 32 !== 0 || strlen($plain) - strlen($data) >= 32) {
+        return false;
+    }
+    if (substr($data, 0, 4) === '%PDF') {
+        return strpos(substr($data, -1024), '%%EOF') !== false;
+    }
+    return substr($data, 0, 3) === "\xFF\xD8\xFF" && substr($data, -2) === "\xFF\xD9";
 }
 
 /*
  * Decrypts a legacy receipt: array('ok', voucher ID, padded plain text) with
- * the first voucher that references the file and decrypts its first block to
- * a PDF or JPEG; otherwise array(status, message).
+ * the first voucher that references the file, decrypts its first block to a
+ * PDF or JPEG and the whole file to a complete one; otherwise array(status,
+ * message).
  */
 function receipt_migration_legacy($connection, $options, $number)
 {
@@ -145,11 +176,15 @@ function receipt_migration_legacy($connection, $options, $number)
     pg_free_result($result);
     foreach ($ids as $id) {
         // CBC: the first block decrypts on its own, without the whole file.
-        if (receipt_has_known_type(receipt_decrypt($id, '', substr($legacy, 0, 32)))) {
-            return array('ok', $id, receipt_decrypt($id, '', $legacy));
+        if (!receipt_has_known_type(receipt_decrypt($id, '', substr($legacy, 0, 32)))) {
+            continue;
+        }
+        $plain = receipt_decrypt($id, '', $legacy);
+        if (receipt_migration_is_complete($plain)) {
+            return array('ok', $id, $plain);
         }
     }
-    return array('skipped', 'not migrated: no voucher with this file decrypts it to a PDF or JPEG');
+    return array('skipped', 'not migrated: no voucher with this file decrypts it to a complete PDF or JPEG');
 }
 
 // One legacy file: array(status, message); status is a summary counter.
@@ -198,7 +233,16 @@ function receipt_migration_run($connection, $options, $key, $names, $out)
 {
     $counts = array('migrated' => 0, 'present' => 0, 'deleted' => 0, 'pending' => 0, 'skipped' => 0, 'failed' => 0);
     $changed = 0;
-    foreach (receipt_migration_numbers($options['files'], $names) as $number) {
+    if ($options['delete-legacy']) {
+        fwrite($out, "*** --delete-legacy: only after `sync` and after checking several migrated receipts in the browser. "
+            . "Deleted legacy files can only be restored from the backup. ***\n");
+    }
+    list($numbers, $others) = receipt_migration_numbers($options['files'], $names);
+    foreach ($others as $name) {
+        $counts['skipped']++;
+        fwrite($out, "$name: not migrated: not a file number\n");
+    }
+    foreach ($numbers as $number) {
         if ($options['limit'] > 0 && $changed >= $options['limit']) {
             fwrite($out, "Stopped after --limit={$options['limit']}; run again for the remaining files.\n");
             break;
