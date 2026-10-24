@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5659aedfbc7d6bd99881baf86c7e1c44",
+    "content-hash": "506475690fd0afc0270c6960173e4907",
     "packages": [
         {
             "name": "phpseclib/phpseclib",
@@ -157,6 +157,10 @@
             ],
             "description": "Pdf parser library. Can read and extract information from pdf file.",
             "homepage": "http://www.pdfparser.org",
+            "support": {
+                "issues": "https://github.com/smalot/pdfparser/issues",
+                "source": "https://github.com/smalot/pdfparser/tree/master"
+            },
             "time": "2015-03-18T08:17:46+00:00"
         },
         {
@@ -220,6 +224,10 @@
                 "pdf417",
                 "qrcode"
             ],
+            "support": {
+                "source": "https://github.com/tecnickcom/TCPDF/tree/6.2.6"
+            },
+            "abandoned": "tecnickcom/tcpdf",
             "time": "2015-01-28T18:51:40+00:00"
         }
     ],
@@ -2013,7 +2021,7 @@
     "platform": [],
     "platform-dev": [],
     "platform-overrides": {
-        "php": "7.4.33"
+        "php": "8.5.0"
     },
     "plugin-api-version": "2.2.0"
 }
