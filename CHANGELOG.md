@@ -77,15 +77,8 @@ again.
 
 ### Upgrade notes
 
-1. Back up the database, `files/` and `constants.php`.
-2. Make sure `constants.php` sets a valid `$key`: at least 16 characters, not
-   `CHANGE-ME` (a random 32+ character string is recommended). Do not change
-   it after the upgrade.
-3. Deploy the code including `vendor/` (or use the release archive). Check that
-   `mbstring.func_overload` does not include string overloading.
-4. Migrate the receipts with `migrate-receipt-key.php` following the runbook in
-   [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md): dry run,
-   migrate, `sync`, spot checks, and `--delete-legacy` later.
-5. Configure the web server to deny access to `files/`, `vendor/`, `tests/`,
-   `constants.php` and `migrate-receipt-key.php`.
-6. Tell users that everyone has to log in again.
+Follow [UPGRADING.md](UPGRADING.md) (also in the release archive). In short:
+back up the database, `files/` and `constants.php`; set a valid `$key`
+(at least 16 characters, not `CHANGE-ME`); deploy the code including `vendor/`;
+migrate the receipts with `migrate-receipt-key.php`; deny web access to
+`files/`, `vendor/`, `tests/` and the configuration; everyone logs in again.
