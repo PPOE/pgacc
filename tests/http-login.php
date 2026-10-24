@@ -404,10 +404,31 @@ if (strpos($form['body'], '<input name="target" type="hidden" value="" />') === 
 }
 check('login form', $formProblems);
 
-// Logout redirects to index.php and clears both cookies.
-$logout = http_request('/index.php?action=logout', 'GET', array(), $cookies);
+// Logout redirects to index.php and clears both cookies. It also ends the
+// session on the server (users.cookie is cleared), so the cookies of that
+// session no longer authenticate, even if a copy was kept.
+$reviewerCookies = response_cookies(login_request('synthetic-reviewer', 'reviewer-password'));
+check('admin session before logout', authenticated_as_problems($adminCookies));
+$logout = http_request('/index.php?action=logout', 'GET', array(), $adminCookies);
 check('logout', array_merge(logout_response_problems($logout), redirect_body_problems($logout)));
 check('logout cookie attributes', logout_cookie_attribute_problems($logout));
+$loggedOut = login_state(1);
+check('logout clears users.cookie', $loggedOut['cookie'] === null
+    ? array() : array('users.cookie was ' . var_export($loggedOut['cookie'], true) . ', expected NULL'));
+check('cookies of a logged-out session are rejected', not_authenticated_problems($adminCookies));
+check('logout keeps the sessions of other users', authenticated_as_problems($reviewerCookies));
+
+// A logout with a wrong token for a user id ends nothing.
+$reviewerState = login_state(2);
+$forgedLogout = http_request('/index.php?action=logout', 'GET', array(), array(
+    'pp_pgacc_login' => str_repeat('0', 64),
+    'pp_pgacc_id' => '2',
+));
+check('logout with a wrong token', logout_response_problems($forgedLogout));
+check('logout with a wrong token keeps the session', array_merge(
+    login_state(2) === $reviewerState ? array() : array('changed the database login state'),
+    authenticated_as_problems($reviewerCookies)
+));
 
 // Same login and logout against a server without output buffering.
 $unbufferedUrl = start_unbuffered_server(8081);

@@ -16,7 +16,12 @@ $pageLogin = array('start' => 'function page_login()', 'end' => '<h1>Login erfor
 
 // The early-answer blocks of index.php and the start of the page, used to
 // move one block back after acc_header() (the ordering before the fix).
-$logoutBlock = "if (\$page == \"logout\")\n{\n  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);\n"
+$logoutBlock = "if (\$page == \"logout\")\n{\n"
+    . "  // Ends the session on the server too: its cookies stop working even if\n"
+    . "  // a copy was kept. Wrong or missing cookies end nothing.\n"
+    . "  \$logoutId = checklogin('id', false);\n  if (\$logoutId > 0)\n"
+    . "    pg_query(\"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
+    . "  setcookie(\"pp_pgacc_login\", \"\", time() - 3600);\n"
     . "  setcookie(\"pp_pgacc_id\", \"\", time() - 3600);\n  header(\"Location: index.php\");\n"
     . "  pg_close(\$dbconn);\n  return;\n}\n";
 $loginRedirectBlock = "if (\$page == \"login\" && login_redirect())\n{\n  pg_close(\$dbconn);\n  return;\n}\n";
@@ -229,6 +234,27 @@ return array(
         ),
 
         // The logout block of index.php, answered before acc_header().
+        array(
+            'id' => 'logout-session-kept',
+            'region' => $logout,
+            'search' => 'pg_query("UPDATE users SET cookie = NULL WHERE id = $logoutId");',
+            'replace' => 'true;',
+            'rationale' => 'Logout ends the session on the server: a kept copy of the cookies must stop working.',
+        ),
+        array(
+            'id' => 'logout-trusts-id-cookie',
+            'region' => $logout,
+            'search' => "\$logoutId = checklogin('id', false);",
+            'replace' => "\$logoutId = isset(\$_COOKIE['pp_pgacc_id']) ? intval(\$_COOKIE['pp_pgacc_id']) : 0;",
+            'rationale' => 'Only the session of valid cookies is ended, not that of any user id sent in a cookie.',
+        ),
+        array(
+            'id' => 'logout-without-session',
+            'region' => $logout,
+            'search' => 'if ($logoutId > 0)',
+            'replace' => 'if (true)',
+            'rationale' => 'Without a valid session there is nothing to end (the query would fail without an id).',
+        ),
         array(
             'id' => 'logout-login-cookie-kept',
             'region' => $logout,

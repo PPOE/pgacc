@@ -198,6 +198,11 @@ if ($page == "edit" || $page == "merge")
 // acc_header() starts the page.
 if ($page == "logout")
 {
+  // Ends the session on the server too: its cookies stop working even if
+  // a copy was kept. Wrong or missing cookies end nothing.
+  $logoutId = checklogin('id', false);
+  if ($logoutId > 0)
+    pg_query("UPDATE users SET cookie = NULL WHERE id = $logoutId");
   setcookie("pp_pgacc_login", "", time() - 3600);
   setcookie("pp_pgacc_id", "", time() - 3600);
   header("Location: index.php");

@@ -344,6 +344,14 @@ with synthetic users and covered by a mutation target.
   the deploy (old cookies are numbers, no longer valid tokens). Changing
   `$key` later logs everyone out again; the receipt migration does not
   change `$key`.
+- [x] Logout ends the session on the server: it clears `users.cookie` of
+  the logged-in user before clearing the browser cookies, so a kept copy of
+  the cookies no longer authenticates (before, it stayed valid until the
+  24-hour expiry). Only the session of valid cookies is ended; a logout with
+  wrong or no cookies changes nothing. Logout ends every session of that
+  user (all sessions of a user share `users.cookie`, as before: a new login
+  also ends the previous one). Tests in `tests/http-login.php`, mutations in
+  `login-logout`.
 - [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
   `bgf`); not requested by the tests.
 
