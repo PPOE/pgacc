@@ -110,6 +110,10 @@ check('impressum versions', ref_normalize_body('<a href="http://www.php.net">PHP
     '<a href="http://www.php.net">PHP</a></td><td class=""><div>{{php-version}}</div></td>'
     . '<a href="http://www.postgresql.org/">PostgreSQL</a></td><td class=""><div>{{pg-version}}</div>');
 check('body without captcha', ref_normalize_body('value="5" name="other"'), 'value="5" name="other"');
+check('form tokens', ref_normalize_body('<input type="hidden" name="csrf_token" value="' . str_repeat('a1', 32)
+    . '" /><input type="hidden" name="csrf_token" value="' . str_repeat('0', 64) . '" /><input name="csrf_token" value="" />'),
+    '<input type="hidden" name="csrf_token" value="{{csrf-token}}" /><input type="hidden" name="csrf_token" value="{{csrf-token}}" />'
+    . '<input name="csrf_token" value="" />');
 check('text body', ref_body_block("a\nb"), "--- body (3 bytes) ---\na\nb");
 check('binary body', ref_body_block("%PDF\0"), '--- body (binary, 5 bytes, sha256 ' . hash('sha256', "%PDF\0") . ") ---\nJVBERgA=\n");
 check('latin1 body is binary', strpos(ref_body_block("\xFC"), 'binary') !== false, true);

@@ -196,6 +196,8 @@ function ref_normalize_body($body)
 {
     $body = preg_replace('#(<a href="http://www\.php\.net">PHP</a></td><td class=""><div>)[^<]*(</div>)#', '$1{{php-version}}$2', $body);
     $body = preg_replace('#(<a href="http://www\.postgresql\.org/">PostgreSQL</a></td><td class=""><div>)[^<]*(</div>)#', '$1{{pg-version}}$2', $body);
+    // The form token of the session (an HMAC of its random nonce).
+    $body = preg_replace('/(name="csrf_token" value=")[0-9a-f]{64}(")/', '$1{{csrf-token}}$2', $body);
     $a = null;
     $b = null;
     if (preg_match('/Was ergibt die Addition (\d+) \+ (\d+)\?/', $body, $matches) === 1) {
