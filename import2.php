@@ -200,7 +200,8 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
     return;
   }
 
-  vouchers_reset_ack($id, $rightssql);
+  // An import resets the approvals of the whole voucher.
+  vouchers_reset_ack($id, '');
 
   echo 'done: <a href="index.php?action=edit&id=' . $voucher["voucher_id"] . '&bid='.$voucher["id"].'">' . $voucher["voucher_id"] . "</a><br />";
 }

@@ -145,17 +145,34 @@ with synthetic users and covered by a mutation target.
   or without rows of the user's organization, created rows under that
   number. Now a revision needs a current (not deleted) row that the user
   sees ("FEHLER: Buchung nicht gefunden." otherwise), and the finalized
-  and approved checks cover the whole voucher. Behaviour difference: rows
-  of a voucher can no longer be revised while another organization's rows
-  are approved twice; `bgf` can no longer revive a voucher number whose
-  rows are all deleted through the empty voucher form. Mutation target
-  `rights-checks`.
+  check covers the whole voucher. Behaviour difference: `bgf` can no
+  longer revive a voucher number whose rows are all deleted through the
+  empty voucher form. Mutation target `rights-checks`.
+- [x] Approvals when a voucher changes (owner decision
+  on item 8 of the second review). The "bereits bestätigt" refusal of
+  revisions (first organization-scoped, then briefly voucher-wide) is
+  removed: a user may correct their own rows also while rows of another
+  organization are approved. Instead every revision, receipt upload
+  (`page_new_file()`) and PDF receipt import (`import2.php`) resets the
+  approvals of the whole voucher: for every current row of every
+  organization `ack1`/`ack2` move to `ack1_old`/`ack2_old` and are cleared
+  (`vouchers_reset_ack()` without rights restriction). The new rows of a
+  revision take their old approvals from the user's first current row in
+  the database, after the reset (the same names the form used to post);
+  posted `ack1`/`ack2`/`ack1_old`/`ack2_old` are no longer used, which
+  closes the open "posted old approval names" finding. A finalized row
+  anywhere in the voucher still refuses the change. Behaviour differences:
+  approved vouchers can be revised and get receipts again (their approvals
+  are reset, also of other organizations' rows); before, a revision of an
+  approved voucher was refused and an upload reset only the user's rows.
+  Tests in `tests/write-workflows.php` and `ReceiptImportTest`, mutations
+  in `rights-checks` and `import-checks`.
 - [x] Receipt upload (`page_new_file()`, second review fix): there was no
   finalized check, so a receipt could be attached to a finalized voucher
   (which also reset its approvals). A finalized row of any organization now
-  refuses the upload with "bereits finalisiert". The approved check stays
-  organization-scoped until the owner decides the matching revision rule
-  (item 8 of the review). Mutation target `rights-checks`.
+  refuses the upload with "bereits finalisiert". Its approved check is
+  removed with the approval reset below. Mutation target
+  `rights-checks`.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`
@@ -208,7 +225,7 @@ with synthetic users and covered by a mutation target.
   rights are stored. **Flagged for the owner:** users created so far have
   the rights of their creator; review them in the user list. Mutation
   target `rights-checks`.
-- [x] Read-only `Rbgf` (**owner-approved**). `accounts.php` documents a
+- [x] Read-only `Rbgf` (owner decision). `accounts.php` documents a
   leading `R` as read-only access ("Rbgf"), but only the rights SQL knew
   `Rbgf` (as unrestricted), so it could write everywhere. `write_rights()`
   (`functions.php`) drops the `Rbgf` token for writes and returns false
@@ -283,8 +300,9 @@ Open security findings (not changed here; owner decisions):
   exponent notation, surrounding whitespace). Rights are entered by root.
 - [ ] The login `target` is redirected to without a check
   (`login_redirect()`, `login()`).
-- [ ] Old approval names posted with a revision are stored as given
-  (`page_edit_save()`); they are only displayed as former approvals.
+- [x] Old approval names posted with a revision were stored as given
+  (`page_edit_save()`); fixed with the approval reset (they
+  come from the database).
 - [ ] `edit.php` still shows the approval reset button to `bgf` via
   `strpos()` (`$bgfandack`); it is hidden for `Rbgf` by `end_of_form()`.
 

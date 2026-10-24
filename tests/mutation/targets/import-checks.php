@@ -86,5 +86,12 @@ return array(
             'replace' => '    $result = pg_query("SELECT 1;")',
             'rationale' => 'A receipt that could not be stored leaves the voucher without a file number.',
         ),
+        array(
+            'id' => 'import2-reset-scoped',
+            'file' => 'import2.php',
+            'search' => "  vouchers_reset_ack(\$id, '');",
+            'replace' => '  vouchers_reset_ack($id, $rightssql);',
+            'rationale' => 'The PDF import resets the approvals of the whole voucher.',
+        ),
     ),
 );

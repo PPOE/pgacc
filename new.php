@@ -276,15 +276,6 @@ if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
-  pg_free_result($result);
-  return;
-}
-pg_free_result($result);
-
 $query = "SELECT nextval('file_number') AS num;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -300,7 +291,8 @@ if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
   return;
 }
 
-  vouchers_reset_ack($id, $rightssql);
+  // An upload resets the approvals of the whole voucher.
+  vouchers_reset_ack($id, '');
 
 $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

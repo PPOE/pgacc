@@ -179,25 +179,11 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
-  $ack1 = null;
-  $ack2 = null;
-  if ((isset($_POST["ack1_old"]) || isset($_POST["ack2_old"])) &&
-    strlen($_POST["ack1_old"]) > 0 || strlen($_POST["ack2_old"]) > 0)
-  {
-    $ack1 = $_POST["ack1_old"];
-    $ack2 = $_POST["ack2_old"];
-  }
-  if ((isset($_POST["ack1"]) || isset($_POST["ack2"])) &&
-      strlen($_POST["ack1"]) > 0 || strlen($_POST["ack2"]) > 0)
-  {
-    $ack1 = $_POST["ack1"];
-    $ack2 = $_POST["ack2"];
-  }
 $rightssql = rights2orgasql($rights);
 
-// Only a voucher of which the user sees a current row; a finalized or
-// approved row blocks the revision of the whole voucher, also a row of
-// another organization.
+// Only a voucher of which the user sees a current row; a finalized row
+// blocks the revision of the whole voucher, also a row of another
+// organization.
 $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -216,15 +202,6 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
-  pg_free_result($result);
-  return;
-}
-pg_free_result($result);
-
 if (!posted_organizations_allowed($parts, $rights))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -234,6 +211,21 @@ echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=5\">Zurück zur Buchung</a>";
 block_end();
+
+// Every change resets the approvals of the whole voucher,
+// also of other organizations' rows (they move to ack1_old/ack2_old). The
+// new rows keep the old approvals of the user's first current row, taken
+// from the database (posted approval names are not used).
+vouchers_reset_ack($id, '');
+$ack1 = null;
+$ack2 = null;
+$query = "SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql ORDER BY id ASC LIMIT 1;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  $ack1 = $line['ack1_old'];
+  $ack2 = $line['ack2_old'];
+}
+pg_free_result($result);
 
 $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

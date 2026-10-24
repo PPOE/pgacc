@@ -173,6 +173,27 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame('', $log);
     }
 
+    public function testImportResetsTheApprovalsOfTheWholeVoucher()
+    {
+        // Attaching a receipt resets the approvals of every
+        // current row of the voucher, also of another organization's row.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        $approvals = null;
+        list($output) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'upload',
+            function () use (&$approvals) {
+                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1, ack2)
+                          VALUES (9303, 4711, 20, 1, 'Synthetic approved row', timestamp '2024-09-15 00:00:00', 0, 'synthetic-a', 'synthetic-b')");
+                page_import2_match_voucher('2', 3, 'XY/987654321', '2024-09-15');
+                $approvals = pg_fetch_row(pg_query('SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id = 9303'));
+            }
+        );
+        self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
+        self::assertSame(array(null, null, 'synthetic-a', 'synthetic-b'), $approvals);
+    }
+
     public static function refusedImportProvider()
     {
         return array(

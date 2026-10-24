@@ -870,24 +870,53 @@ $foreignRevision = edit_request($foreignRevisionId, revision_form($foreignRevisi
 assert_contains($foreignRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a voucher of another organization');
 assert_database_count($database, $commentQuery, array('Synthetic rows added by organization two'), 0, 'revision of a voucher of another organization');
 assert_voucher_rows($database, $foreignRevisionId, array(voucher_row_state('1', null, null, 'f')), 'voucher of another organization after a revision');
-foreach (array('finalized' => 'receipt_received = true', 'approved twice' => "ack1 = 'synthetic-a', ack2 = 'synthetic-b'") as $stateLabel => $assignment) {
-    $lockedId = create_voucher_from_form($database, two_organization_form("Synthetic mixed voucher $stateLabel in one", 0), $adminCookies);
-    pg_query_params($database, "UPDATE vouchers SET $assignment WHERE voucher_id = $1 AND orga = 1", array($lockedId));
-    $lockedRevision = edit_request($lockedId, revision_form($lockedId, "Synthetic revision of a voucher $stateLabel in one", '-1.60'), $unitTwoCookies);
-    assert_contains(
-        $lockedRevision['body'],
-        $stateLabel === 'finalized' ? 'bereits finalisiert' : 'bereits bestätigt',
-        "revision of a voucher $stateLabel in another organization"
-    );
-    assert_database_count($database, $commentQuery, array("Synthetic revision of a voucher $stateLabel in one"), 0, "revision of a voucher $stateLabel in another organization");
-    assert_database_count(
+// A finalized row of another organization refuses the revision.
+$lockedId = create_voucher_from_form($database, two_organization_form('Synthetic mixed voucher finalized in one', 0), $adminCookies);
+finalize_in_database($database, $lockedId, 1);
+$lockedRevision = edit_request($lockedId, revision_form($lockedId, 'Synthetic revision of a voucher finalized in one', '-1.60'), $unitTwoCookies);
+assert_contains($lockedRevision['body'], 'bereits finalisiert', 'revision of a voucher finalized in another organization');
+assert_database_count($database, $commentQuery, array('Synthetic revision of a voucher finalized in one'), 0, 'revision of a voucher finalized in another organization');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($lockedId), 2, 'rows of the voucher finalized in another organization');
+
+// A user may correct their own rows although rows of another
+// organization are approved; every change resets the approvals of the whole
+// voucher: each current row's ack1/ack2 move to ack1_old/ack2_old.
+function voucher_approvals($database, $voucherId, $label)
+{
+    $result = @pg_query_params(
         $database,
-        'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
-        array($lockedId),
-        2,
-        "rows of the voucher $stateLabel in another organization"
+        'SELECT orga, ack1, ack2, ack1_old, ack2_old, comment FROM vouchers WHERE voucher_id = $1 AND NOT deleted ORDER BY orga, id',
+        array($voucherId)
     );
+    if ($result === false) {
+        fail_test("database query failed for $label: " . pg_last_error($database));
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows === false ? array() : $rows;
 }
+function approval_row($orga, $ack1, $ack2, $ack1Old, $ack2Old, $comment)
+{
+    return array('orga' => $orga, 'ack1' => $ack1, 'ack2' => $ack2, 'ack1_old' => $ack1Old, 'ack2_old' => $ack2Old, 'comment' => $comment);
+}
+function assert_voucher_approvals($database, $voucherId, $expected, $label)
+{
+    $actual = voucher_approvals($database, $voucherId, $label);
+    if ($actual !== $expected) {
+        fail_test("$label approvals were " . var_export($actual, true) . ', expected ' . var_export($expected, true));
+    }
+}
+$approvedOneId = create_voucher_from_form($database, two_organization_form('Synthetic mixed voucher approved in one', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1 AND orga = 1", array($approvedOneId));
+$correctionForm = revision_form($approvedOneId, 'Synthetic correction by organization two', '-1.65');
+$correctionForm['ack1_old'] = 'synthetic-forged-first';
+$correctionForm['ack2_old'] = 'synthetic-forged-second';
+$correction = edit_request($approvedOneId, $correctionForm, $unitTwoCookies);
+assert_redirect($correction, edit_location($approvedOneId, 5), 'correction of own rows of a voucher approved in another organization');
+assert_voucher_approvals($database, $approvedOneId, array(
+    approval_row('1', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic mixed voucher approved in one'),
+    approval_row('2', null, null, null, null, 'Synthetic correction by organization two'),
+), 'voucher approved in another organization after a correction');
 
 // A member voucher takes the member's name from the membership list
 // (getusers(), the stub's synthetic members); it is escaped like posted names.
@@ -1098,12 +1127,41 @@ foreach (array('admin' => array(null, $adminCookies, 2), 'organization two' => a
     );
 }
 
-// Approval names posted with a revision are stored as the old approvals;
-// they are escaped (a quote failed the query before).
+// A receipt upload resets the approvals of the whole
+// voucher too, also of other organizations' rows, and is allowed for an
+// approved voucher.
+$uploadResetId = create_voucher_from_form($database, two_organization_form('Synthetic upload voucher approved in one', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", array($uploadResetId));
+$uploadResetRow = database_row(
+    $database,
+    'SELECT id FROM vouchers WHERE voucher_id = $1 AND orga = 2 AND NOT deleted',
+    array($uploadResetId),
+    'upload row of the approved voucher'
+);
+$uploadReset = http_request(
+    '/index.php?action=edit',
+    'POST',
+    array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $uploadResetRow['id'], 'id' => $uploadResetId),
+    $unitTwoCookies,
+    null,
+    $syntheticReceipt
+);
+assert_redirect($uploadReset, 'index.php?action=edit&id=' . $uploadResetId . '&bid=' . $uploadResetRow['id'] . '&hint=1', 'receipt upload to an approved voucher');
+assert_voucher_approvals($database, $uploadResetId, array(
+    approval_row('1', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic upload voucher approved in one'),
+    approval_row('2', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic upload voucher approved in one'),
+), 'approved voucher after a receipt upload by organization two');
+
+// A revision keeps the approvals of the replaced rows as old approvals,
+// taken from the database (posted old approval names are ignored) and
+// escaped (a quote failed the query before).
 $quotedRevisionId = create_voucher($database, 'Synthetic draft with a quoted approval', '-14.00', 0, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET ack1 = $1, ack2 = $2 WHERE voucher_id = $3', array("synthetic-o'reviewer", "synthetic-reviewer'2", $quotedRevisionId));
 $quotedRevisionForm = revision_form($quotedRevisionId, 'Synthetic revision with a quoted approval', '-14.50');
-$quotedRevisionForm['ack1_old'] = "synthetic-o'reviewer";
-$quotedRevisionForm['ack2_old'] = "synthetic-reviewer'2";
+$quotedRevisionForm['ack1_old'] = 'synthetic-forged';
+$quotedRevisionForm['ack2_old'] = 'synthetic-forged';
+$quotedRevisionForm['ack1'] = 'synthetic-forged';
+$quotedRevisionForm['ack2'] = 'synthetic-forged';
 assert_redirect(edit_request($quotedRevisionId, $quotedRevisionForm, $adminCookies), edit_location($quotedRevisionId, 5), 'revision with quoted old approvals');
 $quotedRevision = database_row(
     $database,
