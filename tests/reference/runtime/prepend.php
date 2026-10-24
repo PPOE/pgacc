@@ -6,9 +6,11 @@
  * request, then chains the usual diagnostics recorder. PHP restores the
  * environment at the end of each request. The application cannot observe
  * the tag (it never reads application_name). Defines no globals.
- * libpq before 9.0 (the PHP 5.3 lane's 8.4) ignores PGAPPNAME; there
- * PGACC_REFERENCE_PGOPTIONS makes it send the same setting as a startup
- * option instead (PGOPTIONS, which libpq 8.4 supports).
+ * libpq before 9.0 (the PHP 5.3 lane's 8.4) ignores PGAPPNAME; against a
+ * 9.0+ server PGACC_REFERENCE_PGOPTIONS makes it send the same setting as a
+ * startup option instead (PGOPTIONS, which libpq 8.4 supports). A PostgreSQL
+ * 8.4 server has no application_name at all; the recorder then attributes
+ * statements by backend process (tests/reference/lib.php).
  * Must stay compatible with PHP 5.3.
  */
 putenv('PGAPPNAME=ref:' . ((isset($_SERVER['HTTP_X_PGACC_TEST_REQUEST'])

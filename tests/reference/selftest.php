@@ -36,6 +36,8 @@ check('allowlist problems', ref_allowlist_problems(array(
     array('id' => 'Y', 'php' => array('7.4'), 'files' => '*', 'lines' => '/(/', 'reason' => 'r', 'category' => 'accepted'),
     array('id' => 'Z', 'php' => array(), 'files' => '', 'lines' => '/a/', 'reason' => 'r', 'category' => 'accepted'),
     array('id' => 'W', 'php' => array('7.4'), 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'fixme'),
+    array('id' => 'V', 'php' => array('7.4'), 'pg' => '18', 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'todo'),
+    array('id' => 'U', 'php' => array('7.4'), 'pg' => array(), 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'todo'),
 )), array(
     'entry 0: missing reason',
     'entry 0: missing category',
@@ -45,7 +47,15 @@ check('allowlist problems', ref_allowlist_problems(array(
     'entry 3: missing php',
     'entry 3: missing files',
     "entry 4: category must be 'accepted' or 'todo'",
+    'entry 5: pg must be a non-empty list of PostgreSQL versions',
+    'entry 6: pg must be a non-empty list of PostgreSQL versions',
 ));
+$pgEntries = array(
+    array('id' => 'P', 'php' => array('7.4'), 'pg' => array('18'), 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'todo'),
+    array('id' => 'Q', 'php' => array('7.4'), 'files' => '*', 'lines' => '/b/', 'reason' => 'r', 'category' => 'todo'),
+);
+check('pg entries on their server', ref_entries_for_pg($pgEntries, '18'), $pgEntries);
+check('pg entries on another server', ref_entries_for_pg($pgEntries, '8.4'), array($pgEntries[1]));
 check('category summary', ref_category_summary($entries, array('A' => 3, 'C' => 2)),
     array('accepted' => array('A' => 3), 'todo' => array('C' => 2)));
 
@@ -62,7 +72,7 @@ check('sign is part of the line', ref_classify_changes('7.4', 'helpers/hex.txt',
 check('first matching entry wins', ref_classify_changes('8.5', 'helpers/hex.txt', array('+y'), $entries),
     array(array('C' => 1), array()));
 check('stale entries', ref_stale_entries('7.4', $entries, array('A' => 3)), array('B'));
-check('entries of other versions are not stale', ref_stale_entries('5.6', $entries, array()), array());
+check('entries of other versions are not stale', ref_stale_entries('5.3', $entries, array()), array());
 
 // ---------------------------------------------------------------- normalization
 

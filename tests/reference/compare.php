@@ -34,6 +34,12 @@ $problems = ref_allowlist_problems($entries);
 if (count($problems) > 0) {
     ref_fail("invalid tests/reference/allowlist.php:\n  " . implode("\n  ", $problems));
 }
+// Entries with a 'pg' key apply only on those PostgreSQL servers.
+$pg = getenv('PGACC_TEST_PG');
+if ($pg === false || $pg === '') {
+    ref_fail('PGACC_TEST_PG is not set (tests/reference/run.sh sets it)');
+}
+$entries = ref_entries_for_pg($entries, $pg);
 
 $files = array_unique(array_merge(ref_list_files($referenceDir), ref_list_files($actualDir)));
 sort($files, SORT_STRING);
@@ -91,7 +97,7 @@ foreach (ref_category_summary($entries, $used) as $category => $ids) {
         . (count($ids) > 0 ? ' (' . implode(', ', array_keys($ids)) . ')' : '') . "\n";
 }
 if (count($stale) > 0) {
-    $report .= "\nStale allowlist entries (accepted nothing on PHP $php): " . implode(', ', $stale) . "\n";
+    $report .= "\nStale allowlist entries (accepted nothing on PHP $php, PostgreSQL $pg): " . implode(', ', $stale) . "\n";
 }
 if (count($failed) > 0) {
     $report .= "\nUnaccepted differences (first lines; full diffs in diffs/):\n";

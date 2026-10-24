@@ -4,7 +4,7 @@
 services:
   database:
     volumes:
-      - ./tests/reference/runtime/postgres-statement-log.sql:/docker-entrypoint-initdb.d/zz-statement-log.sql:ro
+      - ./tests/reference/runtime/postgres-statement-log.sh:/docker-entrypoint-initdb.d/zz-statement-log.sh:ro
       - pglog:/pglog
 
   application:
@@ -14,7 +14,6 @@ services:
       dockerfile: tests/reference/runtime.Dockerfile
       args:
         BASE_IMAGE: ${PGACC_REFERENCE_BASE_IMAGE:?}
-        PGACC_REFERENCE_MCRYPT: ${PGACC_REFERENCE_MCRYPT:-0}
         PGACC_REFERENCE_FAKETIME: ${PGACC_REFERENCE_FAKETIME:?}
     environment:
       # A fixed, ticking "now" for the application process only (date(),
@@ -84,6 +83,8 @@ services:
       PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       PGACC_REFERENCE_MODE: ${PGACC_REFERENCE_MODE:?}
       PGACC_REFERENCE_LANE: ${PGACC_REFERENCE_LANE:?}
+      # Selects the allowlist entries with a 'pg' key (compare.php).
+      PGACC_TEST_PG: ${PGACC_TEST_PG:?}
       PGACC_REFERENCE_OWNER: ${PGACC_REFERENCE_OWNER:-}
       PGACC_REFERENCE_STATEMENT_LOG: /pglog/statements.csv
       PGACC_REFERENCE_STUB_LOG: /stub/requests.log

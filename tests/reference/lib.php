@@ -309,12 +309,24 @@ function ref_query($database, $query)
  * so every statement of a finished request precedes the marker.
  * Returns the records before the marker, as array(application_name,
  * severity, sqlstate, message, query).
+ *
+ * PostgreSQL 8.4 has no application_name (9.0+), and its CSV log has 22
+ * columns instead of 23 or more. There the recorder's own records are those
+ * of its backend process (pg_get_pid()), and the records of connections from
+ * the application server's address (connection_from "<ip>:<port>",
+ * PGACC_TEST_BASE_URL's host) are attributed to request $marker: the scenario sends one request at
+ * a time and waits for it to finish, so no other request can be in the
+ * window (the "statements of other requests" check cannot fire on 8.4).
+ * Other connections (the healthcheck on the local socket, the fixture load
+ * from database-test) are ignored, as their application_name does elsewhere.
  */
 function ref_statement_log_until_marker($database, &$offset, $marker)
 {
     ref_query($database, "SELECT 'pgacc-reference-marker:" . $marker . "'");
     $path = getenv('PGACC_REFERENCE_STATEMENT_LOG');
     $needle = "pgacc-reference-marker:$marker'";
+    $clientPid = (string) pg_get_pid($database);
+    $serverHost = gethostbyname(parse_url(getenv('PGACC_TEST_BASE_URL'), PHP_URL_HOST));
     for ($attempt = 0; $attempt < 200; $attempt++) {
         clearstatcache();
         $data = is_file($path) ? file_get_contents($path, false, null, $offset) : '';
@@ -326,6 +338,15 @@ function ref_statement_log_until_marker($database, &$offset, $marker)
             // PostgreSQL's CSV log escapes quotes by doubling only; chr(1)
             // never occurs, so PHP's backslash escape does not interfere.
             while (($row = fgetcsv($stream, 0, ',', '"', "\x01")) !== false) {
+                if (count($row) === 22) {
+                    if ($row[3] === $clientPid) {
+                        $row[22] = 'pgacc-reference-client';
+                    } elseif (preg_replace('/:\d+$/', '', $row[4]) === $serverHost) {
+                        $row[22] = 'ref:' . $marker;
+                    } else {
+                        $row[22] = 'other';
+                    }
+                }
                 if (count($row) < 23) {
                     continue;
                 }
@@ -592,6 +613,9 @@ function ref_allowlist_problems($entries)
         if (isset($entry['php']) && !is_array($entry['php'])) {
             $problems[] = "entry $index: php must be a list of versions";
         }
+        if (array_key_exists('pg', $entry) && (!is_array($entry['pg']) || count($entry['pg']) === 0)) {
+            $problems[] = "entry $index: pg must be a non-empty list of PostgreSQL versions";
+        }
         if (isset($entry['lines']) && is_string($entry['lines']) && @preg_match($entry['lines'], '') === false) {
             $problems[] = "entry $index: invalid lines pattern";
         }
@@ -630,6 +654,20 @@ function ref_classify_changes($php, $file, $changedLines, $entries)
         }
     }
     return array($used, $unmatched);
+}
+
+// The entries that apply on PostgreSQL $pg (PGACC_TEST_PG): those without a
+// 'pg' key, and those that list $pg. Entries for other servers are neither
+// used nor stale.
+function ref_entries_for_pg($entries, $pg)
+{
+    $selected = array();
+    foreach ($entries as $entry) {
+        if (!isset($entry['pg']) || in_array($pg, $entry['pg'], true)) {
+            $selected[] = $entry;
+        }
+    }
+    return $selected;
 }
 
 // Per category ('accepted', 'todo'): the used entry IDs and their accepted
