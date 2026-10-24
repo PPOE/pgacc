@@ -2,7 +2,7 @@
 # request: GET /index.php?action=spendings&unit=-1&from=2012-01-01&to=2026-12-31 as anon
 status: 200
 header: Content-type: text/html
---- body (4289 bytes) ---
+--- body (4329 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -32,17 +32,17 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=spendings&sort=idd">Buchung</a></b>
+<table><tr><td><b><a href="index.php?action=spendings&amp;sort=idd">Buchung</a></b>
 </td>
-<td><b><a href="index.php?action=spendings&sort=datea">Datum</a></b>
+<td><b><a href="index.php?action=spendings&amp;sort=datea">Datum</a></b>
 </td>
-<td><b><a href="index.php?action=spendings&sort=typea">Art</a></b>
+<td><b><a href="index.php?action=spendings&amp;sort=typea">Art</a></b>
 </td>
-<td><b><a href="index.php?action=spendings&sort=loa">LO</a></b>
+<td><b><a href="index.php?action=spendings&amp;sort=loa">LO</a></b>
 </td>
-<td><b><a href="index.php?action=spendings&sort=ama">Betrag</a></b>
+<td><b><a href="index.php?action=spendings&amp;sort=ama">Betrag</a></b>
 </td>
-<td><b><a href="index.php?action=spendings&sort=ama">Name</a></b>
+<td><b><a href="index.php?action=spendings&amp;sort=ama">Name</a></b>
 </td>
 </tr>
 <tr><td>2008</td>
@@ -101,7 +101,7 @@ header: Content-type: text/html
 <td>Synthetic Supplier</td>
 </tr></table>
 </div>
-<br style="clear: both;" /><center><a href="/index.php?action=spendings&unit=-1&from=2012-01-01&to=2026-12-31&format=csv">Als CSV Datei herunterladen</a></center>
+<br style="clear: both;" /><center><a href="/index.php?action=spendings&amp;unit=-1&amp;from=2012-01-01&amp;to=2026-12-31&amp;format=csv">Als CSV Datei herunterladen</a></center>
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">

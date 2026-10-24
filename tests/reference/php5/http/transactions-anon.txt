@@ -2,7 +2,7 @@
 # request: GET /index.php?action=transactions as anon
 status: 200
 header: Content-type: text/html
---- body (6847 bytes) ---
+--- body (6871 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -32,15 +32,15 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=transactions&sort=datea">Datum</a></b>
+<table><tr><td><b><a href="index.php?action=transactions&amp;sort=datea">Datum</a></b>
 </td>
-<td><b><a href="index.php?action=transactions&sort=typea">Art</a></b>
+<td><b><a href="index.php?action=transactions&amp;sort=typea">Art</a></b>
 </td>
-<td><b><a href="index.php?action=transactions&sort=loa">LO</a></b>
+<td><b><a href="index.php?action=transactions&amp;sort=loa">LO</a></b>
 </td>
-<td><b><a href="index.php?action=transactions&sort=ka">Konto</a></b>
+<td><b><a href="index.php?action=transactions&amp;sort=ka">Konto</a></b>
 </td>
-<td><b><a href="index.php?action=transactions&sort=ama">Betrag</a></b>
+<td><b><a href="index.php?action=transactions&amp;sort=ama">Betrag</a></b>
 </td>
 </tr>
 <tr><td>2012-03-01</td>
@@ -190,7 +190,7 @@ header: Content-type: text/html
 <td>0.10€</td>
 </tr></table>
 </div>
-<br style="clear: both;" /><center><a href="/index.php?action=transactions&format=csv">Als CSV Datei herunterladen</a></center>
+<br style="clear: both;" /><center><a href="/index.php?action=transactions&amp;format=csv">Als CSV Datei herunterladen</a></center>
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">

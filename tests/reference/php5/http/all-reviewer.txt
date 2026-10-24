@@ -2,7 +2,7 @@
 # request: GET /index.php?action=all&filter_date=2024 as reviewer
 status: 200
 header: Content-type: text/html
---- body (14596 bytes) ---
+--- body (14775 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,41 +31,41 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=all&sort=idd&filter_date=2024">Buchung</a><a href="index.php?action=all&hide=1"><img class="icon" src="icons/delete.png"></a></b>
+<table><tr><td><b><a href="index.php?action=all&amp;sort=idd&amp;filter_date=2024">Buchung</a><a href="index.php?action=all&hide=1"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=bida&filter_date=2024">Buchungszeile</a><a href="index.php?action=all&hide=2"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><a href="index.php?action=all&hide=2"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=datea&filter_date=2024">Datum</a><a href="index.php?action=all&hide=3"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=datea&amp;filter_date=2024">Datum</a><a href="index.php?action=all&hide=3"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=typea&filter_date=2024">Art</a><a href="index.php?action=all&hide=4"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=typea&amp;filter_date=2024">Art</a><a href="index.php?action=all&hide=4"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=loa&filter_date=2024">LO</a><a href="index.php?action=all&hide=5"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=loa&amp;filter_date=2024">LO</a><a href="index.php?action=all&hide=5"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=membera&filter_date=2024">Mitglied</a><a href="index.php?action=all&hide=6"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=membera&amp;filter_date=2024">Mitglied</a><a href="index.php?action=all&hide=6"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=gka&filter_date=2024">Fremdkonto</a><a href="index.php?action=all&hide=7"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><a href="index.php?action=all&hide=7"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=ka&filter_date=2024">Konto</a><a href="index.php?action=all&hide=8"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=ka&amp;filter_date=2024">Konto</a><a href="index.php?action=all&hide=8"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=vka&filter_date=2024">Virt.Konto</a><a href="index.php?action=all&hide=9"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><a href="index.php?action=all&hide=9"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=ama&filter_date=2024">Betrag</a><a href="index.php?action=all&hide=10"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=ama&amp;filter_date=2024">Betrag</a><a href="index.php?action=all&hide=10"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=texta&filter_date=2024">Text</a><a href="index.php?action=all&hide=11"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=texta&amp;filter_date=2024">Text</a><a href="index.php?action=all&hide=11"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=commenta&filter_date=2024">Kommentar</a><a href="index.php?action=all&hide=12"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><a href="index.php?action=all&hide=12"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=comma&filter_date=2024">Gewidmet</a><a href="index.php?action=all&hide=13"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><a href="index.php?action=all&hide=13"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=acka&filter_date=2024">Bestätigt</a><a href="index.php?action=all&hide=14"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><a href="index.php?action=all&hide=14"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=acka_old&filter_date=2024">Best. alt</a><a href="index.php?action=all&hide=15"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><a href="index.php?action=all&hide=15"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=refunda&filter_date=2024">Rück.</a><a href="index.php?action=all&hide=16"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=refunda&amp;filter_date=2024">Rück.</a><a href="index.php?action=all&hide=16"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=bela&filter_date=2024">Datei</a><a href="index.php?action=all&hide=17"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=bela&amp;filter_date=2024">Datei</a><a href="index.php?action=all&hide=17"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=all&sort=namea&filter_date=2024">Name/Adresse</a><a href="index.php?action=all&hide=18"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=all&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><a href="index.php?action=all&hide=18"><img class="icon" src="icons/delete.png"></a></b>
 </td>
 </tr>
 <form action="index.php" method="GET"> <tr>
@@ -282,13 +282,13 @@ header: Content-type: text/html
 <td>99.99€</td>
 <td>Sachspende Österreich
 zweite Zeile BG/123456789 12</td>
-<td>Kommentar <b>GF</b></td>
+<td>Kommentar &lt;b&gt;GF&lt;/b&gt;</td>
 <td>Ja</td>
 <td>reviewer-a reviewer-b</td>
 <td><del></del> <del></del></td>
 <td>Nein</td>
 <td>Nein</td>
-<td>Jörg "Quote" O'Brien Gasse 2 8010 Graz</td>
+<td>Jörg &quot;Quote&quot; O&#039;Brien Gasse 2 8010 Graz</td>
 </tr><tr><td><a href="index.php?action=edit&id=2013&bid=213">2013</a></td>
 <td>213</td>
 <td>2024-10-02</td>
@@ -363,7 +363,7 @@ zweite Zeile BG/123456789 12</td>
 <td>Intern   </td>
 </tr></table>
 </div>
-<br style="clear: both;" /><center><a href="/index.php?action=all&filter_date=2024&format=csv">Als CSV Datei herunterladen</a></center>
+<br style="clear: both;" /><center><a href="/index.php?action=all&amp;filter_date=2024&amp;format=csv">Als CSV Datei herunterladen</a></center>
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">

@@ -2,7 +2,7 @@
 # request: GET /index.php?action=closed&filter_date=2024 as norights
 status: 200
 header: Content-type: text/html
---- body (7127 bytes) ---
+--- body (7279 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,41 +31,41 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=closed&sort=idd&filter_date=2024">Buchung</a><a href="index.php?action=closed&hide=1"><img class="icon" src="icons/delete.png"></a></b>
+<table><tr><td><b><a href="index.php?action=closed&amp;sort=idd&amp;filter_date=2024">Buchung</a><a href="index.php?action=closed&hide=1"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=bida&filter_date=2024">Buchungszeile</a><a href="index.php?action=closed&hide=2"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><a href="index.php?action=closed&hide=2"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=datea&filter_date=2024">Datum</a><a href="index.php?action=closed&hide=3"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=datea&amp;filter_date=2024">Datum</a><a href="index.php?action=closed&hide=3"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=typea&filter_date=2024">Art</a><a href="index.php?action=closed&hide=4"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=typea&amp;filter_date=2024">Art</a><a href="index.php?action=closed&hide=4"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=loa&filter_date=2024">LO</a><a href="index.php?action=closed&hide=5"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=loa&amp;filter_date=2024">LO</a><a href="index.php?action=closed&hide=5"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=membera&filter_date=2024">Mitglied</a><a href="index.php?action=closed&hide=6"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=membera&amp;filter_date=2024">Mitglied</a><a href="index.php?action=closed&hide=6"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=gka&filter_date=2024">Fremdkonto</a><a href="index.php?action=closed&hide=7"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><a href="index.php?action=closed&hide=7"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=ka&filter_date=2024">Konto</a><a href="index.php?action=closed&hide=8"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=ka&amp;filter_date=2024">Konto</a><a href="index.php?action=closed&hide=8"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=vka&filter_date=2024">Virt.Konto</a><a href="index.php?action=closed&hide=9"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><a href="index.php?action=closed&hide=9"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=ama&filter_date=2024">Betrag</a><a href="index.php?action=closed&hide=10"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=ama&amp;filter_date=2024">Betrag</a><a href="index.php?action=closed&hide=10"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=texta&filter_date=2024">Text</a><a href="index.php?action=closed&hide=11"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=texta&amp;filter_date=2024">Text</a><a href="index.php?action=closed&hide=11"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=commenta&filter_date=2024">Kommentar</a><a href="index.php?action=closed&hide=12"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><a href="index.php?action=closed&hide=12"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=comma&filter_date=2024">Gewidmet</a><a href="index.php?action=closed&hide=13"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><a href="index.php?action=closed&hide=13"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=acka&filter_date=2024">Bestätigt</a><a href="index.php?action=closed&hide=14"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><a href="index.php?action=closed&hide=14"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=acka_old&filter_date=2024">Best. alt</a><a href="index.php?action=closed&hide=15"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><a href="index.php?action=closed&hide=15"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=refunda&filter_date=2024">Rück.</a><a href="index.php?action=closed&hide=16"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=refunda&amp;filter_date=2024">Rück.</a><a href="index.php?action=closed&hide=16"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=bela&filter_date=2024">Datei</a><a href="index.php?action=closed&hide=17"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=bela&amp;filter_date=2024">Datei</a><a href="index.php?action=closed&hide=17"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=closed&sort=namea&filter_date=2024">Name/Adresse</a><a href="index.php?action=closed&hide=18"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=closed&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><a href="index.php?action=closed&hide=18"><img class="icon" src="icons/delete.png"></a></b>
 </td>
 </tr>
 <form action="index.php" method="GET"> <tr>
@@ -74,7 +74,7 @@ header: Content-type: text/html
 </td>
 </tr></form></table>
 </div>
-<br style="clear: both;" /><center><a href="/index.php?action=closed&filter_date=2024&format=csv">Als CSV Datei herunterladen</a></center>
+<br style="clear: both;" /><center><a href="/index.php?action=closed&amp;filter_date=2024&amp;format=csv">Als CSV Datei herunterladen</a></center>
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">
