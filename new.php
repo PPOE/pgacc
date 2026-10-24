@@ -304,8 +304,7 @@ $updated = pg_affected_rows($result);
 pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
-$data = file_get_contents($sourcepath);
-if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $data))
+if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath))
 {
   $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   pg_free_result($result);

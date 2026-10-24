@@ -11,18 +11,32 @@
  *     > tests/fixtures/receipt-v2/vectors.json
  *
  * Format: "PGR2" . IV (16 bytes) . AES-256-CBC(PKCS#7) ciphertext . HMAC-SHA256
- * over all of that; encryption key HMAC-SHA256(key, "pgacc-receipt-v2-enc|<n>"),
- * MAC key HMAC-SHA256(key, "pgacc-receipt-v2-mac|<n>").
+ * over all of that; encryption and MAC keys from HKDF-SHA256 (RFC 5869,
+ * hash_hkdf(), no salt) of the key with the info "pgacc-receipt-v2|enc|<n>"
+ * and "pgacc-receipt-v2|mac|<n>".
  *
- * Must stay compatible with PHP 5.6.
+ * Needs PHP 7.1.2 (hash_hkdf()).
  */
 function v2_vector($name, $key, $number, $iv, $plain)
 {
-    $encryptionKey = hash_hmac('sha256', 'pgacc-receipt-v2-enc|' . $number, $key, true);
-    $macKey = hash_hmac('sha256', 'pgacc-receipt-v2-mac|' . $number, $key, true);
+    $encryptionKey = hash_hkdf('sha256', $key, 32, 'pgacc-receipt-v2|enc|' . $number);
+    $macKey = hash_hkdf('sha256', $key, 32, 'pgacc-receipt-v2|mac|' . $number);
     $body = 'PGR2' . $iv . openssl_encrypt($plain, 'aes-256-cbc', $encryptionKey, OPENSSL_RAW_DATA, $iv);
     return array('name' => $name, 'key' => $key, 'number' => $number, 'iv' => bin2hex($iv),
         'plain' => bin2hex($plain), 'file' => bin2hex($body . hash_hmac('sha256', $body, $macKey, true)));
+}
+
+// A long receipt as prefix . str_repeat(unit, times) . suffix, with only the
+// SHA-256 of the file (keeps the fixture small).
+function v2_long_vector($name, $key, $number, $iv, $prefix, $unit, $times, $suffix)
+{
+    $vector = v2_vector($name, $key, $number, $iv, $prefix . str_repeat($unit, $times) . $suffix);
+    unset($vector['plain']);
+    $vector['plain_parts'] = array(bin2hex($prefix), bin2hex($unit), $times, bin2hex($suffix));
+    $vector['file_sha256'] = hash('sha256', hex2bin($vector['file']));
+    $vector['file_length'] = strlen($vector['file']) / 2;
+    unset($vector['file']);
+    return $vector;
 }
 
 $key = 'synthetic-test-only-encryption-key';
@@ -48,6 +62,9 @@ $vectors = array(
     v2_vector('pdf document, other key', $otherKey, '42', $iv, $pdf),
     v2_vector('jpeg with trailing NUL bytes', $key, '815', $iv, $jpeg . "\0\0"),
     v2_vector('png (other type)', $key, '42', $iv, "\x89PNG\r\n\x1A\nsynthetic"),
+    // Several 64 KiB chunks plus a partial block (receipt_v2_encrypt_stream()).
+    v2_long_vector('three chunks and a bit', $key, '42', $iv, '%PDF', "synthetic\x00\xff", 17000, "\n%%EOF\n"),
+    v2_long_vector('exactly two chunks', $key, '42', $iv, '', "\xFF\xD8\xFF", 43690, "\xFF\xD9"),
 );
 echo json_encode(array(
     'generator' => 'tests/fixtures/receipt-v2/generate-vectors.php',
