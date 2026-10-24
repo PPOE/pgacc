@@ -71,7 +71,7 @@ function page_import($rights)
         $voucher_number = 0;
         $lineno = 0;
         $skipped = array();
-        while (($data = fgetcsv($handle, 0, ";")) !== FALSE)
+        while (($data = fgetcsv($handle, 0, ";", '"', "\\")) !== FALSE)
         {
           $lineno++;
           $voucher2 = array();
@@ -178,7 +178,7 @@ function page_import($rights)
           }
           elseif ($csvformat == 'Paypal')
           {
-            $data = str_getcsv($data[0]);
+            $data = str_getcsv($data[0], ",", '"', "\\");
             if (intval(str_replace(array('.', ','), array('',''), $data[7])) == 0)
               continue;
             $voucher['lo'] = 10;
