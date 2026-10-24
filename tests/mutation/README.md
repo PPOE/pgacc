@@ -266,7 +266,7 @@ its baseline. `run.sh` takes the diff on the host
 ### CI (`ci.sh`)
 
 `sh tests/mutation/ci.sh <7.4|8.5> [--changed-since=<base>]` runs the
-self-test and the lane's target list, attempting every target: all 12 on PHP
+self-test and the lane's target list, attempting every target: all 13 on PHP
 7.4 (either server), `rights2orgasql` and `null-arguments` on PHP 8.5, where
 the other baselines fail on PHP 8.5 diagnostics. CI passes `--changed-since`
 on per-push runs and runs every target on full runs (weekly, manual, `full-ci`
@@ -400,6 +400,7 @@ also on PHP 8.5. The target files hold each mutation's rationale.
 | `listing-columns` | column preferences in `closed.php` (`listing_column_hidden()`, `emptytag()`) | `http-listing-prefs.php` |
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `donations` | `page_donations()` initializations, disabled publication, captcha | `http-donations.php` |
+| `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML encoding call site (one mutant per call) | `FunctionsTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 
 Accepted equivalents (reasons in the target files):

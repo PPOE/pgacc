@@ -24,6 +24,13 @@ final class FunctionsTest extends FunctionsTestCase
         $withCount = ob_get_clean();
         self::assertStringContainsString('3 Umsätze gefunden', $withCount);
 
+        // The request URI is reflected in an attribute: quotes are encoded, angle
+        // brackets and ampersands are kept as before.
+        $_SERVER['REQUEST_URI'] = '/index.php?action=all&filter_date=2024&x="><s>\'';
+        ob_start();
+        csv_download_link();
+        self::assertSame('<br style="clear: both;" /><center><a href="/index.php?action=all&filter_date=2024&x=&quot;><s>&#039;&format=csv">Als CSV Datei herunterladen</a></center>', ob_get_clean());
+
         $GLOBALS['make_csv'] = true;
         ob_start();
         $result = csv_download_link(3);
@@ -117,7 +124,60 @@ final class FunctionsTest extends FunctionsTestCase
             'cell and euro decimal' => array(array('td', '12.50€'), "<td>12.50€</td>\n", "12,50€\t"),
             'other tag' => array(array('th', 'Header'), "<th>Header</th>\n", 'Header'),
             'negative euro' => array(array('td', '-12.5€'), "<td>-12.5€</td>\n", "-12,5€\t"),
+            // CSV cells that a spreadsheet would read as a formula get a
+            // leading single quote; HTML and amounts are unchanged.
+            'formula with =' => array(array('td', '=HYPERLINK("x")'), "<td>=HYPERLINK(\"x\")</td>\n", "'=HYPERLINK(\"x\")\t"),
+            'formula with +' => array(array('td', '+A1'), "<td>+A1</td>\n", "'+A1\t"),
+            'formula with -' => array(array('td', '-2+3'), "<td>-2+3</td>\n", "'-2+3\t"),
+            'formula with @' => array(array('td', '@SUM(A1)'), "<td>@SUM(A1)</td>\n", "'@SUM(A1)\t"),
+            'formula with tab' => array(array('td', "\tx"), "<td>\tx</td>\n", "'\tx\t"),
+            'formula with carriage return' => array(array('td', "\rx"), "<td>\rx</td>\n", "'\rx\t"),
+            'formula character inside' => array(array('td', 'a=b+c-d@e'), "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"),
+            'formula character in other tags' => array(array('tr', '=x'), "<tr>=x</tr>\n", "=x\n"),
+            'negative euro amount is no formula' => array(array('td', '-50.00€'), "<td>-50.00€</td>\n", "-50,00€\t"),
+            'negative number without euro' => array(array('td', '-5'), "<td>-5</td>\n", "-5\t"),
+            'negative decimal without euro' => array(array('td', '-5,25'), "<td>-5,25</td>\n", "-5,25\t"),
+            'negative integer value' => array(array('td', -1000), "<td>-1000</td>\n", "-1000\t"),
+            'number with a formula after it' => array(array('td', "-5\n=1"), "<td>-5\n=1</td>\n", "'-5 / =1\t"),
+            'number with a trailing letter' => array(array('td', '-5x'), "<td>-5x</td>\n", "'-5x\t"),
+            'letter before a number' => array(array('td', '-x5'), "<td>-x5</td>\n", "'-x5\t"),
+            'plus number' => array(array('td', '+5'), "<td>+5</td>\n", "'+5\t"),
         );
+    }
+
+    public function testHtmlEscapeEncodesSpecialCharactersOnly()
+    {
+        self::assertSame('&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#039;s&lt;/a&gt;', html_escape('<a href="x">Tom & Jerry\'s</a>'));
+        // Umlauts, the euro sign and other UTF-8 text pass unchanged.
+        self::assertSame('Österreich: Grüße, Maß, 12 € (ÄÖÜäöüß)', html_escape('Österreich: Grüße, Maß, 12 € (ÄÖÜäöüß)'));
+        self::assertSame('Österreich: Grüße, Maß &amp; 12 €', html_escape('Österreich: Grüße, Maß & 12 €'));
+        // Byte-transparent: invalid UTF-8 is kept, not dropped (htmlspecialchars()
+        // with UTF-8 returns '' for it on PHP 5.3 and with ENT_QUOTES alone on 8).
+        self::assertSame("\xC3(&lt;\xFF", html_escape("\xC3(<\xFF"));
+        // Entities in the data are shown as written.
+        self::assertSame('&amp;amp; &amp;#039;', html_escape('&amp; &#039;'));
+        self::assertSame('', html_escape(null));
+        self::assertSame('', html_escape(''));
+        self::assertSame('42', html_escape(42));
+        self::assertSame('0', html_escape('0'));
+    }
+
+    public function testListingTextEscapesHtmlButNotCsv()
+    {
+        $GLOBALS['make_csv'] = false;
+        self::assertSame('&lt;b&gt;Jörg &quot;Q&quot; O&#039;Brien &amp; Co&lt;/b&gt;', listing_text('<b>Jörg "Q" O\'Brien & Co</b>'));
+        self::assertSame('', listing_text(null));
+        $GLOBALS['make_csv'] = true;
+        self::assertSame('<b>Jörg "Q" O\'Brien & Co</b>', listing_text('<b>Jörg "Q" O\'Brien & Co</b>'));
+        self::assertNull(listing_text(null));
+    }
+
+    public function testHtmlEscapeAttributeEncodesQuotesOnly()
+    {
+        self::assertSame('/index.php?action=all&amp;x=1', html_escape_attribute('/index.php?action=all&amp;x=1'));
+        self::assertSame('/index.php?action=all&filter_amount=>0&x=&quot;><s>&#039;ä', html_escape_attribute('/index.php?action=all&filter_amount=>0&x="><s>\'ä'));
+        self::assertSame('', html_escape_attribute(null));
+        self::assertSame('42', html_escape_attribute(42));
     }
 
     /**

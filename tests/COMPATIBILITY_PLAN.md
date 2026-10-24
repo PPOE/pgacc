@@ -417,12 +417,47 @@ Open security findings (not changed here; owner decisions):
 
 - [ ] No CSRF protection: every write action is a plain form POST or GET
   link authenticated by cookies.
-- [ ] Output is not HTML-escaped in several places, e.g. the user names in
+- [x] Output is not HTML-escaped in several places, e.g. the user names in
   the user list (`accounts.php`, root only) and the listing filter fields
-  (`closed.php`). [x] Fixed: the voucher page (`page_edit()`) echoed the
+  (`closed.php`). Fixed: the voucher page (`page_edit()`) echoed the
   request's voucher and row IDs in its notices and heading; it now uses
   them as `intval()` numbers throughout, as its query already did (a
   request such as `id=5abc` shows "Buchung 5" instead of "Buchung 5abc").
+  Fixed (output encoding): database and request values are encoded with
+  `html_escape()` (`htmlspecialchars($v, ENT_QUOTES, 'ISO-8859-1')`) where
+  they are echoed into HTML text or attributes: the ledger listings
+  (`closed.php` rows, sort links and filter inputs, also used by `all`,
+  `open`, `deleted`, `transactions`, `spendings`, `kdonations`), the voucher
+  form and approvals (`new.php`, `edit.php`), the user list
+  (`accounts.php`), the public report, campaign, transaction, spending and
+  virtual-account pages (`report.php`, `wk.php`, `transactions.php`,
+  `spendings.php`, `vreport.php`), the account report (`tinyreport.php`),
+  the membership-fee page (`mb.php`, also the member names from the
+  membership system) and the file names, MIME types and rejected lines of
+  the imports (`import.php`, `import2.php`). Listing cells shared with the
+  CSV export use `listing_text()`, which leaves the CSV unchanged. Request
+  values reflected in double-quoted attributes (the CSV link, sort links and
+  filter inputs) only get their quotes encoded (`html_escape_attribute()`),
+  so ordinary links and amount filters such as `>0` keep their bytes.
+  Encoding: the pages declare UTF-8 and the database is UTF-8; ISO-8859-1
+  makes `htmlspecialchars()` byte-transparent on PHP 5.3 to 8.5 (with
+  `UTF-8`, PHP 5.3 returns an empty string for invalid input), so text
+  without `& < > " '` (umlauts included) is byte-identical. **Behaviour
+  change** for values containing these characters: they are shown as text
+  instead of being interpreted (e.g. a stored `&uuml;` now displays as
+  written, not as `ü`). Tests: `tests/unit/FunctionsTest.php`,
+  `tests/http-output-escaping.php`; mutation target `output-escaping`.
+  Not changed: `login.php` (the login `target`, handled with the login
+  redirect fix), values that are already digits or validated by a
+  pattern without these characters (IDs, dates, `konto` of the reports),
+  `import.php`'s upload-error message (PHP leaves the MIME type empty for
+  upload errors, so the type check reports the file first), and dead code
+  (the `wk` variant of `wk_unit_report()`, `kdonations_page_listing_line()`).
+- [x] CSV export cells that start with `=`, `+`, `-`, `@`, a tab or a
+  carriage return are prefixed with `'` (`tag()`), so spreadsheets do not
+  evaluate them as formulas. Amount cells (`-12,50€`) and plain numbers
+  (`-5`, `-5,25`) are unchanged. **Behaviour change** for such cells only
+  (e.g. a name `+43 ...` or a text starting with `-` or `=`).
 - [x] The default organization of a single-organization user
   (`default_organization()`, `new.php`) used `is_numeric()` and `intval()`,
   whose results differ between PHP versions for unusual rights values.
@@ -1178,13 +1213,13 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 |---|---|---|
 | Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12; 11 after the finalization removal; fixed in the PR review), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`, fixed) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. The `donations.php` entries (5 findings) were removed with the fix. |
 | Empty array passed to `foreach` | `donations.php:119`, `:127` (2) | Added with the `donations.php` fix: `$donations` is now always `array()`, because the assignment that filled it is commented out (publication disabled for legal reasons). PHPStan correctly reports the sort and output loops as dead code. Kept on purpose until the owner decides on publication; see the array/input table. |
-| Malformed regular expression | `functions.php:73` | Known |
+| Malformed regular expression | `functions.php:73` | Known. Observed at runtime by `tests/http-output-escaping.php` (an unmatched `filter_amount`) as known failure `KF-AMOUNT-FILTER-REGEX`. |
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321` (fixed: `page_import()` takes the rights for the import checks); `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
 | Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
-| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
-| Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
+| Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` was not observed by the strict HTTP checks; `wk.php` is observed by `tests/http-output-escaping.php` as known failure `KF-WK-UNDEFINED-YEAR`. Each site warns on PHP 8 before headers. |
+| Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; observed by `tests/http-output-escaping.php` as known failure `KF-REPORT-UNDEFINED-UNIT`), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |

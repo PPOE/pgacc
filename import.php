@@ -9,9 +9,9 @@ function convif($do,$data)
 // With $lineno the line is skipped (its number is part of the report).
 function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline, $lineno = null)
 {
-              echo "Ungültige Buchungszeile in Datei ".($i+1)." ({$_FILES['uploadcsv']['name'][$i]})".($lineno === null ? '' : ", Zeile $lineno")." <br />\n";
-              echo "<pre>".$rawcsvline."</pre><br />\n";
-              echo "<pre>".$csvline."</pre><br />\n";
+              echo "Ungültige Buchungszeile in Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i]).")".($lineno === null ? '' : ", Zeile $lineno")." <br />\n";
+              echo "<pre>".html_escape($rawcsvline)."</pre><br />\n";
+              echo "<pre>".html_escape($csvline)."</pre><br />\n";
               echo "Das erkannte CSV Format ist $csvformat.<br />\n";
               echo "Falls du eine Handkassaeingabe tätigen möchtest geht das mit folgendem Format:<br />\n";
               echo "<pre>".$handkassacsvline."</pre><br />\n";
@@ -51,7 +51,7 @@ function page_import($rights)
     }
     if (strlen($_FILES['uploadcsv']['type'][$i]) <= 0 || (!in_array($_FILES['uploadcsv']['type'][$i],$csv_mimetypes)))
     {
-      echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") hat ein ungültiges Dateiformat ({$_FILES['uploadcsv']['type'][$i]}) und konnte daher nicht importiert werden.<br />";
+      echo "Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i]).") hat ein ungültiges Dateiformat (".html_escape($_FILES['uploadcsv']['type'][$i]).") und konnte daher nicht importiert werden.<br />";
       continue;
     }
     if ($_FILES['uploadcsv']['error'][$i] != 0)
@@ -61,12 +61,12 @@ function page_import($rights)
     }
     if ($_FILES['uploadcsv']['size'][$i] < 10)
     {
-      echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") ist zu klein und konnte daher nicht importiert werden.<br />";
+      echo "Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i]).") ist zu klein und konnte daher nicht importiert werden.<br />";
       continue;
     }
     $csvformat = 'BAWAG';
       if (($handle = fopen($_FILES['uploadcsv']['tmp_name'][$i],"r")) !== FALSE) {
-        echo "<h2>Importiere " . $_FILES['uploadcsv']['name'][$i] . "</h2>\n"; 
+        echo "<h2>Importiere " . html_escape($_FILES['uploadcsv']['name'][$i]) . "</h2>\n"; 
         $voucher_number = 0;
         $lineno = 0;
         $skipped = array();
@@ -365,8 +365,8 @@ function page_import($rights)
         }
         fclose($handle);
         if (count($skipped) > 0)
-          echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i]."): ".count($skipped)." Buchungszeilen übersprungen (Zeilen ".implode(", ", $skipped).")<br />\n";
-        echo "Datei ".($i+1)." (".$_FILES['uploadcsv']['name'][$i].") wurde erfolgreich importiert<br />\n";
+          echo "Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i])."): ".count($skipped)." Buchungszeilen übersprungen (Zeilen ".implode(", ", $skipped).")<br />\n";
+        echo "Datei ".($i+1)." (".html_escape($_FILES['uploadcsv']['name'][$i]).") wurde erfolgreich importiert<br />\n";
       }
   }
   echo "</table>\n";

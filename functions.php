@@ -28,7 +28,7 @@ function csv_download_link($i = -1)
   echo "<br style=\"clear: both;\" /><center>";
   if ($i >= 0)
     echo "$i Umsätze gefunden<br /><br />";
-  echo "<a href=\"$link\">Als CSV Datei herunterladen</a></center>";
+  echo "<a href=\"" . html_escape_attribute($link) . "\">Als CSV Datei herunterladen</a></center>";
 }
 function getfilter()
 {
@@ -104,6 +104,10 @@ function tag($tag, $text)
     {
       $text = str_replace(array("."),array(","),$text);
     }
+    // A cell that a spreadsheet would read as a formula (not a number) starts
+    // with a quote.
+    else if ($tag == 'td' && preg_match('/^[=+\-@\t\r]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+      $text = "'" . $text;
     if ($tag == 'tr')
       return "$text\n";
     else if ($tag == 'td')
@@ -112,6 +116,29 @@ function tag($tag, $text)
       return "$text";
   }
   return "<$tag>$text</$tag>\n";
+}
+// Text and attribute values in HTML: & < > " ' as entities. ISO-8859-1 makes
+// htmlspecialchars() byte-transparent for the UTF-8 pages on every PHP
+// version (UTF-8 would drop invalid input on PHP 5.3), so umlauts and all
+// other text stay unchanged.
+function html_escape($text)
+{
+  return htmlspecialchars(strval($text), ENT_QUOTES, 'ISO-8859-1');
+}
+// Listing cells, shared by the HTML page and the CSV export (no entities).
+function listing_text($text)
+{
+  global $make_csv;
+  if ($make_csv)
+    return $text;
+  return html_escape($text);
+}
+// A request value in a double-quoted attribute (links, filter fields): quotes
+// as entities. & < > stay, so ordinary links and amount filters (">0") keep
+// their bytes; they cannot end the attribute.
+function html_escape_attribute($text)
+{
+  return str_replace(array('"', "'"), array('&quot;', '&#039;'), strval($text));
 }
 function acc_header($dbconn,$page = "index",$year = 2015)
 {

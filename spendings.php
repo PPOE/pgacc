@@ -25,20 +25,20 @@ echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td",str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"]));
+echo tag("td",listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"])));
 }
 pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td", $line2["name"]);
+echo tag("td", listing_text($line2["name"]));
 }
 pg_free_result($result2);
 // removed for legal reasons
 //echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
 
 echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
-echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? $line["name"] : "<i>Privatperson</i>");
+echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");
 if ($make_csv)
   echo "\n";
 else

@@ -35,7 +35,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     $line['amount'] += $errline['amount'];
   }
   $avg = sprintf("%1.2f €",$line['amount'] / 100.0 / $line['count']);
-  $lo = $line['name'];
+  $lo = html_escape($line['name']);
   $Samount += $line['amount'];
   $amount = sprintf("%1.2f €",$line['amount'] / 100.0);
   $count = $line['count'];
@@ -54,7 +54,7 @@ $i = 0;
 $count = 0;
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $i++;
-  $lo = $line['name'];
+  $lo = html_escape($line['name']);
   $amount = sprintf("%1.2f €",$line['amount'] / 100.0);
   echo "<tr><td>$lo</td><td>$amount</td></tr>";
 }
@@ -72,7 +72,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     $count++;
   echo "<tr><td>$count</td>
   <td><a href=\"https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id={$line['id']}\">{$line['id']}</a> (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
-  <td>".($line['name'])."</td>
+  <td>".html_escape($line['name'])."</td>
   <td>".($line['amount']/100.0)."</td>
   <td>".intval($line['paid'])."</td></tr>";
   }
@@ -92,7 +92,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     $count++;
   echo "<tr><td>$count</td>
   <td><a href=\"https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id={$line['id']}\">{$line['id']}</a> (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
-  <td>".($line['name'])."</td>
+  <td>".html_escape($line['name'])."</td>
   <td>".($line['amount']/100.0)."</td>
   <td>".intval($line['paid'])."</td></tr>";
   }

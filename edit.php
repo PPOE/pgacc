@@ -387,10 +387,10 @@ if ($vouchers[0]['ack2'] != null && strlen($vouchers[0]['ack2']) > 3)
 page_form_header("edit");
 echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="acks" value="'.intval($acks).'" />
-<input type="hidden" name="ack1" value="'.$vouchers[0]['ack1'].'" />
-<input type="hidden" name="ack2" value="'.$vouchers[0]['ack2'].'" />
-<input type="hidden" name="ack1_old" value="'.$vouchers[0]['ack1_old'].'" />
-<input type="hidden" name="ack2_old" value="'.$vouchers[0]['ack2_old'].'" />
+<input type="hidden" name="ack1" value="'.html_escape($vouchers[0]['ack1']).'" />
+<input type="hidden" name="ack2" value="'.html_escape($vouchers[0]['ack2']).'" />
+<input type="hidden" name="ack1_old" value="'.html_escape($vouchers[0]['ack1_old']).'" />
+<input type="hidden" name="ack2_old" value="'.html_escape($vouchers[0]['ack2_old']).'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
@@ -408,9 +408,9 @@ function merge()
 <br />
 <br />';
 }
-  echo '<h4>Bestätigt von: '.$vouchers[0]['ack1'].' '.$vouchers[0]['ack2'];
+  echo '<h4>Bestätigt von: '.html_escape($vouchers[0]['ack1']).' '.html_escape($vouchers[0]['ack2']);
   if (isset($vouchers[0]['ack1_old']) || isset($vouchers[0]['ack2_old'])) {
-    echo '<del>'.$vouchers[0]['ack1_old'].' '.$vouchers[0]['ack2_old'].'</del>';
+    echo '<del>'.html_escape($vouchers[0]['ack1_old']).' '.html_escape($vouchers[0]['ack2_old']).'</del>';
   }
   echo '</h4>';
 

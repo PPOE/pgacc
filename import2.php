@@ -23,14 +23,14 @@ function page_import2_process($rights)
   block_start();
   for($i=0; $i < count($_FILES['upload']['name']); $i++)
   {
-    echo "Datei ".($i+1)." (".$_FILES['upload']['name'][$i]."):<br />";
+    echo "Datei ".($i+1)." (".html_escape($_FILES['upload']['name'][$i])."):<br />";
     if (strlen($_FILES['upload']['name'][$i]) <= 0)
     {
       continue;
     }
     if (strlen($_FILES['upload']['type'][$i]) <= 0 || (!in_array($_FILES['upload']['type'][$i], $mimetypes_whitelist)))
     {
-      echo "Hat ein ungültiges Dateiformat ({$_FILES['upload']['type'][$i]}) und konnte daher nicht importiert werden.<br />";
+      echo "Hat ein ungültiges Dateiformat (".html_escape($_FILES['upload']['type'][$i]).") und konnte daher nicht importiert werden.<br />";
       continue;
     }
     if ($_FILES['upload']['error'][$i] != 0)

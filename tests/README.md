@@ -177,6 +177,21 @@ deprecations. The suite also passes in random order, as Infection runs it.
 is malformed and cannot match; a test records that behaviour. PHPUnit 9 and Xdebug 3.1 are a legacy-runtime bridge, not
 production dependencies.
 
+`http-output-escaping.php` runs last and covers the output encoding: it
+adds synthetic organizations, types, a user and vouchers whose text columns
+contain markup, quotes, `&` and umlauts, then checks that the ledger
+listing, the voucher form, the user list, the public report, campaign,
+transaction, spending and virtual-account pages, the account report, the
+membership-fee page and the import reports show them as text
+(`&lt;s&gt;...`), that ordinary values and umlauts are unchanged, that
+reflected filter values, sort links and the CSV link are encoded, and that
+the CSV export keeps the raw text and prefixes formula cells (`=`, `+`, `-`,
+`@`, tab, carriage return) with `'`. It removes its rows afterwards. Pages
+with known diagnostics outside its scope are attributed to the known
+failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR` and
+`KF-REPORT-UNDEFINED-UNIT` (see `COMPATIBILITY_PLAN.md`), which must still
+occur.
+
 ### PHP diagnostics are failures
 
 Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
