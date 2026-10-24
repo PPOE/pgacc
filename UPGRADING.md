@@ -45,6 +45,10 @@ notes: [CHANGELOG.md](CHANGELOG.md).
 
 6. Tell users that everyone has to log in again: the deploy logs every user
    out once (old cookies are numbers, no longer valid session tokens).
+   Also tell them that merge, recovery, the listing column icons and Logout
+   are now buttons: old bookmarks or links to these actions no longer change
+   anything, and a form left open across a new login shows "Ungültiges
+   Formular-Token" (reload the page). No configuration is needed for this.
 7. From now on new receipts are stored as `files/<n>.v2.aes`. Migrate the
    existing receipts as described below.
 
