@@ -28,8 +28,8 @@ Core concepts:
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
 
 Tested on PHP 8.5 with PostgreSQL 18 only. The last release for PHP 5.3 and
-PostgreSQL 8.4 is 1.0.0 (tag `php5-last`). The PHP 8.5 lane still has known
-failures, and the PDF bank-statement import does not work on PHP 8 yet; see
+PostgreSQL 8.4 is 1.0.0 (tag `php5-last`). The PDF bank-statement import does
+not work on PHP 8 yet; see
 [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md), "PHP 8.5-only
 migration".
 

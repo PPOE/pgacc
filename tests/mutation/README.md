@@ -255,11 +255,7 @@ its baseline. `run.sh` takes the diff on the host
 ### CI (`ci.sh`)
 
 `sh tests/mutation/ci.sh 8.5 [--changed-since=<base>]` runs the self-test
-and the target list, attempting every target: the 13 targets that ran on the
-former PHP 7.4 lane (`csrf` is not in the CI list, as before). Until the
-implicit-connection fix (`tests/COMPATIBILITY_PLAN.md`, "PHP 8.5-only
-migration", step a) most of their baselines fail on PHP 8.5 (exit 2) and the
-job is non-blocking. CI passes `--changed-since` on per-push runs and runs
+and the target list, attempting every target: all 14 committed targets. CI passes `--changed-since` on per-push runs and runs
 every target on full runs (weekly, manual, `full-ci` pull requests).
 
 ### How a run works
@@ -374,7 +370,7 @@ end to end by the target runs.
 
 ### Targets
 
-Targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rationale.
+All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rationale.
 
 | Target | Code | Tests |
 |---|---|---|
@@ -417,9 +413,7 @@ Accepted equivalents (reasons in the target files):
 
 Deliberately not mutated: an unprotected import page (`redirects`) and the bank
 import check (`read-only-rights`), because the page would call the external
-membership system. On PHP 8.5 every target except `rights2orgasql` and
-`null-arguments` fails its baseline (exit 2) on the implicit-connection
-deprecations (see `tests/COMPATIBILITY_PLAN.md`). The PHP 7.4-only accepted
+membership system. The PHP 7.4-only accepted
 equivalents (`checklogin-implicit-connection`, `logout-implicit-connection`,
 `page-new-buchung-default-restored`, the `null-arguments` guard removals) were
 removed with that lane: PHP 8.5 kills those mutants.
@@ -436,9 +430,6 @@ including the full-target fallback when a definition changed (see
 needs a mutation in the relevant target (or a new target), and the change must
 not introduce survivors. CI runs `tests/mutation/ci.sh` on the PHP 8.5
 lane: changed lines on per-push runs, every target on full runs (weekly,
-manual, `full-ci` pull requests). The job is non-blocking until most targets'
-baselines pass on PHP 8.5 (see `tests/COMPATIBILITY_PLAN.md`). Until then,
-red/green evidence for HTTP-reached code is only possible for
-`rights2orgasql` and `null-arguments`; other targets need step (a) first. The `import-checks` target needs the
+manual, `full-ci` pull requests); it is part of the blocking harness job. The `import-checks` target needs the
 membership stub of `compose.test.yaml`, which the runner starts with the
 database.

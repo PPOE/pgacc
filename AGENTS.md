@@ -13,7 +13,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   `phpVersion` 8.5.
 - PostgreSQL: schema in `tests/fixtures/schema.sql`; tests run on 18 (`compose.test.yaml`).
 - One lane (`tests/README.md`): PHP 8.5 x PG 18, with coverage, the changed-line gate, the mutation runner,
-  Infection and the PHP 5 reference comparison. Not yet blocking in CI: see "PHP 8.5-only migration" in
+  Infection and the PHP 5 reference comparison. Open migration steps: "PHP 8.5-only migration" in
   `tests/COMPATIBILITY_PLAN.md`.
 
 ## Change workflow (owner's rules)
@@ -68,8 +68,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   `sh tests/static-analysis.sh --report` lists every finding.
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
   Remove tagged images afterwards with `docker rmi`.
-- The lane fails by design until its fixes land (currently implicit-connection deprecations displayed before
-  redirects; non-blocking in CI). Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures
+- The lane passes and is blocking in CI. Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures
   (`KF-*`) fail when they start passing, so a fix moves them to regular assertions.
 
 ## File conventions

@@ -236,12 +236,10 @@ included on PHP 8.5 (deprecated at compile time).
 `pgsql` and Xdebug 3.5.3 (SHA-256 pinned, `xdebug.mode=off` unless
 `compose.coverage.yaml` sets `XDEBUG_MODE=coverage`). `tests/application-tests.sh`
 runs the HTTP, PHPUnit and write-workflow groups even if one fails, and fails
-if any group failed. Assertions are not relaxed for PHP 8. PHP 8.5 currently
-fails on implicit PostgreSQL connection deprecations displayed before the
-headers, which break the unbuffered redirects, and on the PDF import (locked
+if any group failed. Assertions are not relaxed for PHP 8. The lane passes and
+the CI job is blocking. The PDF import is still skipped (locked
 `smalot/pdfparser` 0.9.23; see `COMPATIBILITY_PLAN.md`, "PHP 8.5-only
-migration"). Until step (a) of that plan lands, the CI job is
-`continue-on-error`: the failures are reported, not blocking.
+migration", step b).
 
 ### Mutation testing
 
@@ -274,15 +272,13 @@ before merging to `master`).
 |---|---|---|
 | `Plan (full or per-push run)` | yes | yes |
 | `Static analysis (PHPCompatibility, PHPStan)` | yes | yes |
-| `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines; non-blocking for now) | yes | yes |
+| `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
 | Mutation step in the harness job (`tests/mutation/ci.sh`) | changed lines only (`--changed-since=<base>`) | every target |
 | `PHP 5 reference comparison (PHP 8.5)` | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 
 The coverage gate is off only on scheduled and manual runs, which have no
-base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`). The
-harness job is `continue-on-error` until the implicit-connection fix
-(`COMPATIBILITY_PLAN.md`, "PHP 8.5-only migration", step a).
+base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`).
 
 ## Coverage
 
@@ -488,8 +484,8 @@ Open harness items:
   `KF-IMPORT-REGEX-G` is fixed.
 - [ ] Document the `mbapi.php` output contract and verify it against the
   membership system's consumer or an agreed sample.
-- [ ] Apply the HTTP diagnostics strictness to PHPUnit: PHP 8.5 prints
-  implicit-connection deprecations from `functions.php` without failing.
+- [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit 9 only prints
+  deprecations; the implicit-connection ones are gone).
 - [ ] Report unused `tests/known-diagnostics.php` entries as failures.
 - [ ] Resolve the PHP 8 failures, then extend the matrix to newer PHP 8
   releases.

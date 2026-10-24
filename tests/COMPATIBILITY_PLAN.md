@@ -39,14 +39,26 @@ them).
 
 Next steps, in order:
 
-- [ ] (a) Pass `$dbconn` explicitly to every `pg_*` call (application code,
-  minimal diffs; the mutation targets `checklogin-implicit-connection` and
-  `logout-implicit-connection` show the pattern). Then make the CI harness job
-  blocking (remove `continue-on-error` in `.github/workflows/tests.yaml`) and
-  check that every mutation target's baseline passes on 8.5. The `fgetcsv()` /
-  `str_getcsv()` `$escape` deprecation (`import.php:73`, `:163`; static-analysis
-  findings) is the next diagnostic the lane will show once (a) lands; it is
-  currently attributed to `KF-IMPORT-REGEX-G`.
+- [x] (a) Pass the connection explicitly to every `pg_*` call. Done in the same
+  branch: 141 `pg_query()`, 30 `pg_escape_string()`, 134 `pg_last_error()` and
+  1 `pg_version()` calls in 26 application files now pass `$dbconn`; 40
+  functions got `global $dbconn` (appended to an existing `global` line where
+  it came before the first call, else a new line after the opening brace).
+  The three `pg_connect(...) or die(... pg_last_error())` lines are unchanged:
+  no connection exists there. The PHPUnit bootstrap stores its link in
+  `$GLOBALS['dbconn']`; `ReceiptImportTest` now also fails on deprecations.
+  With the deprecations gone the lane reached pages it never finished before
+  and showed two PHP 8.1+ null-argument deprecations, now guarded as in
+  `null-arguments` (same output): `rawurlencode()` of a missing account in
+  `tinyreport.php` and `str_replace()` of a null `account` in
+  `transactions.php` (mutations `tinyreport-konto-null-guard-removed`,
+  `transactions-account-null-guard-removed` in `output-escaping`).
+  `vreport.php:188` has the same unguarded `rawurlencode($k)`, but the tests
+  never reach it with a null account. The `fgetcsv()`/`str_getcsv()` calls
+  in `import.php` pass the default enclosure and escape explicitly (same
+  behaviour; the two PHPCompatibility findings are gone). `csrf` is in the
+  `ci.sh` list, and the CI harness job is blocking. `sh tests/run.sh` passes
+  (exit 0).
 - [ ] (b) `smalot/pdfparser` ^2, so that the PDF bank-statement import
   (`import2.php`) works on PHP 8.x: the locked v0.9.23 declares a class
   `Object` (fatal since 7.2) and its TCPDF 6.2.6 does not parse on PHP 8
@@ -54,8 +66,8 @@ Next steps, in order:
   the skipped PDF import in `tests/http-receipts.php` and add a PDF round trip
   to `tests/release-vendor-check.php`.
 - [ ] (c) phpseclib: 2.0.55 reproduces all 21 mcrypt contract vectors on PHP
-  8.5 without diagnostics (release check) and `CryptoTest` passes; re-check
-  after (a). Moving to v3 is optional.
+  8.5 without diagnostics (release check) and `CryptoTest` passes, also after
+  (a). Moving to v3 is optional.
 - [ ] (d) Re-baseline the reference on PHP 8.5 (a new recording next to
   `tests/reference/php5/`, which stays the historical PHP 5 golden master),
   once each `todo` difference from `php5/` is explained or fixed.
@@ -75,8 +87,7 @@ Harness follow-ups found in the first step (not done there):
   `tests/fixtures/plpgsql-*.sql`, the reference statement log and
   `PGACC_REFERENCE_PGOPTIONS` in `tests/reference/runtime/prepend.php`) and
   the PHP 5.x remarks in test comments.
-- [ ] `ci.sh` lists the 13 targets of the former PHP 7.4 lane; `csrf` was
-  never in the CI list. Decide whether to add it.
+- [x] `csrf` added to the `ci.sh` list (all 14 targets).
 
 ## Completed and verified
 
@@ -796,7 +807,7 @@ former stand-ins 9.4, 14 and 17 are gone.
 |---|---|---|
 | PHP 5.3 (`run.sh 5.3`) | pass (default, production pair) | not run |
 | PHP 7.4 (`run.sh 7.4`) | CI weekly/PRs (reference compare passes locally) | pass (coverage lane) |
-| PHP 8.5 (`run.sh 8.5`) | not run | CI lane (fails by design, see above) |
+| PHP 8.5 (`run.sh 8.5`) | not run | pass (the only lane since `php5-last`) |
 
 Test infrastructure adapted for 8.4 (no application change): fixtures chosen
 by server version (`CREATE EXTENSION pgcrypto` only on 9.1+, pgcrypto from
@@ -1343,13 +1354,13 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`, 2 with `testVersion` 8.5-)
+### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`, 2 with `testVersion` 8.5-, 0 after the CSV escape fix)
 
 | Finding | Locations | Status |
 |---|---|---|
 | Short open tag | `file.php:1`, `getusers.php:1` | **Fixed** (short-tag item above) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
-| `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
+| `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | **Fixed**: the default enclosure and escape are passed explicitly (step a of the PHP 8.5-only migration) |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
 ### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token)
