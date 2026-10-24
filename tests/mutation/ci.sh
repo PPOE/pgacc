@@ -11,11 +11,7 @@ set -eu
 # line, see tests/mutation/run.sh). Every target is attempted; the exit status
 # is nonzero if any failed. PGACC_TEST_ID works as for tests/mutation/run.sh.
 #
-# Every committed target is listed. Until the implicit-connection fix
-# (tests/COMPATIBILITY_PLAN.md, "PHP 8.5-only migration", step a) most
-# targets' unmutated baselines fail on PHP 8.5 deprecations that have no
-# tests/known-diagnostics.php entry (and get none); the lane is
-# continue-on-error in CI until then.
+# Every committed target is listed.
 
 usage()
 {
@@ -30,7 +26,7 @@ case "$lane" in
   8.5)
     targets='rights2orgasql null-arguments login-logout redirects rights-checks receipt-crypto
       sql-injection read-only-rights import-checks listing-columns report-prevcond donations
-      output-escaping amount-cents'
+      output-escaping amount-cents csrf'
     ;;
   *) usage ;;
 esac

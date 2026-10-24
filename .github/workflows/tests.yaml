@@ -98,10 +98,6 @@ jobs:
     runs-on: ubuntu-latest
     # Full runs mutation-test every target.
     timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
-    # Temporarily non-blocking: PHP 8.5 still fails on the implicit-connection
-    # deprecations (pg_* calls without $dbconn). Make it blocking with that fix,
-    # step (a) of "PHP 8.5-only migration" in tests/COMPATIBILITY_PLAN.md.
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
