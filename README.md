@@ -31,6 +31,8 @@ Tested on PHP 5.3 with PostgreSQL 8.4 (the production pair), PHP 7.4 with
 PostgreSQL 18 and 8.4, and PHP 8.5 with PostgreSQL 18. The PHP 8.5 lane still
 has known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
 
+Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
+
 ## Setup
 
 1. Create a database named `accounting` (the code connects with
