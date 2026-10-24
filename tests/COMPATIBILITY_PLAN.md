@@ -76,7 +76,9 @@ with synthetic users and covered by a mutation target.
   insert, an existing bug left as is.)
   Review fix: `import.php` inserted dates read from the uploaded bank CSV
   without escaping (`format_date()` passes unrecognized text through).
-  Every imported line now needs a date (`import_date_valid()`) and an
+  Every imported line now needs a valid date (`import_date_valid()`:
+  `YYYY-M-D` after `format_date()` and `checkdate()`, so no month 13 or
+  February 30) and an
   organization the user may use (`organization_allowed()`, the rule of the
   voucher form; the bank import used the CSV's organization column or the
   account's organization unchecked). Otherwise the existing "Ungültige

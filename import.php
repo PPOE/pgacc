@@ -15,10 +15,13 @@ function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacs
               echo "Falls du eine Handkassaeingabe tätigen möchtest geht das mit folgendem Format:<br />\n";
               echo "<pre>".$handkassacsvline."</pre><br />\n";
 }
-// Whether format_date() produced a date (it passes unrecognized text through).
+// Whether format_date() produced a valid date (it passes unrecognized text
+// through).
 function import_date_valid($date)
 {
-  return is_string($date) && preg_match('/^\d{4}-\d{1,2}-\d{1,2}$/D', $date) == 1;
+  if (!is_string($date) || preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/D', $date, $parts) != 1)
+    return false;
+  return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));
 }
 function page_import($rights)
 {

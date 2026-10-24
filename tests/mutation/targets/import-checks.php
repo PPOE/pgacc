@@ -28,15 +28,21 @@ return array(
         ),
         array(
             'id' => 'import-date-pattern-unanchored',
-            'search' => "preg_match('/^\\d{4}-\\d{1,2}-\\d{1,2}$/D', \$date)",
-            'replace' => "preg_match('/^\\d{4}-\\d{1,2}-\\d{1,2}/', \$date)",
+            'search' => "preg_match('/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/D', \$date, \$parts)",
+            'replace' => "preg_match('/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/', \$date, \$parts)",
             'rationale' => 'The whole date must match: text after a date reaches the SQL.',
         ),
         array(
             'id' => 'import-date-pattern-unanchored-start',
-            'search' => "preg_match('/^\\d{4}-\\d{1,2}-\\d{1,2}$/D', \$date)",
-            'replace' => "preg_match('/\\d{4}-\\d{1,2}-\\d{1,2}$/D', \$date)",
+            'search' => "preg_match('/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/D', \$date, \$parts)",
+            'replace' => "preg_match('/(\\d{4})-(\\d{1,2})-(\\d{1,2})$/D', \$date, \$parts)",
             'rationale' => 'The whole date must match: text before a date reaches the SQL.',
+        ),
+        array(
+            'id' => 'import-date-range-unchecked',
+            'search' => '  return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));',
+            'replace' => '  return true;',
+            'rationale' => 'Out-of-range dates (month 13, February 30) do not reach the SQL.',
         ),
     ),
 );

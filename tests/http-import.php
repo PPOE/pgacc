@@ -95,7 +95,7 @@ $unknown = file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-unknown
 assert_import_refused(import_csv('bawag-unknown-account.csv', $unknown, $adminCookies), 'BAWAG unknown account');
 
 // Dates must be dates (format_date() passes other text through).
-$badDates = array("15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag');
+$badDates = array("15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag', '2024-13-45', '9999-99-99', '31.02.2024', '2023-02-29');
 foreach ($badDates as $index => $date) {
     $comment = "Synthetic import with a bad date $index";
     $response = import_csv('bad-date.csv', $handkassaHeader . handkassa_line($date, $comment, '2'), $adminCookies);
