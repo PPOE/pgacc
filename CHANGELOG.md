@@ -32,10 +32,14 @@ again.
 - Output: database and request values are HTML-escaped in listings, forms,
   reports and import results. CSV exports neutralize cells that a spreadsheet
   would treat as formulas, and tabs and line breaks no longer split cells.
-- CSRF protection and POST-only state changes. <!-- TODO CSRF PR -->
+- CSRF protection: every form that changes data carries a per-session token,
+  checked centrally before any write. Merge, recovery, the column preferences
+  and logout now work only via POST; GET requests to them change nothing.
 
 ### Changed
 
+- Old bookmarks or links to merge, recovery, column preferences and logout no
+  longer change anything; forms left open across a re-login must be reloaded.
 - Voucher finalization is removed (no button since 2015). Existing finalized
   vouchers stay locked against approval, revision and receipt upload.
 - Any change to a voucher (revision, receipt upload, PDF receipt import)
