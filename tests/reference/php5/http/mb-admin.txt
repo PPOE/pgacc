@@ -2,7 +2,7 @@
 # request: GET /index.php?action=mb as admin
 status: 200
 header: Content-type: text/html
---- body (7728 bytes) ---
+--- body (7733 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -66,7 +66,7 @@ header: Content-type: text/html
   <td>0</td>
   <td>1</td></tr><tr><td>10</td>
   <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9033">9033</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9033">Buchungszeilen</a>)</td>
-  <td>O'Brien Synthetisch</td>
+  <td>O&#039;Brien Synthetisch</td>
   <td>0</td>
   <td>1</td></tr><tr><td>11</td>
   <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9035">9035</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9035">Buchungszeilen</a>)</td>

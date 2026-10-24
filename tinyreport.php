@@ -20,7 +20,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td>{$line['name']}</td><td>";
+  echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
     $unit_s = "";
   else
@@ -54,7 +54,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td>{$line['name']}</td><td>";
+  echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
     $unit_s = "";
   else
@@ -99,7 +99,7 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   {
     $k = substr($line2['account'],-3,3);
   }
-  echo "<li><a href=\"tinyreport?konto=$k\">Konto '".$k."'</a></li>";
+  echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\">Konto '".html_escape($k)."'</a></li>";
 }
 echo "</ul>";
 pg_free_result($result2);

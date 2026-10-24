@@ -25,7 +25,15 @@ if (count($rights2) == 1 && preg_match('/^\d+$/D', $rights2[0]) == 1)
 }
 return $default_lo;
 }
-function get_voucher($part,$rights)
+// get_voucher() text fields: SQL-escaped for the insert, as posted for a
+// form that is shown again.
+function voucher_text($value, $escape)
+{
+  if ($escape)
+    return pg_escape_string($value);
+  return $value;
+}
+function get_voucher($part,$rights,$escape = true)
 {
   $filepart = $part;
 $voucher['bid'] = get_param($part, 'bid', 0, '/^\d+$/');
@@ -52,19 +60,19 @@ $voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/'
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
 if ($voucher['type'] == 45)
   $voucher['amount'] = "0.00";
-$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'));
-$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['vkonto'] = pg_escape_string(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
-$voucher['commentgf'] = pg_escape_string(get_param($part, 'commentgf', '', null));
+$voucher['gegenkonto'] = voucher_text(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'), $escape);
+$voucher['konto'] = voucher_text(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['vkonto'] = voucher_text(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['comment'] = voucher_text(get_param($part, 'comment', '', null), $escape);
+$voucher['commentgf'] = voucher_text(get_param($part, 'commentgf', '', null), $escape);
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['refund'] = get_param_bool($part, 'refund', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
 $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
-$voucher['name'] = pg_escape_string(get_param($part, 'name', '', null));
-$voucher['street'] = pg_escape_string(get_param($part, 'street', '', null));
-$voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
-$voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
+$voucher['name'] = voucher_text(get_param($part, 'name', '', null), $escape);
+$voucher['street'] = voucher_text(get_param($part, 'street', '', null), $escape);
+$voucher['plz'] = voucher_text(get_param($part, 'plz', '', null), $escape);
+$voucher['city'] = voucher_text(get_param($part, 'city', '', null), $escape);
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
@@ -353,7 +361,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -367,7 +375,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -381,7 +389,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+    echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
 }
 pg_free_result($result);
@@ -395,7 +403,7 @@ echo '
 $query = "SELECT id,name FROM person_type ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    echo '<option value="'.($voucher['person_type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+    echo '<option value="'.($voucher['person_type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
 }
 pg_free_result($result);
@@ -416,7 +424,7 @@ $query = "SELECT id,name FROM lo ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if (organization_allowed($line['id'], $rights))
-  echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.$line['name'].'</option>
+  echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -431,23 +439,23 @@ echo '
 <label class="ui_field_label" for="mitgliedsnummer'.$part.'">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer'.$part.'" value="'.$voucher['mitgliedsnummer'].'" onchange="clicked();" />
 </div>
 <div id="gegenkonto'.$part.'">
-<label class="ui_field_label" for="gegenkonto'.$part.'">Fremdkonto</label><input type="text" name="gegenkonto'.$part.'" value="'.$voucher['gegenkonto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="gegenkonto'.$part.'">Fremdkonto</label><input type="text" name="gegenkonto'.$part.'" value="'.html_escape($voucher['gegenkonto']).'" onchange="clicked();" />
 </div>
 <div>
 <label class="ui_field_label" for="amount'.$part.'">Betrag (in €)</label><input type="text" id="amount'.$part.'" name="amount'.$part.'" value="'.sprintf("%1.2f",$voucher['amount'] / 100.0) .'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="konto'.$part.'">Konto</label><input type="text" id="konto'.$part.'" name="konto'.$part.'" value="'.$voucher['konto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="konto'.$part.'">Konto</label><input type="text" id="konto'.$part.'" name="konto'.$part.'" value="'.html_escape($voucher['konto']).'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.$voucher['comment'].'" onchange="clicked();" />
+<label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.html_escape($voucher['comment']).'" onchange="clicked();" />
 </div>
 </div>
 <div>
-<label class="ui_field_label" for="commentgf'.$part.'">Kommentar</label><input type="text" id="commentgf'.$part.'" name="commentgf'.$part.'" value="'.$voucher['commentgf'].'" onchange="clicked();" />
+<label class="ui_field_label" for="commentgf'.$part.'">Kommentar</label><input type="text" id="commentgf'.$part.'" name="commentgf'.$part.'" value="'.html_escape($voucher['commentgf']).'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="vkonto'.$part.'">Virtuelles Konto</label><input type="text" id="vkonto'.$part.'" name="vkonto'.$part.'" value="'.$voucher['vkonto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="vkonto'.$part.'">Virtuelles Konto</label><input type="text" id="vkonto'.$part.'" name="vkonto'.$part.'" value="'.html_escape($voucher['vkonto']).'" onchange="clicked();" />
 </div>
 <div id="not_bel_b_'.$part.'"'.($voucher['dir'] == 'bel'?' style="display: none;"':'').'>
 <div id="purpose_block'.$part.'">
@@ -457,16 +465,16 @@ echo '
 <label class="ui_field_label" for="refund'.$part.'">Rückerstattung</label><input type="checkbox" id="refund'.$part.'" name="refund'.$part.'" value="1" '.($voucher['refund']=='true'?' checked="checked"':'').' onchange="clicked();" />
 </div>
 <div id="name'.$part.'">
-<label class="ui_field_label" for="name'.$part.'">Name</label><input type="text" name="name'.$part.'" value="'.$voucher['name'].'" onchange="clicked();" />
+<label class="ui_field_label" for="name'.$part.'">Name</label><input type="text" name="name'.$part.'" value="'.html_escape($voucher['name']).'" onchange="clicked();" />
 </div>
 <div id="street'.$part.'">
-<label class="ui_field_label" for="street'.$part.'">Straße</label><input type="text" name="street'.$part.'" value="'.$voucher['street'].'" onchange="clicked();" />
+<label class="ui_field_label" for="street'.$part.'">Straße</label><input type="text" name="street'.$part.'" value="'.html_escape($voucher['street']).'" onchange="clicked();" />
 </div>
 <div id="plz'.$part.'">
-<label class="ui_field_label" for="plz'.$part.'">PLZ</label><input type="text" name="plz'.$part.'" value="'.$voucher['plz'].'" onchange="clicked();" />
+<label class="ui_field_label" for="plz'.$part.'">PLZ</label><input type="text" name="plz'.$part.'" value="'.html_escape($voucher['plz']).'" onchange="clicked();" />
 </div>
 <div id="city'.$part.'">
-<label class="ui_field_label" for="city'.$part.'">Ort</label><input type="text" name="city'.$part.'" value="'.$voucher['city'].'" onchange="clicked();" />
+<label class="ui_field_label" for="city'.$part.'">Ort</label><input type="text" name="city'.$part.'" value="'.html_escape($voucher['city']).'" onchange="clicked();" />
 </div>
 </div>
 <div id="city'.$part.'">
@@ -505,11 +513,11 @@ block_end();
 function page_new_buchung($part, $part_to_remove,$rights,$add)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
-	$voucher = get_voucher($part+1,$rights);
+	$voucher = get_voucher($part+1,$rights,false);
 else if ($add)
-  $voucher = get_voucher($part-1,$rights);
+  $voucher = get_voucher($part-1,$rights,false);
 else
-	$voucher = get_voucher($part,$rights);
+	$voucher = get_voucher($part,$rights,false);
 
 if ($add == 2)
 {

@@ -28,7 +28,7 @@ function csv_download_link($i = -1)
   echo "<br style=\"clear: both;\" /><center>";
   if ($i >= 0)
     echo "$i Umsätze gefunden<br /><br />";
-  echo "<a href=\"$link\">Als CSV Datei herunterladen</a></center>";
+  echo "<a href=\"" . html_escape($link) . "\">Als CSV Datei herunterladen</a></center>";
 }
 function getfilter()
 {
@@ -99,11 +99,18 @@ function tag($tag, $text)
   global $make_csv;
   if ($make_csv)
   {
-    $text = str_replace(array("\n"),array(' / '),$text === null ? '' : $text);
-    if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
+    $text = str_replace(array("\r\n", "\n", "\r"),array(' / ', ' / ', ' / '),$text === null ? '' : $text);
+    // A tab would split the tab-separated cell.
+    if ($tag == 'td')
+      $text = str_replace(array("\t"),array(' '),$text);
+    if (preg_match('/^-?\d+(\.\d+)?€$/',$text) == 1)
     {
       $text = str_replace(array("."),array(","),$text);
     }
+    // A cell that a spreadsheet would read as a formula or a quoted field (not
+    // a number), also after leading whitespace, starts with a single quote.
+    else if ($tag == 'td' && preg_match('/^[ \t\n\r\f\x0B]*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+      $text = "'" . $text;
     if ($tag == 'tr')
       return "$text\n";
     else if ($tag == 'td')
@@ -112,6 +119,22 @@ function tag($tag, $text)
       return "$text";
   }
   return "<$tag>$text</$tag>\n";
+}
+// Text and attribute values in HTML: & < > " ' as entities. ISO-8859-1 makes
+// htmlspecialchars() byte-transparent for the UTF-8 pages on every PHP
+// version (UTF-8 would drop invalid input on PHP 5.3), so umlauts and all
+// other text stay unchanged.
+function html_escape($text)
+{
+  return htmlspecialchars(strval($text), ENT_QUOTES, 'ISO-8859-1');
+}
+// Listing cells, shared by the HTML page and the CSV export (no entities).
+function listing_text($text)
+{
+  global $make_csv;
+  if ($make_csv)
+    return $text;
+  return html_escape($text);
 }
 function acc_header($dbconn,$page = "index",$year = 2015)
 {

@@ -2,7 +2,7 @@
 # request: GET /index.php?action=open&filter_date=2024 as admin
 status: 200
 header: Content-type: text/html
---- body (10599 bytes) ---
+--- body (10751 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,41 +31,41 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=open&sort=idd&filter_date=2024">Buchung</a><a href="index.php?action=open&hide=1"><img class="icon" src="icons/delete.png"></a></b>
+<table><tr><td><b><a href="index.php?action=open&amp;sort=idd&amp;filter_date=2024">Buchung</a><a href="index.php?action=open&hide=1"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=bida&filter_date=2024">Buchungszeile</a><a href="index.php?action=open&hide=2"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><a href="index.php?action=open&hide=2"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=datea&filter_date=2024">Datum</a><a href="index.php?action=open&hide=3"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=datea&amp;filter_date=2024">Datum</a><a href="index.php?action=open&hide=3"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=typea&filter_date=2024">Art</a><a href="index.php?action=open&hide=4"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=typea&amp;filter_date=2024">Art</a><a href="index.php?action=open&hide=4"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=loa&filter_date=2024">LO</a><a href="index.php?action=open&hide=5"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=loa&amp;filter_date=2024">LO</a><a href="index.php?action=open&hide=5"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=membera&filter_date=2024">Mitglied</a><a href="index.php?action=open&hide=6"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=membera&amp;filter_date=2024">Mitglied</a><a href="index.php?action=open&hide=6"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=gka&filter_date=2024">Fremdkonto</a><a href="index.php?action=open&hide=7"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><a href="index.php?action=open&hide=7"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=ka&filter_date=2024">Konto</a><a href="index.php?action=open&hide=8"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=ka&amp;filter_date=2024">Konto</a><a href="index.php?action=open&hide=8"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=vka&filter_date=2024">Virt.Konto</a><a href="index.php?action=open&hide=9"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><a href="index.php?action=open&hide=9"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=ama&filter_date=2024">Betrag</a><a href="index.php?action=open&hide=10"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=ama&amp;filter_date=2024">Betrag</a><a href="index.php?action=open&hide=10"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=texta&filter_date=2024">Text</a><a href="index.php?action=open&hide=11"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=texta&amp;filter_date=2024">Text</a><a href="index.php?action=open&hide=11"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=commenta&filter_date=2024">Kommentar</a><a href="index.php?action=open&hide=12"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><a href="index.php?action=open&hide=12"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=comma&filter_date=2024">Gewidmet</a><a href="index.php?action=open&hide=13"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><a href="index.php?action=open&hide=13"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=acka&filter_date=2024">Bestätigt</a><a href="index.php?action=open&hide=14"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><a href="index.php?action=open&hide=14"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=acka_old&filter_date=2024">Best. alt</a><a href="index.php?action=open&hide=15"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><a href="index.php?action=open&hide=15"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=refunda&filter_date=2024">Rück.</a><a href="index.php?action=open&hide=16"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=refunda&amp;filter_date=2024">Rück.</a><a href="index.php?action=open&hide=16"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=bela&filter_date=2024">Datei</a><a href="index.php?action=open&hide=17"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=bela&amp;filter_date=2024">Datei</a><a href="index.php?action=open&hide=17"><img class="icon" src="icons/delete.png"></a></b>
 </td>
-<td><b><a href="index.php?action=open&sort=namea&filter_date=2024">Name/Adresse</a><a href="index.php?action=open&hide=18"><img class="icon" src="icons/delete.png"></a></b>
+<td><b><a href="index.php?action=open&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><a href="index.php?action=open&hide=18"><img class="icon" src="icons/delete.png"></a></b>
 </td>
 </tr>
 <form action="index.php" method="GET"> <tr>
@@ -200,7 +200,7 @@ header: Content-type: text/html
 <td>Synthetic Service Donor   </td>
 </tr></table>
 </div>
-<br style="clear: both;" /><center><a href="/index.php?action=open&filter_date=2024&format=csv">Als CSV Datei herunterladen</a></center>
+<br style="clear: both;" /><center><a href="/index.php?action=open&amp;filter_date=2024&amp;format=csv">Als CSV Datei herunterladen</a></center>
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">
 <div class="ui_tabs"><div class="ui_tabs_links">

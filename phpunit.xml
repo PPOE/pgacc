@@ -17,6 +17,7 @@
       <file>tests/unit/ReceiptMigrationTest.php</file>
       <file>tests/unit/ReceiptMigrationCommandTest.php</file>
       <file>tests/unit/ShortOpenTagTest.php</file>
+      <file>tests/unit/UnusedOutputTest.php</file>
     </testsuite>
   </testsuites>
   <coverage processUncoveredFiles="true">
@@ -25,8 +26,10 @@
       <file>getusers.php</file>
       <file>import.php</file>
       <file>import2.php</file>
+      <file>kdonations.php</file>
       <file>migrate-receipt-key.php</file>
       <file>new.php</file>
+      <file>wk.php</file>
     </include>
     <report>
       <clover outputFile="/tmp/functions-clover.xml"/>

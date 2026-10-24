@@ -3,7 +3,7 @@
 # form: captcha_input=37&captcha=0&submit=Best%C3%A4tigen
 status: 200
 header: Content-type: text/html
---- body (2862 bytes) ---
+--- body (2886 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -33,17 +33,17 @@ header: Content-type: text/html
 
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<table><tr><td><b><a href="index.php?action=kdonations&sort=datea">Datum</a></b>
+<table><tr><td><b><a href="index.php?action=kdonations&amp;sort=datea">Datum</a></b>
 </td>
-<td><b><a href="index.php?action=kdonations&sort=typea">Art</a></b>
+<td><b><a href="index.php?action=kdonations&amp;sort=typea">Art</a></b>
 </td>
-<td><b><a href="index.php?action=kdonations&sort=loa">LO</a></b>
+<td><b><a href="index.php?action=kdonations&amp;sort=loa">LO</a></b>
 </td>
-<td><b><a href="index.php?action=kdonations&sort=texta">Text</a></b>
+<td><b><a href="index.php?action=kdonations&amp;sort=texta">Text</a></b>
 </td>
-<td><b><a href="index.php?action=kdonations&sort=ama">Wert</a></b>
+<td><b><a href="index.php?action=kdonations&amp;sort=ama">Wert</a></b>
 </td>
-<td><b><a href="index.php?action=kdonations&sort=namea">Name</a></b>
+<td><b><a href="index.php?action=kdonations&amp;sort=namea">Name</a></b>
 </td>
 </tr>
 Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.</table>
