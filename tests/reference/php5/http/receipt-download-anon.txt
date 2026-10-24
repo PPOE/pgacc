@@ -3,7 +3,7 @@
 status: 302
 header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D66696C652669643D31303031
 header: Content-type: text/html
---- body (8773 bytes) ---
+--- body (8809 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -229,10 +229,10 @@ Die Piratenpartei Österreichs hält keine Stimmrechte an Unternehmen.
 <h2>Anlage A (nach § 6 (2) und (3))</h2>
 <table>
 <tr><td></td><td><b>Spenden an die Partei</b></td><td><b>Spenden an nahestehende Organisationen</b></td><td><b>Spenden an Abgeordnete und Wahlwerber</b></td></tr>
-<tr><td><b>Test-only association</b></td><td>0&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>
-<tr><td><b>Test-only legal entity</b></td><td>0&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>
-<tr><td><b>Test-only public body</b></td><td>0&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>
-<tr><td><b>Test-only company</b></td><td>0&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>
+<tr><td><b>Test-only association</b></td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>
+<tr><td><b>Test-only legal entity</b></td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>
+<tr><td><b>Test-only public body</b></td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>
+<tr><td><b>Test-only company</b></td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>
 </table>
 </div>
 

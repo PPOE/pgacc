@@ -42,7 +42,7 @@ function v_graph($konto, $date_begin, $date_end)
           $('#tooltip').remove();
           var date = new Date(item.datapoint[0]);
           var dateformatted = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear();
-	  var value = item.datapoint[1] + '€';
+	  var value = item.datapoint[1].toFixed(2) + '€';
           $('<div id="tooltip">' + dateformatted + ': ' + value + '</div>').css({
             position: 'absolute',
             top: item.pageY + 20,

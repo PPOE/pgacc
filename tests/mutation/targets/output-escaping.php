@@ -1062,8 +1062,8 @@ $callSites = array(
     array(
         'id' => 'report-html-escape-ptype-description',
         'file' => 'report.php',
-        'search' => '  echo "<tr><td><b>" . html_escape($ptype[\'description\']) . "</b></td><td>$amount&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>\\n";',
-        'replace' => '  echo "<tr><td><b>" . ($ptype[\'description\']) . "</b></td><td>$amount&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>\\n";',
+        'search' => '  echo "<tr><td><b>" . html_escape($ptype[\'description\']) . "</b></td><td>" . sprintf("%1.2f",$amount) . "&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>\\n";',
+        'replace' => '  echo "<tr><td><b>" . ($ptype[\'description\']) . "</b></td><td>" . sprintf("%1.2f",$amount) . "&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>\\n";',
         'rationale' => 'Unescaped output: html_escape() removed around $ptype[\'description\'].',
     ),
     array(

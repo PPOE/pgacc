@@ -442,7 +442,7 @@ foreach ($ptypes2 as $ptype)
   }
   pg_free_result($result);
   $amount = $amount / 100.0;
-  echo "<tr><td><b>" . html_escape($ptype['description']) . "</b></td><td>$amount&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>\n";
+  echo "<tr><td><b>" . html_escape($ptype['description']) . "</b></td><td>" . sprintf("%1.2f",$amount) . "&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>\n";
 }
 echo '</table>';
 block_end();
