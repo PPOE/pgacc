@@ -378,6 +378,20 @@ return array(
             'rationale' => 'A row of another organization approved twice blocks the revision.',
         ),
         array(
+            'id' => 'upload-finalized-check-removed',
+            'file' => 'new.php',
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;";',
+            'replace' => 'WHERE NOT deleted AND false AND voucher_id = $id;";',
+            'rationale' => 'A receipt upload to a finalized voucher is refused.',
+        ),
+        array(
+            'id' => 'upload-finalized-check-scoped',
+            'file' => 'new.php',
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;";',
+            'replace' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";',
+            'rationale' => 'A finalized row of another organization blocks the upload too.',
+        ),
+        array(
             'id' => 'drop-acks-reset-removed',
             'region' => $dropAcks,
             'search' => 'vouchers_reset_ack($id, $rights);',

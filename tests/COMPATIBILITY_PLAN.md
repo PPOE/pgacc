@@ -140,6 +140,12 @@ with synthetic users and covered by a mutation target.
   are approved twice; `bgf` can no longer revive a voucher number whose
   rows are all deleted through the empty voucher form. Mutation target
   `rights-checks`.
+- [x] Receipt upload (`page_new_file()`, second review fix): there was no
+  finalized check, so a receipt could be attached to a finalized voucher
+  (which also reset its approvals). A finalized row of any organization now
+  refuses the upload with "bereits finalisiert". The approved check stays
+  organization-scoped until the owner decides the matching revision rule
+  (item 8 of the review). Mutation target `rights-checks`.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

@@ -1068,6 +1068,36 @@ $markupPost = http_request('/index.php?action=edit&hint=1', 'POST', array('id' =
 assert_not_contains($markupPost['body'], 'synthetic-markup', 'voucher page with markup in the posted IDs');
 assert_contains($markupPost['body'], 'Buchung Nr. ' . $injectionTargetId . ' - Buchungszeile Nr. 7<', 'voucher page with markup in the posted IDs');
 
+// A receipt upload to a voucher with a finalized row, also of another
+// organization, is refused and changes nothing.
+foreach (array('admin' => array(null, $adminCookies, 2), 'organization two' => array(1, $unitTwoCookies, 2)) as $uploadLabel => $case) {
+    $uploadId = create_voucher_from_form($database, two_organization_form("Synthetic finalized upload target ($uploadLabel)", 0), $adminCookies);
+    finalize_in_database($database, $uploadId, $case[0]);
+    $uploadRow = database_row(
+        $database,
+        'SELECT id FROM vouchers WHERE voucher_id = $1 AND orga = $2 AND NOT deleted',
+        array($uploadId, $case[2]),
+        "upload row ($uploadLabel)"
+    );
+    $upload = http_request(
+        '/index.php?action=edit',
+        'POST',
+        array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $uploadRow['id'], 'id' => $uploadId),
+        $case[1],
+        null,
+        $syntheticReceipt
+    );
+    assert_status($upload, 200, "receipt upload to a finalized voucher ($uploadLabel)");
+    assert_contains($upload['body'], 'bereits finalisiert', "receipt upload to a finalized voucher ($uploadLabel)");
+    assert_database_count(
+        $database,
+        'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND file != 0',
+        array($uploadId),
+        0,
+        "finalized voucher after a receipt upload ($uploadLabel)"
+    );
+}
+
 // Approval names posted with a revision are stored as the old approvals;
 // they are escaped (a quote failed the query before).
 $quotedRevisionId = create_voucher($database, 'Synthetic draft with a quoted approval', '-14.00', 0, $adminCookies);
