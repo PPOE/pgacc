@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 10 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,9 +32,9 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 10 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 10 AND login > now() - '24 hours'::interval
 -- next
 SELECT vouchers.*,lo.name AS lo_name,type.name AS type_name FROM vouchers LEFT JOIN lo ON orga = lo.id LEFT JOIN type ON type = type.id WHERE NOT deleted AND (ack1 IS NULL OR ack2 IS NULL)   AND date >= '2024-01-01' AND date <= '2024-12-31'  ORDER BY date ASC, voucher_id DESC, vouchers.id ASC
 -- next
@@ -66,4 +66,4 @@ SELECT name FROM type WHERE id = 12
 -- next
 SELECT name FROM lo WHERE id = 1
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 10 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 10 AND login > now() - '24 hours'::interval

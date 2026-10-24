@@ -1,8 +1,8 @@
 # step: logout-admin
 # request: GET /index.php?action=logout as admin
 status: 302
-header: Set-Cookie: pp_pgacc_login=deleted; expires=Sun, 15-Jun-2025 {{time}} GMT
-header: Set-Cookie: pp_pgacc_id=deleted; expires=Sun, 15-Jun-2025 {{time}} GMT
+header: Set-Cookie: pp_pgacc_login=deleted; expires=Thu, 01 Jan 1970 {{time}} GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax
+header: Set-Cookie: pp_pgacc_id=deleted; expires=Thu, 01 Jan 1970 {{time}} GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax
 header: Location: index.php
 header: Content-type: text/html
 --- body (0 bytes) ---

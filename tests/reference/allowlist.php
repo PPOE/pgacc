@@ -43,18 +43,6 @@ return array(
             . 'without a charset; PHP 5.6+ default to default_charset=UTF-8. The pages declare UTF-8 themselves.',
         'category' => 'accepted',
     ),
-    array(
-        'id' => 'RD-COOKIE-MAX-AGE',
-        'php' => array('7.4', '8.5'),
-        'files' => 'http/log*.txt',
-        'lines' => '/^(-header: Set-Cookie: pp_pgacc_(login=\{\{cookie\}\}|id=\d+); expires=Tue, 16-Jun-2026 \{\{time\}\} GMT'
-            . '|\+header: Set-Cookie: pp_pgacc_(login=\{\{cookie\}\}|id=\d+); expires=Tue, 16[- ]Jun[- ]2026 \{\{time\}\} GMT; Max-Age=86400'
-            . '|-header: Set-Cookie: pp_pgacc_(login|id)=deleted; expires=Sun, 15-Jun-2025 \{\{time\}\} GMT'
-            . '|\+header: Set-Cookie: pp_pgacc_(login|id)=deleted; expires=Thu, 01[- ]Jan[- ]1970 \{\{time\}\} GMT; Max-Age=0)$/',
-        'reason' => 'setcookie() adds Max-Age since PHP 5.5 and deletes cookies with a 1970 expiry instead of one year '
-            . 'before now (PHP 5.3); PHP 8.2 writes the date with spaces. Same cookie lifetime for browsers.',
-        'category' => 'accepted',
-    ),
 
     // ---------------------------------------------------------------- todo
     array(

@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,9 +32,9 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 DROP TABLE IF EXISTS ppmembers;
 -- next
@@ -74,4 +74,4 @@ INSERT INTO import (line) VALUES ('16.03.2024,11:00:00,CET,SyntheticRefund,Rück
 -- next
 DROP TABLE IF EXISTS ppmembers;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval

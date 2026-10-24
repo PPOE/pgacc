@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,9 +32,9 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 DROP TABLE IF EXISTS ppmembers;
 -- next
@@ -44,4 +44,4 @@ INSERT INTO ppmembers (id, name, lo, paid) VALUES (9001,'Anna Synthetisch-Mülle
 -- next
 SELECT 1 FROM import WHERE line = 'AT000000000000000000;UnbekanntesKontoBAWAATWWAT888888888888888888SyntheticFremd;14.01.2024;14.01.2024;+1,00;EUR';
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval

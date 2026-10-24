@@ -106,7 +106,7 @@ id	name	used	income	realtype
 8	Synthetic donation	10	1	8
 ## users (12 rows)
 id	name	hash	login	cookie	rights	hide
-1	synthetic-admin	{{md5-crypt}}	{{now}}	{{cookie}}	root,bgf	
+1	synthetic-admin	{{md5-crypt}}	{{now}}	\N	root,bgf	
 10	synthetic-readonly	{{md5-crypt}}	{{now}}	{{cookie}}	Rbgf	
 100	synthetic-created	{{md5-crypt}}	\N	\N	3	\N
 11	synthetic-norights	{{md5-crypt}}	{{now}}	{{cookie}}		\N

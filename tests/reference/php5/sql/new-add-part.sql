@@ -1,4 +1,4 @@
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next
@@ -32,19 +32,9 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
--- next
-SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
--- next
-SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC
--- next
-SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
--- next
-SELECT id,name FROM person_type ORDER BY used DESC,id ASC
--- next
-SELECT id,name FROM lo ORDER BY id ASC
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
 -- next
@@ -56,4 +46,14 @@ SELECT id,name FROM person_type ORDER BY used DESC,id ASC
 -- next
 SELECT id,name FROM lo ORDER BY id ASC
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM person_type ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM lo ORDER BY id ASC
+-- next
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
