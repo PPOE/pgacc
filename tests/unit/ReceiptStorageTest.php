@@ -379,6 +379,17 @@ final class ReceiptStorageTest extends FunctionsTestCase
             self::assertStringContainsString('pgacc: receipt 42.v2.aes changed or could not be read while it was sent', $log, $label);
         }
 
+        // Changed while it is being sent: reported at the end.
+        file_put_contents($path, $file);
+        $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+        $chunks = 0;
+        $complete = receipt_v2_decrypt_chunks($receipt, function ($chunk) use ($path, &$chunks) {
+            if ($chunks++ === 0) {
+                touch($path, time() + 7200);
+            }
+        });
+        self::assertSame(array(false, 3), array($complete, $chunks));
+
         // Short reads in the decrypt pass: stops at the first one.
         ShortReadStream::register();
         file_put_contents($path, $file);
