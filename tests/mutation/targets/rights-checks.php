@@ -178,6 +178,8 @@ return array(
             'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
             'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
             'rationale' => 'Deleted rows (old revisions) do not make a voucher visible for approval.',
+            'equivalent' => array('reason' => 'Since the receipt check skips deleted rows too, a voucher '
+                . 'with only deleted rows gets the same "Hier fehlt noch der Beleg!" from that check.'),
         ),
         array(
             'id' => 'ack-finalized-check-scoped',

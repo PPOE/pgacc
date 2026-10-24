@@ -825,7 +825,8 @@ PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0. Since the
 finalization removal the four `finalize-*` mutants are gone and
 `finalization-write-restored` is new (killed on PHP 7.4; full run in CI).
 The review fixes add, all killed on PHP 7.4 (full runs in CI):
-`ack-visibility-check-counts-deleted`; `organization-bgf-exemption-removed`,
+`ack-visibility-check-counts-deleted` (an accepted equivalent since the receipt
+check skips deleted rows as well); `organization-bgf-exemption-removed`,
 `organization-root-exemption-removed`, `organization-loose-comparison` and
 `default-organization-unchecked` (replacing the earlier bgf-exemption,
 loose-comparison and default mutants of `posted_organizations_allowed()`);
