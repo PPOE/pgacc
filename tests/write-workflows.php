@@ -561,6 +561,19 @@ function create_voucher_comment($database, $form, $cookies)
     return $form['comment0'];
 }
 
+function create_test_user($database, $id, $name, $password, $rights)
+{
+    $result = @pg_query_params(
+        $database,
+        "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
+        array($id, $name, $password, $rights)
+    );
+    if ($result === false) {
+        fail_test("could not create user $name: " . pg_last_error($database));
+    }
+    return login_user($name, $password);
+}
+
 function voucher_by_comment($database, $comment)
 {
     return database_row(
@@ -625,6 +638,17 @@ assert_database_field(
     'orga',
     '1',
     'voucher created with its own posted organization'
+);
+// The exact root right may use any organization too, like bgf (the voucher
+// form offers root every organization).
+$rootOnlyCookies = create_test_user($database, 52, 'synthetic-root-only', 'root-only-password', 'root');
+$rootForm = voucher_form('Synthetic voucher of root in organization one', '-6.62', 0);
+$rootForm['lo0'] = '1';
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, $rootForm, $rootOnlyCookies)),
+    'orga',
+    '1',
+    'voucher created in organization 1 by root'
 );
 // Organizations are compared as written ('01' is not organization 1).
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
@@ -1102,18 +1126,6 @@ assert_contains($readOnlyImport['body'], 'FEHLER: Keine Zugriffsrechte.', 'bank 
 
 // Role checks match exact rights: "xroot" and "xbgf" are neither root nor
 // bgf (before, strpos() matched any right containing the word).
-function create_test_user($database, $id, $name, $password, $rights)
-{
-    $result = @pg_query_params(
-        $database,
-        "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
-        array($id, $name, $password, $rights)
-    );
-    if ($result === false) {
-        fail_test("could not create user $name: " . pg_last_error($database));
-    }
-    return login_user($name, $password);
-}
 $substringCookies = create_test_user($database, 51, 'synthetic-role-substrings', 'substring-password', '2,xroot,xbgf');
 $adminRights = database_row($database, 'SELECT rights FROM users WHERE id = 1', array(), 'admin rights');
 $substringAccounts = http_request(

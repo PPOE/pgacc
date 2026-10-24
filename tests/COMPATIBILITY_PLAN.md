@@ -77,14 +77,17 @@ with synthetic users and covered by a mutation target.
   `page_edit_save()` first check every posted organization with
   `posted_organizations_allowed()`: users with the exact `bgf` right
   (`has_right()`, so not `Rbgf`) may post any, everybody else only the
-  numeric organizations of their rights, compared as written. Otherwise the
+  numeric organizations of their rights, compared as written (since the
+  review fix also users with the exact `root` right). Otherwise the
   whole voucher is refused before anything is saved, with the
   "FEHLER: Keine Zugriffsrechte." error of `accounts.php`. Without a posted
   organization the default applies as before. Behaviour differences: the
-  voucher form offers every organization to `root` (`new.php`) and the
-  rights SQL exempts `Rbgf`, but neither may now post an organization
-  outside their numeric rights; an organization such as `01` is refused.
-  Mutation target `rights-checks`.
+  rights SQL exempts `Rbgf`, but it may not post an organization outside
+  its numeric rights; an organization such as `01` is refused.
+  Mutation target `rights-checks`. Review fix (owner/coordinator decision,
+  no regression for root): the exact `root` right may post any
+  organization too, like `bgf`, as the form offers it; the check is
+  `organization_allowed()` in `functions.php`.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

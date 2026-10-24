@@ -62,17 +62,14 @@ $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
-// Whether the organizations posted for the parts of a voucher may be used:
-// any for bgf, otherwise only the user's own (numeric) organizations.
+// Whether the organizations posted for the parts of a voucher may be used
+// (organization_allowed()).
 function posted_organizations_allowed($parts, $rights)
 {
-if (has_right($rights, 'bgf'))
-  return true;
-$rights2 = explode(",", $rights === null ? '' : $rights);
 for ($part = 0; $part < $parts; $part++)
 {
   $lo = get_param($part, 'lo', null, '/^\d+$/');
-  if ($lo !== null && !in_array($lo, $rights2, true))
+  if ($lo !== null && !organization_allowed($lo, $rights))
     return false;
 }
 return true;

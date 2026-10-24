@@ -236,6 +236,33 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * @dataProvider organizationAllowedProvider
+     */
+    public function testOrganizationAllowed($lo, $rights, $expected)
+    {
+        $result = self::callAndCaptureDiagnostics(function () use ($lo, $rights) {
+            return organization_allowed($lo, $rights);
+        });
+        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+    }
+
+    public static function organizationAllowedProvider()
+    {
+        return array(
+            'bgf any organization' => array('7', 'bgf', true),
+            'root any organization' => array(7, 'root', true),
+            'own organization' => array('2', '1,2', true),
+            'own organization as integer' => array(2, '2', true),
+            'foreign organization' => array('3', '1,2', false),
+            'padded organization' => array('01', '1', false),
+            'read-only bgf is not bgf' => array('7', 'Rbgf', false),
+            'substring of root' => array('7', 'xroot', false),
+            'no rights' => array('10', '', false),
+            'null rights' => array('10', null, false),
+        );
+    }
+
+    /**
      * @dataProvider writeRightsProvider
      */
     public function testWriteRights($rights, $expected)

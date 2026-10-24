@@ -264,6 +264,15 @@ function has_right($rights, $right)
 {
   return in_array($right, explode(",", $rights === null ? '' : $rights), true);
 }
+// Whether the rights may use this organization for a voucher: any for the
+// exact bgf or root right, otherwise only the numeric organizations of the
+// rights, compared as written ("01" is not "1").
+function organization_allowed($lo, $rights)
+{
+  if (has_right($rights, 'bgf') || has_right($rights, 'root'))
+    return true;
+  return has_right($rights, strval($lo));
+}
 // Rights for changing data. The read-only right "Rbgf" (see accounts.php)
 // does not count: false for a user who has no other right, otherwise the
 // other rights. Rights without "Rbgf" are returned unchanged.
