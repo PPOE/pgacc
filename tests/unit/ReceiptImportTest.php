@@ -221,6 +221,49 @@ final class ReceiptImportTest extends FunctionsTestCase
         }
     }
 
+    /**
+     * @dataProvider refusedUploadProvider
+     */
+    public function testUploadToAnInaccessibleRowChangesNothing($rights, $post)
+    {
+        // The posted row must be a current row of the posted voucher that the
+        // user may change; otherwise nothing is stored and no approval moves.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        $_POST = $post;
+        $approvals = null;
+        list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'file0',
+            function () use ($rights, &$approvals) {
+                pg_query("UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE id = 9301");
+                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1)
+                          VALUES (9304, 4712, 20, 2, 'Synthetic other voucher', timestamp '2024-09-15 00:00:00', 0, 'synthetic-c')");
+                page_new_file($rights);
+                $approvals = pg_fetch_all(pg_query('SELECT id, file, ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id IN (9301, 9304) ORDER BY id'));
+            }
+        );
+        self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div>'
+            . '<br /><br /><br />', $output);
+        self::assertSame('0', $file);
+        self::assertSame(array(), $stored);
+        self::assertSame(array(
+            array('id' => '9301', 'file' => '0', 'ack1' => 'synthetic-a', 'ack2' => 'synthetic-b', 'ack1_old' => null, 'ack2_old' => null),
+            array('id' => '9304', 'file' => '0', 'ack1' => 'synthetic-c', 'ack2' => null, 'ack1_old' => null, 'ack2_old' => null),
+        ), $approvals);
+        self::assertSame(array(), $diagnostics);
+        self::assertSame('', $log);
+    }
+
+    public static function refusedUploadProvider()
+    {
+        return array(
+            'row of another organization' => array('1', array('parts' => '1', 'bid0' => '9301', 'id' => '4711')),
+            'nonexistent row' => array('2', array('parts' => '1', 'bid0' => '9399', 'id' => '4711')),
+            'row of another voucher' => array('2', array('parts' => '1', 'bid0' => '9301', 'id' => '4712')),
+        );
+    }
+
     public function testUploadWithoutAConfiguredKeyIsRefused()
     {
         // The receipt upload on the voucher edit page (new.php page_new_file()).

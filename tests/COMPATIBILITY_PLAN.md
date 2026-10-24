@@ -172,7 +172,13 @@ with synthetic users and covered by a mutation target.
   (which also reset its approvals). A finalized row of any organization now
   refuses the upload with "bereits finalisiert". Its approved check is
   removed with the approval reset below. Mutation target
-  `rights-checks`.
+  `rights-checks`. Third review fix: the upload stored the receipt and
+  reset the voucher's approvals before its organization-scoped update,
+  which might match no row (a row of another organization or voucher, or
+  none). Now the scoped update must match the posted row first ("FEHLER:
+  Buchungszeile nicht gefunden." otherwise, nothing stored or reset), and
+  a failed store resets the row's file number, as in the PDF import. Tests
+  in `ReceiptImportTest`, mutations in `import-checks`.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

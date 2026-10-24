@@ -4,7 +4,8 @@
  * date and the organization one the user may use (organization_allowed());
  * offending lines are reported ("Ungültige Buchungszeile", line number) and
  * skipped, with a summary per file; and the PDF import's voucher match
- * (import2.php: the user's organizations, no finalized row). Tested
+ * (import2.php: the user's organizations, no finalized row) and the row check
+ * of the receipt upload (new.php page_new_file()). Tested
  * with tests/http-import.php against the membership stub of
  * compose.test.yaml. See tests/mutation/README.md for the format.
  */
@@ -12,7 +13,7 @@ return array(
     'description' => 'Date and organization checks of the bank CSV import (import tests)',
     'file' => 'import.php',
     'tests' => array(
-        array('type' => 'phpunit', 'filter' => 'testImport', 'file' => 'tests/unit/ReceiptImportTest.php'),
+        array('type' => 'phpunit', 'filter' => 'testImport|testUpload', 'file' => 'tests/unit/ReceiptImportTest.php'),
         array('type' => 'http', 'script' => 'tests/http-import.php'),
     ),
     'timeout' => 180,
@@ -92,6 +93,35 @@ return array(
             'search' => "  vouchers_reset_ack(\$id, '');",
             'replace' => '  vouchers_reset_ack($id, $rightssql);',
             'rationale' => 'The PDF import resets the approvals of the whole voucher.',
+        ),
+        array(
+            'id' => 'upload-row-check-removed',
+            'file' => 'new.php',
+            'search' => "if (\$updated != 1)\n{\n  echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Buchungszeile nicht gefunden.",
+            'replace' => "if (false)\n{\n  echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Buchungszeile nicht gefunden.",
+            'rationale' => 'A receipt upload for a row the scoped update did not match stores nothing and '
+                . 'resets no approvals.',
+        ),
+        array(
+            'id' => 'upload-update-unscoped',
+            'file' => 'new.php',
+            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
+            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id;',
+            'rationale' => 'Wrong organization: the upload attaches a receipt to another organization\'s row.',
+        ),
+        array(
+            'id' => 'upload-update-any-voucher',
+            'file' => 'new.php',
+            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
+            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid $rightssql;',
+            'rationale' => 'The row must belong to the posted voucher.',
+        ),
+        array(
+            'id' => 'upload-failed-store-keeps-file',
+            'file' => 'new.php',
+            'search' => '  $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'replace' => '  $result = pg_query("SELECT 1;")',
+            'rationale' => 'A receipt that could not be stored leaves the row without a file number.',
         ),
     ),
 );
