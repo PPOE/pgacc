@@ -271,10 +271,9 @@ function page_import($rights)
                 $voucher['mitgliedsnummer'] = intval($line['id']);
                 $voucher['person_type'] = 2;
                 $voucher['type'] = 1;
-                $voucher['name'] = $line['name'];
+                $voucher['name'] = pg_escape_string($line['name']);
                 pg_free_result($result);
                 $found = true;
-                break;
               }
             }
           }

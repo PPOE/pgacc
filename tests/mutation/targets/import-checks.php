@@ -131,5 +131,11 @@ return array(
             'replace' => 'UPDATE vouchers SET file = 0 WHERE NOT deleted',
             'rationale' => 'A failed upload keeps the row\'s previous receipt.',
         ),
+        array(
+            'id' => 'import-member-match-ends-file',
+            'search' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
+            'replace' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true; break;",
+            'rationale' => 'A member match does not end the import of the file.',
+        ),
     ),
 );

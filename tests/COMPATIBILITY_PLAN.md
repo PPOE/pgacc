@@ -71,9 +71,13 @@ with synthetic users and covered by a mutation target.
   `index.php` year), and whitelists (`getsort()`, `index.php` action).
   Review fix: a member voucher (`page_save_buchung()`) takes the member's
   name from the membership list (`ppmembers`) and inserted it unescaped (a
-  name with a quote failed the query); it is escaped now. (`import.php`
-  has the same assignment, but its `break` ends the import before the
-  insert, an existing bug left as is.)
+  name with a quote failed the query); it is escaped now. PR review fix:
+  `import.php` has the same assignment (member found by its name in a
+  line without a name); it is escaped too, and its `break`, which ended
+  the import of the whole file there (the remaining lines were dropped
+  while the file was reported as imported), is removed. **Behaviour note:**
+  such a line and the following ones are imported now. The bank import
+  compares the line without spaces, so only one-word member names match.
   Second review fix: `getusers()` inserted the member id of the membership
   list unchecked into `ppmembers` (a second-order value); it is `intval()`
   now. Name (escaped), organization (mapped by a `switch`) and paid flag
@@ -955,7 +959,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
-| Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`) | **New**, logic smells; no direct version impact. |
+| Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
 | Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |
 

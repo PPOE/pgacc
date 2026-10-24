@@ -149,6 +149,24 @@ foreach (array('before a skipped line' => 1, 'of a foreign line' => 0, 'with an 
     }
 }
 
+// A line without a name that contains exactly one member's name (the stub's
+// "Synthetica"; the line is compared without spaces) gets that member; the following lines are imported too
+// (before, the member match ended the whole file and printed success).
+$memberLines = $handkassaHeader
+    . "05.04.2024;6,00;Handkassa;Synthetic member line Synthetica;;;Nein;Nein;;0;1;;;\r\n"
+    . handkassa_line('06.04.2024', 'Synthetic line after the member line', '1');
+$memberImport = import_csv('member.csv', $memberLines, $adminCookies);
+assert_contains($memberImport['body'], 'wurde erfolgreich importiert', 'import with a member line');
+$memberRow = import_orga($database, 'Synthetic member line Synthetica');
+if (import_count($database, 'Synthetic line after the member line') !== 1) {
+    fail_test('the line after the member line was not imported');
+}
+$memberName = @pg_query_params($database, 'SELECT name, member_id FROM vouchers WHERE comment = $1', array('Synthetic member line Synthetica'));
+$memberFields = pg_fetch_assoc($memberName);
+if ($memberFields['name'] !== 'Synthetica' || $memberFields['member_id'] !== '9035') {
+    fail_test('member line: ' . var_export($memberFields, true));
+}
+
 // The organization of every line must be one the user may use.
 $orgCases = array(
     'own organization' => array($unitOneCookies, '1', true),
