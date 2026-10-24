@@ -186,7 +186,7 @@ files) and `ShortOpenTagTest.php`. Tests that pass null capture
 every diagnostic with their own error handler, because PHPUnit 9 only prints
 deprecations. The suite also passes in random order, as Infection runs it.
 
-`functions.php:79` is unreachable: the regular expression on line 78 (`^*...`)
+`functions.php:74` is unreachable: the regular expression on line 73 (`^*...`)
 is malformed and cannot match; a test records that behaviour. PHPUnit 9 and Xdebug 3.1 are a legacy-runtime bridge, not
 production dependencies.
 

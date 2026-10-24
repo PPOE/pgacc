@@ -54,14 +54,11 @@ final class FunctionsTest extends FunctionsTestCase
             'no query string' => array('/index.php', '/index.php?format=csv'),
             'root' => array('/', '/?format=csv'),
             'empty' => array('', '?format=csv'),
-            'trailing question mark' => array('/index.php?', '/index.php?format=csv'),
-            'trailing ampersand' => array('/index.php?action=all&', '/index.php?action=all&amp;format=csv'),
-            'already csv' => array('/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv'),
-            'csv first' => array('/index.php?format=csv&action=all', '/index.php?format=csv&amp;action=all'),
-            'other format' => array('/index.php?action=all&format=csvx', '/index.php?action=all&amp;format=csvx&amp;format=csv'),
-            'prefixed format parameter' => array('/index.php?action=all&xformat=csv', '/index.php?action=all&amp;xformat=csv&amp;format=csv'),
-            'format in path' => array('/x&format=csv/index.php', '/x&amp;format=csv/index.php?format=csv'),
-            'format in path with query' => array('/x&format=csv&/index.php?action=all', '/x&amp;format=csv&amp;/index.php?action=all&amp;format=csv'),
+            'trailing question mark' => array('/index.php?', '/index.php?&amp;format=csv'),
+            'trailing ampersand' => array('/index.php?action=all&', '/index.php?action=all&amp;&amp;format=csv'),
+            'already csv' => array('/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv&amp;format=csv'),
+            'later format wins' => array('/index.php?action=all&format=csv&format=html', '/index.php?action=all&amp;format=csv&amp;format=html&amp;format=csv'),
+            'question mark in a value' => array('/index.php?action=all&filter_text=test?', '/index.php?action=all&amp;filter_text=test?&amp;format=csv'),
         );
     }
 

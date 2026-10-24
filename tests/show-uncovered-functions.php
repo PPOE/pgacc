@@ -29,7 +29,7 @@ if (!$coverageFileFound || $statementCount === 0) {
 }
 
 sort($uncovered);
-$unexpectedUncovered = array_values(array_diff($uncovered, array(79)));
+$unexpectedUncovered = array_values(array_diff($uncovered, array(74)));
 if (count($unexpectedUncovered) > 0) {
     fwrite(STDERR, 'Unexpected uncovered functions.php lines: ' . implode(', ', $unexpectedUncovered) . PHP_EOL);
     exit(1);
@@ -37,6 +37,6 @@ if (count($unexpectedUncovered) > 0) {
 
 $covered = $statementCount - count($uncovered);
 printf("functions.php executable-line coverage: %d/%d (%.2f%%)\n", $covered, $statementCount, $covered * 100 / $statementCount);
-if (in_array(79, $uncovered, true)) {
-    echo "Known unreachable statement remains at functions.php:79 (invalid legacy regex in getfilter)\n";
+if (in_array(74, $uncovered, true)) {
+    echo "Known unreachable statement remains at functions.php:74 (invalid legacy regex in getfilter)\n";
 }
