@@ -1000,4 +1000,155 @@ function membership_decrypt($datakey, $data)
   return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
+/*
+ * Login sessions. users.cookie (an integer column) holds a random nonce that
+ * every login replaces and logout clears. The pp_pgacc_login cookie is an
+ * HMAC of the user id, that nonce and users.login under a session key derived
+ * from the configured $key of constants.php: without a valid $key nobody can
+ * log in, and changing $key ends every session.
+ */
+
+// $length bytes from a CSPRNG, or false: random_bytes() (PHP 7+), else
+// openssl (only a cryptographically strong result; PHP 5.3 has no
+// random_bytes()), else mcrypt's /dev/urandom source. The function names are
+// parameters for the tests.
+function login_random_bytes($length, $random = 'random_bytes', $openssl = 'openssl_random_pseudo_bytes', $mcrypt = 'mcrypt_create_iv')
+{
+  if (function_exists($random))
+  {
+    try
+    {
+      $bytes = $random($length);
+      if (strlen($bytes) == $length)
+        return $bytes;
+    }
+    catch (Exception $exception)
+    {
+      // No random source: try the next one.
+    }
+  }
+  if (function_exists($openssl))
+  {
+    $strong = false;
+    $bytes = $openssl($length, $strong);
+    /** @var bool $strong set by reference */
+    if ($strong === true && strlen($bytes) == $length)
+      return $bytes;
+  }
+  if (function_exists($mcrypt))
+  {
+    // 1 is MCRYPT_DEV_URANDOM (undefined without the mcrypt extension).
+    $bytes = $mcrypt($length, 1);
+    if (strlen($bytes) == $length)
+      return $bytes;
+  }
+  return false;
+}
+
+// The session key, or false without a valid $key: the same key and check
+// as the receipts (receipt_configured_key()).
+function login_session_key()
+{
+  $key = receipt_configured_key();
+  if ($key === '')
+    return false;
+  return hash_hmac('sha256', 'pgacc-session-key', $key, true);
+}
+
+// The users.cookie nonce (1 to 2147483647) for four random bytes, else false.
+function login_nonce($bytes)
+{
+  if (strlen($bytes) != 4)
+    return false;
+  $value = unpack('N', $bytes);
+  return max(1, $value[1] & 0x7FFFFFFF);
+}
+
+// Starts a session of user $id: stores a new nonce and the login time and
+// returns the pp_pgacc_login token. Fails closed (false, logged without key
+// material) without a valid $key or a random source, or when the session
+// cannot be stored. $bytes: the random bytes of the nonce (for the tests).
+function login_start_session($connection, $id, $bytes = null)
+{
+  if (login_session_key() === false)
+  {
+    error_log('pgacc: login refused: no valid session key ($key in constants.php)');
+    return false;
+  }
+  $nonce = login_nonce($bytes === null ? login_random_bytes(4) : $bytes);
+  if ($nonce === false)
+  {
+    error_log('pgacc: login refused: no secure random source');
+    return false;
+  }
+  $id = intval($id);
+  $session = @pg_query($connection, "UPDATE users SET cookie = $nonce, login = now() WHERE id = $id RETURNING login");
+  if ($session === false || pg_num_rows($session) != 1)
+  {
+    error_log("pgacc: login refused: the session of user $id could not be stored");
+    return false;
+  }
+  return login_session_token($id, $nonce, pg_fetch_result($session, 0, 0));
+}
+
+// The pp_pgacc_login cookie of a session (64 hex digits), or false without a
+// valid $key.
+function login_session_token($id, $nonce, $login)
+{
+  $sessionKey = login_session_key();
+  if ($sessionKey === false)
+    return false;
+  return hash_hmac('sha256', 'pgacc-login|' . $id . '|' . $nonce . '|' . $login, $sessionKey);
+}
+
+// Whether $known and $given are the same string, in a time that does not
+// depend on where they differ (receipt_equals()); false for other types.
+function login_token_equals($known, $given)
+{
+  return is_string($known) && is_string($given) && receipt_equals($known, $given);
+}
+
+// The Set-Cookie header of a login cookie: secure, HttpOnly and SameSite=Lax
+// (setcookie() of PHP 5.3 has neither SameSite nor Max-Age), lasting $maxAge
+// seconds. $maxAge 0 deletes the cookie, as setcookie() of PHP 5.5+ does.
+function login_cookie_header($name, $value, $maxAge)
+{
+  $expires = $maxAge > 0 ? time() + $maxAge : 1;
+  return 'Set-Cookie: ' . $name . '=' . $value . '; expires=' . gmdate('D, d M Y H:i:s', $expires) . ' GMT; Max-Age=' . $maxAge . '; secure; HttpOnly; SameSite=Lax';
+}
+
+// Login targets (hex, see ascii2hex()) must be pages of this application:
+// empty (the login form's default), index.php with an optional query or
+// fragment, or an absolute path (checklogin() sends the request URI). No
+// scheme or host ("//", backslashes), control characters or spaces.
+function login_target_allowed($target)
+{
+  return preg_match('/^(index\.php([?#][\x21-\x5b\x5d-\x7e]*)?|\/([\x21-\x2e\x30-\x5b\x5d-\x7e][\x21-\x5b\x5d-\x7e]*)?)?$/D', $target) == 1;
+}
+
+// The decoded target if $hex is hex (digits and spaces, see hex2ascii()) of
+// an allowed target, else false. Other characters are refused before
+// hex2ascii(), whose hexdec() reports them on PHP 7.4+.
+function login_target_decode($hex)
+{
+  if (!is_string($hex) || strspn($hex, '0123456789ABCDEFabcdef ') != strlen($hex))
+    return false;
+  $target = hex2ascii($hex);
+  return login_target_allowed($target) ? $target : false;
+}
+
+// The login target for the Location header, else index.php.
+function login_target($hex)
+{
+  $target = login_target_decode($hex);
+  return $target === false ? 'index.php' : $target;
+}
+
+// The hidden target of the login form: $hex if it is an allowed target,
+// else empty.
+function login_form_target($hex)
+{
+  return login_target_decode($hex) === false ? '' : $hex;
+}
+
 ?>

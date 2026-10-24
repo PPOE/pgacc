@@ -270,6 +270,7 @@ accounts-create	admin	POST /index.php?action=accounts	200
 accounts-create-unchanged-password	admin	POST /index.php?action=accounts	200
 accounts-update-rights	admin	POST /index.php?action=accounts	200
 accounts-own-password	unitone	POST /index.php?action=accounts	200
+login-unitone-after-password	anon	POST /index.php?action=login	302
 accounts-other-user	unitone	POST /index.php?action=accounts	200
 accounts-after	admin	GET /index.php?action=accounts	200
 all-after-writes	admin	GET /index.php?action=all&format=csv	200

@@ -24,6 +24,7 @@ fi
 
 php tests/http-smoke.php
 php tests/http-login.php
+php tests/http-session-lifecycle.php
 php tests/http-listing-prefs.php
 php tests/http-redirects.php
 php tests/http-donations.php

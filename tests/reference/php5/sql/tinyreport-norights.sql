@@ -30,9 +30,9 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 11 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 11 AND login > now() - '24 hours'::interval
 -- next
 SELECT id,name FROM type WHERE income = 1  ORDER BY realtype ASC,id ASC
 -- next
@@ -70,4 +70,4 @@ SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NO
 -- next
 SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0)  AND account LIKE '%' 
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 11 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 11 AND login > now() - '24 hours'::interval

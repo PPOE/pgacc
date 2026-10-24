@@ -198,10 +198,12 @@ function login_response_problems($response, $expectedLocation, $expectedUserId =
             . ', expected ' . var_export($expectedLocation, true);
     }
     $cookies = response_cookies($response);
-    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
-        if (!isset($cookies[$cookie]) || preg_match('/^-?\d+$/', $cookies[$cookie]) !== 1) {
-            $problems[] = "missing or non-numeric $cookie cookie";
-        }
+    // The session token: 64 lowercase hex digits (an HMAC-SHA256).
+    if (!isset($cookies['pp_pgacc_login']) || preg_match('/^[0-9a-f]{64}$/', $cookies['pp_pgacc_login']) !== 1) {
+        $problems[] = 'missing pp_pgacc_login cookie or not 64 hex digits';
+    }
+    if (!isset($cookies['pp_pgacc_id']) || preg_match('/^\d+$/', $cookies['pp_pgacc_id']) !== 1) {
+        $problems[] = 'missing or non-numeric pp_pgacc_id cookie';
     }
     if ($expectedUserId !== null && isset($cookies['pp_pgacc_id'])
         && $cookies['pp_pgacc_id'] !== strval($expectedUserId)) {

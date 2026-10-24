@@ -16,6 +16,7 @@
       <file>../unit/CryptoTest.php</file>
       <file>../unit/ReceiptStorageTest.php</file>
       <file>../unit/ReceiptMigrationTest.php</file>
+      <file>../unit/LoginSessionTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

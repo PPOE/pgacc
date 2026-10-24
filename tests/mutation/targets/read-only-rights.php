@@ -50,8 +50,8 @@ foreach (array('ack', 'new-save') as $name) {
 $mutations[] = array(
     'id' => 'accounts-read-only-allowed',
     'file' => 'accounts.php',
-    'search' => 'if ($rights === false || $id != checklogin(\'id\')',
-    'replace' => 'if ($id != checklogin(\'id\')',
+    'search' => 'if ($rights === false || $id != $ownId',
+    'replace' => 'if ($id != $ownId',
     'rationale' => 'Fail-open: read-only bgf changes its password.',
 );
 $mutations[] = array(

@@ -107,10 +107,10 @@ function step($id, $user, $method, $path, $form = array(), $files = array())
     return $response;
 }
 
-function login($user)
+function login($user, $id = null)
 {
     $credentials = $GLOBALS['ref_users'][$user];
-    $response = step("login-$user", 'anon', 'POST', '/index.php?action=login', array(
+    $response = step($id === null ? "login-$user" : $id, 'anon', 'POST', '/index.php?action=login', array(
         'submit' => 'Anmeldung',
         'name' => $credentials[0],
         'pass' => $credentials[1],
@@ -406,6 +406,9 @@ step('accounts-update-rights', 'admin', 'POST', '/index.php?action=accounts', ar
 step('accounts-own-password', 'unitone', 'POST', '/index.php?action=accounts', array(
     'submit' => 'Benutzer 3 aktualisieren', 'password3' => 'unit-password',
 ));
+// A password change ends the sessions of that user: log in again for the
+// following unit one steps.
+login('unitone', 'login-unitone-after-password');
 step('accounts-other-user', 'unitone', 'POST', '/index.php?action=accounts', array(
     'submit' => 'Benutzer 1 aktualisieren', 'password1' => 'stolen',
 ));

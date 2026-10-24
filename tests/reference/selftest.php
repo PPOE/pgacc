@@ -78,6 +78,10 @@ check('entries of other versions are not stale', ref_stale_entries('5.3', $entri
 
 check('login cookie', ref_normalize_set_cookie('pp_pgacc_login=1804289383; expires=Tue, 16-Jun-2026 10:00:07 GMT; Max-Age=86400'),
     'pp_pgacc_login={{cookie}}; expires=Tue, 16-Jun-2026 {{time}} GMT; Max-Age=86400');
+check('session token cookie', ref_normalize_set_cookie('pp_pgacc_login=' . str_repeat('0a', 32) . '; expires=Tue, 16 Jun 2026 10:00:07 GMT'),
+    'pp_pgacc_login={{cookie}}; expires=Tue, 16 Jun 2026 {{time}} GMT');
+check('other cookie values are kept', ref_normalize_set_cookie('pp_pgacc_login=' . str_repeat('0a', 31) . '; secure'),
+    'pp_pgacc_login=' . str_repeat('0a', 31) . '; secure');
 check('id cookie keeps its value', ref_normalize_set_cookie('pp_pgacc_id=3; expires=Tue, 16 Jun 2026 10:00:07 GMT'),
     'pp_pgacc_id=3; expires=Tue, 16 Jun 2026 {{time}} GMT');
 check('deleted cookie', ref_normalize_set_cookie('pp_pgacc_login=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0'),

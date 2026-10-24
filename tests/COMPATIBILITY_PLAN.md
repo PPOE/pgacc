@@ -320,6 +320,96 @@ with synthetic users and covered by a mutation target.
   and `FunctionsTest`, mutations in `rights-checks`; the empty voucher page
   and the reset button are not mutated (the first raises the open
   `$vouchers` finding, the second is hidden by `end_of_form()` anyway).
+- [x] Login session token (`login()`, `checklogin()`, helpers in
+  `functions.php`). The `pp_pgacc_login` cookie was the `mt_rand()` value
+  stored in `users.cookie`. `users.cookie` stays an `integer` column (no
+  schema change): it now holds a nonce of 31 random bits (1 to 2147483647)
+  from a CSPRNG (`random_bytes()` on PHP 7+, else
+  `openssl_random_pseudo_bytes()` with a strong result, else
+  `mcrypt_create_iv()` with `/dev/urandom`; PHP 5.3 has no `random_bytes()`),
+  replaced by every login. The cookie is
+  `hash_hmac('sha256', "pgacc-login|<id>|<nonce>|<users.login>", K)` in hex
+  (64 digits) with the session key
+  `K = hash_hmac('sha256', 'pgacc-session-key', $key, true)`, derived from the
+  configured `$key` of `constants.php`. `checklogin()` selects the user by
+  the id cookie and compares the token in constant time
+  (`login_token_equals()`, through `receipt_equals()`: `hash_equals()`, or
+  its fallback on PHP 5.3). Neither the cookie nor `users.cookie` alone lets
+  anyone forge a session without `$key`. Fails closed: without a valid `$key`
+  (`receipt_configured_key()`, the same check as for receipts) or a CSPRNG, or when the session cannot be
+  stored, nobody can log in (the login form is shown again);
+  `login_start_session()` logs the reason (`pgacc: login refused: ...`,
+  without key material), so that operators can tell it from a wrong
+  password. Tests in `tests/http-login.php` (token format, rotation,
+  wrong, old-format and other users' tokens, 24-hour expiry) and
+  `LoginSessionTest`, mutations in `login-logout`. Review fixes: a
+  logged-out session (`users.cookie` NULL) is refused, also with a token
+  computed for an empty nonce. `checklogin()` compares a token even when
+  the query returns no row, using the result in the same authentication
+  guard instead of discarding a dummy comparison (which PHPStan rejected).
+  It still iterates over rows: the legacy schema does not guarantee unique
+  user IDs. This equalizes the comparison step, not the complete HTTP/SQL
+  request timing. Tests also reject the exact dummy token for an absent user
+  and preserve lookup after a first nonmatching row. The session check and the logout pass
+  the connection explicitly (PHP 8.5 deprecates the implicit one, displayed
+  before the logout headers).
+  **Deploy:** check that `constants.php` sets a valid `$key` (also needed for
+  receipts, see the receipt key runbook). Every user is logged out once by
+  the deploy (old cookies are numbers, no longer valid tokens). Changing
+  `$key` later logs everyone out again; the receipt migration does not
+  change `$key`.
+- [x] Logout ends the session on the server: it clears `users.cookie` of
+  the logged-in user before clearing the browser cookies, so a kept copy of
+  the cookies no longer authenticates (before, it stayed valid until the
+  24-hour expiry). Only the session of valid cookies is ended; a logout with
+  wrong or no cookies changes nothing. Logout ends every session of that
+  user (all sessions of a user share `users.cookie`, as before: a new login
+  also ends the previous one). Tests in `tests/http-login.php`, mutations in
+  `login-logout`. A standalone `tests/http-session-lifecycle.php logout`
+  run on pre-fix `bac674e` fails because the cleared-nonce token authenticates;
+  the same scenario passes on the fixed branch without diagnostics.
+- [x] A password change ends the sessions of that user (`accounts.php`
+  clears `users.cookie` with the new hash, for an own change and a change by
+  root), so stolen cookies stop working. A change of the rights only keeps
+  the sessions. Behaviour change: a user who changes the own password is
+  logged out and logs in again with the new one (`page_accounts()` checks
+  the session once, so the page after the change still shows the own
+  account). Tests moved from the end of `tests/write-workflows.php` into
+  `tests/http-session-lifecycle.php`, run by both the 7.4 and production
+  lane clients and by `rights-checks`. The standalone `password` scenario
+  fails on `7c49674` because an own password change leaves `users.cookie`
+  set, and passes on the fixed branch. Root changing another password and
+  rights-only updates remain covered; the former ends only the target's
+  session, the latter preserves its token. No baseline entries or assertion
+  strength were relaxed.
+  Follow-up verification on the isolated login branch: static analysis passes
+  unchanged baselines; PHP 7.4 covers 83/83 executable lines in the login delta
+  from `2be90d8`; the PHP 5.3 lane passes. The login mutation target kills 56
+  mutants with three existing equivalents, and Infection kills all 127
+  generated login-helper mutants. Its unrelated legacy-helper survivors are
+  still reported. The read-only account target follows the cached `$ownId`
+  introduced with password invalidation and its mutant is killed.
+  The existing approval-visibility equivalent classification from `923ac01`
+  was carried to this fork: `edit.php` is byte-identical to that reviewed
+  version, and the equivalent was reconfirmed separately from the other 62
+  killed rights-check mutants.
+  **Separate inherited test gap:** `new-save-read-only-allowed` survives in
+  both parent `69ac7c3` and this follow-up; the other 12 read-only mutants are
+  killed. No voucher code changed here, and no new equivalence was assumed
+  for that case. Resolve it with the security integration rather than
+  expanding this login task. Raw mutation results remain visible.
+- [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
+  with `setcookie()` and only an expiry: readable by scripts, sent over plain
+  HTTP and on cross-site requests. `index.php` now sends both Set-Cookie
+  headers itself (`login_cookie_header()`; `setcookie()` of PHP 5.3 has no
+  SameSite) with `secure; HttpOnly; SameSite=Lax`, still without path or
+  domain, and with `expires` and `Max-Age` on every PHP version (PHP 5.3
+  sent no `Max-Age` before). Logout deletes them as `setcookie()` of PHP
+  5.5+ does (`deleted`, 1970 expiry, `Max-Age=0`). The app is only served
+  over HTTPS (the proxy; `index.php` redirects other requests), so `secure`
+  does not change what browsers send there. Tests in `tests/http-login.php`
+  (the HTTP test client sends cookies itself, so the attributes do not
+  affect it) and `LoginSessionTest`, mutations in `login-logout`.
 - [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
   `bgf`); not requested by the tests.
 
@@ -340,8 +430,25 @@ Open security findings (not changed here; owner decisions):
   (`rights_tokens()`, null-safe) and accepts only digits, like
   `organization_allowed()`, so `2 ` is organization 2 on every version and
   hex or exponent notation falls back to 10.
-- [ ] The login `target` is redirected to without a check
-  (`login_redirect()`, `login()`).
+- [x] The login `target` was redirected to without a check
+  (`login_redirect()`, `login()`): any URL, and on PHP 5.3 line breaks that
+  add headers. Now only a page of this application is allowed
+  (`login_target_allowed()`): empty (the form's default, sent as an empty
+  `Location` as before), `index.php` with an optional query or fragment, or
+  an absolute path such as the `/index.php?...` targets of `checklogin()`;
+  printable ASCII only, without spaces, backslashes, a scheme or `//`.
+  Anything else, also a target that is not hex, redirects to `index.php`.
+  The login form (`page_login()`) echoed `?target=` unescaped into its
+  hidden field; it now keeps only an allowed hex target (else empty) and
+  escapes it. Behaviour change: targets with raw non-ASCII characters or
+  spaces (browsers send them percent-encoded) and relative paths other than
+  `index.php` now lead to `index.php`. Other `Location` headers were
+  reviewed: `relocate()` (`edit.php`, `new.php`) builds them from
+  `intval()` IDs, `page_search()` from an `intval()` member id, and
+  `checklogin()` hex-encodes the request URI; the HTTPS redirect of
+  `index.php` uses the request's own host and URI (only for requests that
+  did not come through the proxy). Tests in `tests/http-login.php` and
+  `LoginSessionTest`, mutations in `login-logout`.
 - [x] Old approval names posted with a revision were stored as given
   (`page_edit_save()`); fixed with the approval reset (they
   come from the database).
@@ -1065,7 +1172,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
@@ -1081,7 +1188,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
-| `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
+| `setcookie()` value is an int | `index.php:27` | **Fixed** with the login session token (the cookie is a hex string now); baseline entry removed. |
 | Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |
 
 ### Not detected by either tool

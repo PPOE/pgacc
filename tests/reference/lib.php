@@ -160,7 +160,8 @@ function ref_response_cookies($response)
 
 function ref_normalize_set_cookie($value)
 {
-    $value = preg_replace('/^pp_pgacc_login=-?\d+/', 'pp_pgacc_login={{cookie}}', $value);
+    // The session token: a number before the CSPRNG token fix, 64 hex digits since.
+    $value = preg_replace('/^pp_pgacc_login=(-?\d+|[0-9a-f]{64})(?=;|$)/', 'pp_pgacc_login={{cookie}}', $value);
     return preg_replace('/(expires=\w{3}, \d{2}[- ]\w{3}[- ]\d{4} )\d{2}:\d{2}:\d{2}( GMT)/', '$1{{time}}$2', $value);
 }
 

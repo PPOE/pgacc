@@ -1499,6 +1499,8 @@ assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'membe
 // (The page itself is not requested for bgf: on the synthetic data it divides
 // by zero, an open finding in tests/COMPATIBILITY_PLAN.md.)
 
+// Password/session regressions run independently in http-session-lifecycle.php.
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

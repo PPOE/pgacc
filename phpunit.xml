@@ -9,6 +9,7 @@
       <file>tests/unit/FunctionsTest.php</file>
       <file>tests/unit/InfectionShimTest.php</file>
       <file>tests/unit/CryptoTest.php</file>
+      <file>tests/unit/LoginSessionTest.php</file>
       <file>tests/unit/GetUsersTest.php</file>
       <file>tests/unit/ReceiptImportTest.php</file>
       <file>tests/unit/ImportMemberMatchTest.php</file>

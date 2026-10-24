@@ -92,15 +92,22 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-smoke.php`: public report, transactions, spendings, rejected and
   successful login, an authenticated ledger request.
 - `http-login.php`: a valid login returns 302 with an empty body and
-  `Location: index.php` (or the hex-decoded `target`, also spaced/lowercase hex
-  and the empty target the form posts), numeric `pp_pgacc_login` and
-  `pp_pgacc_id` cookies (24-hour expiry, no other attributes) whose value is
-  stored in `users.cookie` with a fresh `users.login`, and that authenticate a
-  follow-up request. A logged-in user gets "Login erfolgreich!" or the posted
-  target. Rejected logins (wrong password, unknown user, quotes in user name
-  or password) return 200 with the form, no `Location`, no cookies and no
-  database change. Logout returns an empty 302 to `index.php` and clears both
-  cookies.
+  `Location: index.php` (or the hex-decoded `target` if it is a page of the
+  application; other targets, also absolute URLs, `//`, backslashes and line
+  breaks, lead to `index.php`), an HMAC `pp_pgacc_login` token and the numeric
+  `pp_pgacc_id` (24-hour expiry, `secure`, `HttpOnly`, `SameSite=Lax`), a
+  random nonce in `users.cookie` with a fresh `users.login`, and cookies that
+  authenticate a follow-up request; wrong, old-format, other users' and
+  expired tokens are rejected. A logged-in user gets "Login erfolgreich!" or
+  the posted target. Rejected logins (wrong password, unknown user, quotes in
+  user name or password) return 200 with the form, no `Location`, no cookies
+  and no database change. Logout returns an empty 302 to `index.php`, clears
+  both cookies and ends the session on the server.
+- `http-session-lifecycle.php`: session invalidation (logout, also a token
+  computed for the cleared nonce; own and root password changes end that
+  user's sessions, rights-only changes keep them). `php
+  tests/http-session-lifecycle.php logout|password` runs one scenario for
+  focused red evidence; reset the fixtures after a red failure.
 - `http-redirects.php`: every protected page (also CSV listings and `?hide=`)
   answers visitors with exactly a 302 to
   `index.php?action=login&target=<hex of the request URI>` and an empty body;

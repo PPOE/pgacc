@@ -30,7 +30,7 @@ SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date 
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2027-01-01' AND date < '2028-01-01' AND NOT deleted;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM vouchers WHERE NOT deleted AND amount != 0 AND date > '2011-12-31' ORDER BY date ASC, voucher_id DESC, vouchers.id ASC
 -- next
@@ -150,4 +150,4 @@ SELECT name FROM type WHERE id = 14
 -- next
 SELECT name FROM lo WHERE id = 4
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval
+SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval

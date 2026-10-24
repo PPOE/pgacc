@@ -12,6 +12,7 @@ global $user_prefs_hide;
 $user_prefs_hide = array();
 function login($user, $pass)
 {
+  global $dbconn;
   $user = pg_escape_string($user);
   $pass = pg_escape_string($pass);
   $data = pg_query("SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -19,16 +20,16 @@ function login($user, $pass)
     return 0;
   while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
   {
-    if ($line['success'] == 't')
+    // Fails closed without a valid $key, a CSPRNG or a stored session
+    // (functions.php): the login form is shown again.
+    if ($line['success'] == 't' && ($token = login_start_session($dbconn, $line['id'])) !== false)
     {
       $id = $line['id'];
-      $rand = mt_rand();
-      pg_query("UPDATE users SET cookie = $rand, login = now() WHERE id = $id");
-      setcookie("pp_pgacc_login", $rand, time()+86400);
-      setcookie("pp_pgacc_id", $id, time()+86400);
+      header(login_cookie_header("pp_pgacc_login", $token, 86400), false);
+      header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
       pg_free_result($data);
       if (isset($_POST['target']))
-        header("Location: " . hex2ascii($_POST['target']));
+        header("Location: " . login_target($_POST['target']));
       else
         header("Location: index.php");
       return $id;
@@ -73,13 +74,21 @@ function checklogin($get = 'name', $redir = true)
 {
   global $user_id;
   global $user_prefs_hide;
-  if (isset($_COOKIE["pp_pgacc_login"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_login"]) == 1 && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
+  global $dbconn;
+  if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
-    $data = pg_query("SELECT * FROM users WHERE cookie = {$_COOKIE["pp_pgacc_login"]} AND id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
+    $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
     if (!$data)
       return $get == 'id'?0:'';
-    while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
+    $line = pg_fetch_array($data, null, PGSQL_ASSOC);
+    do
     {
+      // Compare once even without a row; the result is used by the same
+      // guard. A missing row or cleared nonce can never authenticate.
+      $token = $line ? login_session_token($line['id'], $line['cookie'], $line['login']) : login_session_token(0, 0, '');
+      $tokenMatches = login_token_equals($token, $_COOKIE["pp_pgacc_login"]);
+      if (!$tokenMatches || !$line || strval($line['cookie']) === '')
+        continue;
       $user_id = $line['id'];
       $hide_cols = explode(",",$line['hide']);
       foreach ($hide_cols as $col)
@@ -102,7 +111,7 @@ function checklogin($get = 'name', $redir = true)
         pg_free_result($data);
         return $line['rights'];
       } 
-    }
+    } while ($line && ($line = pg_fetch_array($data, null, PGSQL_ASSOC)));
     pg_free_result($data);
   }
   if ($redir)
@@ -195,8 +204,13 @@ if ($page == "edit" || $page == "merge")
 // acc_header() starts the page.
 if ($page == "logout")
 {
-  setcookie("pp_pgacc_login", "", time() - 3600);
-  setcookie("pp_pgacc_id", "", time() - 3600);
+  // Ends the session on the server too: its cookies stop working even if
+  // a copy was kept. Wrong or missing cookies end nothing.
+  $logoutId = checklogin('id', false);
+  if ($logoutId > 0)
+    pg_query($dbconn, "UPDATE users SET cookie = NULL WHERE id = $logoutId");
+  header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);
+  header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);
   header("Location: index.php");
   pg_close($dbconn);
   return;
