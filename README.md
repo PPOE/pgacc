@@ -47,7 +47,8 @@ has known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.m
    ```
 
    `$key` must have at least 16 characters and must not be the `CHANGE-ME`
-   placeholder; otherwise receipt uploads are refused. Back it up and keep it:
+   placeholder; otherwise receipt uploads are refused. Use a random string of
+   32 or more characters (e.g. `openssl rand -hex 32`). Back it up and keep it:
    receipts uploaded since the receipt key fix (`files/<n>.v2.aes`) cannot be
    decrypted without it or with another key. Older receipts (`files/<n>.aes`)
    stay readable; `migrate-receipt-key.php` (command line only) re-encrypts

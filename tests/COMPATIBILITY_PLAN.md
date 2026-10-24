@@ -557,32 +557,45 @@ differences above are only visible for out-of-range input.
     voucher keeps no file number, and `error_log()` names the reason; a write
     failure is refused the same way (it used to be ignored).
   - Download (`file.php`): `<n>.v2.aes` if it exists: MAC checked, then
-    decrypted; a wrong key, a file copied from another number or a modified
-    file gives a 500 ("FEHLER: Der Beleg konnte nicht entschlüsselt
-    werden.") and an `error_log()` line with the key fingerprint (first 8
-    hex digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, never the
-    key). Content-Type from the magic bytes: PDF, JPEG, otherwise
-    `application/octet-stream`; Content-Length is the plain text size.
-    Without `<n>.v2.aes`, the legacy `<n>.aes` exactly as before. There is
-    no fallback from `<n>.v2.aes` to the legacy scheme.
+    decrypted. If that fails (a wrong key, a file copied from another number
+    or a modified file) and `<n>.aes` still exists (before
+    `--delete-legacy`), the legacy file is sent as before and logged;
+    without it the response is a 500 ("FEHLER: Der Beleg konnte nicht
+    entschlüsselt werden."). The log lines name the file only, never the key
+    or its fingerprint. v2 responses: Content-Type from the magic bytes
+    (PDF, JPEG, otherwise `application/octet-stream` with `Content-Disposition:
+    attachment; filename="<n>.bin"`), `X-Content-Type-Options: nosniff`
+    (correct types render as before; checked by headers only, not in a
+    browser), Content-Length is the plain text size. Without `<n>.v2.aes`,
+    the legacy `<n>.aes` exactly as before (no new headers). The v2 bytes
+    are never decrypted with the legacy scheme.
   - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3
     has no fsync): a normal run writes and verifies `<n>.v2.aes` and keeps
     `<n>.aes`; after `sync`, `--delete-legacy` decrypts both again and
-    deletes `<n>.aes` only where the plain texts match. It reads `$key`
-    like `index.php`, refuses invalid keys, prints the key fingerprint, holds
-    an exclusive lock (`files/.migrate-receipt-key.lock`), never removes a
-    `<n>.v2.aes` it did not just write, probes the first block per candidate
-    voucher ID, skips files above `--max-size` (default `memory_limit` / 8)
-    and non-PDF/JPEG files, and exits 2 when it cannot read the directory.
-    Its first statement answers web requests with 404, before any include.
-    Runbook below.
+    deletes `<n>.aes` only where the plain texts match; it prints a reminder
+    to check receipts first. It reads `$key` like `index.php` (an explicit
+    relative `--constants` or `--files` is relative to the working
+    directory), refuses invalid keys, prints the key fingerprint (first 8 hex
+    digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, only in its own
+    output), holds an exclusive lock (`files/.migrate-receipt-key.lock`),
+    never removes a `<n>.v2.aes` it did not just write, probes the first
+    block per candidate voucher ID and then requires a complete PDF
+    (`%%EOF` near the end) or JPEG (`FF D9`) with consistent zero padding,
+    skips files above `--max-size` (default `memory_limit` / 8), names that
+    are not canonical file numbers in PostgreSQL's integer range (listed,
+    exit status unchanged) and other types, and exits 2 when it cannot read
+    the directory. Its first statement stops any server API but the
+    command line (404 for web requests, a message for php-cgi from a shell,
+    exit status 1), before any include. Runbook below.
   - Tests: `tests/unit/ReceiptStorageTest.php` (key validation, fingerprint,
     v2 vectors, random IV, rejected keys/numbers/modifications, atomic
     writes, store and read); `ReceiptImportTest.php` (the import's
     `<n>.v2.aes`; import and upload refused without a valid key);
-    `ReceiptMigrationTest.php` (dry run, migration with skips and the size
-    limit, idempotent reruns, the delete phase, failures, `--limit`, the
-    lock, refusals, key loading, the command); `tests/http-receipts.php`
+    `ReceiptMigrationTest.php` (dry run, migration with skips, complete
+    receipts and the size limit, idempotent reruns, the delete phase,
+    failures, `--limit`, the lock, refusals, key loading, relative paths,
+    php-cgi; also on PHP 5.3) and `ReceiptMigrationCommandTest.php` (the
+    command); `tests/http-receipts.php`
     (stored files, legacy downloads, `<n>.v2.aes` wins, other types as
     downloads, the error cases, merges, the script over HTTP; it shares the
     server's `files/` through a Compose volume). Mutation target
@@ -621,15 +634,20 @@ differences above are only visible for out-of-range input.
   1. Back up `files/` and `constants.php` (its `$key`) to separate, safe
      places. Without that `$key` no new receipt can be decrypted again; keep
      the backup as long as receipts must be kept.
-  2. Check `$key` in `constants.php`: at least 16 characters, not the
-     `CHANGE-ME` placeholder. Otherwise uploads are refused after the deploy
-     (legacy downloads keep working). Do not change it later: receipts
-     encrypted with it cannot be read with another key.
+  2. Check `$key` in `constants.php`. The application requires at least 16
+     characters and no `CHANGE-ME` placeholder (otherwise uploads are refused
+     after the deploy; legacy downloads keep working); use a random string
+     of 32 or more characters, e.g. `openssl rand -hex 32`. Legacy receipts
+     never used `$key`, so it can still be replaced before the deploy; do not
+     change it afterwards: receipts encrypted with it cannot be read with
+     another key. (The md5-based draft of `<n>.v2.aes` was never deployed, so
+     no such files exist.)
   3. Deploy. From now on new receipts are `files/<n>.v2.aes`.
   4. Dry run, as the web server's user (file owner and database role), from
      any directory: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
      It lists each legacy file as "would migrate" or "not migrated" (with the
-     reason) and writes nothing. Note the key fingerprint in the summary.
+     reason) and writes nothing. Note the key fingerprint in the summary; do
+     not post migration transcripts publicly.
   5. Migrate: `sudo -u <web user> php migrate-receipt-key.php`, optionally in
      batches (`--limit=500`). Files above `--max-size` (default
      `memory_limit` / 8) are skipped; for large receipts run with
@@ -637,16 +655,19 @@ differences above are only visible for out-of-range input.
      Exit status 1 means a file failed; rerun until the summary shows 0
      migrated and 0 failed.
   6. Run `sync` (the migration cannot flush files to disk on PHP 5.3).
-  7. Spot-check a few migrated receipts (PDF and JPEG) in the browser.
+  7. Spot-check several migrated receipts (PDF and JPEG) in the browser,
+     before deleting anything, and check the web server's error log for
+     `pgacc: receipt <n>.v2.aes could not be decrypted; sent the legacy
+     <n>.aes`: while the legacy files exist, a key mismatch between the web
+     application and the migration still serves the old file, so only the
+     log shows it.
   8. Delete the legacy files: `sudo -u <web user> php migrate-receipt-key.php
-     --delete-legacy` (also with `--dry-run` first). Each `<n>.aes` is
-     deleted only after `<n>.v2.aes` decrypted to the same content.
-  9. Compare key fingerprints: the migration prints one; the web server's
-     error log shows `pgacc: receipt <n>.v2.aes could not be decrypted (...
-     key fingerprint ...)` when a receipt fails. Different fingerprints mean
-     the web application and the migration use different keys.
-  10. Keep the `files/` backup from step 1 until the spot checks are done.
-      Skipped files stay legacy `<n>.aes` and keep working as before.
+     --delete-legacy` (also with `--dry-run` first; it repeats the reminder).
+     Each `<n>.aes` is deleted only after `<n>.v2.aes` decrypted to the same
+     content with the key the run read. Its key fingerprint must match the
+     one of steps 4 and 5.
+  9. Keep the `files/` backup from step 1 until the spot checks are done.
+     Skipped files stay legacy `<n>.aes` and keep working as before.
 
 ## Planned security follow-ups
 
