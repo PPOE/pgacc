@@ -69,6 +69,11 @@ with synthetic users and covered by a mutation target.
   values without quotes (the other `getfilter()` filters, `kdonations.php`,
   `spendings.php`, `tinyreport.php`, `vreport.php`, `check.php`,
   `index.php` year), and whitelists (`getsort()`, `index.php` action).
+  Review fix: a member voucher (`page_save_buchung()`) takes the member's
+  name from the membership list (`ppmembers`) and inserted it unescaped (a
+  name with a quote failed the query); it is escaped now. (`import.php`
+  has the same assignment, but its `break` ends the import before the
+  insert, an existing bug left as is.)
   Review fix: `import.php` inserted dates read from the uploaded bank CSV
   without escaping (`format_date()` passes unrecognized text through).
   Every imported line now needs a date (`import_date_valid()`) and an

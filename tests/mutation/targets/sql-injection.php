@@ -101,6 +101,14 @@ foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval(
     );
 }
 
+$mutations[] = array(
+    'id' => 'member-name-unescaped',
+    'file' => 'new.php',
+    'search' => "    \$voucher['name'] = pg_escape_string(\$line['name']);",
+    'replace' => "    \$voucher['name'] = \$line['name'];",
+    'rationale' => 'Removed escape: a member name from the membership list is inserted as SQL.',
+);
+
 return array(
     'description' => 'Request values in the SQL of the voucher edit actions, the voucher form and '
         . 'the listing filter (write-workflow tests)',

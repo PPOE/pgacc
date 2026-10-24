@@ -148,7 +148,7 @@ else
   $query = "SELECT name FROM ppmembers WHERE id = {$voucher['mitgliedsnummer']};";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $voucher['name'] = $line['name'];
+    $voucher['name'] = pg_escape_string($line['name']);
   }
   pg_free_result($result);
 }

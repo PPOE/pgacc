@@ -859,6 +859,23 @@ foreach (array('finalized' => 'receipt_received = true', 'approved twice' => "ac
     );
 }
 
+// A member voucher takes the member's name from the membership list
+// (getusers(), the stub's synthetic members); it is escaped like posted names.
+$memberForm = voucher_form('Synthetic voucher of a member with a quote', '-1.70', 0);
+$memberForm['member0'] = '1';
+$memberForm['mitgliedsnummer0'] = '9033';
+$memberVoucher = http_request('/index.php?action=new', 'POST', $memberForm, $adminCookies);
+assert_contains($memberVoucher['body'], 'Buchung erfasst', 'member voucher');
+assert_not_contains($memberVoucher['body'], 'fehlgeschlagen', 'member voucher');
+$memberRow = database_row(
+    $database,
+    'SELECT name, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member with a quote'),
+    'member voucher'
+);
+assert_database_field($memberRow, 'name', "O'Brien Synthetisch", 'member voucher');
+assert_database_field($memberRow, 'member_id', '9033', 'member voucher');
+
 // A voucher whose rows are all deleted (old revisions only) counts as not
 // visible: approval is refused and the deleted rows keep their state.
 $deletedOnlyId = create_voucher($database, 'Synthetic voucher with deleted rows only', '-10.25', 9013, $adminCookies);
