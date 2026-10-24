@@ -40,7 +40,7 @@ SELECT * FROM vouchers WHERE comment LIKE '%BG/000000220%' AND date = date '2024
 -- next
 SELECT nextval('file_number') AS num;
 -- next
-UPDATE vouchers SET file = 101 WHERE NOT deleted AND id = 220 AND voucher_id = 2020 ;
+UPDATE vouchers SET file = 101 WHERE NOT deleted AND id = 220 AND voucher_id = 2020 AND file = 0 ;
 -- next
 
     UPDATE vouchers

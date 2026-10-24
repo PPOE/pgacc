@@ -36,6 +36,8 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5001;
+-- next
 
     UPDATE vouchers
     SET

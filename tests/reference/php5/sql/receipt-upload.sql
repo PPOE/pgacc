@@ -42,7 +42,7 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5
 -- next
 SELECT nextval('file_number') AS num;
 -- next
-UPDATE vouchers SET file = 100 WHERE NOT deleted AND id = 1001 AND voucher_id = 5001 ;
+UPDATE vouchers SET file = 100 WHERE NOT deleted AND id = 1001 AND voucher_id = 5001 AND file = 0 ;
 -- next
 
     UPDATE vouchers

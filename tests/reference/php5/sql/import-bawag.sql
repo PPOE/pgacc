@@ -83,7 +83,7 @@ SELECT 1 FROM import WHERE line = 'AT916000050110110437;MitgliedsbeitragGerlinde
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE 'AT916000050110110437;MitgliedsbeitragGerlindeTitelträgerinAT333333;05.01.2024;05.01.2024;+20,00;EUR' ILIKE '%' || name || '%'
+SELECT * FROM ppmembers WHERE name <> '' AND 'AT916000050110110437;MitgliedsbeitragGerlindeTitelträgerinAT333333;05.01.2024;05.01.2024;+20,00;EUR' ILIKE '%' || replace(replace(replace(name, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%' ESCAPE E'\\'
 -- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5010, '2024-01-05', 1,10,true,0,'','','','','',2000,'AT916000050110110437','Mitgliedsbeitrag
 Gerlinde Titelträgerin AT33 3333',false,false)
@@ -109,7 +109,7 @@ SELECT 1 FROM import WHERE line = 'AT376000050110117326;ZinsenBG/000000301;31.03
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE 'AT376000050110117326;ZinsenBG/000000301;31.03.2024;31.03.2024;+0,05;EUR' ILIKE '%' || name || '%'
+SELECT * FROM ppmembers WHERE name <> '' AND 'AT376000050110117326;ZinsenBG/000000301;31.03.2024;31.03.2024;+0,05;EUR' ILIKE '%' || replace(replace(replace(name, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%' ESCAPE E'\\'
 -- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5012, '2024-03-31', 14,4,false,0,'','','','','',5,'AT376000050110117326','Zinsen BG/000000301',false,false)
 -- next
@@ -143,7 +143,7 @@ SELECT 1 FROM import WHERE line = 'AT716000050110117393;Bargeld;09.01.2024;09.01
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE 'AT716000050110117393;Bargeld;09.01.2024;09.01.2024;-0,01;EUR' ILIKE '%' || name || '%'
+SELECT * FROM ppmembers WHERE name <> '' AND 'AT716000050110117393;Bargeld;09.01.2024;09.01.2024;-0,01;EUR' ILIKE '%' || replace(replace(replace(name, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%' ESCAPE E'\\'
 -- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5015, '2024-01-09', 28,8,false,0,'','','','','',-1,'AT716000050110117393','Bargeld
 ',false,false)
@@ -154,7 +154,7 @@ SELECT 1 FROM import WHERE line = 'AT856000010110123642;SpendeohneGegenkontoSynt
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE 'AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR' ILIKE '%' || name || '%'
+SELECT * FROM ppmembers WHERE name <> '' AND 'AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR' ILIKE '%' || replace(replace(replace(name, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%' ESCAPE E'\\'
 -- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5016, '2024-01-10', 1,9,true,9035,'','Synthetica','','','',300,'AT856000010110123642','Spende ohne Gegenkonto Synthetica',false,false)
 -- next
@@ -164,7 +164,7 @@ SELECT 1 FROM import WHERE line = 'AT606000050110117300;NachdemAbbruch;11.01.202
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE 'AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR' ILIKE '%' || name || '%'
+SELECT * FROM ppmembers WHERE name <> '' AND 'AT606000050110117300;NachdemAbbruch;11.01.2024;11.01.2024;+4,00;EUR' ILIKE '%' || replace(replace(replace(name, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%' ESCAPE E'\\'
 -- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5017, '2024-01-11', 14,2,false,0,'','','','','',400,'AT606000050110117300','Nach dem Abbruch',false,false)
 -- next
