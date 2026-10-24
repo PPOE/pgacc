@@ -421,7 +421,6 @@ echo '
 $query = "SELECT id,name FROM lo ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-$rights2 = explode(",", $rights);
 if (organization_allowed($line['id'], $rights))
   echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.$line['name'].'</option>
 ';
