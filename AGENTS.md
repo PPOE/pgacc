@@ -10,7 +10,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   No PHP 5.4+ syntax: no short arrays `[]`, no `f()[0]`, no traits, no `::class`, no `$this` in closures.
   No PHP 7+ syntax or functions either: no `??`, `<=>`, `match`, typed parameters/returns/properties,
   arrow functions, nullsafe `?->`, `str_contains`/`str_starts_with`, etc. Use `array()`.
-- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`).
+  PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`).
 - PostgreSQL: production runs 8.4.20 (schema: `tests/fixtures/schema.sql`). Tests use 8.4.20 (built from
   squeeze, `tests/postgres84/`, configured like production) and 18. Write SQL that works on both.
 - Lanes (`tests/README.md`): PHP 5.3 x PG 8.4 (the production pair: squeeze i386, Lighttpd + PHP-CGI
@@ -23,18 +23,36 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## Change workflow (owner's rules)
 
-1. Test first. Characterize the current behaviour with a test before you change it.
+1. Test first. The red test is the smallest focused test (one PHPUnit method or HTTP scenario) and must fail
+   on an assertion; a fixture, connection, parse or fatal setup error is not red evidence.
 2. Make minimal, behaviour-preserving changes. Behavioural changes are the owner's decision: surface them
    (PR text, `tests/COMPATIBILITY_PLAN.md`) and never slip them into a fix or refactor.
-3. Every application change must cover all changed executable lines:
-   `PGACC_TEST_ID=<id> PGACC_COVERAGE_BASE=<base branch, e.g. origin/master> sh tests/run.sh 7.4`
-4. Run mutation tests on the changed lines before (the new test must be red) and after the change, and
-   report both results:
-   - code reached by HTTP tests: `sh tests/mutation/run.sh 7.4 <target> --changed-since=<base>` with a
-     target in `tests/mutation/targets/`. Add or extend a target for new behaviour; introduce no survivors.
-   - `functions.php` helpers: `sh tests/mutation/infection.sh 7.4|8.5`.
-   - Details: `tests/mutation/README.md` ("Required step for fixes").
-5. Never weaken tests, baselines, canaries or analysis config to get a green run. Each baseline change is reviewed.
+3. Cover every changed executable line, and mutation-test the change before (red) and after; report both.
+   HTTP-reached code: a target in `tests/mutation/targets/`; add or extend one for new behaviour, introduce
+   no survivors. `functions.php` helpers: `sh tests/mutation/infection.sh 7.4|8.5`, once the helper change
+   is finished. Details: `tests/mutation/README.md` ("Required step for fixes").
+4. Never weaken tests, baselines, canaries or analysis config to get a green run. Each baseline change is reviewed.
+
+## Verification cadence
+
+- One fix track by default; with the owner's approval at most two agents, in separate worktrees. Run only
+  one expensive Docker batch (lane, coverage, mutation, Infection) at a time on the shared host.
+- Before editing, record the branch, the starting commit and the real PR base (the branch the PR targets).
+- While editing, run only the focused test (`tests/README.md`, "Focused tests") and explicit mutants
+  (`--only=`). Rebuild the application image after every edit. Review the finished patch once and fix
+  related findings together; unrelated findings go to the plan.
+- Readiness batch, editing stopped, in this order: (1) `sh tests/static-analysis.sh` if application code
+  changed; (2) `PGACC_COVERAGE_BRANCHES=0 PGACC_COVERAGE_BASE=<real PR base> sh tests/run.sh 7.4`, and
+  confirm the log has the changed-line result (`<file>: N changed executable lines, all covered`);
+  (3) each affected mutation target once with `--changed-since=<real PR base>`.
+- Hotfix changes (`php5-last`): run `sh tests/run.sh 5.3` and the reference comparison once, after the patch
+  stabilizes or the related branches are integrated.
+- CI runs the full matrix, broad Infection and full mutation sweeps (`tests/README.md`, "Continuous
+  integration"). Report checks left to CI as pending, not as passed.
+- After a fix, rerun only the checks it invalidates. Docs-only edits need no runtime run. One tool session
+  per running check; wait for it, no polling loops. Capture the real exit code before `grep`.
+- Status and handoff notes record per check: source (commit or diff), base, command, exit code, results
+  and what is pending.
 
 ## Baselines: keep them in sync
 
@@ -49,21 +67,14 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## Running tests
 
-- Docker only. Tests use synthetic data on internal networks with no published ports.
-- `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.3|7.4|8.5` runs one lane on its default server
+- Docker only, synthetic data, internal networks, no published ports. `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.3|7.4|8.5` runs one lane on its default server
   (8.4 for 5.3, 18 otherwise); `PGACC_TEST_PG=8.4|18` overrides it. Coverage runs only on 7.4 x 18
-  (report in `build/coverage/`).
-- Local verification policy (CI runs the rest, `tests/README.md` "Continuous integration"): run only the
-  affected lane, usually 7.4, with the coverage gate on the changed lines; mutation only on the changed
-  lines (`--changed-since`); the red test before the fix; `sh tests/static-analysis.sh` if application code
-  changed; `sh tests/run.sh 5.3` too for hotfix changes (`php5-last`). Run checks sequentially.
+  (`build/coverage/`). `sh tests/static-analysis.sh --report` lists every finding.
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
   Remove tagged images afterwards with `docker rmi`.
-- Other checks: `sh tests/static-analysis.sh` (`--report` lists every finding).
 - Some lanes fail by design until their fixes land (currently PHP 8.5: implicit-connection deprecations displayed
-  before redirects).
-  Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures (`KF-*`) fail when they
-  start passing, so a fix moves them to regular assertions.
+  before redirects; non-blocking in CI). Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures
+  (`KF-*`) fail when they start passing, so a fix moves them to regular assertions.
 
 ## File conventions
 
@@ -74,31 +85,27 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## Safety
 
-- Never commit `constants.php` (real configuration and keys), credentials, keys, production dumps or real
-  personal or financial data. Tests use `tests/runtime/test-constants.php` and `tests/fixtures/`. New
-  fixtures, keys and service responses must be synthetic.
-- `files/` holds runtime receipt storage. Never commit it.
-- Tests must never contact live external services (such as the membership system). Use local stubs inside the
-  test network. Never touch production systems.
+- Never commit `constants.php` (real configuration and keys), `files/` (receipt storage), credentials, keys,
+  production dumps or real personal or financial data. Tests use `tests/runtime/test-constants.php` and
+  synthetic fixtures, keys and service responses. They never contact live external services (such as the
+  membership system): use local stubs inside the test network. Never touch production systems.
 - Security-relevant findings are tracked in `tests/COMPATIBILITY_PLAN.md`. Don't spell out or publicize
   unfixed ones elsewhere.
 
 ## Context and token use
 
-- Keep command output small: redirect test, Docker and mutation runs to a log file and print only the exit
-  status plus a short `grep` of the result lines; open logs with `grep -n`/`sed -n` around a failure.
-- Don't read large docs whole: `grep -n` `tests/COMPATIBILITY_PLAN.md`, `tests/README.md` and
-  `tests/mutation/README.md` for the section you need.
+- Keep command output small: redirect runs to a log file, print the exit status plus a short `grep` of the
+  result lines. Open logs and the large docs (`tests/COMPATIBILITY_PLAN.md`, `tests/README.md`,
+  `tests/mutation/README.md`) with `grep -n`/`sed -n` around what you need.
 - Read agent transcripts, `~/.codex/sessions`, `~/.claude/projects` or saved tool outputs only in a subagent
-  that returns a short summary.
-- Subagent reports: at most ~2,500 characters — verdict first, then only failures or decisions with
-  `file:line`, then paths. Commit messages and the plan carry the details.
+  that returns a short summary. Subagent reports: at most ~2,500 characters — verdict first, then only
+  failures or decisions with `file:line`, then paths. Commit messages and the plan carry the details.
 - Start a fresh session (or `/clear`) between unrelated tasks; leave a short handoff note first.
 
 ## Git
 
-- Work on a branch. Keep commits focused: one fix, its tests and its baseline updates together.
-- Parallel agents use separate `git worktree`s. Never use `git stash`, which is shared across worktrees.
+- Work on a branch. Keep commits focused: one fix, its tests and its baseline updates together. Parallel agents
+  use separate `git worktree`s. Never use `git stash`, which is shared across worktrees.
 
 ## Where to look
 
@@ -113,8 +120,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `file.php` | Encrypted receipt download (mcrypt-compatible helpers in `functions.php`, phpseclib); new receipts are `files/<n>.v2.aes` (configured `$key`), legacy `files/<n>.aes` |
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `table-schema.txt`, `tests/fixtures/` | Schema notes; test schema and synthetic data |
-| `tests/run.sh`, `compose*.yaml` | Harness entry point and per-lane Compose files |
+| `tests/run.sh`, `compose*.yaml`, `tests/postgres84/`, `tests/postgres-version.sh` | Harness entry point, per-lane Compose files, PostgreSQL 8.4.20 image, `PGACC_TEST_PG` selection |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
 | `tests/reference/` | PHP 5 golden master: `record.sh` (PHP 5.3 x PG 8.4), `run.sh compare <lane>`, reviewed `allowlist.php` (`accepted`/`todo`, optional `pg`) |
-| `tests/postgres84/`, `tests/postgres-version.sh` | PostgreSQL 8.4.20 test server image; `PGACC_TEST_PG` selection |

@@ -87,6 +87,7 @@ sh tests/mutation/run.sh 7.4 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 7.4      # Infection (7.4 or 8.5)
 ```
 
+Change workflow and verification order: [AGENTS.md](AGENTS.md).
 Details: [tests/README.md](tests/README.md),
 [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md),
 [tests/mutation/README.md](tests/mutation/README.md).
