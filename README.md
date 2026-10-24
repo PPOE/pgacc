@@ -94,6 +94,24 @@ Details: [tests/README.md](tests/README.md),
 [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md),
 [tests/mutation/README.md](tests/mutation/README.md).
 
+## Releases
+
+Release notes come from the `## [X.Y.Z] - <date> (...)` section of
+[CHANGELOG.md](CHANGELOG.md). To cut a release (1.0.0 is also `php5-last`):
+
+1. Date the CHANGELOG.md section and merge to `master`.
+2. On the merged commit: `git tag -a v1.0.0 -m 'pgacc 1.0.0'` and
+   `git tag -a php5-last -m 'Last release for PHP 5.3'`, then
+   `git push origin v1.0.0 php5-last`.
+3. The Release workflow builds `pgacc-1.0.0.tar.gz` (code plus `vendor/`,
+   checked on PHP 5.3) and its `.sha256`, and creates a draft release.
+4. Review the draft on GitHub and publish it.
+
+Local build (Docker, clean tree; output in `build/release/`):
+`sh scripts/release.sh [--check-php53] 1.0.0`; `--publish-draft` creates the
+draft with `gh` once the tag is pushed. A manual run of the workflow is a dry
+run that uploads the archive as an artifact.
+
 ## License
 
 No license file is included in this repository.
