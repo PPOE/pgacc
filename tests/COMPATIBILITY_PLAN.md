@@ -201,12 +201,13 @@ with synthetic users and covered by a mutation target.
   rights instead of the rights SQL: with empty rights it reset the
   approvals of any voucher, other rights failed with an SQL error. It now
   requires the exact `bgf` right; other users get "FEHLER: Keine
-  Zugriffsrechte." and nothing changes. The argument is deliberately not
-  corrected, because that would enable a reset that has never worked for
-  `bgf` users. [ ] **Known bug for the owner** (`KF-DROP-ACKS-BGF` in
-  `tests/write-workflows.php`): for `bgf` users the reset still fails with
-  "Abfrage fehlgeschlagen" (syntax error); passing `$rightssql` would make
-  it work. Mutation target `rights-checks`.
+  Zugriffsrechte." and nothing changes. At first the argument was left
+  as it was (the reset failed for `bgf` users with a syntax error, known
+  failure `KF-DROP-ACKS-BGF`). PR review fix: appending the rights string
+  to the SQL was a second-order injection, so the reset now gets the rights
+  SQL (empty for `bgf`: the approvals of the whole voucher are reset, as on
+  every other change). **Behaviour note:** the reset button works for
+  `bgf` users for the first time. Mutation target `rights-checks`.
 - [x] Finalization (`page_edit_finalize()`, POST `beleg`) is **removed**
   (owner decision). History: the treasurer button ("Ja, es ist alles in
   Ordnung. Ich möchte die Buchung finalisieren.") was shown to `bsm` after
@@ -416,10 +417,8 @@ explains that dropping the unused default generally preserves behavior; see
     hidden, then redirected).
   The receipt upload redirect (`new.php:266`, PDF upload on the edit page)
   is tested in `tests/http-receipts.php` since the `mcrypt` replacement.
-  `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
-  reaches its redirect for `bgf` users, because it passes `$rights` instead
-  of the rights SQL to `vouchers_reset_ack()` and the query fails ("syntax
-  error at or near ..."; known failure `KF-DROP-ACKS-BGF`, see
+  `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") reaches its
+  redirect for `bgf` users since the PR review fix (see
   [Security fixes](#security-fixes-before-php5-last)). The receipt download (`file.php`) and the
   CSV headers were already sent before any output.
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.

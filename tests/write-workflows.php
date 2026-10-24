@@ -1022,8 +1022,8 @@ assert_database_count(
 // Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
 // users) needs the exact bgf right; other users are refused and nothing
 // changes (before, empty rights reset any voucher). For bgf users the reset
-// still fails, a known failure (see tests/COMPATIBILITY_PLAN.md,
-// page_edit_drop_acks()).
+// works (before, the rights string itself was appended to the SQL and the
+// query failed, the former known failure KF-DROP-ACKS-BGF).
 $resetId = create_voucher($database, 'Synthetic approved voucher', '-10.50', 9007, $adminCookies);
 assert_redirect(edit_request($resetId, $approveForm, $adminCookies), edit_location($resetId, 4), 'first approval before the reset');
 assert_redirect(edit_request($resetId, $approveForm, $reviewerCookies), edit_location($resetId, 4), 'second approval before the reset');
@@ -1035,15 +1035,11 @@ foreach (array('without rights' => $noRightsCookies, 'of organization two' => $u
     assert_contains($reset['body'], 'FEHLER: Keine Zugriffsrechte.', "approval reset by a user $userLabel");
     assert_voucher_rows($database, $resetId, $approvedState, "voucher after approval reset by a user $userLabel");
 }
-function known_failure_reset($voucherId, $form, $cookies)
-{
-    return with_known_failure('KF-DROP-ACKS-BGF', function () use ($voucherId, $form, $cookies) {
-        return edit_request($voucherId, $form, $cookies);
-    });
-}
-$bgfReset = known_failure_reset($resetId, $resetForm, $reviewerCookies);
-assert_contains($bgfReset['body'], 'Abfrage fehlgeschlagen: ERROR:  syntax error', 'approval reset by a bgf user (KF-DROP-ACKS-BGF)');
-assert_voucher_rows($database, $resetId, $approvedState, 'voucher after approval reset by a bgf user (KF-DROP-ACKS-BGF)');
+$bgfReset = edit_request($resetId, $resetForm, $reviewerCookies);
+assert_redirect($bgfReset, edit_location($resetId, 3), 'approval reset by a bgf user');
+assert_voucher_approvals($database, $resetId, array(
+    approval_row('2', null, null, 'synthetic-admin', 'synthetic-reviewer', 'Synthetic approved voucher'),
+), 'voucher after approval reset by a bgf user');
 
 // Voucher IDs of the edit actions (approval, approval reset,
 // revision, receipt upload) are used in SQL. Only digits are accepted; any

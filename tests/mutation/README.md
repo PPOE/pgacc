@@ -817,9 +817,9 @@ approval reset and merge, the removed finalization, and the rights of new users.
 | `merge-root-substring` | `edit.php:64` | killed | killed | merge by `bgf` without `root` |
 | `finalization-write-restored` | `index.php:253` | - | killed | a POST with `beleg` finalizes |
 | `drop-acks-bgf-check-removed` | `edit.php:100` | killed | killed | reset by a user without rights |
-| `drop-acks-bgf-check-fail-closed-for-bgf` | `edit.php:100` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
+| `drop-acks-bgf-check-fail-closed-for-bgf` | `edit.php:100` | killed | killed | bgf reset refused |
 | `drop-acks-bgf-substring` | `edit.php:100` | killed | killed | reset by `Rbgf` |
-| `drop-acks-reset-removed` | `edit.php:111` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
+| `drop-acks-reset-removed` | `edit.php:111` | killed | killed | bgf reset leaves the approvals |
 
 PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0. Since the
 finalization removal the four `finalize-*` mutants are gone and

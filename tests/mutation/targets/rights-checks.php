@@ -464,10 +464,17 @@ return array(
         array(
             'id' => 'drop-acks-reset-removed',
             'region' => $dropAcks,
-            'search' => 'vouchers_reset_ack($id, $rights);',
+            'search' => 'vouchers_reset_ack($id, $rightssql);',
             'replace' => 'true;',
-            'rationale' => 'The approval reset of a bgf user runs the reset query (which still fails: '
-                . 'known failure KF-DROP-ACKS-BGF).',
+            'rationale' => 'The approval reset of a bgf user resets the approvals.',
+        ),
+        array(
+            'id' => 'drop-acks-rights-as-sql',
+            'region' => $dropAcks,
+            'search' => 'vouchers_reset_ack($id, $rightssql);',
+            'replace' => 'vouchers_reset_ack($id, $rights);',
+            'rationale' => 'The reset gets the rights SQL, not the rights string (the former SQL error '
+                . 'KF-DROP-ACKS-BGF).',
         ),
         array(
             'id' => 'drop-acks-bgf-check-removed',
@@ -482,7 +489,7 @@ return array(
             'region' => $dropAcks,
             'search' => "if (!has_right(\$rights, 'bgf'))",
             'replace' => 'if (true)',
-            'rationale' => 'bgf users still reach the reset (characterized by KF-DROP-ACKS-BGF).',
+            'rationale' => 'bgf users reset approvals.',
         ),
     ),
 );

@@ -68,7 +68,7 @@ echo "<a href=\"index.php?action=edit&id=$id&hint=3\">Zurück zur Buchung</a>";
 block_end();
 $rightssql = rights2orgasql($rights);
 
-vouchers_reset_ack($id, $rights);
+vouchers_reset_ack($id, $rightssql);
 relocate("index.php?action=edit&id=$id&hint=3");
 }
 function page_edit_ack($rights)
