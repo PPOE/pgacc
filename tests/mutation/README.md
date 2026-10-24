@@ -931,3 +931,5 @@ on pull requests to `master` for every target (also on PHP 7.4 / PostgreSQL
 8.4). The PHP 8.5 list is `rights2orgasql` and `null-arguments`; the other
 targets' baselines fail there on PHP 8.5 diagnostics without baseline entries
 (see `tests/COMPATIBILITY_PLAN.md`).
+The `import-checks` target (`tests/http-import.php`) needs the membership stub
+of `compose.test.yaml`, which the runner starts with the database.

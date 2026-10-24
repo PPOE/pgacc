@@ -127,6 +127,13 @@ reference stub (`tests/reference/membership/router.php`) under the alias
 `mitglieder.piratenpartei.at`, and `tests/runtime/test-constants.php` sets the
 synthetic `$datakey` of its member list.
 
+`http-import.php` covers the bank CSV import (`import.php`) with the synthetic
+CSV files of `tests/reference/fixtures/import/` and the membership stub: the
+fixtures import as before, lines whose date is not a date or whose organization
+the user may not use are refused with "Ungültige Buchungszeile", and the
+`/g` regular-expression warning of every imported line is the known failure
+`KF-IMPORT-REGEX-G`.
+
 `http-donations.php` covers the public donation list (`?action=donations`,
 `donations.php`). It reads the captcha operands and the hidden value from the
 form and answers like a browser, so the application's captcha check runs

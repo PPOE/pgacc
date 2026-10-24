@@ -5,7 +5,22 @@ function convif($do,$data)
     return $data;
   return iconv('ISO-8859-15','UTF-8',$data);
 }
-function page_import()
+// Reports a line that cannot be imported; the import stops there.
+function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline)
+{
+              echo "Ungültige Buchungszeile in Datei ".($i+1)." ({$_FILES['uploadcsv']['name'][$i]}) <br />\n";
+              echo "<pre>".$rawcsvline."</pre><br />\n";
+              echo "<pre>".$csvline."</pre><br />\n";
+              echo "Das erkannte CSV Format ist $csvformat.<br />\n";
+              echo "Falls du eine Handkassaeingabe tätigen möchtest geht das mit folgendem Format:<br />\n";
+              echo "<pre>".$handkassacsvline."</pre><br />\n";
+}
+// Whether format_date() produced a date (it passes unrecognized text through).
+function import_date_valid($date)
+{
+  return is_string($date) && preg_match('/^\d{4}-\d{1,2}-\d{1,2}$/D', $date) == 1;
+}
+function page_import($rights)
 {
   getusers();
   block_start();
@@ -105,12 +120,7 @@ function page_import()
               $voucher['lo'] = 10;
               break;
             default:
-              echo "Ungültige Buchungszeile in Datei ".($i+1)." ({$_FILES['uploadcsv']['name'][$i]}) <br />\n";
-              echo "<pre>".$rawcsvline."</pre><br />\n";
-              echo "<pre>".$csvline."</pre><br />\n";
-              echo "Das erkannte CSV Format ist $csvformat.<br />\n";
-              echo "Falls du eine Handkassaeingabe tätigen möchtest geht das mit folgendem Format:<br />\n";
-              echo "<pre>".$handkassacsvline."</pre><br />\n";
+              import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline);
               return -1;
           }
           $voucher['comment'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[1])));
@@ -198,6 +208,12 @@ function page_import()
           else
           {
             die("Unbekanntes CSV Format\n");
+          }
+          // Only dates, and organizations the user may use (organization_allowed()).
+          if (!import_date_valid($voucher['date']) || !organization_allowed($voucher['lo'], $rights))
+          {
+              import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline);
+              return -1;
           }
           $query = "SELECT nextval('voucher_number') AS num;";
           $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

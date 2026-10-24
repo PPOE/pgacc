@@ -107,7 +107,7 @@ for option; do
 done
 
 pgacc_test_pg_build
-compose up --detach --wait database
+compose up --detach --wait database membership
 status=0
 compose run --rm --no-deps --volume "$host_dir:/results" \
   --env PGACC_MUTATION_OWNER="$(id -u):$(id -g)" application \

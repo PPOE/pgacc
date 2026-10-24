@@ -79,12 +79,6 @@ parameters:
 			path: ../../index.php
 
 		-
-			message: '#^Function page_import invoked with 1 parameter, 0 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: ../../index.php
-
-		-
 			message: '#^Function page_kdonations invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
