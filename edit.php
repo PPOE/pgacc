@@ -349,12 +349,15 @@ switch ($hint)
 $rightssql = rights2orgasql($rights);
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " $rightssql ORDER BY id ASC;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$vouchers = array();
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $vouchers[] = $line;
 }
 pg_free_result($result);
 $parts = count($vouchers);
-if ($parts == 0 && !has_right($rights, 'bgf') && !has_right($rights, 'Rbgf'))
+// A voucher without current rows has nothing to edit, also for bgf; old
+// revisions are restored with the recovery page.
+if ($parts == 0)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;

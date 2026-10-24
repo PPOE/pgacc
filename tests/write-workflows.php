@@ -936,6 +936,17 @@ $memberRow = database_row(
 assert_database_field($memberRow, 'name', "O'Brien Synthetisch", 'member voucher');
 assert_database_field($memberRow, 'member_id', '9033', 'member voucher');
 
+// The voucher page of a voucher without current rows answers "Buchung nicht
+// gefunden" for every user, also bgf and Rbgf (before, they got an empty
+// form that the save refuses); deleted rows are restored with the recovery
+// page.
+foreach (array('admin' => $adminCookies, 'bgf' => $reviewerCookies, 'read-only bgf' => login_user('synthetic-read-only', 'read-only-password')) as $userLabel => $cookies) {
+    $missingPage = http_request('/index.php?action=edit&id=999999', 'GET', array(), $cookies);
+    assert_status($missingPage, 200, "voucher page of a missing voucher for $userLabel");
+    assert_contains($missingPage['body'], 'FEHLER: Buchung nicht gefunden.', "voucher page of a missing voucher for $userLabel");
+    assert_not_contains($missingPage['body'], 'name="speichern"', "voucher page of a missing voucher for $userLabel");
+}
+
 // A voucher whose rows are all deleted (old revisions only) counts as not
 // visible: approval is refused and the deleted rows keep their state.
 $deletedOnlyId = create_voucher($database, 'Synthetic voucher with deleted rows only', '-10.25', 9013, $adminCookies);

@@ -443,6 +443,18 @@ return array(
             'rationale' => 'The upload checks the row before the finalized check.',
         ),
         array(
+            'id' => 'edit-page-empty-for-bgf',
+            'search' => "revisions are restored with the recovery page.\nif (\$parts == 0)",
+            'replace' => "revisions are restored with the recovery page.\nif (\$parts == 0 && !has_right(\$rights, 'bgf'))",
+            'rationale' => 'A voucher without current rows has no edit form, also for bgf (the save refuses it).',
+        ),
+        array(
+            'id' => 'edit-page-rows-uninitialized',
+            'search' => "\$vouchers = array();\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n  \$vouchers[] = \$line;",
+            'replace' => "\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n  \$vouchers[] = \$line;",
+            'rationale' => 'A voucher without rows raises no undefined-variable diagnostics.',
+        ),
+        array(
             'id' => 'drop-acks-reset-removed',
             'region' => $dropAcks,
             'search' => 'vouchers_reset_ack($id, $rights);',

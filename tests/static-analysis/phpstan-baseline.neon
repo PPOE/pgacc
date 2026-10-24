@@ -19,24 +19,6 @@ parameters:
 			path: ../../donations.php
 
 		-
-			message: '#^Loose comparison using \=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
-			identifier: equal.alwaysFalse
-			count: 1
-			path: ../../edit.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 2
-			path: ../../edit.php
-
-		-
-			message: '#^Variable \$vouchers might not be defined\.$#'
-			identifier: variable.undefined
-			count: 12
-			path: ../../edit.php
-
-		-
 			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
