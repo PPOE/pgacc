@@ -36,10 +36,10 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE voucher_id = 5000 ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
 -- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
 -- next
-SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = 5000 ;
+SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR file != 0) AND voucher_id = 5000 ;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 2 AND login > now() - '24 hours'::interval

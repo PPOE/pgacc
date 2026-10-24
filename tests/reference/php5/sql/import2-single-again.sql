@@ -36,6 +36,6 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM vouchers WHERE comment LIKE '%BG/000000220%' AND date = date '2024-03-15 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL);
+SELECT * FROM vouchers WHERE comment LIKE '%BG/000000220%' AND date = date '2024-03-15 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL)  AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received);
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval

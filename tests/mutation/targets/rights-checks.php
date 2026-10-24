@@ -3,20 +3,21 @@
  * Organization scope of voucher writes: the rights that voucher creation and
  * revision pass to get_voucher() (default organization), the check of posted
  * organizations against them, and the rights SQL
- * of approval and finalization in edit.php. Users of one organization must
+ * of approval in edit.php. Users of one organization must
  * not change rows of another one. Tested with tests/write-workflows.php
  * (users of organizations 1 and 2, bgf, admin, empty rights). See
  * tests/mutation/README.md for the format.
  */
 $ack = array('start' => 'function page_edit_ack($rights)', 'end' => 'function page_edit_save($rights)');
-$finalize = array('start' => 'function page_edit_finalize($rights)', 'end' => 'function page_edit_merge($rights)');
+$save = array('start' => 'function page_edit_save($rights)', 'end' => 'function page_edit_buchung(');
 $dropAcks = array('start' => 'function page_edit_drop_acks($rights)', 'end' => 'function page_edit_ack($rights)');
 
 return array(
-    'description' => 'Organization scope of voucher creation, revision, approval and finalization '
+    'description' => 'Organization scope of voucher creation, revision and approval '
         . '(write-workflow tests)',
     'file' => 'edit.php',
     'tests' => array(
+        array('type' => 'phpunit', 'filter' => 'testOrganizationAllowed|testHasRight|testWriteRights'),
         array('type' => 'http', 'script' => 'tests/write-workflows.php'),
     ),
     'timeout' => 180,
@@ -56,8 +57,8 @@ return array(
         array(
             'id' => 'posted-organization-ignored',
             'file' => 'new.php',
-            'search' => "\$voucher['lo'] = get_param(\$part, 'lo', \$default_lo,",
-            'replace' => "\$voucher['lo'] = get_param(\$part, 'lx', \$default_lo,",
+            'search' => "\$voucher['lo'] = get_param(\$part, 'lo', default_organization(",
+            'replace' => "\$voucher['lo'] = get_param(\$part, 'lx', default_organization(",
             'rationale' => 'A posted organization is saved as given.',
         ),
         array(
@@ -74,11 +75,60 @@ return array(
             'rationale' => 'Fail-open: a revision is saved in any posted organization.',
         ),
         array(
-            'id' => 'posted-organization-bgf-exemption-removed',
-            'file' => 'new.php',
-            'search' => "if (has_right(\$rights, 'bgf'))\n  return true;",
-            'replace' => "if (false)\n  return true;",
+            'id' => 'organization-bgf-exemption-removed',
+            'file' => 'functions.php',
+            'search' => "  if (has_right(\$rights, 'bgf') || has_right(\$rights, 'root'))\n    return true;",
+            'replace' => "  if (has_right(\$rights, 'root'))\n    return true;",
             'rationale' => 'bgf users may post any organization.',
+        ),
+        array(
+            'id' => 'organization-root-exemption-removed',
+            'file' => 'functions.php',
+            'search' => "  if (has_right(\$rights, 'bgf') || has_right(\$rights, 'root'))\n    return true;",
+            'replace' => "  if (has_right(\$rights, 'bgf'))\n    return true;",
+            'rationale' => 'root users may post any organization (the form offers them all).',
+        ),
+        array(
+            'id' => 'organization-compared-as-written',
+            'file' => 'functions.php',
+            'search' => "ltrim(\$right, '0') === ltrim(\$lo, '0')",
+            'replace' => "\$right === \$lo",
+            'rationale' => 'Organizations are compared as numbers, like the database ("01" is 1).',
+        ),
+        array(
+            'id' => 'organization-right-pattern-removed',
+            'file' => 'functions.php',
+            'search' => "if (preg_match('/^\\d+\$/D', \$right) == 1 && ltrim(",
+            'replace' => "if (ltrim(",
+            'rationale' => 'Only numeric rights are organizations (an empty token is not organization 0).',
+        ),
+        array(
+            'id' => 'organization-lo-pattern-removed',
+            'file' => 'functions.php',
+            'search' => "  if (preg_match('/^\\d+\$/D', \$lo) != 1)\n    return false;",
+            'replace' => "  if (false)\n    return false;",
+            'rationale' => 'Only a numeric organization can be allowed (an empty one is not organization 0).',
+        ),
+        array(
+            'id' => 'rights-tokens-untrimmed',
+            'file' => 'functions.php',
+            'search' => "return array_map('trim', explode(",
+            'replace' => "return array_map('strval', explode(",
+            'rationale' => 'Spaces around rights do not count ("bgf, root" has root).',
+        ),
+        array(
+            'id' => 'organization-options-untrimmed',
+            'file' => 'new.php',
+            'search' => "if (organization_allowed(\$line['id'], \$rights))",
+            'replace' => "if (in_array('bgf',\$rights2) || in_array('root',\$rights2) || in_array(\$line['id'], konto2lo(\$rights2)))",
+            'rationale' => 'The form offers exactly the organizations the save allows.',
+        ),
+        array(
+            'id' => 'default-organization-unchecked',
+            'file' => 'new.php',
+            'search' => '  if (!organization_allowed($lo, $rights))',
+            'replace' => '  if ($lo != default_organization($rights) && !organization_allowed($lo, $rights))',
+            'rationale' => 'The default organization of a part without a posted one is checked too.',
         ),
         array(
             'id' => 'posted-organization-first-part-only',
@@ -86,20 +136,6 @@ return array(
             'search' => "for (\$part = 0; \$part < \$parts; \$part++)\n{\n  \$lo = get_param(",
             'replace' => "for (\$part = 0; \$part < 1; \$part++)\n{\n  \$lo = get_param(",
             'rationale' => 'Every part of a voucher is checked, not only the first.',
-        ),
-        array(
-            'id' => 'posted-organization-loose-comparison',
-            'file' => 'new.php',
-            'search' => 'if ($lo !== null && !in_array($lo, $rights2, true))',
-            'replace' => 'if ($lo !== null && !in_array($lo, $rights2))',
-            'rationale' => 'Organizations are compared as strings: a padded ID is not one of the user\'s.',
-        ),
-        array(
-            'id' => 'posted-organization-default-checked',
-            'file' => 'new.php',
-            'search' => 'if ($lo !== null && !in_array($lo, $rights2, true))',
-            'replace' => 'if (!in_array($lo, $rights2, true))',
-            'rationale' => 'Without a posted organization the default applies and is not refused.',
         ),
         array(
             'id' => 'new-account-creator-rights',
@@ -132,9 +168,18 @@ return array(
         array(
             'id' => 'ack-visibility-check-unscoped',
             'region' => $ack,
-            'search' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
-            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id;',
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id;',
             'rationale' => 'The visibility check uses the organization scope of the user.',
+        ),
+        array(
+            'id' => 'ack-visibility-check-counts-deleted',
+            'region' => $ack,
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
+            'rationale' => 'Deleted rows (old revisions) do not make a voucher visible for approval.',
+            'equivalent' => array('reason' => 'Since the receipt check skips deleted rows too, a voucher '
+                . 'with only deleted rows gets the same "Hier fehlt noch der Beleg!" from that check.'),
         ),
         array(
             'id' => 'ack-finalized-check-scoped',
@@ -147,16 +192,37 @@ return array(
         array(
             'id' => 'ack-receipt-check-unscoped',
             'region' => $ack,
-            'search' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id;',
+            'search' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
+            'replace' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id;',
             'rationale' => 'The receipt check counts only the user\'s rows: an approved row without a '
                 . 'receipt is refused although a row of another organization is open.',
         ),
         array(
+            'id' => 'ack-receipt-check-counts-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR file != 0)',
+            'replace' => 'WHERE (ack1 IS NULL OR file != 0)',
+            'rationale' => 'Old revisions do not count as open rows of the receipt check.',
+        ),
+        array(
+            'id' => 'ack1-update-stamps-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id',
+            'replace' => 'WHERE ack1 IS NULL AND voucher_id',
+            'rationale' => 'The first approval does not stamp old revisions or clear their old approvals.',
+        ),
+        array(
+            'id' => 'ack2-update-stamps-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL',
+            'replace' => 'WHERE ack2 IS NULL AND ack1 IS NOT NULL',
+            'rationale' => 'The second approval does not stamp old revisions.',
+        ),
+        array(
             'id' => 'ack1-update-unscoped',
             'region' => $ack,
-            'search' => 'WHERE ack1 IS NULL AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE ack1 IS NULL AND voucher_id = $id;',
+            'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id;',
             'rationale' => 'Wrong organization: the first approval sets ack1 on rows of other '
                 . 'organizations of the same voucher.',
         ),
@@ -188,27 +254,6 @@ return array(
             'rationale' => 'bgf without root may not merge.',
         ),
         array(
-            'id' => 'finalize-bgf-check-removed',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => 'if (false)',
-            'rationale' => 'Fail-open: users without bgf finalize vouchers.',
-        ),
-        array(
-            'id' => 'finalize-bgf-check-closed',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => 'if (true)',
-            'rationale' => 'bgf users finalize vouchers.',
-        ),
-        array(
-            'id' => 'finalize-bgf-substring',
-            'region' => $finalize,
-            'search' => "if (!has_right(\$rights, 'bgf'))",
-            'replace' => "if (strpos(\$rights, 'bgf') === false)",
-            'rationale' => 'Read-only bgf (Rbgf) does not finalize.',
-        ),
-        array(
             'id' => 'drop-acks-bgf-substring',
             'region' => $dropAcks,
             'search' => "if (!has_right(\$rights, 'bgf'))",
@@ -216,13 +261,165 @@ return array(
             'rationale' => 'Read-only bgf (Rbgf) does not reset approvals.',
         ),
         array(
-            'id' => 'finalize-unscoped',
-            'region' => $finalize,
-            'search' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;',
-            'replace' => 'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id;',
-            'rationale' => 'Wrong organization: finalization marks rows of other organizations.',
-            'equivalent' => array('reason' => 'Only users with the bgf right finalize since the bgf '
-                . 'check, and their rights SQL is empty.'),
+            'id' => 'finalization-write-restored',
+            'file' => 'index.php',
+            'search' => '  else if (isset($_POST["belegfehler"]))',
+            'replace' => '  else if (isset($_POST["beleg"]) && pg_query("UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
+            'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',
+        ),
+        array(
+            'id' => 'accounts-other-user-root-substring',
+            'file' => 'accounts.php',
+            'search' => "&& !has_right(\$rights, 'root'))\n      {",
+            'replace' => "&& strpos(\$rights,'root') === false)\n      {",
+            'rationale' => 'Only the exact root right changes other users.',
+        ),
+        array(
+            'id' => 'accounts-own-password-root-substring',
+            'file' => 'accounts.php',
+            'search' => "else if (!has_right(\$rights, 'root') && \$pass",
+            'replace' => "else if (strpos(\$rights,'root') === false && \$pass",
+            'rationale' => 'Users without the exact root right change only their password.',
+        ),
+        array(
+            'id' => 'accounts-rights-update-root-substring',
+            'file' => 'accounts.php',
+            'search' => "      else if (has_right(\$rights, 'root')) ",
+            'replace' => "      else if (strpos(\$rights,'root') !== false) ",
+            'rationale' => 'Only the exact root right changes rights.',
+        ),
+        array(
+            'id' => 'accounts-help-root-substring',
+            'file' => 'accounts.php',
+            'search' => "if (has_right(\$rights, 'root'))\n{\n  echo '<p>1: Burgenland",
+            'replace' => "if (strpos(\$rights,'root') !== false)\n{\n  echo '<p>1: Burgenland",
+            'rationale' => 'The rights help is shown to root only.',
+        ),
+        array(
+            'id' => 'accounts-rights-column-root-substring',
+            'file' => 'accounts.php',
+            'search' => "<td><b>Passwort</b></td>'.(has_right(\$rights, 'root') ?",
+            'replace' => "<td><b>Passwort</b></td>'.(strpos(\$rights,'root') !== false ?",
+            'rationale' => 'The rights column is shown to root only.',
+        ),
+        array(
+            'id' => 'accounts-user-list-root-substring',
+            'file' => 'accounts.php',
+            'search' => "if (!has_right(\$rights, 'root'))\n{\n  \$restrict",
+            'replace' => "if (strpos(\$rights,'root') === false)\n{\n  \$restrict",
+            'rationale' => 'Only root lists every user.',
+        ),
+        array(
+            'id' => 'accounts-rights-input-root-substring',
+            'file' => 'accounts.php',
+            'search' => "value=\"******\"></td>'.(has_right(\$rights, 'root') ? '<td><input type=\"text\" name=\"rights'.\$i",
+            'replace' => "value=\"******\"></td>'.(strpos(\$rights,'root') !== false ? '<td><input type=\"text\" name=\"rights'.\$i",
+            'rationale' => 'The rights inputs are shown to root only.',
+        ),
+        array(
+            'id' => 'accounts-create-row-root-substring',
+            'file' => 'accounts.php',
+            'search' => "if (has_right(\$rights, 'root'))\n  echo '<tr><td><input type=\"text\" name=\"name-1\"",
+            'replace' => "if (strpos(\$rights,'root') !== false)\n  echo '<tr><td><input type=\"text\" name=\"name-1\"",
+            'rationale' => 'The new-user row is shown to root only.',
+        ),
+        array(
+            'id' => 'recover-root-substring',
+            'file' => 'recover.php',
+            'search' => "if (!has_right(\$rights, 'root'))",
+            'replace' => "if (strpos(\$rights,'root') === false)",
+            'rationale' => 'Only the exact root right recovers rows.',
+        ),
+        array(
+            'id' => 'member-fees-bgf-substring',
+            'file' => 'mb.php',
+            'search' => "if (!has_right(\$rights, 'bgf') && !has_right(\$rights, 'Rbgf'))",
+            'replace' => "if (strpos(\$rights,\"bgf\") === false)",
+            'rationale' => 'Only bgf and Rbgf open the member-fee page.',
+        ),
+        array(
+            'id' => 'merge-link-root-substring',
+            'file' => 'edit.php',
+            'search' => "if (has_right(\$rights, 'root'))\n{\n  echo '<script",
+            'replace' => "if (strpos(\$rights, 'root') !== false)\n{\n  echo '<script",
+            'rationale' => 'The merge link is shown to root only.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-removed',
+            'region' => $save,
+            'search' => 'if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A revision of a missing voucher (or one without visible rows) creates a voucher.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-unscoped',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE NOT deleted AND voucher_id = $id;',
+            'rationale' => 'Wrong organization: a user adds rows to a voucher of another organization.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-counts-deleted',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE voucher_id = $id $rightssql;',
+            'rationale' => 'Old revisions do not make a voucher revisable.',
+        ),
+        array(
+            'id' => 'revision-finalized-check-scoped',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
+            'replace' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;',
+            'rationale' => 'A finalized row of another organization blocks the revision.',
+        ),
+        array(
+            'id' => 'revision-reset-scoped',
+            'region' => $save,
+            'search' => "vouchers_reset_ack(\$id, '');",
+            'replace' => 'vouchers_reset_ack($id, $rightssql);',
+            'rationale' => 'A revision resets the approvals of other organizations\' rows too.',
+        ),
+        array(
+            'id' => 'revision-reset-removed',
+            'region' => $save,
+            'search' => "vouchers_reset_ack(\$id, '');",
+            'replace' => 'true;',
+            'rationale' => 'A revision resets the approvals of the whole voucher.',
+        ),
+        array(
+            'id' => 'revision-old-approvals-posted',
+            'region' => $save,
+            'search' => "  \$ack1 = \$line['ack1_old'];",
+            'replace' => "  \$ack1 = \$_POST['ack1_old'];",
+            'rationale' => 'The old approvals of new rows come from the database, not from the form.',
+        ),
+        array(
+            'id' => 'revision-old-approvals-dropped',
+            'region' => $save,
+            'search' => "  \$ack2 = \$line['ack2_old'];",
+            'replace' => "  \$ack2 = null;",
+            'rationale' => 'New rows keep the replaced rows\' second approval as old approval.',
+        ),
+        array(
+            'id' => 'upload-reset-scoped',
+            'file' => 'new.php',
+            'search' => "  vouchers_reset_ack(\$id, '');",
+            'replace' => '  vouchers_reset_ack($id, $rightssql);',
+            'rationale' => 'An upload resets the approvals of other organizations\' rows too.',
+        ),
+        array(
+            'id' => 'upload-finalized-check-removed',
+            'file' => 'new.php',
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;";',
+            'replace' => 'WHERE NOT deleted AND false AND voucher_id = $id;";',
+            'rationale' => 'A receipt upload to a finalized voucher is refused.',
+        ),
+        array(
+            'id' => 'upload-finalized-check-scoped',
+            'file' => 'new.php',
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;";',
+            'replace' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";',
+            'rationale' => 'A finalized row of another organization blocks the upload too.',
         ),
         array(
             'id' => 'drop-acks-reset-removed',

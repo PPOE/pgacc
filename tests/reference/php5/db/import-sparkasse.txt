@@ -1,13 +1,13 @@
 ## (sequences)
 - voucher_number	5022	t
 + voucher_number	5024	t
-- vouchers_id_seq	1021	t
-+ vouchers_id_seq	1023	t
+- vouchers_id_seq	1022	t
++ vouchers_id_seq	1024	t
 ## import
 + Giro;20.02.2024;+99,99;EUR;20.02.2024;Gutschrift;Spende;SyntheticSparer;REF1;;ER1;AT00;STSPAT2G;SyntheticSparer;AT999999999999999999;STSPAT2GXXX
 + Giro;22.02.2024;-10,00;EUR;22.02.2024;Lastschrift;Gebühr;;;;;;;SyntheticBank;;
 ## ppmembers
 (absent before and after)
 ## vouchers
-+ 1022	5023	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-+ 1023	5024	28	6	f	0	 	Synthetic Bank				-1000	20815 6659403	Lastschrift; Gebühr; 	f	f	f	2024-02-22 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1023	5023	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1024	5024	28	6	f	0	 	Synthetic Bank				-1000	20815 6659403	Lastschrift; Gebühr; 	f	f	f	2024-02-22 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N

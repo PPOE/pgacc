@@ -249,8 +249,8 @@ ack-first	admin	POST /index.php?action=edit&id=5000	302
 ack-duplicate	admin	POST /index.php?action=edit&id=5000	200
 ack-readonly	readonly	POST /index.php?action=edit&id=5000	200
 ack-second	reviewer	POST /index.php?action=edit&id=5000	200
-finalize	admin	POST /index.php?action=edit&id=5000	302
-edit-finalized	admin	POST /index.php?action=edit&id=5000	200
+finalize	admin	POST /index.php?action=edit&id=5000	200
+edit-finalized	admin	POST /index.php?action=edit&id=5000	302
 edit-view-finalized	admin	GET /index.php?action=edit&id=5000	200
 ack-two-parts	admin	POST /index.php?action=edit&id=5001	302
 drop-acks	admin	POST /index.php?action=edit&id=5001	200
@@ -275,7 +275,7 @@ accounts-after	admin	GET /index.php?action=accounts	200
 all-after-writes	admin	GET /index.php?action=all&format=csv	200
 report-2024-after-writes	anon	GET /index.php?year=2024	200
 receipt-upload	admin	POST /index.php?action=edit&id=5001	302
-receipt-upload-finalized	admin	POST /index.php?action=edit&id=5000	302
+receipt-upload-finalized	admin	POST /index.php?action=edit&id=5000	200
 receipt-download-admin	admin	GET /index.php?action=file&id=1001	200
 receipt-download-unittwo	unittwo	GET /index.php?action=file&id=1001	200
 receipt-download-anon	anon	GET /index.php?action=file&id=1001	302

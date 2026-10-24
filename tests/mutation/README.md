@@ -752,14 +752,13 @@ page has passed).
 | `relocate-page-kept` | `edit.php:6` | killed | killed | `write-workflows.php` |
 | `relocate-continues` | `edit.php:9` | killed | killed | `write-workflows.php` |
 | `relocate-redirect-removed` | `edit.php:8` | killed | killed | `write-workflows.php` |
-| `finalization-target` | `edit.php:49` | killed | killed | `write-workflows.php` |
 | `merge-target` | `edit.php:77` | killed | killed | `write-workflows.php` |
 | `approval-target` | `edit.php:194` | killed | killed | `write-workflows.php` |
 | `revision-target` | `edit.php:276` | killed | killed | `write-workflows.php` |
 | `search-requires-login` | 139 | equivalent | equivalent | `page_search()` replaces the login `Location` |
 | `unprotected-<page>` (11: all, mb, open, merge, edit, new, closed, deleted, recover, accounts, import2) | 132 | killed | killed | `http-redirects.php` |
 
-PHP 5.6 and 7.4: 28 killed, 1 accepted equivalent; both runs exit 0 (a mutant
+PHP 5.6 and 7.4: 28 killed (27 since the finalization removal dropped `finalization-target`), 1 accepted equivalent; both runs exit 0 (a mutant
 takes 2-20 s, a run about 4 minutes on PHP 7.4).
 
 Before the fix, an uncommitted counterpart of the target for the code at the
@@ -789,7 +788,7 @@ empty rights and `Rbgf`; vouchers with rows in two organizations): the rights
 that creation (`page_new_save()`) and revision pass to `get_voucher()`, its
 default organization, the check of posted organizations, the rights SQL and
 the visibility check of approval, the exact `bgf`/`root` checks of
-finalization, approval reset and merge, and the rights of new users.
+approval reset and merge, the removed finalization, and the rights of new users.
 
 | Mutant | Line | 5.6 | 7.4 | Killed by |
 |---|---:|---|---|---|
@@ -816,16 +815,28 @@ finalization, approval reset and merge, and the rights of new users.
 | `ack2-same-user` | `edit.php:189` | killed | killed | duplicate approval by the first approver |
 | `merge-root-check-removed` | `edit.php:64` | killed | killed | merge by an organization user |
 | `merge-root-substring` | `edit.php:64` | killed | killed | merge by `bgf` without `root` |
-| `finalize-bgf-check-removed` | `edit.php:32` | killed | killed | finalization by organization users |
-| `finalize-bgf-check-closed` | `edit.php:32` | killed | killed | finalization by `bgf` refused |
-| `finalize-bgf-substring` | `edit.php:32` | killed | killed | finalization by `Rbgf` |
-| `finalize-unscoped` | `edit.php:44` | equivalent | equivalent | only `bgf` finalizes; its rights SQL is empty |
+| `finalization-write-restored` | `index.php:253` | - | killed | a POST with `beleg` finalizes |
 | `drop-acks-bgf-check-removed` | `edit.php:100` | killed | killed | reset by a user without rights |
 | `drop-acks-bgf-check-fail-closed-for-bgf` | `edit.php:100` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
 | `drop-acks-bgf-substring` | `edit.php:100` | killed | killed | reset by `Rbgf` |
 | `drop-acks-reset-removed` | `edit.php:111` | killed | killed | `KF-DROP-ACKS-BGF` answer changes |
 
-PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0.
+PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0. Since the
+finalization removal the four `finalize-*` mutants are gone and
+`finalization-write-restored` is new (killed on PHP 7.4; full run in CI).
+The review fixes add, all killed on PHP 7.4 (full runs in CI):
+`ack-visibility-check-counts-deleted` (an accepted equivalent since the receipt
+check skips deleted rows as well); `organization-bgf-exemption-removed`,
+`organization-root-exemption-removed`, `organization-loose-comparison` and
+`default-organization-unchecked` (replacing the earlier bgf-exemption,
+loose-comparison and default mutants of `posted_organizations_allowed()`);
+`revision-visibility-check-removed`, `-unscoped`, `-counts-deleted`,
+`revision-finalized-check-scoped`, `revision-approved-check-scoped`; and one
+`strpos()` mutant per converted role check (`accounts-*-root-substring` (8),
+`recover-root-substring`, `member-fees-bgf-substring`,
+`merge-link-root-substring`). `sql-injection` adds the `view-*-raw` (4),
+`old-ack*-filter-wrong-value` (2, replacing the three escape mutants) and
+`member-name-unescaped` mutants; the new `import-checks` target has 4.
 
 Before the security fixes (`d564754`) the target had the first five and the
 `ack-*`, `finalize-unscoped` and `drop-acks-reset-removed` mutants: 12 killed
@@ -840,19 +851,19 @@ variable is `null`).
 #### `sql-injection` (HTTP, `edit.php`, `new.php`, `functions.php`)
 
 Request values in SQL, tested with `tests/write-workflows.php`: the voucher ID
-check of approval, finalization, approval reset, revision and receipt upload
+check of approval, approval reset, revision and receipt upload
 (injected conditions, quotes, a final newline, a sign, an array, no ID), the
 escaped old approval names of a revision, the grouped date pattern, and the
 escaped old-approval listing filter.
 
 | Mutants | Lines | 5.6 | 7.4 |
 |---|---|---|---|
-| `<action>-id-unchecked`, `<action>-id-trailing-newline` for finalize, drop-acks, ack, save; `ack-id-array` | `edit.php` (one per handler) | 9 killed | 9 killed |
+| `<action>-id-unchecked`, `<action>-id-trailing-newline` for drop-acks, ack, save; `ack-id-array` | `edit.php` (one per handler) | 9 killed | 9 killed |
 | `upload-id-unchecked`, `upload-id-trailing-newline` | `new.php:226` at the fix | 2 killed | 2 killed |
 | `old-ack1-unescaped`, `old-ack2-unescaped`, `date-pattern-ungrouped` | `new.php:158/159/37` at the fix | 3 killed | 3 killed |
 | `old-ack-filter-unescaped`, `old-ack2-filter-unescaped`, `old-ack-filter-unset` | `functions.php:88` at the fix | 3 killed | 3 killed |
 
-PHP 5.6 and 7.4: 17 killed; both runs exit 0. The target is new with the fix;
+PHP 5.6 and 7.4: 17 killed (15 since the finalization removal); both runs exit 0. The target is new with the fix;
 before it, the tests failed on the unfixed code (the first injected approval
 got the approval instead of "Buchung nicht gefunden").
 
@@ -933,3 +944,5 @@ on pull requests to `master` for every target (also on PHP 7.4 / PostgreSQL
 8.4). The PHP 8.5 list is `rights2orgasql` and `null-arguments`; the other
 targets' baselines fail there on PHP 8.5 diagnostics without baseline entries
 (see `tests/COMPATIBILITY_PLAN.md`).
+The `import-checks` target (`tests/http-import.php`) needs the membership stub
+of `compose.test.yaml`, which the runner starts with the database.

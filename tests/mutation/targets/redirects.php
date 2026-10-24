@@ -9,7 +9,7 @@
  */
 $early = array('start' => '// Before any output (the CSV byte order mark', 'end' => 'global $make_csv;');
 $search = array('start' => 'if ($page == "search")', 'end' => 'global $make_csv;');
-$relocate = array('start' => 'function relocate($loc)', 'end' => 'function page_edit_finalize($rights)');
+$relocate = array('start' => 'function relocate($loc)', 'end' => 'function page_edit_merge($rights)');
 
 $protectedPages = array('all', 'mb', 'open', 'merge', 'edit', 'new', 'closed', 'deleted', 'recover', 'accounts',
     'import', 'import2');
@@ -101,7 +101,7 @@ $mutations = array(
         'id' => 'edit-buffer-missing',
         'search' => 'if ($page == "edit" || $page == "merge")',
         'replace' => 'if ($page == "merge")',
-        'rationale' => 'Approval, finalization and revision redirects need the buffer.',
+        'rationale' => 'Approval and revision redirects need the buffer.',
     ),
     array(
         'id' => 'merge-buffer-missing',
@@ -132,13 +132,6 @@ $mutations = array(
         'search' => '  header("Location: " . $loc);',
         'replace' => '  true;',
         'rationale' => 'Write actions answer with a 302 to the voucher.',
-    ),
-    array(
-        'id' => 'finalization-target',
-        'file' => 'edit.php',
-        'search' => 'relocate("index.php?action=edit&id=$id&hint=2");',
-        'replace' => 'relocate("index.php?action=edit&id=$id&hint=3");',
-        'rationale' => 'The finalization redirect shows the finalization hint.',
     ),
     array(
         'id' => 'merge-target',
@@ -186,7 +179,7 @@ return array(
         // Protected pages, CSV listings and ?hide= when not logged in, and
         // the member search, against the normal and an unbuffered server.
         array('type' => 'http', 'script' => 'tests/http-redirects.php'),
-        // Approval, finalization, revision and merge redirects (normal and
+        // Approval, revision and merge redirects (normal and
         // unbuffered) and write actions when not logged in.
         array('type' => 'http', 'script' => 'tests/write-workflows.php'),
     ),

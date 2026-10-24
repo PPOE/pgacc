@@ -146,6 +146,67 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame('', $log);
     }
 
+    /**
+     * @dataProvider refusedImportProvider
+     */
+    public function testImportOfAnInaccessibleVoucherStoresNothing($rights, $setup)
+    {
+        // A voucher of another organization, or one with a finalized row (also
+        // of another organization), is not matched: no receipt is stored and
+        // the voucher is unchanged.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'upload',
+            function () use ($rights, $setup) {
+                if ($setup !== null) {
+                    pg_query($setup);
+                }
+                page_import2_match_voucher($rights, 3, 'XY/987654321', '2024-09-15');
+            }
+        );
+        self::assertSame('Keine Buchung gefunden.<br />', $output);
+        self::assertSame('0', $file);
+        self::assertSame(array(), $stored);
+        self::assertSame(array(), $diagnostics);
+        self::assertSame('', $log);
+    }
+
+    public function testImportResetsTheApprovalsOfTheWholeVoucher()
+    {
+        // Attaching a receipt resets the approvals of every
+        // current row of the voucher, also of another organization's row.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        $approvals = null;
+        list($output) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'upload',
+            function () use (&$approvals) {
+                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1, ack2)
+                          VALUES (9303, 4711, 20, 1, 'Synthetic approved row', timestamp '2024-09-15 00:00:00', 0, 'synthetic-a', 'synthetic-b')");
+                page_import2_match_voucher('2', 3, 'XY/987654321', '2024-09-15');
+                $approvals = pg_fetch_row(pg_query('SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id = 9303'));
+            }
+        );
+        self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
+        self::assertSame(array(null, null, 'synthetic-a', 'synthetic-b'), $approvals);
+    }
+
+    public static function refusedImportProvider()
+    {
+        return array(
+            'other organization' => array('1', null),
+            'finalized row' => array('2', 'UPDATE vouchers SET receipt_received = true WHERE id = 9301'),
+            'finalized row of another organization' => array(
+                'bgf',
+                "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, receipt_received)
+                 VALUES (9302, 4711, 20, 1, 'Synthetic other row', timestamp '2024-09-15 00:00:00', 0, true)",
+            ),
+        );
+    }
+
     public function testImportWithoutAConfiguredKeyIsRefused()
     {
         $vector = self::receiptVector('pdf document');
@@ -158,6 +219,49 @@ final class ReceiptImportTest extends FunctionsTestCase
             self::assertSame(array(), $diagnostics);
             self::assertStringContainsString('pgacc: receipt not stored: no receipt key ($key) configured', $log);
         }
+    }
+
+    /**
+     * @dataProvider refusedUploadProvider
+     */
+    public function testUploadToAnInaccessibleRowChangesNothing($rights, $post)
+    {
+        // The posted row must be a current row of the posted voucher that the
+        // user may change; otherwise nothing is stored and no approval moves.
+        $vector = self::receiptVector('pdf document, test-constants key');
+        $_POST = $post;
+        $approvals = null;
+        list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
+            $vector['key'],
+            hex2bin($vector['plain']),
+            'file0',
+            function () use ($rights, &$approvals) {
+                pg_query("UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE id = 9301");
+                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1)
+                          VALUES (9304, 4712, 20, 2, 'Synthetic other voucher', timestamp '2024-09-15 00:00:00', 0, 'synthetic-c')");
+                page_new_file($rights);
+                $approvals = pg_fetch_all(pg_query('SELECT id, file, ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id IN (9301, 9304) ORDER BY id'));
+            }
+        );
+        self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div>'
+            . '<br /><br /><br />', $output);
+        self::assertSame('0', $file);
+        self::assertSame(array(), $stored);
+        self::assertSame(array(
+            array('id' => '9301', 'file' => '0', 'ack1' => 'synthetic-a', 'ack2' => 'synthetic-b', 'ack1_old' => null, 'ack2_old' => null),
+            array('id' => '9304', 'file' => '0', 'ack1' => 'synthetic-c', 'ack2' => null, 'ack1_old' => null, 'ack2_old' => null),
+        ), $approvals);
+        self::assertSame(array(), $diagnostics);
+        self::assertSame('', $log);
+    }
+
+    public static function refusedUploadProvider()
+    {
+        return array(
+            'row of another organization' => array('1', array('parts' => '1', 'bid0' => '9301', 'id' => '4711')),
+            'nonexistent row' => array('2', array('parts' => '1', 'bid0' => '9399', 'id' => '4711')),
+            'row of another voucher' => array('2', array('parts' => '1', 'bid0' => '9301', 'id' => '4712')),
+        );
     }
 
     public function testUploadWithoutAConfiguredKeyIsRefused()

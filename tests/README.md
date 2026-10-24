@@ -121,8 +121,19 @@ on the normal and on a second `output_buffering=0` server: every protected page
 with exactly a 302 to `index.php?action=login&target=<hex of the request URI>`
 and an empty body, and the member search answers with a 302 to the filtered
 ledger, logged in, as CSV, and not logged in. The import page is requested only
-after every other protected page has passed, so a missing login check never
-makes the test reach its call to the external membership system.
+after every other protected page has passed. Its call to the membership system
+(`getusers()`) never leaves the test network: `compose.test.yaml` runs the
+reference stub (`tests/reference/membership/router.php`) under the alias
+`mitglieder.piratenpartei.at`, and `tests/runtime/test-constants.php` sets the
+synthetic `$datakey` of its member list.
+
+`http-import.php` covers the bank CSV import (`import.php`) with the synthetic
+CSV files of `tests/reference/fixtures/import/` and the membership stub: the
+fixtures import as before, lines whose date is not a date or whose organization
+the user may not use are reported with "Ungültige Buchungszeile" and their line
+number and skipped while the other lines and files are imported, and the
+`/g` regular-expression warning of every imported line is the known failure
+`KF-IMPORT-REGEX-G`.
 
 `http-donations.php` covers the public donation list (`?action=donations`,
 `donations.php`). It reads the captcha operands and the hidden value from the
@@ -173,9 +184,10 @@ because PHP 8.5 deprecates that variable at compile time.
 
 `write-workflows.php` exercises real HTTP mutations and verifies their database
 effects: voucher creation, organization-scoped approval, distinct first and
-second reviewers, finalization, the finalized-entry edit lock, revision history,
+second reviewers, the removed finalization (a POST with `beleg` changes
+nothing), the finalized-entry edit lock, revision history,
 merges (including one by a user of another organization), and root-only
-recovery. The approval, finalization, revision and merge redirects must be a
+recovery. The approval, revision and merge redirects must be a
 302 to the voucher's edit page with the exact hint and an empty body, also on
 an `output_buffering=0` server. Visitors who are not logged in posting a new
 voucher, an approval, a finalization, a revision, or a merge get only the
@@ -183,7 +195,7 @@ login redirect, and nothing changes in the database. The fixture users
 `synthetic-unit-one` (organization 1), `synthetic-unit-two` (organization 2)
 and `synthetic-no-rights` (empty rights) cover the organization scope: the
 default organization of vouchers created or revised without one, approvals
-and finalization of a voucher with rows in two organizations, approvals of
+of a voucher with rows in two organizations, approvals of
 finalized vouchers, and the approval reset. It uses a synthetic receipt reference;
 `tests/http-receipts.php` covers receipt upload, PDF import (PHP 5 server only,
 i.e. the PHP 5.3 lane: the locked `smalot/pdfparser` does not load on 7.2+), download and the

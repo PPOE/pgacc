@@ -116,38 +116,39 @@ id	name	hash	login	cookie	rights	hide
 7	synthetic-no-rights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		
 8	synthetic-read-only	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
 9	synthetic-read-only-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf,2	
-## vouchers (60 rows)
+## vouchers (61 rows)
 id	voucher_id	type	orga	member	member_id	contra_account	name	street	plz	city	amount	account	comment	committed	receipt_received	deleted	date	ack1	ack2	person_type	file	save_date	save_user	commentgf	refund	vaccount	ack1_old	ack2_old	ack_rp1	ack_rp2	ack_rp1_old	ack_rp2_old
-1000	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-1234	TESTACCOUNT2	Reference created expense	f	t	f	2024-09-15 00:00:00	\N	\N	1	101	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
+1000	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-1234	TESTACCOUNT2	Reference created expense	f	f	t	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
 1001	5001	8	1	f	9001	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	10050	TESTACCOUNT2	Reference two parts income	f	f	f	2024-09-15 00:00:00	\N	\N	2	100	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
 1002	5001	21	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-99	TESTACCOUNT2	Reference two parts campaign	f	f	f	2024-09-16 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
 1003	5002	8	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	700	TESTACCOUNT2	Reference unit one own	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
 1004	5004	20	2	f	0	SYNTHETICREF	Jörg Ä. Österreicher	Test Street 1	0000	Test City	0	TESTACCOUNT2	Reference Ümlaut "Zitat" O'Brien\nZeile 2	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-1005	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3000	TESTACCOUNT2	Reference revised draft	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-1006	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-100	TESTACCOUNT2	Reference merge target	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-1007	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-200	TESTACCOUNT2	Reference merge source	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-1008	5007	8	2	f	0	BAWAATWW AT611904300234573201	Synthetic Spender				5000	AT606000050110117300	Spende\nBAWAATWW AT611904300234573201 Synthetic Spender	f	f	f	2024-01-02 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1009	5008	1	2	t	9031	OPSKATWW AT111111111111111111	Testa Mitglied				2400	AT606000050110117300	MB 2024\nOPSKATWW AT111111111111111111 Testa Mitglied	f	f	f	2024-01-03 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1005	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-9999	TESTACCOUNT2	Reference blocked revision	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
+1006	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3000	TESTACCOUNT2	Reference revised draft	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1007	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-100	TESTACCOUNT2	Reference merge target	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1008	5005	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-200	TESTACCOUNT2	Reference merge source	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
+1009	5007	8	2	f	0	BAWAATWW AT611904300234573201	Synthetic Spender				5000	AT606000050110117300	Spende\nBAWAATWW AT611904300234573201 Synthetic Spender	f	f	f	2024-01-02 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
 101	1001	8	1	f	\N	SYNTHETIC-001	Synthetic Donor	\N	\N	\N	12000	TEST-ACCOUNT-1	Closed donation	t	t	f	2024-02-01 00:00:00	reviewer-a	reviewer-b	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
-1010	5009	28	2	f	0	BAWAATWW AT222222222222222222	Synthetic Lieferant GmbH				-123456	AT606000050110117300	Rechnung 4711\nBAWAATWW AT222222222222222222 Synthetic Lieferant GmbH	f	f	f	2024-01-04 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1011	5010	1	10	t	0						2000	AT916000050110110437	Mitgliedsbeitrag\nGerlinde Titelträgerin AT33 3333	f	f	f	2024-01-05 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1012	5011	1	3	t	9034	BAWAATWW AT444444444444444444	Dr. Gerlinde Titelträgerin				1500	AT596000050110117318	Spende\nBAWAATWW AT444444444444444444 Dr. Gerlinde Titelträgerin	f	f	f	2024-01-06 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1013	5012	14	4	f	0						5	AT376000050110117326	Zinsen BG/000000301	f	f	f	2024-03-31 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1014	5013	1	5	t	9013	12345 67890	Maria Synthetisch				100000000	AT686000050110117350	Dauerauftrag\n12345 67890 Maria Synthetisch	f	f	f	2024-01-07 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1015	5014	8	6	f	0	BAWAATWW AT555555555555555555	Synthetic O'Quote				10	AT406000050110117369	Spende 1e3\nBAWAATWW AT555555555555555555 Synthetic O'Quote	f	f	f	2024-01-08 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1016	5015	28	8	f	0						-1	AT716000050110117393	Bargeld\n	f	f	f	2024-01-09 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1017	5018	8	6	f	0	BAWAATWW AT666666666666666666	Jörg Österreicher				1234	AT716000020810070316	Spende für Büro\nBAWAATWW AT666666666666666666 Jörg Österreicher	f	f	f	2024-01-12 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1018	5019	28	6	t	9025	BAWAATWW AT777777777777777777	Zoë Synthetisch				-500	AT496000020810070324	Rückzahlung €\nBAWAATWW AT777777777777777777 Zoë Synthetisch	f	f	f	2024-01-13 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1019	5020	8	2	f	0	FREMD-1	Synthetic Kassa				1250	Handkassa	Kaffee\nMilch	f	f	f	2024-02-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1010	5008	1	2	t	9031	OPSKATWW AT111111111111111111	Testa Mitglied				2400	AT606000050110117300	MB 2024\nOPSKATWW AT111111111111111111 Testa Mitglied	f	f	f	2024-01-03 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1011	5009	28	2	f	0	BAWAATWW AT222222222222222222	Synthetic Lieferant GmbH				-123456	AT606000050110117300	Rechnung 4711\nBAWAATWW AT222222222222222222 Synthetic Lieferant GmbH	f	f	f	2024-01-04 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1012	5010	1	10	t	0						2000	AT916000050110110437	Mitgliedsbeitrag\nGerlinde Titelträgerin AT33 3333	f	f	f	2024-01-05 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1013	5011	1	3	t	9034	BAWAATWW AT444444444444444444	Dr. Gerlinde Titelträgerin				1500	AT596000050110117318	Spende\nBAWAATWW AT444444444444444444 Dr. Gerlinde Titelträgerin	f	f	f	2024-01-06 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1014	5012	14	4	f	0						5	AT376000050110117326	Zinsen BG/000000301	f	f	f	2024-03-31 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1015	5013	1	5	t	9013	12345 67890	Maria Synthetisch				100000000	AT686000050110117350	Dauerauftrag\n12345 67890 Maria Synthetisch	f	f	f	2024-01-07 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1016	5014	8	6	f	0	BAWAATWW AT555555555555555555	Synthetic O'Quote				10	AT406000050110117369	Spende 1e3\nBAWAATWW AT555555555555555555 Synthetic O'Quote	f	f	f	2024-01-08 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1017	5015	28	8	f	0						-1	AT716000050110117393	Bargeld\n	f	f	f	2024-01-09 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1018	5018	8	6	f	0	BAWAATWW AT666666666666666666	Jörg Österreicher				1234	AT716000020810070316	Spende für Büro\nBAWAATWW AT666666666666666666 Jörg Österreicher	f	f	f	2024-01-12 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1019	5019	28	6	t	9025	BAWAATWW AT777777777777777777	Zoë Synthetisch				-500	AT496000020810070324	Rückzahlung €\nBAWAATWW AT777777777777777777 Zoë Synthetisch	f	f	f	2024-01-13 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
 102	1002	18	1	f	\N	SYNTHETIC-002	Synthetic Donor	\N	\N	\N	3000	TEST-ACCOUNT-1	Partially reviewed legacy donation	t	t	f	2024-03-01 00:00:00	reviewer-a	\N	2	0	{{save_date}}	1		f	TEST-VIRTUAL-1	\N	\N	\N	\N	\N	\N
-1020	5021	1	10	t	9031		Testa Mitglied				700	Handkassa	Porto	f	f	f	2024-02-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1021	5022	28	99	f	0		Synthetic Kassa				-35	Handkassa	ISO Datum	f	f	f	2024-02-18 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1022	5023	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1023	5024	28	6	f	0	 	Synthetic Bank				-1000	20815 6659403	Lastschrift; Gebühr; 	f	f	f	2024-02-22 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1024	5025	8	10	f	0	donor@example.invalid	Synthetic PayPal Donor				2500	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1025	5025	20	10	f	0		Paypal				-78	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1026	5026	28	10	f	0	refund@example.invalid	Synthetic Refund				-500	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-1027	5026	20	10	f	0		Paypal				20	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1020	5020	8	2	f	0	FREMD-1	Synthetic Kassa				1250	Handkassa	Kaffee\nMilch	f	f	f	2024-02-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1021	5021	1	10	t	9031		Testa Mitglied				700	Handkassa	Porto	f	f	f	2024-02-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1022	5022	28	99	f	0		Synthetic Kassa				-35	Handkassa	ISO Datum	f	f	f	2024-02-18 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1023	5023	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1024	5024	28	6	f	0	 	Synthetic Bank				-1000	20815 6659403	Lastschrift; Gebühr; 	f	f	f	2024-02-22 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1025	5025	8	10	f	0	donor@example.invalid	Synthetic PayPal Donor				2500	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1026	5025	20	10	f	0		Paypal				-78	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1027	5026	28	10	f	0	refund@example.invalid	Synthetic Refund				-500	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
+1028	5026	20	10	f	0		Paypal				20	spende@piratenpartei.at	Transaktion: SYNTH0000000002; Brutto: -5.00€; Gebühr: 0.20€; Synthetic Refund	f	f	f	2024-03-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
 103	1003	20	2	f	\N	SYNTHETIC-003	Synthetic Supplier	\N	\N	\N	-5000	TEST-ACCOUNT-2	Closed expense with attachment	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	42	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
 104	1003	21	2	f	\N	SYNTHETIC-004	Synthetic Supplier	\N	\N	\N	-1500	TEST-ACCOUNT-2	Second row of attached voucher	t	t	f	2024-04-01 00:00:00	reviewer-a	reviewer-b	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
 105	1004	20	2	f	\N	SYNTHETIC-005	Synthetic Draft	\N	\N	\N	-2500	TEST-ACCOUNT-2	Unreviewed expense	t	f	f	2024-05-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
@@ -189,4 +190,4 @@ person_type_id_seq	1	f
 type_id_seq	1	f
 users_id_seq	100	t
 voucher_number	5026	t
-vouchers_id_seq	1027	t
+vouchers_id_seq	1028	t

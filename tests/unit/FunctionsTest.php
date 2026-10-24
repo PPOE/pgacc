@@ -78,7 +78,11 @@ final class FunctionsTest extends FunctionsTestCase
             ),
             'acknowledgements' => array(
                 array('filter_ack' => 'Peter', 'filter_ack_old' => 'Old'),
-                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Peter%' OR ack2_old LIKE '%Peter%') "
+                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
+            ),
+            'old acknowledgements alone' => array(
+                array('filter_ack_old' => 'Old'),
+                " AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
             ),
             'voucher name' => array(array('filter_name' => 'Anna'), " AND lower(vouchers.name) LIKE lower('%Anna%')"),
             'invalid values are ignored' => array(
@@ -188,6 +192,17 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringContainsString('action=open&filter_date=2024', $adminHtml);
     }
 
+    public function testAccHeaderShowsDeletedLinkForExactRolesOnly()
+    {
+        foreach (array('bgf' => true, 'Rbgf' => true, 'root' => true, '2,xbgf,xroot' => false, 'BGF' => false) as $rights => $shown) {
+            $GLOBALS['functions_test_rights'] = $rights;
+            ob_start();
+            acc_header(null, 'index', 2024);
+            $html = ob_get_clean();
+            self::assertSame($shown, strpos($html, 'action=deleted') !== false, $rights);
+        }
+    }
+
     public function testAccHeaderOffersNoWritePagesToReadOnlyRights()
     {
         $GLOBALS['functions_test_rights'] = 'bgf';
@@ -221,6 +236,44 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     /**
+     * @dataProvider organizationAllowedProvider
+     */
+    public function testOrganizationAllowed($lo, $rights, $expected)
+    {
+        $result = self::callAndCaptureDiagnostics(function () use ($lo, $rights) {
+            return organization_allowed($lo, $rights);
+        });
+        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+    }
+
+    public static function organizationAllowedProvider()
+    {
+        return array(
+            'bgf any organization' => array('7', 'bgf', true),
+            'root any organization' => array(7, 'root', true),
+            'own organization' => array('2', '1,2', true),
+            'own organization as integer' => array(2, '2', true),
+            'foreign organization' => array('3', '1,2', false),
+            'padded organization' => array('01', '1', true),
+            'padded right' => array('3', '03', true),
+            'padded both' => array(3, '1,003', true),
+            'other number' => array('13', '1,3', false),
+            'zero' => array('0', '00', true),
+            'spaced right' => array('2', '1, 2', true),
+            'spaced bgf' => array('7', '2, bgf', true),
+            'spaced root' => array('7', ' root', true),
+            'spaced read-only bgf' => array('7', ' Rbgf', false),
+            'non-numeric organization' => array('2x', '2x', false),
+            'empty token is not organization 0' => array('0', '1,', false),
+            'empty organization' => array('', '0', false),
+            'read-only bgf is not bgf' => array('7', 'Rbgf', false),
+            'substring of root' => array('7', 'xroot', false),
+            'no rights' => array('10', '', false),
+            'null rights' => array('10', null, false),
+        );
+    }
+
+    /**
      * @dataProvider writeRightsProvider
      */
     public function testWriteRights($rights, $expected)
@@ -245,6 +298,8 @@ final class FunctionsTest extends FunctionsTestCase
             'empty rights unchanged' => array('', ''),
             'null rights unchanged' => array(null, null),
             'substring is not read-only bgf' => array('xRbgf', 'xRbgf'),
+            'spaced read-only bgf' => array('Rbgf, 2', '2'),
+            'spaced read-only bgf alone' => array(' Rbgf ', false),
         );
     }
 
@@ -434,6 +489,9 @@ final class FunctionsTest extends FunctionsTestCase
             'case sensitive' => array('BGF', 'bgf', false),
             'organization id' => array('1,2', '2', true),
             'numeric comparison is not used' => array('02', '2', false),
+            'tokens are trimmed' => array('bgf, root', 'root', true),
+            'trimmed tokens stay exact' => array(' Rbgf ', 'bgf', false),
+            'trimmed read-only bgf' => array('2, Rbgf', 'Rbgf', true),
             'empty rights' => array('', 'bgf', false),
             'null rights' => array(null, 'bgf', false),
         );

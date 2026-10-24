@@ -36,6 +36,20 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = 5000  ORDER BY id ASC;
+-- next
+SELECT income FROM type WHERE id = 20
+-- next
+SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM person_type ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM lo ORDER BY id ASC
+-- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-UPDATE vouchers SET receipt_received = true WHERE voucher_id = 5000 ;
+SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
