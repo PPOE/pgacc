@@ -2,9 +2,10 @@ name: Tests
 
 # CI cost policy (owner decision; tests/README.md, "Continuous integration"):
 # - every push: the only lane, PHP 8.5 / PostgreSQL 18 (with coverage and
-#   the changed-line gate), static analysis, the PHP 5 reference comparison
-#   on 8.5, and mutation testing of the changed lines only
-#   (tests/mutation/run.sh --changed-since);
+#   the changed-line gate), static analysis and the PHP 5 reference
+#   comparison on 8.5;
+# - pull requests labelled `mutation`: additionally mutation testing of the
+#   changed lines only (tests/mutation/run.sh --changed-since);
 # - weekly, manual runs and pull requests labelled `full-ci`: additionally
 #   every mutation target in full, and Infection.
 # Pushes to branches other than master run through their pull request (any
@@ -35,6 +36,7 @@ jobs:
     outputs:
       full: ${{ steps.plan.outputs.full }}
       base: ${{ steps.plan.outputs.base }}
+      mutation: ${{ steps.plan.outputs.mutation }}
       lanes: ${{ steps.plan.outputs.lanes }}
     steps:
       - name: Choose the lanes and the comparison base
@@ -47,6 +49,7 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           lanes='{"php":"8.5","pg":"18","project":"pgacc-test-php85","compose_files":"-f compose.test.yaml -f compose.coverage.yaml"}'
+          mutation=false
           case "$EVENT" in
             push)
               full=false
@@ -65,6 +68,9 @@ jobs:
                 *,full-ci,*) full=true ;;
                 *) full=false ;;
               esac
+              case ",$LABELS," in
+                *,mutation,*) mutation=true ;;
+              esac
               if [ "$full" = false ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
                 base=$BEFORE
               else
@@ -79,6 +85,8 @@ jobs:
           {
             echo "full=$full"
             echo "base=$base"
+            if [ "$full" = true ]; then mutation=true; fi
+            echo "mutation=$mutation"
             echo "lanes=[$lanes]"
           } >>"$GITHUB_OUTPUT"
 
@@ -96,8 +104,7 @@ jobs:
     name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness
     needs: plan
     runs-on: ubuntu-latest
-    # Full runs mutation-test every target.
-    timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -107,7 +114,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          # Coverage and mutation compare with the push's or pull request's base.
+          # Coverage compares with the push's or pull request's base.
           fetch-depth: 0
 
       - name: Resolve the comparison base
@@ -145,14 +152,52 @@ jobs:
           path: build/coverage
           if-no-files-found: warn
 
+      - name: Clean up containers
+        if: always()
+        run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
+
+  mutation-runner:
+    # Target-driven mutation testing (tests/mutation/ci.sh), blocking when it
+    # runs: pull requests labelled `mutation` (changed lines only) or
+    # `full-ci`, weekly and manual runs (every target). Skipped otherwise.
+    name: Mutation tests (PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }})
+    needs: plan
+    if: needs.plan.outputs.mutation == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.lanes) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # Changed-line mutation compares with the push's or pull request's base.
+          fetch-depth: 0
+
+      - name: Resolve the comparison base
+        id: base
+        env:
+          BASE: ${{ needs.plan.outputs.base }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # A force push's "before" may no longer exist: fall back to the
+          # default branch.
+          if [ -n "$BASE" ] && ! git merge-base "$BASE" HEAD >/dev/null 2>&1; then
+            BASE="origin/$DEFAULT_BRANCH"
+          fi
+          echo "base=$BASE" >>"$GITHUB_OUTPUT"
+
       - name: Mutation tests of the changed lines
-        # Per push: only mutations whose search region overlaps a changed
-        # line (tests/mutation/ci.sh, run.sh --changed-since).
-        if: always() && needs.plan.outputs.full != 'true'
+        # `mutation` label: only mutations whose search region overlaps a
+        # changed line (tests/mutation/ci.sh, run.sh --changed-since). Adding
+        # the label compares with the pull request's base.
+        if: needs.plan.outputs.full != 'true'
         run: sh tests/mutation/ci.sh '${{ matrix.php }}' '--changed-since=${{ steps.base.outputs.base }}'
 
       - name: Mutation tests, all targets
-        if: always() && needs.plan.outputs.full == 'true'
+        if: needs.plan.outputs.full == 'true'
         run: sh tests/mutation/ci.sh '${{ matrix.php }}'
 
       - name: Upload mutation results
@@ -165,7 +210,7 @@ jobs:
 
       - name: Clean up containers
         if: always()
-        run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
+        run: docker compose --project-name 'pgacc-mutation-php85' -f compose.test.yaml down --volumes --remove-orphans
 
   reference:
     # PHP 5 golden master (tests/reference/, tests/README.md), recorded on the
