@@ -109,6 +109,8 @@ return array(
             'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
             'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id;',
             'rationale' => 'Wrong organization: the upload attaches a receipt to another organization\'s row.',
+            'equivalent' => array('reason' => 'The scoped row check before the finalized check already '
+                . 'requires a current row of this voucher in the user\'s scope.'),
         ),
         array(
             'id' => 'upload-update-any-voucher',
@@ -116,6 +118,8 @@ return array(
             'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
             'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid $rightssql;',
             'rationale' => 'The row must belong to the posted voucher.',
+            'equivalent' => array('reason' => 'The scoped row check before the finalized check already '
+                . 'requires a current row of this voucher in the user\'s scope.'),
         ),
         array(
             'id' => 'upload-failed-store-keeps-file',
