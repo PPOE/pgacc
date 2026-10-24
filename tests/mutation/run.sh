@@ -3,7 +3,7 @@ set -eu
 
 # Target-driven mutation runner (see tests/mutation/README.md).
 #
-#   sh tests/mutation/run.sh <5.6|7.4|8.0|8.5> <target> [runner options]
+#   sh tests/mutation/run.sh <7.4|8.5> <target> [runner options]
 #   sh tests/mutation/run.sh <lane> --self-test
 #
 # Runs tests/mutation/runner.php in a one-off container of the lane's
@@ -19,13 +19,14 @@ case "$test_id" in
     exit 2
     ;;
 esac
+pgacc_test_pg_default=18
 . "$(dirname "$0")/../postgres-version.sh"
 PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
 export PGACC_TEST_SUFFIX
 
 usage()
 {
-  echo "Usage: sh tests/mutation/run.sh <5.6|7.4|8.0|8.5> <target|--self-test> [--only=id,...] [--check]" >&2
+  echo "Usage: sh tests/mutation/run.sh <7.4|8.5> <target|--self-test> [--only=id,...] [--check]" >&2
   exit 2
 }
 
@@ -35,9 +36,7 @@ target=$2
 shift 2
 
 case "$php_version" in
-  5.6) lane=php56 lane_file=compose.php56.yaml ;;
   7.4) lane=php74 lane_file= ;;
-  8.0) lane=php80 lane_file=compose.php80.yaml ;;
   8.5) lane=php85 lane_file=compose.php85.yaml ;;
   *) usage ;;
 esac
@@ -68,10 +67,7 @@ compose build application
 if [ "$target" = --self-test ]; then
   # Unit tests of tests/mutation/lib.php; no database needed. PHP 7.4 also
   # prints their line and branch coverage of lib.php.
-  if [ "$php_version" = 5.6 ]; then
-    command='php /opt/test-tools/phpunit-5.7.27.phar --no-configuration --colors=never \
-      --bootstrap tests/mutation/tests/bootstrap.php tests/mutation/tests'
-  elif [ "$php_version" = 7.4 ]; then
+  if [ "$php_version" = 7.4 ]; then
     # Branch analysis needs more than the default memory_limit (PHPUnit only).
     command='XDEBUG_MODE=coverage php -d memory_limit=-1 vendor/bin/phpunit \
       --configuration tests/mutation/tests/phpunit.xml --coverage-php /tmp/lib.cov \
@@ -88,6 +84,7 @@ host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane$PGAC
 rm -rf "$host_dir"
 mkdir -p "$host_dir"
 
+pgacc_test_pg_build
 compose up --detach --wait database
 status=0
 compose run --rm --no-deps --volume "$host_dir:/results" \

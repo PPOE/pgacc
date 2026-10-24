@@ -22,7 +22,7 @@
  * --check only validates the target and that every mutation applies.
  *
  * Exit status: 0 pass, 1 unaccepted survivors / invalid / stale equivalents,
- * 2 definition, setup, or baseline failure. Must stay compatible with PHP 5.6.
+ * 2 definition, setup, or baseline failure. Runs on the PHP 7.4 and 8.5 lanes.
  */
 
 require __DIR__ . '/lib.php';
@@ -63,8 +63,8 @@ function shell($command)
 
 function maintenance_connection()
 {
-    // Older server images (e.g. 9.4) report healthy while their init-time
-    // server still listens on the Unix socket only, so retry TCP briefly.
+    // Server images may report healthy while their init-time server still
+    // listens on the Unix socket only, so retry TCP briefly.
     for ($attempt = 0; $attempt < 30; $attempt++) {
         $connection = @pg_connect(sprintf(
             'host=%s port=%s dbname=postgres user=%s password=%s',
@@ -102,10 +102,14 @@ function database_name()
     return $name;
 }
 
+function server_version_num($connection)
+{
+    return pg_fetch_result(sql($connection, 'SHOW server_version_num'), 0, 0);
+}
+
 function drop_database($connection, $name)
 {
-    $version = pg_fetch_result(sql($connection, 'SHOW server_version_num'), 0, 0);
-    foreach (pgacc_mutation_drop_database_sql($name, $version) as $query) {
+    foreach (pgacc_mutation_drop_database_sql($name, server_version_num($connection)) as $query) {
         sql($connection, $query);
     }
 }
@@ -131,7 +135,7 @@ function create_template($app)
         pgacc_mutation_fail("cannot connect to $template");
     }
     $sql = 'BEGIN;';
-    foreach (pgacc_mutation_fixture_files() as $file) {
+    foreach (pgacc_mutation_fixture_files(server_version_num($connection)) as $file) {
         $sql .= "\n" . file_get_contents($app . '/' . $file);
     }
     sql($connection, $sql . "\nCOMMIT;");
@@ -172,15 +176,9 @@ function create_pristine($app, $work)
 function phpunit_arguments($copy, $test)
 {
     $runner = getenv('PGACC_MUTATION_PHPUNIT');
-    if (PHP_VERSION_ID < 70000) {
-        $runner = $runner ? $runner : '/opt/test-tools/phpunit-5.7.27.phar';
-        $arguments = array(PHP_BINARY, $runner, '--no-configuration', '--colors=never',
-            '--bootstrap', $copy . '/tests/php56/bootstrap.php');
-    } else {
-        $runner = $runner ? $runner : $copy . '/vendor/bin/phpunit';
-        $arguments = array(PHP_BINARY, $runner, '--no-configuration', '--no-coverage',
-            '--do-not-cache-result', '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php');
-    }
+    $runner = $runner ? $runner : $copy . '/vendor/bin/phpunit';
+    $arguments = array(PHP_BINARY, $runner, '--no-configuration', '--no-coverage',
+        '--do-not-cache-result', '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php');
     return array_merge($arguments, array('--filter', $test['filter'], $copy . '/' . $test['file']));
 }
 

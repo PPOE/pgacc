@@ -1,13 +1,15 @@
-# Fetch locked application dependencies and the legacy runner using modern TLS.
+# HTTP test client of the PHP 5.3 lane (compose.php53.yaml, application-test):
+# the HTTP and write-workflow scripts need PHP 5.4+ syntax and run from this
+# PHP 5.6 image against the PHP 5.3 server. Also the base of the reference
+# scenario client (tests/reference/compose.php53.yaml). Not an application
+# lane of its own. See tests/README.md, "PHP 5.3 lane".
+
+# Fetch locked application dependencies using modern TLS.
 FROM composer:2.2.25@sha256:be23a9c3f73293f966a981be03896f9aaaade6c2cc9415f4cf828d1f39c5005c AS dependencies
 WORKDIR /dependencies
 COPY composer.json composer.lock ./
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
       --no-dev --no-interaction --no-progress --no-scripts --prefer-dist
-RUN curl --fail --silent --show-error --location --retry 3 \
-      https://phar.phpunit.de/phpunit-5.7.27.phar \
-      --output /tmp/phpunit-5.7.27.phar \
-    && echo 'f0300a13f2653bee10b0ce24dbc8d94e65dc9be8966d822b9e455b6b294be16e  /tmp/phpunit-5.7.27.phar' | sha256sum --check -
 
 FROM php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5 AS archive-keys
 
@@ -24,7 +26,6 @@ RUN printf 'deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http:
 WORKDIR /app
 COPY . ./
 COPY --from=dependencies /dependencies/vendor ./vendor
-COPY --from=dependencies /tmp/phpunit-5.7.27.phar /opt/test-tools/phpunit-5.7.27.phar
 COPY --from=dependencies /usr/bin/composer /usr/local/bin/composer
 COPY tests/runtime/test-constants.php ./constants.php
 RUN printf 'date.timezone=UTC\n' >/usr/local/etc/php/conf.d/test-timezone.ini \

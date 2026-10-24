@@ -9,7 +9,7 @@
  * before PHP 8.1. See tests/mutation/README.md for the format.
  */
 $guardRemovedBefore81 = array(
-    'php' => array('5.6', '7.4', '8.0'),
+    'php' => array('7.4'),
     'reason' => 'Before PHP 8.1 the internal function accepts null silently, with the same result as for an '
         . 'empty string; only PHP 8.1+ reports the deprecation that the tests assert is absent.',
 );

@@ -325,7 +325,7 @@ return array(
             'rationale' => 'The optional-before-required default is deprecated since PHP 8.0 and reported '
                 . 'on every request that compiles new.php.',
             'equivalent' => array(
-                'php' => array('5.6', '7.4'),
+                'php' => array('7.4'),
                 'reason' => 'Before PHP 8.0 a default before required parameters is silently allowed and '
                     . 'never used (the only caller passes all four arguments), so nothing is observable. '
                     . 'PHP 8.0 and later report the deprecation, which the diagnostics check kills.',

@@ -10,33 +10,47 @@ case "$test_id" in
     exit 2
     ;;
 esac
-# PGACC_TEST_PG (default 17) selects the PostgreSQL server; non-default
-# versions add "-pgNN" to the suffix.
-. "$(dirname "$0")/postgres-version.sh"
-PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
-export PGACC_TEST_SUFFIX
-
 php_version=${1:-all}
 
 case "$php_version" in
   all)
+    # Every lane on its default server, plus PHP 7.4 on 8.4 (the CI matrix,
+    # tests/README.md); PGACC_TEST_PG set: every lane on that server only.
     matrix_status=0
-    sh tests/php-syntax-matrix.sh || matrix_status=1
-    for test_php in 7.4 5.6 5.3 8.0 8.5; do
-      sh tests/run.sh "$test_php" || matrix_status=1
-    done
+    if [ -n "${PGACC_TEST_PG:-}" ]; then
+      for test_php in 7.4 5.3 8.5; do
+        sh tests/run.sh "$test_php" || matrix_status=1
+      done
+    else
+      sh tests/run.sh 7.4 || matrix_status=1
+      PGACC_TEST_PG=8.4 sh tests/run.sh 7.4 || matrix_status=1
+      sh tests/run.sh 5.3 || matrix_status=1
+      sh tests/run.sh 8.5 || matrix_status=1
+    fi
     exit "$matrix_status"
     ;;
-  7.4|5.6|5.3|8.0|8.5) ;;
+  5.3)
+    # The production pair: PHP 5.3 with PostgreSQL 8.4.
+    pgacc_test_pg_default=8.4
+    ;;
+  7.4|8.5)
+    pgacc_test_pg_default=18
+    ;;
   *)
-    echo "Usage: [PGACC_TEST_PG=9.4|14|17|18] sh tests/run.sh [all|7.4|5.6|5.3|8.0|8.5]" >&2
+    echo "Usage: [PGACC_TEST_PG=8.4|18] sh tests/run.sh [all|5.3|7.4|8.5]" >&2
     exit 2
     ;;
 esac
 
-# Coverage is collected only on PHP 7.4 with the default PostgreSQL 17 server.
+# PGACC_TEST_PG (default: 8.4 for PHP 5.3, 18 otherwise) selects the
+# PostgreSQL server; non-default versions add "-pgNN" to the suffix.
+. "$(dirname "$0")/postgres-version.sh"
+PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
+export PGACC_TEST_SUFFIX
+
+# Coverage is collected only on PHP 7.4 with PostgreSQL 18.
 coverage=
-if [ "$php_version" = 7.4 ] && [ "$PGACC_TEST_PG" = 17 ]; then
+if [ "$php_version" = 7.4 ] && [ "$PGACC_TEST_PG" = 18 ]; then
   coverage=1
 fi
 
@@ -45,12 +59,6 @@ compose()
   if [ "$php_version" = 5.3 ]; then
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php53" \
       -f compose.test.yaml -f compose.php53.yaml "$@"
-  elif [ "$php_version" = 5.6 ]; then
-    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php56" \
-      -f compose.test.yaml -f compose.php56.yaml "$@"
-  elif [ "$php_version" = 8.0 ]; then
-    docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php80" \
-      -f compose.test.yaml -f compose.php80.yaml "$@"
   elif [ "$php_version" = 8.5 ]; then
     docker compose --project-name "pgacc-test${PGACC_TEST_SUFFIX}-php85" \
       -f compose.test.yaml -f compose.php85.yaml "$@"
@@ -87,13 +95,14 @@ if [ -n "$coverage" ]; then
 fi
 
 echo "Running application tests on PHP $php_version with PostgreSQL $PGACC_TEST_PG"
+pgacc_test_pg_build
 compose up --detach --wait database
 compose run --rm php-lint
 compose run --rm database-test
 compose up --build --detach --wait application
 if [ "$php_version" = 5.3 ]; then
   # PHPUnit on PHP 5.3 runs before the write workflows change the fixtures
-  # (as on the other lanes). The test client is the PHP 5.6 image
+  # (as on the other lanes). The test client is the PHP 5.6 client image
   # (compose.php53.yaml); build it so that it carries the current scripts.
   compose run --rm application-phpunit
   compose build application-test

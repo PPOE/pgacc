@@ -2,10 +2,10 @@
 --
 -- The deployed database runs PostgreSQL 8.4. This fixture deliberately keeps
 -- its nullable columns, defaults, sequences, and limited constraints while
--- validating that contract on PostgreSQL 17. The dated production backup
--- table is intentionally excluded.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- validating that contract on PostgreSQL 8.4 and 18. The dated production
+-- backup table is intentionally excluded. pgcrypto comes from
+-- tests/fixtures/pgcrypto.sql (9.1+) or, on 8.4, from contrib in template1
+-- (tests/postgres84/entrypoint.sh), as on production.
 
 CREATE SEQUENCE file_number;
 CREATE SEQUENCE voucher_number;
