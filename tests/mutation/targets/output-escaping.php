@@ -1122,23 +1122,23 @@ $callSites = array(
     array(
         'id' => 'tinyreport-html-escape-tinyreport-konto-rawurlencode-k',
         'file' => 'tinyreport.php',
-        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '  echo "<li><a href=\\"" . ("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? \'\' : $k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . ("tinyreport?konto=" . rawurlencode($k === null ? \'\' : $k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
         'rationale' => 'Unescaped output: html_escape() removed around "tinyreport?konto=" . rawurlencode($k).',
         'equivalent' => array('reason' => 'The link holds only a fixed path and a rawurlencode()d value, which has no character that html_escape() changes; it stays as defence in depth.'),
     ),
     array(
         'id' => 'tinyreport-rawurlencode-k',
         'file' => 'tinyreport.php',
-        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . ($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? \'\' : $k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . ($k === null ? \'\' : $k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
         'rationale' => 'Unencoded URL value: rawurlencode() removed around $k.',
     ),
     array(
         'id' => 'tinyreport-html-escape-k',
         'file' => 'tinyreport.php',
-        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
-        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\\">Konto \'".($k)."\'</a></li>";',
+        'search' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? \'\' : $k)) . "\\">Konto \'".html_escape($k)."\'</a></li>";',
+        'replace' => '  echo "<li><a href=\\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? \'\' : $k)) . "\\">Konto \'".($k)."\'</a></li>";',
         'rationale' => 'Unescaped output: html_escape() removed around $k.',
     ),
     array(
@@ -1158,8 +1158,8 @@ $callSites = array(
     array(
         'id' => 'transactions-listing-text-str-replace-array-50110117369-10110123642-50110',
         'file' => 'transactions.php',
-        'search' => 'echo tag("td", listing_text(str_replace(array(' . "\n" . '\'50110117369\',' . "\n" . '\'10110123642\',' . "\n" . '\'50110117318\',' . "\n" . '\'50110110437\',' . "\n" . '\'50110117393\',' . "\n" . '\'50110117300\',' . "\n" . '\'50110117326\',' . "\n" . '\'50110117350\',' . "\n" . '\'50110117377\',' . "\n" . '\'50110117270\',' . "\n" . '\'04500152105\',' . "\n" . '\'20815 6659403\',' . "\n" . '\'58990\',' . "\n" . '\'AT87 1200 0100 0072 2081\',' . "\n" . '\'50110117385\'' . "\n" . '),array(' . "\n" . '\'Piratenpartei Steiermark\',' . "\n" . '\'Piratenpartei Wien\',' . "\n" . '\'Piratenpartei Niederösterreich\',' . "\n" . '\'Piratenpartei Österreichs\',' . "\n" . '\'Piratenpartei Vorarlberg\',' . "\n" . '\'Piratenpartei Kärnten\',' . "\n" . '\'Piratenpartei Oberösterreich\',' . "\n" . '\'Piratenpartei Salzburg\',' . "\n" . '\'Piratenpartei Tirol\',' . "\n" . '\'Piratenpartei Burgenland\',' . "\n" . '\'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '\'Piratenpartei Graz\',' . "\n" . '\'Sachspenden Kärnten\',' . "\n" . '\'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '\'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '),$line["account"])));',
-        'replace' => 'echo tag("td", (str_replace(array(' . "\n" . '\'50110117369\',' . "\n" . '\'10110123642\',' . "\n" . '\'50110117318\',' . "\n" . '\'50110110437\',' . "\n" . '\'50110117393\',' . "\n" . '\'50110117300\',' . "\n" . '\'50110117326\',' . "\n" . '\'50110117350\',' . "\n" . '\'50110117377\',' . "\n" . '\'50110117270\',' . "\n" . '\'04500152105\',' . "\n" . '\'20815 6659403\',' . "\n" . '\'58990\',' . "\n" . '\'AT87 1200 0100 0072 2081\',' . "\n" . '\'50110117385\'' . "\n" . '),array(' . "\n" . '\'Piratenpartei Steiermark\',' . "\n" . '\'Piratenpartei Wien\',' . "\n" . '\'Piratenpartei Niederösterreich\',' . "\n" . '\'Piratenpartei Österreichs\',' . "\n" . '\'Piratenpartei Vorarlberg\',' . "\n" . '\'Piratenpartei Kärnten\',' . "\n" . '\'Piratenpartei Oberösterreich\',' . "\n" . '\'Piratenpartei Salzburg\',' . "\n" . '\'Piratenpartei Tirol\',' . "\n" . '\'Piratenpartei Burgenland\',' . "\n" . '\'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '\'Piratenpartei Graz\',' . "\n" . '\'Sachspenden Kärnten\',' . "\n" . '\'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '\'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '),$line["account"])));',
+        'search' => 'echo tag("td", listing_text(str_replace(array(' . "\n" . '\'50110117369\',' . "\n" . '\'10110123642\',' . "\n" . '\'50110117318\',' . "\n" . '\'50110110437\',' . "\n" . '\'50110117393\',' . "\n" . '\'50110117300\',' . "\n" . '\'50110117326\',' . "\n" . '\'50110117350\',' . "\n" . '\'50110117377\',' . "\n" . '\'50110117270\',' . "\n" . '\'04500152105\',' . "\n" . '\'20815 6659403\',' . "\n" . '\'58990\',' . "\n" . '\'AT87 1200 0100 0072 2081\',' . "\n" . '\'50110117385\'' . "\n" . '),array(' . "\n" . '\'Piratenpartei Steiermark\',' . "\n" . '\'Piratenpartei Wien\',' . "\n" . '\'Piratenpartei Niederösterreich\',' . "\n" . '\'Piratenpartei Österreichs\',' . "\n" . '\'Piratenpartei Vorarlberg\',' . "\n" . '\'Piratenpartei Kärnten\',' . "\n" . '\'Piratenpartei Oberösterreich\',' . "\n" . '\'Piratenpartei Salzburg\',' . "\n" . '\'Piratenpartei Tirol\',' . "\n" . '\'Piratenpartei Burgenland\',' . "\n" . '\'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '\'Piratenpartei Graz\',' . "\n" . '\'Sachspenden Kärnten\',' . "\n" . '\'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '\'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '),$line["account"] === null ? \'\' : $line["account"])));',
+        'replace' => 'echo tag("td", (str_replace(array(' . "\n" . '\'50110117369\',' . "\n" . '\'10110123642\',' . "\n" . '\'50110117318\',' . "\n" . '\'50110110437\',' . "\n" . '\'50110117393\',' . "\n" . '\'50110117300\',' . "\n" . '\'50110117326\',' . "\n" . '\'50110117350\',' . "\n" . '\'50110117377\',' . "\n" . '\'50110117270\',' . "\n" . '\'04500152105\',' . "\n" . '\'20815 6659403\',' . "\n" . '\'58990\',' . "\n" . '\'AT87 1200 0100 0072 2081\',' . "\n" . '\'50110117385\'' . "\n" . '),array(' . "\n" . '\'Piratenpartei Steiermark\',' . "\n" . '\'Piratenpartei Wien\',' . "\n" . '\'Piratenpartei Niederösterreich\',' . "\n" . '\'Piratenpartei Österreichs\',' . "\n" . '\'Piratenpartei Vorarlberg\',' . "\n" . '\'Piratenpartei Kärnten\',' . "\n" . '\'Piratenpartei Oberösterreich\',' . "\n" . '\'Piratenpartei Salzburg\',' . "\n" . '\'Piratenpartei Tirol\',' . "\n" . '\'Piratenpartei Burgenland\',' . "\n" . '\'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '\'Piratenpartei Graz\',' . "\n" . '\'Sachspenden Kärnten\',' . "\n" . '\'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '\'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '),$line["account"] === null ? \'\' : $line["account"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array( \'50110117369\', \'10110123642\', \'50110117318\', \'50110110437\', \'.',
     ),
     array(
@@ -1260,6 +1260,20 @@ $callSites = array(
         'search' => '          echo "<h3><a name=\\"" . html_escape($line2[\'name\']) . "\\">" . html_escape($line2[\'name\']) . "</a></h3>\\n";',
         'replace' => '          echo "<h3><a name=\\"" . html_escape($line2[\'name\']) . "\\">" . ($line2[\'name\']) . "</a></h3>\\n";',
         'rationale' => 'Unescaped output: html_escape() removed around $line2[\'name\'].',
+    ),
+    array(
+        'id' => 'tinyreport-konto-null-guard-removed',
+        'file' => 'tinyreport.php',
+        'search' => 'rawurlencode($k === null ? \'\' : $k)',
+        'replace' => 'rawurlencode($k)',
+        'rationale' => 'An account link without an account must not raise the PHP 8.1+ rawurlencode() null deprecation.',
+    ),
+    array(
+        'id' => 'transactions-account-null-guard-removed',
+        'file' => 'transactions.php',
+        'search' => '),$line["account"] === null ? \'\' : $line["account"])));',
+        'replace' => '),$line["account"])));',
+        'rationale' => 'A transaction without an account must not raise the PHP 8.1+ str_replace() null deprecation.',
     ),
 );
 

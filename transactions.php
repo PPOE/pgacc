@@ -63,7 +63,7 @@ echo tag("td", listing_text(str_replace(array(
 'Sachspenden Kärnten',
 'Piratenpartei Österreichs (Bank Austria)',
 'Piratenpartei Österreichs (Altes BAWAG Konto)'
-),$line["account"])));
+),$line["account"] === null ? '' : $line["account"])));
 echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 if ($make_csv)
   echo "\n";

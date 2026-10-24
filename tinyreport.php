@@ -100,7 +100,7 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   {
     $k = substr($line2['account'],-3,3);
   }
-  echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\">Konto '".html_escape($k)."'</a></li>";
+  echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? '' : $k)) . "\">Konto '".html_escape($k)."'</a></li>";
 }
 echo "</ul>";
 pg_free_result($result2);
