@@ -21,6 +21,7 @@ function umlaute($text){
 } 
 function page_donations($year)
 {
+  global $dbconn;
   $captcha_check = true;
   if ($year < 2012)
   {
@@ -99,7 +100,7 @@ echo '
 ';
 $donation_condition = "AND type = 8";
 $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE ".eyes()." $donation_condition ".date_condition($year)." GROUP BY name;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 $count = 0;
 $donations = array();
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {

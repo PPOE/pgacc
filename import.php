@@ -26,6 +26,7 @@ function import_date_valid($date)
 }
 function page_import($rights)
 {
+  global $dbconn;
   getusers();
   block_start();
   echo "<table>\n";
@@ -80,7 +81,7 @@ function page_import($rights)
           if (mb_detect_encoding($csvline, 'UTF-8', true) === false)
             $convert = true;
           $rawcsvline = $csvline;
-          $csvline = pg_escape_string(str_replace(array('|',' ',"\n","\t","\r"),array('','','','',''),convif($convert,$csvline)));
+          $csvline = pg_escape_string($dbconn, str_replace(array('|',' ',"\n","\t","\r"),array('','','','',''),convif($convert,$csvline)));
           if ($csvline == 'Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile2;Ersterfassungsreferenz;AuftraggeberKontonr./IBAN;AuftraggeberBLZ/BIC;Partnername;PartnerKontonr./IBAN;PartnerBLZ/BIC')
             $csvformat = 'Sparkasse';
           if ($csvline == 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,')
@@ -89,7 +90,7 @@ function page_import($rights)
           if ($csvline == $handkassacsvline)
             $csvformat = 'Handkassa';
           $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
-          $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+          $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
           if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
              continue;
           }
@@ -130,7 +131,7 @@ function page_import($rights)
               import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline);
               return -1;
           }
-          $voucher['comment'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[1])));
+          $voucher['comment'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[1])));
           $voucher['date'] = format_date($data[2]);
           $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[4]));
           $voucher['gegenkonto'] = '';
@@ -145,13 +146,13 @@ function page_import($rights)
               $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[1]));
             else
               $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[1])) * 100;
-            $voucher['konto'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[2])));
-            $voucher['comment'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[3])));
-            $voucher['commentgf'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[4])));
-            $voucher['gegenkonto'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[5])));
+            $voucher['konto'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[2])));
+            $voucher['comment'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[3])));
+            $voucher['commentgf'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[4])));
+            $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[5])));
             $voucher['committed'] = ($data[6] == 'Ja' || $data[6] == 'Wahr' || $data[6] == '1') ? 'true' : 'false';
             $voucher['refund'] = ($data[7] == 'Ja' || $data[7] == 'Wahr' || $data[7] == '1') ? 'true' : 'false';
-            $voucher['name'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[8])));
+            $voucher['name'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[8])));
             $voucher['mitgliedsnummer'] = intval($data[9]);
             if ($voucher['mitgliedsnummer'] != 0)
             {
@@ -159,9 +160,9 @@ function page_import($rights)
               $voucher['person_type'] = 2;
             }
             $voucher['lo'] = intval($data[10]) == 0 ? 10 : intval($data[10]);
-            $voucher['street'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[11])));
-            $voucher['city'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[13])));
-            $voucher['plz'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[12])));
+            $voucher['street'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[11])));
+            $voucher['city'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[13])));
+            $voucher['plz'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[12])));
           }
           elseif ($csvformat == 'Sparkasse')
           {
@@ -169,11 +170,11 @@ function page_import($rights)
               continue;
             $voucher['lo'] = 6;
             $voucher['konto'] = '20815 6659403';
-            $voucher['comment'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[5] . "; " . $data[6] . "; " . $data[7])));
+            $voucher['comment'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[5] . "; " . $data[6] . "; " . $data[7])));
             $voucher['date'] = format_date($data[4]);
             $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[2]));
-            $voucher['gegenkonto'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[14] . " " . $data[15])));
-            $voucher['name'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[13])));
+            $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[14] . " " . $data[15])));
+            $voucher['name'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[13])));
           }
           elseif ($csvformat == 'Paypal')
           {
@@ -189,14 +190,14 @@ function page_import($rights)
             $cmt .= "Brutto: " . convif($convert,$data[7]) . "€; ";
             $cmt .= "Gebühr: " . convif($convert,$data[8]) . "€; ";
             $cmt .= convif($convert,$data[3]);
-            $voucher['comment'] = pg_escape_string($cmt);
+            $voucher['comment'] = pg_escape_string($dbconn, $cmt);
             $voucher['date'] = format_date($data[0]);
             $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[7]));
-            $voucher['gegenkonto'] = pg_escape_string(str_replace("|","\n",convif($convert,($data[10] == 'spende@piratenpartei.at') ? $data[11] : $data[10])));
-            $voucher['name'] = pg_escape_string(str_replace("|","\n",convif($convert,$data[3])));
+            $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,($data[10] == 'spende@piratenpartei.at') ? $data[11] : $data[10])));
+            $voucher['name'] = pg_escape_string($dbconn, str_replace("|","\n",convif($convert,$data[3])));
             $voucher2['lo'] = 10;
             $voucher2['konto'] = 'spende@piratenpartei.at';
-            $voucher2['comment'] = pg_escape_string($cmt);
+            $voucher2['comment'] = pg_escape_string($dbconn, $cmt);
             $voucher2['date'] = format_date($data[0]);
             $voucher2['amount'] = intval(str_replace(array('.', ','), array('',''), $data[8]));
             $voucher2['gegenkonto'] = "";
@@ -225,7 +226,7 @@ function page_import($rights)
               continue;
           }
           $query = "SELECT nextval('voucher_number') AS num;";
-          $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+          $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
           while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
             $voucher_number = $line['num'];
           }
@@ -265,7 +266,7 @@ function page_import($rights)
             // strings, independent of standard_conforming_strings), and an empty
             // name matches nothing.
             $query = "SELECT * FROM ppmembers WHERE name <> '' AND '$csvline' ILIKE '%' || replace(replace(replace(name, E'\\\\', E'\\\\\\\\'), '%', E'\\\\%'), '_', E'\\\\_') || '%' ESCAPE E'\\\\'";
-            if ($result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error()))
+            if ($result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn)))
             {
               if (pg_num_rows($result) == 1)
               {
@@ -274,7 +275,7 @@ function page_import($rights)
                 $voucher['mitgliedsnummer'] = intval($line['id']);
                 $voucher['person_type'] = 2;
                 $voucher['type'] = 1;
-                $voucher['name'] = pg_escape_string($line['name']);
+                $voucher['name'] = pg_escape_string($dbconn, $line['name']);
                 pg_free_result($result);
                 $found = true;
               }
@@ -306,7 +307,7 @@ function page_import($rights)
             $found = false;
             foreach ($queries as $query)
             {
-              if ($result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error()))
+              if ($result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn)))
               {
                 if (pg_num_rows($result) == 1)
                 {
@@ -333,7 +334,7 @@ function page_import($rights)
           if (preg_match('/[A-Z]{2}\/\d{9}/g', $voucher['comment'], $matches) == 1) {
             $bawagVoucherId = $matches[0];
             $query = "SELECT 1 FROM import WHERE date = '{$voucher['date']}' AND amount = {$voucher['amount']} AND contra_account = '{$voucher['gegenkonto']}' AND account = '{$voucher['konto']}' AND comment LIKE '%{$bawagVoucherId}%';";
-            $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+            $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
             if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
               pg_free_result($result);
               continue;
@@ -345,7 +346,7 @@ function page_import($rights)
           //print_r($voucher);
           
           $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
-          $result = pg_query($query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error());
+          $result = pg_query($dbconn, $query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error($dbconn));
           while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
           }
           pg_free_result($result);
@@ -353,14 +354,14 @@ function page_import($rights)
           if ($dovoucher2)
           {
             $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher2['date']}', {$voucher2['type']},{$voucher2['lo']},{$voucher2['member']},{$voucher2['mitgliedsnummer']},'{$voucher2['gegenkonto']}','{$voucher2['name']}','{$voucher2['street']}','{$voucher2['plz']}','{$voucher2['city']}',{$voucher2['amount']},'{$voucher2['konto']}','{$voucher2['comment']}',{$voucher2['purpose']},{$voucher2['receipt']})";
-            $result = pg_query($query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error());
+            $result = pg_query($dbconn, $query) or die('Abfrage ('.$query.') fehlgeschlagen: ' . pg_last_error($dbconn));
             while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
             }
             pg_free_result($result);
           }
 
           $query = "INSERT INTO import (line) VALUES ('{$csvline}');";
-          $result = pg_query($query);
+          $result = pg_query($dbconn, $query);
           pg_free_result($result);
         }
         fclose($handle);
@@ -381,7 +382,7 @@ echo '
 </form>';
   block_end();
   $query = 'DROP TABLE IF EXISTS ppmembers;';
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   pg_free_result($result);
 }
 ?>

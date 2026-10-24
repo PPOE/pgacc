@@ -170,14 +170,14 @@ return array(
         array(
             'id' => 'login-username-not-escaped',
             'region' => $login,
-            'search' => '$user = pg_escape_string($user);',
+            'search' => '$user = pg_escape_string($dbconn, $user);',
             'replace' => '$user = $user;',
             'rationale' => 'The user name is interpolated into SQL and must be escaped.',
         ),
         array(
             'id' => 'login-password-not-escaped',
             'region' => $login,
-            'search' => '$pass = pg_escape_string($pass);',
+            'search' => '$pass = pg_escape_string($dbconn, $pass);',
             'replace' => '$pass = $pass;',
             'rationale' => 'The password is interpolated into SQL and must be escaped.',
         ),

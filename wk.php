@@ -8,14 +8,14 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income = -1 AND realtype = id ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   if ($unit == -1)
     $unit_s = "";
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
@@ -32,7 +32,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = -1) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -49,14 +49,14 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income = 1 AND realtype = id ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   if ($unit == -1)
     $unit_s = "";
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
@@ -76,7 +76,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -89,14 +89,14 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income <= 0 AND realtype = id ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   if ($unit == -1)
     $unit_s = "";
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
@@ -113,7 +113,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -128,6 +128,7 @@ echo '
 
 function page_wk()
 {
+global $dbconn;
 echo '<h1>Vorläufige Wahlkampfabrechnungen</h1><br>';
 echo 'Bei den nachfolgenden Wahlkampfabrechnungen handelt es sich um vorläufige Wahlkampfabrechnungen die sich noch leicht verändern können bis 100% der Buchungen im betroffenen Zeitraum im 4-Augen-Prinzip bestätigt wurden.<br />
 <ul>
@@ -169,12 +170,12 @@ block_end();
 echo '<h1><a name="nrwl2013">Nationalratswahl 2013 (Länder)</a></h1>';
 block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo "<br /><h2><a name=\"nrw" . html_escape($line['name']) . "2013\" href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></h2>\n";
       wk_unit_report("",$cond,$cond,$line['id'],$year,'2013-11-01','2013-06-13');
       $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
-      $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+      $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
       while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
           echo "<h3><a name=\"" . html_escape($line2['name']) . "\">" . html_escape($line2['name']) . "</a></h3>\n";
             wk_unit_report("",$cond,$cond,$line2['id'],$year,'2013-11-01','2013-06-13');

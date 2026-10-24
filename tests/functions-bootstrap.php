@@ -13,8 +13,10 @@ if (!function_exists('checklogin')) {
 
 require_once __DIR__ . '/db-helpers.php';
 
+// The application passes its global $dbconn (index.php) to every pg_* call.
 if (function_exists('pg_connect') && getenv('PGHOST')) {
-    if (pg_connect(pgacc_test_connection_string()) === false) {
+    $GLOBALS['dbconn'] = pg_connect(pgacc_test_connection_string());
+    if ($GLOBALS['dbconn'] === false) {
         throw new RuntimeException('Unable to connect to the synthetic test database');
     }
 }

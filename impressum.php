@@ -1,7 +1,8 @@
 <?php
 function page_impressum()
 {
-$pg_version_array = pg_version();
+global $dbconn;
+$pg_version_array = pg_version($dbconn);
 $pg_version = $pg_version_array['server'];
 echo '
       <div class="main" id="default">

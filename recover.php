@@ -1,6 +1,7 @@
 <?php
 function page_recover($rights)
 {
+global $dbconn;
 $id = -1;
 if (isset($_GET["id"]))
 {
@@ -40,7 +41,7 @@ if ($doit)
 echo "<h1>Buchung Nr. $id / Buchungszeile Nr. $bid wiederhergestellt!</h1>";
 
 $query = "UPDATE vouchers SET deleted = false WHERE voucher_id = $id AND id = $bid;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);

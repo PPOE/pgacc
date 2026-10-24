@@ -191,7 +191,7 @@ return array(
         array(
             'id' => 'new-account-rights-unescaped',
             'file' => 'accounts.php',
-            'search' => '? pg_escape_string($_POST["rights$id"]) :',
+            'search' => '? pg_escape_string($dbconn, $_POST["rights$id"]) :',
             'replace' => '? $_POST["rights$id"] :',
             'rationale' => 'Removed escape: entered rights are inserted as SQL.',
         ),
@@ -308,7 +308,7 @@ return array(
             'id' => 'finalization-write-restored',
             'file' => 'index.php',
             'search' => '  else if (isset($_POST["belegfehler"]))',
-            'replace' => '  else if (isset($_POST["beleg"]) && pg_query("UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
+            'replace' => '  else if (isset($_POST["beleg"]) && pg_query($dbconn, "UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
             'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',
         ),
         array(

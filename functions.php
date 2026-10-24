@@ -500,12 +500,13 @@ function getoppsort($sortn)
 }
 function percent_of_bookings()
 {
+  global $dbconn;
   $text = "";
   $startYear = 2012;
   $endYear = date('Y') + 1;
   for ($currentYear = $startYear; $currentYear < $endYear + 1; $currentYear++) {
     $query = "SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '" . $currentYear . "-01-01' AND date < '" . ($currentYear + 1) . "-01-01' AND NOT deleted;";
-    $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
       $c = intval($line['c']);
       if ($c <= 0) {
@@ -553,6 +554,7 @@ function whitelist($array, $whitelist) {
 }
 
 function vouchers_reset_ack($id, $rightssql) {
+  global $dbconn;
   $query = "
     UPDATE vouchers
     SET
@@ -565,7 +567,7 @@ function vouchers_reset_ack($id, $rightssql) {
       (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
       voucher_id = $id $rightssql;
   ";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   }
   pg_free_result($result);

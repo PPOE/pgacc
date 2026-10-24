@@ -54,14 +54,14 @@ $mutations[] = array(
 $mutations[] = array(
     'id' => 'old-ack1-unescaped',
     'file' => 'new.php',
-    'search' => '"\'" . pg_escape_string($ack1_old) . "\'"',
+    'search' => '"\'" . pg_escape_string($dbconn, $ack1_old) . "\'"',
     'replace' => '"\'" . $ack1_old . "\'"',
     'rationale' => 'Removed escape: a posted first old approval is inserted as SQL.',
 );
 $mutations[] = array(
     'id' => 'old-ack2-unescaped',
     'file' => 'new.php',
-    'search' => '"\'" . pg_escape_string($ack2_old) . "\'"',
+    'search' => '"\'" . pg_escape_string($dbconn, $ack2_old) . "\'"',
     'replace' => '"\'" . $ack2_old . "\'"',
     'rationale' => 'Removed escape: a posted second old approval is inserted as SQL.',
 );
@@ -104,7 +104,7 @@ foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval(
 $mutations[] = array(
     'id' => 'member-name-unescaped',
     'file' => 'new.php',
-    'search' => "    \$voucher['name'] = pg_escape_string(\$line['name']);",
+    'search' => "    \$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);",
     'replace' => "    \$voucher['name'] = \$line['name'];",
     'rationale' => 'Removed escape: a member name from the membership list is inserted as SQL.',
 );

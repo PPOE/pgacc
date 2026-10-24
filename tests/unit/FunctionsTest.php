@@ -482,8 +482,7 @@ final class FunctionsTest extends FunctionsTestCase
         $GLOBALS['functions_test_rights'] = null;
         $nullRights = self::callAndCaptureDiagnostics($render);
 
-        // Same output and the same diagnostics (on PHP 8.5 the implicit
-        // PostgreSQL connection of percent_of_bookings() is reported for both).
+        // Same output and the same diagnostics.
         self::assertSame($emptyRights, $nullRights);
         self::assertStringContainsString('<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>', $nullRights['output']);
         self::assertStringNotContainsString('action=new', $nullRights['output']);
