@@ -543,13 +543,24 @@ differences above are only visible for out-of-range input.
   - New receipts (upload in `new.php`, PDF import in `import2.php`) are
     `files/<n>.v2.aes`: `"PGR2"`, a random 16-byte IV, AES-256-CBC with
     PKCS#7 padding and an HMAC-SHA256 over all of that (encrypt-then-MAC,
-    compared in constant time). The keys are derived from the configured
-    `$key` and the file number `<n>` (`HMAC-SHA256($key,
-    "pgacc-receipt-v2-enc|<n>")`, `...-mac|<n>`), so a merge or revision,
-    which changes voucher IDs, does not affect them, and no database lookup
-    is needed. Written atomically (unique temporary file, then rename).
-    Contract vectors from the openssl extension:
-    `tests/fixtures/receipt-v2/`.
+    compared in constant time with `hash_equals()`, an own loop on PHP 5.3).
+    The encryption and MAC keys come from RFC 5869 HKDF-SHA256 of the
+    configured `$key` (no salt) with the info `pgacc-receipt-v2|enc|<n>` and
+    `pgacc-receipt-v2|mac|<n>` (own implementation with `hash_hmac()`,
+    checked against the RFC vectors and `hash_hkdf()`), so a merge or
+    revision, which changes voucher IDs, does not affect them, and no
+    database lookup is needed. The `PGR2` magic leaves room for a later
+    format (e.g. ext-sodium secretstream on PHP 8). Uploads are encrypted in
+    64 KiB chunks from the uploaded file into a unique temporary file that
+    is renamed into place; downloads read the open file twice in chunks (MAC
+    over the whole file, then decrypt and send), so a 20 MB receipt needs
+    about 4 MB of memory (`tests/receipt-memory.php` runs it with
+    `memory_limit=40M`; whole-file processing does not fit). The legacy
+    path still decrypts whole files, and the migration holds a file in
+    memory (`--max-size`). Contract vectors from the openssl extension and
+    `hash_hkdf()`: `tests/fixtures/receipt-v2/`. The earlier drafts of
+    `<n>.v2.aes` (md5-based, then HMAC keys without HKDF) were never
+    deployed.
   - Key validation: `receipt_configured_key()` reads `$GLOBALS['key']` and
     accepts only a string of at least 16 characters that does not contain the
     `CHANGE-ME` placeholder. Without a valid key uploads are refused with the
@@ -640,8 +651,8 @@ differences above are only visible for out-of-range input.
      of 32 or more characters, e.g. `openssl rand -hex 32`. Legacy receipts
      never used `$key`, so it can still be replaced before the deploy; do not
      change it afterwards: receipts encrypted with it cannot be read with
-     another key. (The md5-based draft of `<n>.v2.aes` was never deployed, so
-     no such files exist.)
+     another key. (Earlier drafts of `<n>.v2.aes` were never deployed, so no
+     such files exist.)
   3. Deploy. From now on new receipts are `files/<n>.v2.aes`.
   4. Dry run, as the web server's user (file owner and database role), from
      any directory: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
