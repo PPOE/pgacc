@@ -298,7 +298,7 @@ pg_free_result($result);
 
 // The scoped update must match the row (checked above) before the receipt
 // is stored and the approvals of the voucher are reset.
-$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 $updated = pg_affected_rows($result);
 pg_free_result($result);

@@ -107,8 +107,8 @@ return array(
         array(
             'id' => 'upload-update-unscoped',
             'file' => 'new.php',
-            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
-            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id;',
+            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;',
+            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file;',
             'rationale' => 'Wrong organization: the upload attaches a receipt to another organization\'s row.',
             'equivalent' => array('reason' => 'The scoped row check before the finalized check already '
                 . 'requires a current row of this voucher in the user\'s scope.'),
@@ -116,8 +116,8 @@ return array(
         array(
             'id' => 'upload-update-any-voucher',
             'file' => 'new.php',
-            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
-            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid $rightssql;',
+            'search' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;',
+            'replace' => 'UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND file = $previous_file $rightssql;',
             'rationale' => 'The row must belong to the posted voucher.',
             'equivalent' => array('reason' => 'The scoped row check before the finalized check already '
                 . 'requires a current row of this voucher in the user\'s scope.'),
@@ -166,6 +166,24 @@ return array(
             'search' => "WHERE name <> '' AND '\$csvline' ILIKE",
             'replace' => "WHERE '\$csvline' ILIKE",
             'rationale' => 'An empty member name matches no line.',
+        ),
+        array(
+            'id' => 'upload-update-ignores-previous-file',
+            'file' => 'new.php',
+            'search' => 'AND voucher_id = $id AND file = $previous_file $rightssql;',
+            'replace' => 'AND voucher_id = $id $rightssql;',
+            'rationale' => 'The upload replaces only the file number it checked (no lost concurrent upload).',
+            'equivalent' => array('reason' => 'Only a concurrent change of the row between the row check and '
+                . 'the update tells the difference; the tests run requests one at a time.'),
+        ),
+        array(
+            'id' => 'import2-update-ignores-file',
+            'file' => 'import2.php',
+            'search' => 'AND voucher_id = $id AND file = 0 $rightssql;',
+            'replace' => 'AND voucher_id = $id $rightssql;',
+            'rationale' => 'The PDF import attaches a receipt only to a row that still has none.',
+            'equivalent' => array('reason' => 'Only a concurrent change of the row between the row check and '
+                . 'the update tells the difference; the tests run requests one at a time.'),
         ),
     ),
 );

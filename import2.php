@@ -186,7 +186,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   pg_free_result($result);
 
   // The receipt is stored only for a row that the scoped update matched.
-  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = 0 $rightssql;";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   $updated = pg_affected_rows($result);
   pg_free_result($result);

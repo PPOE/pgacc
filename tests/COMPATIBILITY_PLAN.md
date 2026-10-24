@@ -199,7 +199,10 @@ with synthetic users and covered by a mutation target.
   none). Now the scoped update must match the posted row first ("FEHLER:
   Buchungszeile nicht gefunden." otherwise, nothing stored or reset), and
   a failed store gives the row back its previous file number (PR review
-  fix; at first it was reset to 0, which dropped an existing receipt). Tests
+  fix; at first it was reset to 0, which dropped an existing receipt). The
+  update also requires the file number it checked, and the PDF import's
+  update requires `file = 0`, so a concurrent change is not overwritten
+  (race only; the mutants are accepted equivalents). Tests
   in `ReceiptImportTest`, mutations in `import-checks`. PR review fix: the
   row check (a current row of the voucher in the user's scope) now comes
   before the finalized check, so a user of another organization gets
