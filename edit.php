@@ -195,7 +195,19 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
   }
 $rightssql = rights2orgasql($rights);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";
+// Only a voucher of which the user sees a current row; a finalized or
+// approved row blocks the revision of the whole voucher, also a row of
+// another organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
+
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
@@ -204,7 +216,7 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;";
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';

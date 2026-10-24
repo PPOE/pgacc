@@ -9,6 +9,7 @@
  * tests/mutation/README.md for the format.
  */
 $ack = array('start' => 'function page_edit_ack($rights)', 'end' => 'function page_edit_save($rights)');
+$save = array('start' => 'function page_edit_save($rights)', 'end' => 'function page_edit_buchung(');
 $dropAcks = array('start' => 'function page_edit_drop_acks($rights)', 'end' => 'function page_edit_ack($rights)');
 
 return array(
@@ -290,6 +291,41 @@ return array(
             'search' => "if (has_right(\$rights, 'root'))\n{\n  echo '<script",
             'replace' => "if (strpos(\$rights, 'root') !== false)\n{\n  echo '<script",
             'rationale' => 'The merge link is shown to root only.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-removed',
+            'region' => $save,
+            'search' => 'if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A revision of a missing voucher (or one without visible rows) creates a voucher.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-unscoped',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE NOT deleted AND voucher_id = $id;',
+            'rationale' => 'Wrong organization: a user adds rows to a voucher of another organization.',
+        ),
+        array(
+            'id' => 'revision-visibility-check-counts-deleted',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE voucher_id = $id $rightssql;',
+            'rationale' => 'Old revisions do not make a voucher revisable.',
+        ),
+        array(
+            'id' => 'revision-finalized-check-scoped',
+            'region' => $save,
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
+            'replace' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;',
+            'rationale' => 'A finalized row of another organization blocks the revision.',
+        ),
+        array(
+            'id' => 'revision-approved-check-scoped',
+            'region' => $save,
+            'search' => 'AND ack2 IS NOT NULL AND voucher_id = $id;',
+            'replace' => 'AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;',
+            'rationale' => 'A row of another organization approved twice blocks the revision.',
         ),
         array(
             'id' => 'drop-acks-reset-removed',

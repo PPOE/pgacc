@@ -94,6 +94,18 @@ with synthetic users and covered by a mutation target.
   without rights, and users of several organizations who post none, can
   no longer save vouchers into organization 10 (the form always posts an
   organization for several organizations).
+- [x] Revisions (`page_edit_save()`, review fix). The finalized and
+  approved checks used the rights SQL, so a user of one organization could
+  revise (add rows to) a voucher whose rows of another organization were
+  finalized or approved, and a revision of a voucher number without rows,
+  or without rows of the user's organization, created rows under that
+  number. Now a revision needs a current (not deleted) row that the user
+  sees ("FEHLER: Buchung nicht gefunden." otherwise), and the finalized
+  and approved checks cover the whole voucher. Behaviour difference: rows
+  of a voucher can no longer be revised while another organization's rows
+  are approved twice; `bgf` can no longer revive a voucher number whose
+  rows are all deleted through the empty voucher form. Mutation target
+  `rights-checks`.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

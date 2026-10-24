@@ -819,6 +819,46 @@ assert_status($receiptCheck, 200, 'approval of a row without a receipt');
 assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
 assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
 
+// A revision needs a current row of the voucher that the user sees; the
+// finalized and approved checks then cover the whole voucher, also the rows
+// of other organizations.
+$missingRevision = edit_request('999999', revision_form('999999', 'Synthetic revision of a missing voucher', '-1.10'), $adminCookies);
+assert_status($missingRevision, 200, 'revision of a missing voucher');
+assert_contains($missingRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a missing voucher');
+assert_database_count($database, $commentQuery, array('Synthetic revision of a missing voucher'), 0, 'revision of a missing voucher');
+$deletedRevisionId = create_voucher($database, 'Synthetic voucher with old revisions only', '-1.20', 0, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET deleted = true WHERE voucher_id = $1', array($deletedRevisionId));
+$deletedRevision = edit_request($deletedRevisionId, revision_form($deletedRevisionId, 'Synthetic revision of old revisions', '-1.30'), $adminCookies);
+assert_contains($deletedRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a voucher with old revisions only');
+assert_database_count($database, $commentQuery, array('Synthetic revision of old revisions'), 0, 'revision of a voucher with old revisions only');
+$foreignRevisionId = create_voucher_from_form(
+    $database,
+    array_merge(voucher_form('Synthetic voucher of organization one only', '-1.40', 0), array('lo0' => '1')),
+    $adminCookies
+);
+$foreignRevision = edit_request($foreignRevisionId, revision_form($foreignRevisionId, 'Synthetic rows added by organization two', '-1.50'), $unitTwoCookies);
+assert_contains($foreignRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a voucher of another organization');
+assert_database_count($database, $commentQuery, array('Synthetic rows added by organization two'), 0, 'revision of a voucher of another organization');
+assert_voucher_rows($database, $foreignRevisionId, array(voucher_row_state('1', null, null, 'f')), 'voucher of another organization after a revision');
+foreach (array('finalized' => 'receipt_received = true', 'approved twice' => "ack1 = 'synthetic-a', ack2 = 'synthetic-b'") as $stateLabel => $assignment) {
+    $lockedId = create_voucher_from_form($database, two_organization_form("Synthetic mixed voucher $stateLabel in one", 0), $adminCookies);
+    pg_query_params($database, "UPDATE vouchers SET $assignment WHERE voucher_id = $1 AND orga = 1", array($lockedId));
+    $lockedRevision = edit_request($lockedId, revision_form($lockedId, "Synthetic revision of a voucher $stateLabel in one", '-1.60'), $unitTwoCookies);
+    assert_contains(
+        $lockedRevision['body'],
+        $stateLabel === 'finalized' ? 'bereits finalisiert' : 'bereits bestätigt',
+        "revision of a voucher $stateLabel in another organization"
+    );
+    assert_database_count($database, $commentQuery, array("Synthetic revision of a voucher $stateLabel in one"), 0, "revision of a voucher $stateLabel in another organization");
+    assert_database_count(
+        $database,
+        'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
+        array($lockedId),
+        2,
+        "rows of the voucher $stateLabel in another organization"
+    );
+}
+
 // A voucher whose rows are all deleted (old revisions only) counts as not
 // visible: approval is refused and the deleted rows keep their state.
 $deletedOnlyId = create_voucher($database, 'Synthetic voucher with deleted rows only', '-10.25', 9013, $adminCookies);
