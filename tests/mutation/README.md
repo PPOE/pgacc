@@ -255,8 +255,11 @@ its baseline. `run.sh` takes the diff on the host
 ### CI (`ci.sh`)
 
 `sh tests/mutation/ci.sh 8.5 [--changed-since=<base>]` runs the self-test
-and the target list, attempting every target: all 14 committed targets. CI passes `--changed-since` on per-push runs and runs
-every target on full runs (weekly, manual, `full-ci` pull requests).
+and the target list, attempting every target: all 15 committed targets. CI
+runs it in its own job, `Mutation tests (PHP 8.5 / PostgreSQL 18)`, blocking
+when it runs: with `--changed-since` on pull requests labelled `mutation`,
+every target on full runs (weekly, manual, `full-ci` pull requests). Other
+pull request runs and pushes to `master` skip it.
 
 ### How a run works
 
@@ -423,13 +426,15 @@ removed with that lane: PHP 8.5 kills those mutants.
 Fix pull requests that change code reached by a target report red and green
 mutation evidence on PHP 8.5: the new test kills the relevant mutants, which
 survive on the old code (or the old code fails the baseline). While developing
-use the focused test and `--only`; at readiness run each affected target once
-with `--changed-since=<real PR base>` and report the actual selection,
+use the focused test (`--only` is welcome, not required on every iteration);
+before merge either run the affected mutants locally (`--only`, or each
+affected target once with `--changed-since=<real PR base>`) or add the
+`mutation` label to the pull request, and report the actual selection,
 including the full-target fallback when a definition changed (see
 [Iterating versus readiness](#iterating-versus-readiness)). A new behaviour
 needs a mutation in the relevant target (or a new target), and the change must
-not introduce survivors. CI runs `tests/mutation/ci.sh` on the PHP 8.5
-lane: changed lines on per-push runs, every target on full runs (weekly,
-manual, `full-ci` pull requests); it is part of the blocking harness job. The `import-checks` target needs the
+not introduce survivors. CI runs `tests/mutation/ci.sh` in its own job: changed
+lines with the `mutation` label, every target on full runs (weekly, manual,
+`full-ci` pull requests). The `import-checks` target needs the
 membership stub of `compose.test.yaml`, which the runner starts with the
 database.

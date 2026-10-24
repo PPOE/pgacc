@@ -19,7 +19,7 @@ PostgreSQL 18 (owner decision, 2026-10-25):
 
 | Lane | Role |
 |---|---|
-| PHP 8.5 / PostgreSQL 18 (`compose.test.yaml` + `compose.coverage.yaml`) | The only lane: coverage and the changed-line gate, mutation runner, Infection, PHP 5 reference comparison. Fails by design until the PHP 8.5 fixes land (see [PHP 8.5 lane](#php-85-lane)). |
+| PHP 8.5 / PostgreSQL 18 (`compose.test.yaml` + `compose.coverage.yaml`) | The only lane: coverage and the changed-line gate, mutation runner, Infection, PHP 5 reference comparison. See [PHP 8.5 lane](#php-85-lane). |
 
 The PHP 5.3 / PostgreSQL 8.4 production-pair lane, the PHP 7.4 lanes (on 18
 and 8.4), the PHP 5.6 client image and the PostgreSQL 8.4 image were removed
@@ -266,14 +266,16 @@ for pushes and pull request updates, else `origin/<default branch>` or
 to the default branch. Only pushes to `master` trigger push runs; other
 branches run through their pull request, so each push starts one run. A pull
 request gets a full run only while it carries the `full-ci` label (add it once
-before merging to `master`).
+before merging to `master`); with the `mutation` label it also gets the
+changed-line mutation job. Without a label a pull request run is the tests,
+the coverage gate, the reference comparison and static analysis.
 
 | Job (name in GitHub) | Every push / pull request update | Weekly (Mon 03:17 UTC), manual, `full-ci` pull requests |
 |---|---|---|
 | `Plan (full or per-push run)` | yes | yes |
 | `Static analysis (PHPCompatibility, PHPStan)` | yes | yes |
 | `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
-| Mutation step in the harness job (`tests/mutation/ci.sh`) | changed lines only (`--changed-since=<base>`) | every target |
+| `Mutation tests (PHP 8.5 / PostgreSQL 18)` (`tests/mutation/ci.sh`, blocking) | only with the `mutation` label: changed lines (`--changed-since=<base>`); skipped otherwise | every target |
 | `PHP 5 reference comparison (PHP 8.5)` | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 

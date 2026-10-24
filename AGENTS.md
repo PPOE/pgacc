@@ -33,18 +33,21 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 - One fix track by default; with the owner's approval at most two agents, in separate worktrees. Run only
   one expensive Docker batch (lane, coverage, mutation, Infection) at a time on the shared host.
 - Before editing, record the branch, the starting commit and the real PR base (the branch the PR targets).
-- While editing, run only the focused test (`tests/README.md`, "Focused tests") and explicit mutants
-  (`--only=`). Rebuild the application image after every edit. Review the finished patch once and fix
+- While editing, run only the focused test (`tests/README.md`, "Focused tests"); explicit mutants
+  (`--only=`) are welcome but not required on every iteration. Rebuild the application image after every edit. Review the finished patch once and fix
   related findings together; unrelated findings go to the plan.
 - Readiness batch, editing stopped, in this order: (1) `sh tests/static-analysis.sh` if application code
   changed; (2) `PGACC_COVERAGE_BRANCHES=0 PGACC_COVERAGE_BASE=<real PR base> sh tests/run.sh`, and
   confirm the log has the changed-line result (`<file>: N changed executable lines, all covered`);
-  (3) each affected mutation target once with `--changed-since=<real PR base>`.
+  (3) mutation evidence: run the affected mutants locally (`--only=`, or the target with
+  `--changed-since=<real PR base>`) or add the `mutation` label to the pull request before merge (CI then
+  runs the changed-line mutation job, blocking).
 - A 1.0.x (PHP 5.3) hotfix needs the harness of the `php5-last` tag: this branch has no PHP 5.3 lane.
 - Run the reference comparison (`sh tests/reference/run.sh compare 8.5`) once, after the patch stabilizes, when
   a change can affect page output, SQL or stored data.
-- CI runs the full matrix, broad Infection and full mutation sweeps (`tests/README.md`, "Continuous
-  integration"). Report checks left to CI as pending, not as passed.
+- CI runs tests, the coverage gate, the reference comparison and static analysis on every pull request
+  push; mutation only with the `mutation` or `full-ci` label, weekly and on manual runs; broad Infection
+  and full mutation sweeps with `full-ci`, weekly and manual (`tests/README.md`, "Continuous integration"). Report checks left to CI as pending, not as passed.
 - After a fix, rerun only the checks it invalidates. Docs-only edits need no runtime run. One tool session
   per running check; wait for it, no polling loops. Capture the real exit code before `grep`.
 - Status and handoff notes record per check: source (commit or diff), base, command, exit code, results

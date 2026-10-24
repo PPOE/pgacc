@@ -73,6 +73,21 @@ Next steps, in order:
   once each `todo` difference from `php5/` is explained or fixed.
 - [ ] (e) Later: receipt v3 with sodium `secretstream`.
 
+Found while covering the changed lines (owner decisions, not fixed):
+
+- [ ] Known failure `KF-CLOSED-MISSING-COLUMNS`: `page_closed()`
+  (`closed.php`, `action=closed`) selects no `vaccount`, `ack1_old` and
+  `ack2_old`, which `page_listing_line()` reads: "Undefined array key"
+  warnings, and those cells stay empty in the closed listing. Fix: add the
+  three columns to the query (changes the listing's output).
+  `http-output-escaping.php` attributes the warnings to the KF id.
+- [ ] `import.php:337` (the duplicate check of BAWAG voucher IDs) is
+  unreachable while `KF-IMPORT-REGEX-G` stands: `preg_match('/.../g')`
+  always fails. The changed-line gate reports it; it has no reviewed
+  exclusion mechanism. It becomes reachable when the regex is fixed.
+- CI: mutation testing runs in its own job only with the `mutation` or
+  `full-ci` label, weekly and on manual runs (owner decision).
+
 Harness follow-ups found in the first step (not done there):
 
 - [ ] HTTP branch coverage looks incomplete on PHP 8.5: most HTTP-only pages
