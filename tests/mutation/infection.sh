@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# Infection mutation testing for functions.php on the PHP 7.4 or PHP 8.5 lane.
+# Infection mutation testing for functions.php on the PHP 8.5 lane.
 # Uses a fresh synthetic PostgreSQL database because some helpers query it.
 # Extra arguments are passed to Infection, e.g. --min-msi=90 --threads=1.
 # Reports are written to tests/mutation/results/<lane> (or
@@ -19,24 +19,18 @@ esac
 PGACC_TEST_SUFFIX=${test_id:+-$test_id}
 export PGACC_TEST_SUFFIX
 
-php_version=${1:-7.4}
+php_version=${1:-8.5}
 [ "$#" -gt 0 ] && shift
 case "$php_version" in
-  7.4)
-    lane=php74
-    compose_files="-f compose.test.yaml"
-    base_image="pgacc-test-application${PGACC_TEST_SUFFIX}"
-    lane_options=""
-    ;;
   8.5)
     lane=php85
-    compose_files="-f compose.test.yaml -f compose.php85.yaml"
-    base_image="pgacc-test-application-php85${PGACC_TEST_SUFFIX}"
-    # Infection 0.35 skips uncovered code by default; 0.26 always reports it.
+    compose_files="-f compose.test.yaml"
+    base_image="pgacc-test-application${PGACC_TEST_SUFFIX}"
+    # Infection 0.35 skips uncovered code by default; report it too.
     lane_options="--with-uncovered"
     ;;
   *)
-    echo "Usage: sh tests/mutation/infection.sh [7.4|8.5] [infection options]" >&2
+    echo "Usage: sh tests/mutation/infection.sh [8.5] [infection options]" >&2
     exit 2
     ;;
 esac
@@ -79,7 +73,6 @@ compose build application
 docker build \
   --file tests/mutation/infection.Dockerfile \
   --build-arg BASE_IMAGE="$base_image" \
-  --build-arg INFECTION_LANE="$lane" \
   --tag "$image" \
   tests/mutation/infection
 

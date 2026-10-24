@@ -2,7 +2,7 @@ name: Release
 
 # Release tooling (README.md, "Releases"):
 # - a pushed tag v<version> builds the install archive (code plus vendor/,
-#   scripts/release.sh), checks vendor/ on PHP 5.3 and creates a DRAFT GitHub
+#   scripts/release.sh), checks vendor/ on PHP 8.5 and creates a DRAFT GitHub
 #   release with the archive, its .sha256 and the CHANGELOG.md section as
 #   notes; the owner reviews and publishes it;
 # - a manual run is a dry run: it builds the archive for the given version and
@@ -28,10 +28,9 @@ concurrency:
 
 jobs:
   build:
-    name: Build the archive and check vendor/ on PHP 5.3
+    name: Build the archive and check vendor/ on PHP 8.5
     runs-on: ubuntu-latest
-    # The PHP 5.3 check builds the squeeze i386 image.
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       contents: read
     outputs:

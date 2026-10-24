@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Tests and coverage of the Infection class wrapper itself: used by
-     `PGACC_INFECTION_TARGET=shim sh tests/mutation/infection.sh 7.4|8.5`
+     `PGACC_INFECTION_TARGET=shim sh tests/mutation/infection.sh 8.5`
      (tests/mutation/infection-shim.json) and for its line coverage
      (tests/mutation/README.md, "Testing the wrapper"). -->
 <phpunit bootstrap="/app/vendor/autoload.php" colors="false" beStrictAboutTestsThatDoNotTestAnything="true">

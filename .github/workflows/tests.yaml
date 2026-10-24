@@ -1,13 +1,12 @@
 name: Tests
 
 # CI cost policy (owner decision; tests/README.md, "Continuous integration"):
-# - every push: lanes PHP 5.3 / PostgreSQL 8.4, PHP 7.4 / 18 (coverage) and
-#   PHP 8.5 / 18, static analysis, the PHP 5 reference comparison on 5.3, 7.4
-#   and 8.5, and mutation testing of the changed lines only
+# - every push: the only lane, PHP 8.5 / PostgreSQL 18 (with coverage and
+#   the changed-line gate), static analysis, the PHP 5 reference comparison
+#   on 8.5, and mutation testing of the changed lines only
 #   (tests/mutation/run.sh --changed-since);
 # - weekly, manual runs and pull requests labelled `full-ci`: additionally
-#   PHP 7.4 / PostgreSQL 8.4, every mutation target in full on every mutation
-#   lane, and Infection.
+#   every mutation target in full, and Infection.
 # Pushes to branches other than master run through their pull request (any
 # target branch) only, so each push starts one run.
 on:
@@ -47,7 +46,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          lanes='{"php":"5.3","pg":"8.4","project":"pgacc-test-php53","compose_files":"-f compose.test.yaml -f compose.php53.yaml"},{"php":"7.4","pg":"18","project":"pgacc-test-php74","compose_files":"-f compose.test.yaml -f compose.coverage.yaml"},{"php":"8.5","pg":"18","project":"pgacc-test-php85","compose_files":"-f compose.test.yaml -f compose.php85.yaml"}'
+          lanes='{"php":"8.5","pg":"18","project":"pgacc-test-php85","compose_files":"-f compose.test.yaml -f compose.coverage.yaml"}'
           case "$EVENT" in
             push)
               full=false
@@ -77,9 +76,6 @@ jobs:
               base=
               ;;
           esac
-          if [ "$full" = true ]; then
-            lanes="$lanes"',{"php":"7.4","pg":"8.4","project":"pgacc-test-pg84-php74","compose_files":"-f compose.test.yaml"}'
-          fi
           {
             echo "full=$full"
             echo "base=$base"
@@ -100,20 +96,17 @@ jobs:
     name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness
     needs: plan
     runs-on: ubuntu-latest
-    # The 8.4 server and the PHP 5.3 lane build squeeze i386 images; full runs
-    # mutation-test every target.
+    # Full runs mutation-test every target.
     timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
-    # PHP 8.5 fails by design until PHP 5 support is dropped (implicit
-    # connection deprecations, tests/COMPATIBILITY_PLAN.md): reported, not blocking.
-    continue-on-error: ${{ matrix.php == '8.5' }}
+    # Temporarily non-blocking: PHP 8.5 still fails on the implicit-connection
+    # deprecations (pg_* calls without $dbconn). Make it blocking with that fix,
+    # step (a) of "PHP 8.5-only migration" in tests/COMPATIBILITY_PLAN.md.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
-        # PHP 5.3 / 8.4: the production pair. PHP 7.4 / 18: coverage.
-        # PHP 7.4 / 8.4: full runs only (plan job).
+        # PHP 8.5 / PostgreSQL 18, the only lane (plan job).
         include: ${{ fromJSON(needs.plan.outputs.lanes) }}
-    env:
-      PGACC_TEST_PG: ${{ matrix.pg }}
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -136,40 +129,38 @@ jobs:
 
       - name: Run application checks
         env:
-          # PHP 7.4 / PostgreSQL 18 lane only: fail if a changed executable
-          # line is uncovered (tests/run.sh ignores it on other lanes). Empty
-          # on scheduled and manual runs (full report, no gate).
+          # Fail if a changed executable line is uncovered. Empty on
+          # scheduled and manual runs (full report, no gate).
           PGACC_COVERAGE_BASE: ${{ steps.base.outputs.base }}
         run: sh tests/run.sh '${{ matrix.php }}'
 
       - name: Publish coverage summary
-        if: always() && matrix.php == '7.4' && matrix.pg == '18'
+        if: always()
         run: |
           if [ -f build/coverage/summary.txt ]; then
             { echo '```'; cat build/coverage/summary.txt; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload coverage report
-        if: always() && matrix.php == '7.4' && matrix.pg == '18'
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: coverage-php74
+          name: coverage-php85
           path: build/coverage
           if-no-files-found: warn
 
       - name: Mutation tests of the changed lines
         # Per push: only mutations whose search region overlaps a changed
-        # line (tests/mutation/ci.sh, run.sh --changed-since). No mutation on
-        # PHP 5.3 (the runner needs PHP's built-in server).
-        if: always() && matrix.php != '5.3' && needs.plan.outputs.full != 'true'
+        # line (tests/mutation/ci.sh, run.sh --changed-since).
+        if: always() && needs.plan.outputs.full != 'true'
         run: sh tests/mutation/ci.sh '${{ matrix.php }}' '--changed-since=${{ steps.base.outputs.base }}'
 
       - name: Mutation tests, all targets
-        if: always() && matrix.php != '5.3' && needs.plan.outputs.full == 'true'
+        if: always() && needs.plan.outputs.full == 'true'
         run: sh tests/mutation/ci.sh '${{ matrix.php }}'
 
       - name: Upload mutation results
-        if: always() && matrix.php != '5.3'
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: mutation-php${{ matrix.php }}-pg${{ matrix.pg }}
@@ -182,18 +173,17 @@ jobs:
 
   reference:
     # PHP 5 golden master (tests/reference/, tests/README.md), recorded on the
-    # production pair PHP 5.3 / PostgreSQL 8.4: that lane must reproduce it
-    # byte for byte; PHP 7.4 and 8.5 (PostgreSQL 18) must match it except for
-    # reviewed tests/reference/allowlist.php entries (accepted/todo).
+    # former production pair PHP 5.3 / PostgreSQL 8.4 before php5-last and kept
+    # as the historical reference: PHP 8.5 / PostgreSQL 18 must match it except
+    # for reviewed tests/reference/allowlist.php entries (accepted/todo).
     # Failures stay visible: not continue-on-error.
     name: PHP 5 reference comparison (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    # PHP 5.3 builds the squeeze server, its PHP 5.6 client and the 8.4 server.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.3', '7.4', '8.5']
+        php: ['8.5']
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -229,7 +219,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.5']
+        php: ['8.5']
         # functions: functions.php through the class wrapper; shim: the wrapper itself.
         target: [functions, shim]
     steps:

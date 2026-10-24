@@ -1,11 +1,12 @@
 name: pgacc-test
 
 services:
-  # PGACC_TEST_PG_* are set by tests/postgres-version.sh (PGACC_TEST_PG); the
-  # defaults are the PostgreSQL 18 server. database-test uses the same image so
-  # that psql matches the server version.
+  # PostgreSQL 18, the only supported server. database-test uses the same image
+  # so that psql matches the server version. The 18+ images keep PGDATA in
+  # /var/lib/postgresql/18/docker and refuse to start when
+  # /var/lib/postgresql/data is a mount point.
   database:
-    image: ${PGACC_TEST_PG_IMAGE:-postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc}
+    image: postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc
     environment:
       POSTGRES_DB: accounting
       POSTGRES_USER: pgacc_test
@@ -19,10 +20,10 @@ services:
     networks:
       - test
     tmpfs:
-      - ${PGACC_TEST_PG_DATA:-/var/lib/postgresql}
+      - /var/lib/postgresql
 
   php-lint:
-    image: php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
+    image: php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
     command: ["sh", "tests/lint.sh"]
     init: true
     read_only: true
@@ -33,7 +34,7 @@ services:
     working_dir: /app
 
   database-test:
-    image: ${PGACC_TEST_PG_IMAGE:-postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc}
+    image: postgres:18-bookworm@sha256:bbf83594798e144bff365a9c191c5d779f181fb3135902064ab8ff11918020fc
     depends_on:
       database:
         condition: service_healthy
@@ -61,7 +62,7 @@ services:
   # and member pages never reach the real service. Serves the synthetic,
   # encrypted member list for tests/runtime/test-constants.php's $datakey.
   membership:
-    image: php:7.4.33-cli-bullseye@sha256:620a6b9f4d4feef2210026172570465e9d0c1de79766418d3affd09190a7fda5
+    image: php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
     command: ["php", "-S", "0.0.0.0:80", "/membership/router.php"]
     healthcheck:
       test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
@@ -83,6 +84,7 @@ services:
     image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     build:
       context: .
+      # PHP 8.5, the only supported runtime.
       dockerfile: tests/php-runtime.Dockerfile
     depends_on:
       database:

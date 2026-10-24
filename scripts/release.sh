@@ -3,7 +3,7 @@
 # (git archive, .gitattributes export-ignore) plus the locked vendor/, because
 # production cannot reach GitHub or Composer. See README.md, "Releases".
 #
-#   sh scripts/release.sh [--skip-check-php53] <version>
+#   sh scripts/release.sh [--skip-check-php] <version>
 #
 # This is the build step of .github/workflows/release.yml, which alone creates
 # releases (a draft, on a tag push). Running it locally is for testing only.
@@ -12,21 +12,21 @@
 # pgacc-<version>/), pgacc-<version>.tar.gz.sha256, notes-<version>.md (the
 # CHANGELOG.md section "## [<version>] - YYYY-MM-DD ...", which must exist and
 # be dated) and title-<version>.txt (the release title). The built vendor/ is
-# loaded on PHP 5.3 (tests/php53/vendor-check.php in the
-# tests/php53/runtime.Dockerfile image) unless --skip-check-php53 is given.
+# loaded on PHP 8.5 (tests/release-vendor-check.php in the php:8.5-cli image
+# pinned by tests/php-runtime.Dockerfile) unless --skip-check-php is given.
 set -eu
 
 usage() {
-  echo "Usage: sh scripts/release.sh [--skip-check-php53] <version>" >&2
+  echo "Usage: sh scripts/release.sh [--skip-check-php] <version>" >&2
   exit 2
 }
 
-check_php53=true
+check_php=true
 version=
 version_set=false
 for arg in "$@"; do
   case "$arg" in
-    --skip-check-php53) check_php53=false ;;
+    --skip-check-php) check_php=false ;;
     -*) usage ;;
     *)
       [ "$version_set" = false ] || usage
@@ -109,13 +109,14 @@ title_suffix=$(printf '%s\n' "$heading" | sed -n 's/.*\(([^)]*)\) *$/\1/p')
 printf '%s\n' "v$version${title_suffix:+ $title_suffix}" >"$title_file"
 
 build_archive() {
-  # Same pinned Composer 2.2 LTS image as the PHP 5.3 lane (2.2 generates an
-  # autoloader that runs on PHP 5.3); tests/php53/runtime.Dockerfile is the
-  # single source of the pin.
+  # Same pinned Composer and PHP images as the test lane;
+  # tests/php-runtime.Dockerfile is the single source of the pins.
   composer_image=$(sed -n 's/^FROM \(composer:[^ ]*@sha256:[0-9a-f]\{64\}\) AS dependencies$/\1/p' \
-    "$repo_dir/tests/php53/runtime.Dockerfile")
-  if [ -z "$composer_image" ]; then
-    echo "No pinned composer image in tests/php53/runtime.Dockerfile" >&2
+    "$repo_dir/tests/php-runtime.Dockerfile")
+  php_image=$(sed -n 's/^FROM \(php:[^ ]*@sha256:[0-9a-f]\{64\}\)$/\1/p' \
+    "$repo_dir/tests/php-runtime.Dockerfile")
+  if [ -z "$composer_image" ] || [ -z "$php_image" ]; then
+    echo "No pinned composer or php image in tests/php-runtime.Dockerfile" >&2
     exit 1
   fi
 
@@ -156,21 +157,22 @@ build_archive() {
     exit 1
   fi
 
-  if [ "$check_php53" = true ]; then
-    # Production-like PHP 5.3 image from this checkout; the release vendor/
-    # is mounted over the image's own copy.
-    check_image="pgacc-release-php53-check${PGACC_TEST_ID:+-$PGACC_TEST_ID}"
-    docker build --quiet --file tests/php53/runtime.Dockerfile --tag "$check_image" "$repo_dir" >/dev/null
+  if [ "$check_php" = true ]; then
+    # This checkout's code and tests with the release vendor/, on the plain
+    # PHP 8.5 image, without network.
     status=0
-    docker run --rm --volume "$stage/vendor:/app/vendor:ro" "$check_image" \
-      php tests/php53/vendor-check.php || status=$?
-    docker rmi "$check_image" >/dev/null || true
+    docker run --rm --network none --read-only \
+      --user "$(id -u):$(id -g)" \
+      --volume "$repo_dir/functions.php:/app/functions.php:ro" \
+      --volume "$repo_dir/tests:/app/tests:ro" --volume "$stage/vendor:/app/vendor:ro" \
+      --workdir /app "$php_image" \
+      php tests/release-vendor-check.php || status=$?
     if [ "$status" -ne 0 ]; then
-      echo "The release vendor/ failed the PHP 5.3 check" >&2
+      echo "The release vendor/ failed the PHP 8.5 check" >&2
       exit 1
     fi
   else
-    echo "Skipped the PHP 5.3 check of vendor/ (--skip-check-php53)"
+    echo "Skipped the PHP 8.5 check of vendor/ (--skip-check-php)"
   fi
 
   # Reproducible archive: commit date as mtime, numeric root owner, sorted

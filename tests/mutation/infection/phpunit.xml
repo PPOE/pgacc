@@ -4,7 +4,7 @@
      tests/mutation/infection-shim.php writes to /tmp/infection-src. -->
 <phpunit bootstrap="/app/tests/phpunit-bootstrap.php" colors="false" beStrictAboutTestsThatDoNotTestAnything="true">
   <php>
-    <!-- E_ALL on every lane: without php.ini, PHP 7.4 hides notices from PHPUnit. -->
+    <!-- E_ALL, independent of php.ini. -->
     <ini name="error_reporting" value="-1"/>
   </php>
   <testsuites>
