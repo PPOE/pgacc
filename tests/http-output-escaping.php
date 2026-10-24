@@ -368,6 +368,18 @@ foreach (array('account', 'type-in', 'type-out') as $field) {
 // Membership fees (mb.php): organization names, and member names from the
 // membership system ("O'Brien Synthetisch", member 9033).
 $feeColumns = 'id, voucher_id, type, orga, member, member_id, amount, deleted, date, ack1, ack2';
+// Without member payments in the period, the sum row shows 0.00 € as its
+// average instead of dividing by zero. Payments left by earlier scripts are
+// hidden meanwhile.
+$feePeriod = (date('Y') - 1) . '-10-01';
+$hiddenFees = pg_fetch_all_columns(escaping_query($database, 'UPDATE vouchers SET deleted = true'
+    . ' WHERE type = 1 AND NOT deleted AND date >= $1 RETURNING id', array($feePeriod)));
+$mb = page('/index.php?action=mb', $admin);
+assert_contains($mb, '<tr><td>Teilorganisation</td><td>Anzahl</td><td>Summe</td><td>Durchschnitt</td></tr>'
+    . '<tr><td>Summe</td><td>0</td><td>0.00 €</td><td>0.00 €</td></tr></table>', 'mb without member payments');
+if ($hiddenFees) {
+    pg_free_result(escaping_query($database, 'UPDATE vouchers SET deleted = false WHERE id IN (' . implode(',', array_map('intval', $hiddenFees)) . ')'));
+}
 insert_voucher($database, $feeColumns, array(9005, 9005, 1, 90, 'true', 9004, 500, 'false', date('Y-m-d'), 'reviewer-a', 'reviewer-b'));
 // An open loan (type 13) shows its name.
 insert_voucher($database, 'id, voucher_id, type, orga, member, name, amount, deleted, date', array(9007, 9007, 13, 90, 'false', payload('loan'), 700, 'false', '2024-07-05'));
@@ -385,6 +397,27 @@ assert_not_contains($mb, "O'Brien", 'mb');
 assert_contains($mb, '<td>Anna Synthetisch-Müller</td>', 'mb member with umlauts');
 assert_contains($mb, '<a href="index.php?action=edit&id=9007">9007</a></td>' . "\n  <td>7</td>\n  <td>" . escaped('loan') . '</td></tr>', 'mb open loan');
 assert_escaped($mb, 'loan', 'mb');
+
+// Member payments per organization: the payments of members without a known
+// organization (no lo row: member 9033; an empty name: member 9008) count
+// towards "Keine" in any row order; the rows follow lo.id with "Keine" last.
+pg_free_result(escaping_query($database, "INSERT INTO lo (id, name) VALUES (3, 'Keine'), (5, '0 Synthetic Unit Five'), (10, '')"));
+insert_voucher($database, $feeColumns, array(9009, 9009, 1, 90, 'true', 9003, 1000, 'false', date('Y-m-d'), 'reviewer-a', 'reviewer-b'));
+insert_voucher($database, $feeColumns, array(9010, 9010, 1, 90, 'true', 9006, 300, 'false', date('Y-m-d'), 'reviewer-a', 'reviewer-b'));
+insert_voucher($database, $feeColumns, array(9011, 9011, 1, 90, 'true', 9008, 200, 'false', date('Y-m-d'), 'reviewer-a', 'reviewer-b'));
+$hiddenFees = pg_fetch_all_columns(escaping_query($database, 'UPDATE vouchers SET deleted = true'
+    . ' WHERE type = 1 AND NOT deleted AND date >= $1 AND id NOT IN (9005, 9006, 9009, 9010, 9011) RETURNING id', array($feePeriod)));
+$mb = page('/index.php?action=mb', $admin);
+assert_contains($mb, '<tr><td>Teilorganisation</td><td>Anzahl</td><td>Summe</td><td>Durchschnitt</td></tr>'
+    . '<tr><td>' . escaped('lo2') . '</td><td>1</td><td>5.00 €</td><td>5.00 €</td></tr>'
+    . '<tr><td>0 Synthetic Unit Five</td><td>1</td><td>3.00 €</td><td>3.00 €</td></tr>'
+    . '<tr><td>Keine</td><td>3</td><td>37.00 €</td><td>12.33 €</td></tr>'
+    . '<tr><td>Summe</td><td>5</td><td>45.00 €</td><td>9.00 €</td></tr></table>', 'mb payments per organization');
+if ($hiddenFees) {
+    pg_free_result(escaping_query($database, 'UPDATE vouchers SET deleted = false WHERE id IN (' . implode(',', array_map('intval', $hiddenFees)) . ')'));
+}
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9009 AND 9011'));
+pg_free_result(escaping_query($database, 'DELETE FROM lo WHERE id IN (3, 5, 10)'));
 
 // Bank CSV import (import.php): file names, MIME types and the report of an
 // invalid line. Each imported line raises the known KF-IMPORT-REGEX-G warning.

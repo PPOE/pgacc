@@ -16,24 +16,34 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 $Samount = 0.0;
 $Scount = 0;
-$query = "SELECT name,COUNT(member_id) AS count,SUM(amount) AS amount FROM (SELECT lo.name,member_id,SUM(amount) AS amount FROM vouchers LEFT JOIN ppmembers ON ppmembers.id = vouchers.member_id LEFT JOIN lo ON lo.id = ppmembers.lo WHERE NOT deleted AND type = 1 AND date >= '" . $previousYear . "-10-01' GROUP BY lo.name,member_id) A GROUP BY name;";
+$query = "SELECT name,COUNT(member_id) AS count,SUM(amount) AS amount FROM (SELECT lo.name,MIN(lo.id) AS lo_id,member_id,SUM(amount) AS amount FROM vouchers LEFT JOIN ppmembers ON ppmembers.id = vouchers.member_id LEFT JOIN lo ON lo.id = ppmembers.lo WHERE NOT deleted AND type = 1 AND date >= '" . $previousYear . "-10-01' GROUP BY lo.name,member_id) A GROUP BY name ORDER BY MIN(lo_id);";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 echo "<h2>MB Zahlungen nach LO</h2><table><tr><td>Teilorganisation</td><td>Anzahl</td><td>Summe</td><td>Durchschnitt</td></tr>";
 $i = 0;
 $count = 0;
-$errline = null;
+$rows = array();
+$keine = null;
+$errcount = 0;
+$erramount = 0;
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $i++;
   if ($line['name'] == '')
   {
-    $errline = $line;
-    continue;
+    $errcount += $line['count'];
+    $erramount += $line['amount'];
   }
   else if ($line['name'] == 'Keine')
-  {
-    $line['count'] += $errline['count'];
-    $line['amount'] += $errline['amount'];
-  }
+    $keine = $line;
+  else
+    $rows[] = $line;
+}
+if ($keine !== null)
+{
+  $keine['count'] += $errcount;
+  $keine['amount'] += $erramount;
+  $rows[] = $keine;
+}
+foreach ($rows as $line) {
   $avg = sprintf("%1.2f €",$line['amount'] / 100.0 / $line['count']);
   $lo = html_escape($line['name']);
   $Samount += $line['amount'];
@@ -42,7 +52,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $Scount += $count;
   echo "<tr><td>$lo</td><td>$count</td><td>$amount</td><td>$avg</td></tr>";
 }
-$Savg = sprintf("%1.2f €",$Samount / 100.0 / $Scount);
+$Savg = sprintf("%1.2f €",$Scount > 0 ? $Samount / 100.0 / $Scount : 0);
 $Samount = sprintf("%1.2f €",$Samount / 100.0);
 echo "<tr><td>Summe</td><td>$Scount</td><td>$Samount</td><td>$Savg</td></tr>";
 echo "</table><br />";
