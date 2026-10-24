@@ -2,7 +2,7 @@
 function getUsers()
 {
 global $datakey,$dbconn;
-$sData = file_get_contents("http://mitglieder.piratenpartei.at/adm_api/adm_names.php");
+$sData = file_get_contents("https://mitglieder.piratenpartei.at/adm_api/adm_names.php");
 if (strlen($datakey) == 0)
   die('Kein Passwort!');
 

@@ -1,7 +1,7 @@
 <?php
 /*
  * Regenerates adm_names.b64, the synthetic member list served by the
- * membership stub (router.php) in place of the membership system's
+ * membership stub (server.php) in place of the membership system's
  * adm_api/adm_names.php. It is encrypted exactly the way getusers.php
  * decrypts it: base64 of Rijndael-256/CBC (mcrypt), key md5($datakey), IV
  * md5(md5($datakey)), zero padding, names in ISO-8859-15. $datakey is the

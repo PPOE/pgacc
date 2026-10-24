@@ -1,7 +1,7 @@
 <?php
 /*
  * getUsers() (getusers.php) against a synthetic membership-system response.
- * The http:// stream wrapper is replaced for the duration of the test, so the
+ * The https:// stream wrapper is replaced for the duration of the test, so the
  * live membership system is never contacted. The ppmembers table is rebuilt
  * inside a transaction that is rolled back.
  *
@@ -58,8 +58,8 @@ final class GetUsersTest extends FunctionsTestCase
         $GLOBALS['datakey'] = $vector['datakey'];
         MembershipStubStream::$response = $vector['sData'];
         MembershipStubStream::$requested = array();
-        stream_wrapper_unregister('http');
-        stream_wrapper_register('http', 'MembershipStubStream');
+        stream_wrapper_unregister('https');
+        stream_wrapper_register('https', 'MembershipStubStream');
         // pg_connect() returns the default link that the application code uses.
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
@@ -73,12 +73,12 @@ final class GetUsersTest extends FunctionsTestCase
         } finally {
             // die() skips finally blocks, so this only runs when the call returned.
             AppExitGuard::leave();
-            stream_wrapper_restore('http');
+            stream_wrapper_restore('https');
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
         }
 
-        self::assertSame(array('http://mitglieder.piratenpartei.at/adm_api/adm_names.php'), MembershipStubStream::$requested);
+        self::assertSame(array('https://mitglieder.piratenpartei.at/adm_api/adm_names.php'), MembershipStubStream::$requested);
         self::assertCount(32, $rows);
         self::assertSame(array('id' => '2001', 'name' => 'Synthetic Member 00', 'lo' => '9', 'paid' => '0'), $rows[0]);
         $organizations = array();
@@ -114,8 +114,8 @@ final class GetUsersTest extends FunctionsTestCase
         $GLOBALS['datakey'] = $key;
         MembershipStubStream::$response = $response;
         MembershipStubStream::$requested = array();
-        stream_wrapper_unregister('http');
-        stream_wrapper_register('http', 'MembershipStubStream');
+        stream_wrapper_unregister('https');
+        stream_wrapper_register('https', 'MembershipStubStream');
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         try {
@@ -126,7 +126,7 @@ final class GetUsersTest extends FunctionsTestCase
             pg_free_result($result);
         } finally {
             AppExitGuard::leave();
-            stream_wrapper_restore('http');
+            stream_wrapper_restore('https');
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
         }

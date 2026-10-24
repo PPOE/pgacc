@@ -42,17 +42,17 @@ services:
       membership:
         condition: service_healthy
 
-  # Local membership-system stub: getusers() fetches
-  # http://mitglieder.piratenpartei.at/adm_api/adm_names.php, which this alias
+  # Local membership-system stub (HTTPS, see compose.test.yaml): getusers()
+  # fetches https://mitglieder.piratenpartei.at/adm_api/adm_names.php, which this alias
   # resolves to inside the internal test network.
   membership:
     image: ${PGACC_REFERENCE_IMAGE:?}
     pull_policy: never
     environment:
       PGACC_REFERENCE_STUB_LOG: /stub/requests.log
-    command: ["php", "-S", "0.0.0.0:80", "/app/tests/reference/membership/router.php"]
+    command: ["php", "/app/tests/reference/membership/server.php"]
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('https://mitglieder.piratenpartei.at/__stub/health') === \"ok\\n\" ? 0 : 1);"]
       interval: 2s
       timeout: 3s
       retries: 30

@@ -13,7 +13,30 @@ RUN curl --fail --silent --show-error --location --retry 3 \
       https://xdebug.org/files/xdebug-3.5.3.tgz --output /tmp/xdebug-3.5.3.tgz \
     && echo 'f073de91bea046106abf4d6071c963ea71e58571df6ce58948ceca89d121cb2d  /tmp/xdebug-3.5.3.tgz' | sha256sum -c -
 
+# Synthetic TLS for the membership stub (compose.test.yaml): a test CA and a
+# server certificate for mitglieder.piratenpartei.at, generated per build. The
+# CA key never leaves this stage. notBefore lies in the past because the
+# reference runs fake the application's clock (tests/reference/compose.yaml).
+FROM php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37 AS membership-tls
+WORKDIR /tls
+RUN openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=pgacc synthetic test CA' \
+      -not_before 20200101000000Z -not_after 20991231235959Z \
+      -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' \
+      -keyout ca.key -out ca.pem \
+    && openssl req -newkey rsa:2048 -nodes -subj '/CN=mitglieder.piratenpartei.at' \
+      -keyout server.key -out server.csr \
+    && printf 'basicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:mitglieder.piratenpartei.at\n' >server.ext \
+    && openssl x509 -req -sha256 -in server.csr -CA ca.pem -CAkey ca.key -set_serial 1 \
+      -not_before 20200101000000Z -not_after 20991231235959Z -extfile server.ext -out server.pem \
+    && openssl verify -CAfile ca.pem server.pem \
+    && cat server.pem server.key >membership.pem
+
 FROM php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
+# The test CA is trusted system-wide (PHP's default CA file), so the
+# application verifies the stub's certificate with the default settings.
+COPY --from=membership-tls /tls/ca.pem /usr/local/share/ca-certificates/pgacc-synthetic-test-ca.crt
+COPY --from=membership-tls /tls/membership.pem /etc/pgacc-test-tls/membership.pem
+RUN update-ca-certificates
 COPY --from=downloads /tmp/xdebug-3.5.3.tgz /tmp/xdebug-3.5.3.tgz
 RUN apt-get -o Acquire::Retries=3 update \
     && apt-get -o Acquire::Retries=3 install --yes --no-install-recommends \
