@@ -161,16 +161,37 @@ return array(
         array(
             'id' => 'ack-receipt-check-unscoped',
             'region' => $ack,
-            'search' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id;',
+            'search' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
+            'replace' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id;',
             'rationale' => 'The receipt check counts only the user\'s rows: an approved row without a '
                 . 'receipt is refused although a row of another organization is open.',
         ),
         array(
+            'id' => 'ack-receipt-check-counts-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR file != 0)',
+            'replace' => 'WHERE (ack1 IS NULL OR file != 0)',
+            'rationale' => 'Old revisions do not count as open rows of the receipt check.',
+        ),
+        array(
+            'id' => 'ack1-update-stamps-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id',
+            'replace' => 'WHERE ack1 IS NULL AND voucher_id',
+            'rationale' => 'The first approval does not stamp old revisions or clear their old approvals.',
+        ),
+        array(
+            'id' => 'ack2-update-stamps-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL',
+            'replace' => 'WHERE ack2 IS NULL AND ack1 IS NOT NULL',
+            'rationale' => 'The second approval does not stamp old revisions.',
+        ),
+        array(
             'id' => 'ack1-update-unscoped',
             'region' => $ack,
-            'search' => 'WHERE ack1 IS NULL AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE ack1 IS NULL AND voucher_id = $id;',
+            'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id $rightssql;',
+            'replace' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id;',
             'rationale' => 'Wrong organization: the first approval sets ack1 on rows of other '
                 . 'organizations of the same voucher.',
         ),

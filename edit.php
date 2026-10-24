@@ -122,7 +122,7 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $hasfile = false;
-$query = "SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
+$query = "SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $hasfile = true;
@@ -135,7 +135,7 @@ if (!$hasfile)
   return;
 }
 $name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE ack1 IS NULL AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -146,7 +146,7 @@ block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
 block_end();
 
-$query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }

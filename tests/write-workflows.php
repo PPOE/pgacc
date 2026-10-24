@@ -891,6 +891,54 @@ assert_database_count(
     'deleted rows after an approval attempt'
 );
 
+// Approval ignores old revisions (deleted rows): it does not stamp them or
+// clear their old approvals, and they do not count as an open row of the
+// receipt check.
+$historyId = create_voucher($database, 'Synthetic voucher with history', '-10.75', 0, $adminCookies);
+$historyRevision = revision_form($historyId, 'Synthetic revised voucher with history', '-10.80');
+$historyRevision['file0'] = '9014';
+assert_redirect(edit_request($historyId, $historyRevision, $adminCookies), edit_location($historyId, 5), 'revision before the history check');
+pg_query_params($database, "UPDATE vouchers SET ack1_old = 'synthetic-old-first' WHERE voucher_id = $1 AND deleted", array($historyId));
+assert_redirect(edit_request($historyId, $approveForm, $adminCookies), edit_location($historyId, 4), 'approval of a voucher with history');
+assert_database_count(
+    $database,
+    "SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND deleted AND ack1 IS NULL AND ack1_old = 'synthetic-old-first'",
+    array($historyId),
+    1,
+    'old revision after the approval'
+);
+assert_database_count(
+    $database,
+    "SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND ack1 = 'synthetic-admin'",
+    array($historyId),
+    1,
+    'current row after the approval'
+);
+// The second approval leaves an approved-once old revision alone too.
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-old-first' WHERE voucher_id = $1 AND deleted", array($historyId));
+assert_redirect(edit_request($historyId, $approveForm, $reviewerCookies), edit_location($historyId, 4), 'second approval of a voucher with history');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND deleted AND ack2 IS NULL',
+    array($historyId),
+    1,
+    'old revision after the second approval'
+);
+pg_query_params($database, 'UPDATE vouchers SET ack1 = NULL, ack2 = NULL WHERE voucher_id = $1', array($historyId));
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-admin' WHERE voucher_id = $1 AND NOT deleted", array($historyId));
+// The current row is approved once and has no receipt; the old revision
+// (unapproved) must not make the receipt check pass.
+pg_query_params($database, 'UPDATE vouchers SET file = 0 WHERE voucher_id = $1 AND NOT deleted', array($historyId));
+$historyApproval = edit_request($historyId, $approveForm, $reviewerCookies);
+assert_contains($historyApproval['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'second approval of a current row without receipt');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND ack2 IS NOT NULL',
+    array($historyId),
+    0,
+    'voucher with history after the refused second approval'
+);
+
 // Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
 // users) needs the exact bgf right; other users are refused and nothing
 // changes (before, empty rights reset any voucher). For bgf users the reset

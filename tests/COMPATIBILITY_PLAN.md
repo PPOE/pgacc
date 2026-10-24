@@ -163,7 +163,11 @@ with synthetic users and covered by a mutation target.
   No approval outcome changes. Review fix: the visibility check counts only
   rows that are not deleted, so a voucher with nothing but old revisions in
   the user's organization is refused too (before, its deleted rows could
-  get approvals; the approval updates themselves are unchanged).
+  get approvals; the approval updates themselves are unchanged). Second
+  review fix: the receipt check and both approval updates skip deleted
+  rows too, so an approval no longer stamps old revisions or clears their
+  old approvals (`ack1_old`/`ack2_old`, shown in the revision history), and
+  an unapproved old revision no longer lets the receipt check pass.
 - [x] New users (`accounts.php`, "Benutzer -1 erstellen", root only) were
   stored with the creating root user's rights instead of the entered ones
   (the update path used the entered rights). Bug fix: the entered, escaped
