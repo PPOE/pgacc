@@ -4,7 +4,7 @@
  * tests/reference/fixtures/import/ and the membership stub of
  * compose.test.yaml (getusers()). Covers the checks of every imported line:
  * dates must be dates, and the organization must be one the user may use
- * (organization_allowed(): any for bgf and root, otherwise the user's numeric
+ * (organization_allowed(): any for bgf, otherwise the user's numeric
  * organizations). Offending lines get the existing "Ungültige Buchungszeile"
  * report with their line number and are skipped; the remaining lines and
  * files are imported. Runs after
