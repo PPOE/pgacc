@@ -8,15 +8,13 @@ name: Tests
 # - weekly, manual runs and pull requests labelled `full-ci`: additionally
 #   PHP 7.4 / PostgreSQL 8.4, every mutation target in full on every mutation
 #   lane, and Infection.
-# Pushes to branches other than master run through their pull request only,
-# so each push starts one run.
+# Pushes to branches other than master run through their pull request (any
+# target branch) only, so each push starts one run.
 on:
   push:
     branches:
       - master
   pull_request:
-    branches:
-      - master
     types: [opened, synchronize, reopened, labeled]
   schedule:
     # Mondays 03:17 UTC.

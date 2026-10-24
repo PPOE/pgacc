@@ -399,7 +399,7 @@ decides between a per-push run and a full run and the comparison base
 (`github.event.before` for pushes and pull request updates, falling back to
 `origin/<default branch>` or `origin/<base>` when there is no previous head).
 Only pushes to `master` trigger a push run; other branches run through their
-pull request, so each push starts one run. A pull request gets a full run only
+pull request (to any branch), so each push starts one run. A pull request gets a full run only
 while it carries the `full-ci` label (add it once before merging to `master`).
 
 | Job (name in GitHub) | Every push / pull request update | Weekly cron (Mon 03:17 UTC), manual, pull requests labelled `full-ci` |
