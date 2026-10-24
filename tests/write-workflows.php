@@ -970,6 +970,10 @@ assert_database_count(
     1,
     'deleted rows after an approval attempt'
 );
+foreach (array('bgf' => $reviewerCookies, 'root,bgf' => $adminCookies, 'Rbgf' => login_user('synthetic-read-only', 'read-only-password')) as $userLabel => $cookies) {
+    $deletedOnlyPage = http_request('/index.php?action=edit&id=' . $deletedOnlyId, 'GET', array(), $cookies);
+    assert_contains($deletedOnlyPage['body'], 'FEHLER: Buchung nicht gefunden.', "voucher page of a voucher with deleted rows only for $userLabel");
+}
 
 // Approval ignores old revisions (deleted rows): it does not stamp them or
 // clear their old approvals, and they do not count as an open row of the
@@ -1040,6 +1044,16 @@ assert_redirect($bgfReset, edit_location($resetId, 3), 'approval reset by a bgf 
 assert_voucher_approvals($database, $resetId, array(
     approval_row('2', null, null, 'synthetic-admin', 'synthetic-reviewer', 'Synthetic approved voucher'),
 ), 'voucher after approval reset by a bgf user');
+// A finalized voucher refuses the reset too, as every other change.
+$finalizedResetId = create_voucher($database, 'Synthetic finalized approved voucher', '-10.60', 9015, $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", array($finalizedResetId));
+finalize_in_database($database, $finalizedResetId);
+$finalizedReset = edit_request($finalizedResetId, $resetForm, $reviewerCookies);
+assert_status($finalizedReset, 200, 'approval reset of a finalized voucher');
+assert_contains($finalizedReset['body'], 'bereits finalisiert', 'approval reset of a finalized voucher');
+assert_voucher_approvals($database, $finalizedResetId, array(
+    approval_row('2', 'synthetic-a', 'synthetic-b', null, null, 'Synthetic finalized approved voucher'),
+), 'finalized voucher after an approval reset');
 
 // Voucher IDs of the edit actions (approval, approval reset,
 // revision, receipt upload) are used in SQL. Only digits are accepted; any

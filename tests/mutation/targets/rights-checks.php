@@ -462,6 +462,13 @@ return array(
             'rationale' => 'A voucher without rows raises no undefined-variable diagnostics.',
         ),
         array(
+            'id' => 'drop-acks-finalized-check-removed',
+            'region' => $dropAcks,
+            'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
+            'replace' => 'WHERE NOT deleted AND false AND voucher_id = $id;',
+            'rationale' => 'The approval reset refuses a finalized voucher.',
+        ),
+        array(
             'id' => 'drop-acks-reset-removed',
             'region' => $dropAcks,
             'search' => 'vouchers_reset_ack($id, $rightssql);',

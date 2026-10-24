@@ -62,6 +62,15 @@ if (!has_right($rights, 'bgf'))
   echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
   return;
 }
+// A finalized row blocks the reset, as every other change of the voucher.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
 echo "<h1>Bestätigungen wurden zurückgesetzt - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=3\">Zurück zur Buchung</a>";

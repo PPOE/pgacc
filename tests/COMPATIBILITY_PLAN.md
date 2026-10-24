@@ -210,8 +210,11 @@ with synthetic users and covered by a mutation target.
   failure `KF-DROP-ACKS-BGF`). PR review fix: appending the rights string
   to the SQL was a second-order injection, so the reset now gets the rights
   SQL (empty for `bgf`: the approvals of the whole voucher are reset, as on
-  every other change). **Behaviour note:** the reset button works for
-  `bgf` users for the first time. Mutation target `rights-checks`.
+  every other change), and a finalized row refuses the reset ("bereits
+  finalisiert"), as for approval, revision and upload. **Behaviour change
+  approved by the owner:** the reset button works for `bgf` users for the
+  first time (it was first left broken on purpose). Mutation target
+  `rights-checks`.
 - [x] Finalization (`page_edit_finalize()`, POST `beleg`) is **removed**
   (owner decision). History: the treasurer button ("Ja, es ist alles in
   Ordnung. Ich möchte die Buchung finalisieren.") was shown to `bsm` after
