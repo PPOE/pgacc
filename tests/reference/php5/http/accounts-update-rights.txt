@@ -1,0 +1,68 @@
+# step: accounts-update-rights
+# request: POST /index.php?action=accounts as admin
+# form: submit=Benutzer+3+aktualisieren&password3=%2A%2A%2A%2A%2A%2A&rights3=1%2C2&csrf_token=%7B%7Bcsrf-token%7D%7D
+status: 200
+header: Content-type: text/html
+--- body (6752 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 24 Buchungszeilen, 9 (37.5 %) abgeschlossen, 3 (12.5 %) bearbeitet, 12 (50 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page accounts">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts" class="selected">Benutzer</a></div><br />
+<h1>Benutzerverwaltung:</h1><br><p>1: Burgenland, 2: Kärnten, 3: Niederösterreich, 4: Oberösterreich, 5: Salzburg, 6: Steiermark, 8: Vorarlberg, 9: Wien, 10: Bund (only), bgf: Alles</p><p>Ein vorgestelltes R erzeugt einen read only Zugang. Beispiel: Rbgf. root hat Möglichkeit Buchungen zu mergen, sowie gelöschte Buchungszeilen wiederherzustellen</p>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<form action="index.php?action=accounts" method="POST"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><table>
+<tr><td><b>Name</b></td><td><b>Passwort</b></td><td><b>Rechte</b></td></tr>
+<tr><td>synthetic-admin</td><td><input type="password" name="password1" value="******"></td><td><input type="text" name="rights1" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 1 aktualisieren" /></td></tr>
+<tr><td>synthetic-hide-odd</td><td><input type="password" name="password4" value="******"></td><td><input type="text" name="rights4" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 4 aktualisieren" /></td></tr>
+<tr><td>synthetic-hide-even</td><td><input type="password" name="password5" value="******"></td><td><input type="text" name="rights5" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 5 aktualisieren" /></td></tr>
+<tr><td>synthetic-read-only-two</td><td><input type="password" name="password9" value="******"></td><td><input type="text" name="rights9" value="Rbgf,2" /></td><td><input type="submit" name="submit" value="Benutzer 9 aktualisieren" /></td></tr>
+<tr><td>synthetic-read-only</td><td><input type="password" name="password8" value="******"></td><td><input type="text" name="rights8" value="Rbgf" /></td><td><input type="submit" name="submit" value="Benutzer 8 aktualisieren" /></td></tr>
+<tr><td>synthetic-readonly</td><td><input type="password" name="password10" value="******"></td><td><input type="text" name="rights10" value="Rbgf" /></td><td><input type="submit" name="submit" value="Benutzer 10 aktualisieren" /></td></tr>
+<tr><td>synthetic-reviewer</td><td><input type="password" name="password2" value="******"></td><td><input type="text" name="rights2" value="bgf" /></td><td><input type="submit" name="submit" value="Benutzer 2 aktualisieren" /></td></tr>
+<tr><td>synthetic-created</td><td><input type="password" name="password100" value="******"></td><td><input type="text" name="rights100" value="3" /></td><td><input type="submit" name="submit" value="Benutzer 100 aktualisieren" /></td></tr>
+<tr><td>synthetic-unit-two</td><td><input type="password" name="password6" value="******"></td><td><input type="text" name="rights6" value="2" /></td><td><input type="submit" name="submit" value="Benutzer 6 aktualisieren" /></td></tr>
+<tr><td>synthetic-unit-one</td><td><input type="password" name="password3" value="******"></td><td><input type="text" name="rights3" value="1,2" /></td><td><input type="submit" name="submit" value="Benutzer 3 aktualisieren" /></td></tr>
+<tr><td>synthetic-no-rights</td><td><input type="password" name="password7" value="******"></td><td><input type="text" name="rights7" value="" /></td><td><input type="submit" name="submit" value="Benutzer 7 aktualisieren" /></td></tr>
+<tr><td>synthetic-norights</td><td><input type="password" name="password11" value="******"></td><td><input type="text" name="rights11" value="" /></td><td><input type="submit" name="submit" value="Benutzer 11 aktualisieren" /></td></tr>
+<tr><td><input type="text" name="name-1" value="" /></td><td><input type="password" name="password-1" value="******"></td><td><input type="text" name="rights-1" value="" /></td><td><input type="submit" name="submit" value="Benutzer -1 erstellen" /></td></tr>
+
+</table></form>
+
+</div>
+
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

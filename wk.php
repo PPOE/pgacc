@@ -19,7 +19,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-      echo "<tr><td>{$line['name']}</td><td>";
+      echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -61,9 +61,9 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
   if ($line['id'] == 11 || $line['id'] == 12)
-    echo "<tr><td><a href=\"index.php?action=kdonations&type={$line['id']}&from=$from&to=$to&unit=$unit\">{$line['name']}</a></td><td>";
+    echo "<tr><td><a href=\"index.php?action=kdonations&type={$line['id']}&from=$from&to=$to&unit=$unit\">" . html_escape($line['name']) . "</a></td><td>";
   else
-    echo "<tr><td>{$line['name']}</td><td>";
+    echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -100,7 +100,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-  echo "<tr><td><a href=\"index.php?action=spendings&type={$line['id']}&from=$from&to=$to&unit=$unit\">{$line['name']}</a></td><td>";
+  echo "<tr><td><a href=\"index.php?action=spendings&type={$line['id']}&from=$from&to=$to&unit=$unit\">" . html_escape($line['name']) . "</a></td><td>";
     echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -171,12 +171,12 @@ block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    echo "<br /><h2><a name=\"nrw{$line['name']}2013\" href=\"#{$line['name']}\">{$line['name']}</a></h2>\n";
+    echo "<br /><h2><a name=\"nrw" . html_escape($line['name']) . "2013\" href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></h2>\n";
       wk_unit_report("",$cond,$cond,$line['id'],$year,'2013-11-01','2013-06-13');
       $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
       $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
       while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-          echo "<h3><a name=\"{$line2['name']}\">{$line2['name']}</a></h3>\n";
+          echo "<h3><a name=\"" . html_escape($line2['name']) . "\">" . html_escape($line2['name']) . "</a></h3>\n";
             wk_unit_report("",$cond,$cond,$line2['id'],$year,'2013-11-01','2013-06-13');
       }
       pg_free_result($result2);

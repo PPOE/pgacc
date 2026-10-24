@@ -1,0 +1,1568 @@
+null == null returns true
+null < null returns false
+null == true returns false
+null < true returns true
+null == false returns true
+null < false returns false
+null == int(0) returns true
+null < int(0) returns false
+null == int(1) returns false
+null < int(1) returns true
+null == int(-1) returns false
+null < int(-1) returns true
+null == float(0) returns true
+null < float(0) returns false
+null == float(1.5) returns false
+null < float(1.5) returns true
+null == int(100) returns false
+null < int(100) returns true
+null == int(2147483647) returns false
+null < int(2147483647) returns true
+null == string(0) "" returns true
+null < string(0) "" returns false
+null == string(1) "0" returns false
+null < string(1) "0" returns true
+null == string(1) "1" returns false
+null < string(1) "1" returns true
+null == string(2) "-1" returns false
+null < string(2) "-1" returns true
+null == string(3) "1.0" returns false
+null < string(3) "1.0" returns true
+null == string(3) "1e0" returns false
+null < string(3) "1e0" returns true
+null == string(2) " 1" returns false
+null < string(2) " 1" returns true
+null == string(2) "1 " returns false
+null < string(2) "1 " returns true
+null == string(1) "a" returns false
+null < string(1) "a" returns true
+null == string(3) "abc" returns false
+null < string(3) "abc" returns true
+null == string(4) "1abc" returns false
+null < string(4) "1abc" returns true
+null == string(4) "null" returns false
+null < string(4) "null" returns true
+null == string(2) "00" returns false
+null < string(2) "00" returns true
+null == string(3) "0.0" returns false
+null < string(3) "0.0" returns true
+null == string(19) "9223372036854775808" returns false
+null < string(19) "9223372036854775808" returns true
+null == string(2) "\303\244" returns false
+null < string(2) "\303\244" returns true
+null == array() returns true
+null < array() returns false
+null == array(int(0) => int(0)) returns false
+null < array(int(0) => int(0)) returns true
+true == null returns false
+true < null returns false
+true == true returns true
+true < true returns false
+true == false returns false
+true < false returns false
+true == int(0) returns false
+true < int(0) returns false
+true == int(1) returns true
+true < int(1) returns false
+true == int(-1) returns true
+true < int(-1) returns false
+true == float(0) returns false
+true < float(0) returns false
+true == float(1.5) returns true
+true < float(1.5) returns false
+true == int(100) returns true
+true < int(100) returns false
+true == int(2147483647) returns true
+true < int(2147483647) returns false
+true == string(0) "" returns false
+true < string(0) "" returns false
+true == string(1) "0" returns false
+true < string(1) "0" returns false
+true == string(1) "1" returns true
+true < string(1) "1" returns false
+true == string(2) "-1" returns true
+true < string(2) "-1" returns false
+true == string(3) "1.0" returns true
+true < string(3) "1.0" returns false
+true == string(3) "1e0" returns true
+true < string(3) "1e0" returns false
+true == string(2) " 1" returns true
+true < string(2) " 1" returns false
+true == string(2) "1 " returns true
+true < string(2) "1 " returns false
+true == string(1) "a" returns true
+true < string(1) "a" returns false
+true == string(3) "abc" returns true
+true < string(3) "abc" returns false
+true == string(4) "1abc" returns true
+true < string(4) "1abc" returns false
+true == string(4) "null" returns true
+true < string(4) "null" returns false
+true == string(2) "00" returns true
+true < string(2) "00" returns false
+true == string(3) "0.0" returns true
+true < string(3) "0.0" returns false
+true == string(19) "9223372036854775808" returns true
+true < string(19) "9223372036854775808" returns false
+true == string(2) "\303\244" returns true
+true < string(2) "\303\244" returns false
+true == array() returns false
+true < array() returns false
+true == array(int(0) => int(0)) returns true
+true < array(int(0) => int(0)) returns false
+false == null returns true
+false < null returns false
+false == true returns false
+false < true returns true
+false == false returns true
+false < false returns false
+false == int(0) returns true
+false < int(0) returns false
+false == int(1) returns false
+false < int(1) returns true
+false == int(-1) returns false
+false < int(-1) returns true
+false == float(0) returns true
+false < float(0) returns false
+false == float(1.5) returns false
+false < float(1.5) returns true
+false == int(100) returns false
+false < int(100) returns true
+false == int(2147483647) returns false
+false < int(2147483647) returns true
+false == string(0) "" returns true
+false < string(0) "" returns false
+false == string(1) "0" returns true
+false < string(1) "0" returns false
+false == string(1) "1" returns false
+false < string(1) "1" returns true
+false == string(2) "-1" returns false
+false < string(2) "-1" returns true
+false == string(3) "1.0" returns false
+false < string(3) "1.0" returns true
+false == string(3) "1e0" returns false
+false < string(3) "1e0" returns true
+false == string(2) " 1" returns false
+false < string(2) " 1" returns true
+false == string(2) "1 " returns false
+false < string(2) "1 " returns true
+false == string(1) "a" returns false
+false < string(1) "a" returns true
+false == string(3) "abc" returns false
+false < string(3) "abc" returns true
+false == string(4) "1abc" returns false
+false < string(4) "1abc" returns true
+false == string(4) "null" returns false
+false < string(4) "null" returns true
+false == string(2) "00" returns false
+false < string(2) "00" returns true
+false == string(3) "0.0" returns false
+false < string(3) "0.0" returns true
+false == string(19) "9223372036854775808" returns false
+false < string(19) "9223372036854775808" returns true
+false == string(2) "\303\244" returns false
+false < string(2) "\303\244" returns true
+false == array() returns true
+false < array() returns false
+false == array(int(0) => int(0)) returns false
+false < array(int(0) => int(0)) returns true
+int(0) == null returns true
+int(0) < null returns false
+int(0) == true returns false
+int(0) < true returns true
+int(0) == false returns true
+int(0) < false returns false
+int(0) == int(0) returns true
+int(0) < int(0) returns false
+int(0) == int(1) returns false
+int(0) < int(1) returns true
+int(0) == int(-1) returns false
+int(0) < int(-1) returns false
+int(0) == float(0) returns true
+int(0) < float(0) returns false
+int(0) == float(1.5) returns false
+int(0) < float(1.5) returns true
+int(0) == int(100) returns false
+int(0) < int(100) returns true
+int(0) == int(2147483647) returns false
+int(0) < int(2147483647) returns true
+int(0) == string(0) "" returns true
+int(0) < string(0) "" returns false
+int(0) == string(1) "0" returns true
+int(0) < string(1) "0" returns false
+int(0) == string(1) "1" returns false
+int(0) < string(1) "1" returns true
+int(0) == string(2) "-1" returns false
+int(0) < string(2) "-1" returns false
+int(0) == string(3) "1.0" returns false
+int(0) < string(3) "1.0" returns true
+int(0) == string(3) "1e0" returns false
+int(0) < string(3) "1e0" returns true
+int(0) == string(2) " 1" returns false
+int(0) < string(2) " 1" returns true
+int(0) == string(2) "1 " returns false
+int(0) < string(2) "1 " returns true
+int(0) == string(1) "a" returns true
+int(0) < string(1) "a" returns false
+int(0) == string(3) "abc" returns true
+int(0) < string(3) "abc" returns false
+int(0) == string(4) "1abc" returns false
+int(0) < string(4) "1abc" returns true
+int(0) == string(4) "null" returns true
+int(0) < string(4) "null" returns false
+int(0) == string(2) "00" returns true
+int(0) < string(2) "00" returns false
+int(0) == string(3) "0.0" returns true
+int(0) < string(3) "0.0" returns false
+int(0) == string(19) "9223372036854775808" returns false
+int(0) < string(19) "9223372036854775808" returns true
+int(0) == string(2) "\303\244" returns true
+int(0) < string(2) "\303\244" returns false
+int(0) == array() returns false
+int(0) < array() returns true
+int(0) == array(int(0) => int(0)) returns false
+int(0) < array(int(0) => int(0)) returns true
+int(1) == null returns false
+int(1) < null returns false
+int(1) == true returns true
+int(1) < true returns false
+int(1) == false returns false
+int(1) < false returns false
+int(1) == int(0) returns false
+int(1) < int(0) returns false
+int(1) == int(1) returns true
+int(1) < int(1) returns false
+int(1) == int(-1) returns false
+int(1) < int(-1) returns false
+int(1) == float(0) returns false
+int(1) < float(0) returns false
+int(1) == float(1.5) returns false
+int(1) < float(1.5) returns true
+int(1) == int(100) returns false
+int(1) < int(100) returns true
+int(1) == int(2147483647) returns false
+int(1) < int(2147483647) returns true
+int(1) == string(0) "" returns false
+int(1) < string(0) "" returns false
+int(1) == string(1) "0" returns false
+int(1) < string(1) "0" returns false
+int(1) == string(1) "1" returns true
+int(1) < string(1) "1" returns false
+int(1) == string(2) "-1" returns false
+int(1) < string(2) "-1" returns false
+int(1) == string(3) "1.0" returns true
+int(1) < string(3) "1.0" returns false
+int(1) == string(3) "1e0" returns true
+int(1) < string(3) "1e0" returns false
+int(1) == string(2) " 1" returns true
+int(1) < string(2) " 1" returns false
+int(1) == string(2) "1 " returns true
+int(1) < string(2) "1 " returns false
+int(1) == string(1) "a" returns false
+int(1) < string(1) "a" returns false
+int(1) == string(3) "abc" returns false
+int(1) < string(3) "abc" returns false
+int(1) == string(4) "1abc" returns true
+int(1) < string(4) "1abc" returns false
+int(1) == string(4) "null" returns false
+int(1) < string(4) "null" returns false
+int(1) == string(2) "00" returns false
+int(1) < string(2) "00" returns false
+int(1) == string(3) "0.0" returns false
+int(1) < string(3) "0.0" returns false
+int(1) == string(19) "9223372036854775808" returns false
+int(1) < string(19) "9223372036854775808" returns true
+int(1) == string(2) "\303\244" returns false
+int(1) < string(2) "\303\244" returns false
+int(1) == array() returns false
+int(1) < array() returns true
+int(1) == array(int(0) => int(0)) returns false
+int(1) < array(int(0) => int(0)) returns true
+int(-1) == null returns false
+int(-1) < null returns false
+int(-1) == true returns true
+int(-1) < true returns false
+int(-1) == false returns false
+int(-1) < false returns false
+int(-1) == int(0) returns false
+int(-1) < int(0) returns true
+int(-1) == int(1) returns false
+int(-1) < int(1) returns true
+int(-1) == int(-1) returns true
+int(-1) < int(-1) returns false
+int(-1) == float(0) returns false
+int(-1) < float(0) returns true
+int(-1) == float(1.5) returns false
+int(-1) < float(1.5) returns true
+int(-1) == int(100) returns false
+int(-1) < int(100) returns true
+int(-1) == int(2147483647) returns false
+int(-1) < int(2147483647) returns true
+int(-1) == string(0) "" returns false
+int(-1) < string(0) "" returns true
+int(-1) == string(1) "0" returns false
+int(-1) < string(1) "0" returns true
+int(-1) == string(1) "1" returns false
+int(-1) < string(1) "1" returns true
+int(-1) == string(2) "-1" returns true
+int(-1) < string(2) "-1" returns false
+int(-1) == string(3) "1.0" returns false
+int(-1) < string(3) "1.0" returns true
+int(-1) == string(3) "1e0" returns false
+int(-1) < string(3) "1e0" returns true
+int(-1) == string(2) " 1" returns false
+int(-1) < string(2) " 1" returns true
+int(-1) == string(2) "1 " returns false
+int(-1) < string(2) "1 " returns true
+int(-1) == string(1) "a" returns false
+int(-1) < string(1) "a" returns true
+int(-1) == string(3) "abc" returns false
+int(-1) < string(3) "abc" returns true
+int(-1) == string(4) "1abc" returns false
+int(-1) < string(4) "1abc" returns true
+int(-1) == string(4) "null" returns false
+int(-1) < string(4) "null" returns true
+int(-1) == string(2) "00" returns false
+int(-1) < string(2) "00" returns true
+int(-1) == string(3) "0.0" returns false
+int(-1) < string(3) "0.0" returns true
+int(-1) == string(19) "9223372036854775808" returns false
+int(-1) < string(19) "9223372036854775808" returns true
+int(-1) == string(2) "\303\244" returns false
+int(-1) < string(2) "\303\244" returns true
+int(-1) == array() returns false
+int(-1) < array() returns true
+int(-1) == array(int(0) => int(0)) returns false
+int(-1) < array(int(0) => int(0)) returns true
+float(0) == null returns true
+float(0) < null returns false
+float(0) == true returns false
+float(0) < true returns true
+float(0) == false returns true
+float(0) < false returns false
+float(0) == int(0) returns true
+float(0) < int(0) returns false
+float(0) == int(1) returns false
+float(0) < int(1) returns true
+float(0) == int(-1) returns false
+float(0) < int(-1) returns false
+float(0) == float(0) returns true
+float(0) < float(0) returns false
+float(0) == float(1.5) returns false
+float(0) < float(1.5) returns true
+float(0) == int(100) returns false
+float(0) < int(100) returns true
+float(0) == int(2147483647) returns false
+float(0) < int(2147483647) returns true
+float(0) == string(0) "" returns true
+float(0) < string(0) "" returns false
+float(0) == string(1) "0" returns true
+float(0) < string(1) "0" returns false
+float(0) == string(1) "1" returns false
+float(0) < string(1) "1" returns true
+float(0) == string(2) "-1" returns false
+float(0) < string(2) "-1" returns false
+float(0) == string(3) "1.0" returns false
+float(0) < string(3) "1.0" returns true
+float(0) == string(3) "1e0" returns false
+float(0) < string(3) "1e0" returns true
+float(0) == string(2) " 1" returns false
+float(0) < string(2) " 1" returns true
+float(0) == string(2) "1 " returns false
+float(0) < string(2) "1 " returns true
+float(0) == string(1) "a" returns true
+float(0) < string(1) "a" returns false
+float(0) == string(3) "abc" returns true
+float(0) < string(3) "abc" returns false
+float(0) == string(4) "1abc" returns false
+float(0) < string(4) "1abc" returns true
+float(0) == string(4) "null" returns true
+float(0) < string(4) "null" returns false
+float(0) == string(2) "00" returns true
+float(0) < string(2) "00" returns false
+float(0) == string(3) "0.0" returns true
+float(0) < string(3) "0.0" returns false
+float(0) == string(19) "9223372036854775808" returns false
+float(0) < string(19) "9223372036854775808" returns true
+float(0) == string(2) "\303\244" returns true
+float(0) < string(2) "\303\244" returns false
+float(0) == array() returns false
+float(0) < array() returns true
+float(0) == array(int(0) => int(0)) returns false
+float(0) < array(int(0) => int(0)) returns true
+float(1.5) == null returns false
+float(1.5) < null returns false
+float(1.5) == true returns true
+float(1.5) < true returns false
+float(1.5) == false returns false
+float(1.5) < false returns false
+float(1.5) == int(0) returns false
+float(1.5) < int(0) returns false
+float(1.5) == int(1) returns false
+float(1.5) < int(1) returns false
+float(1.5) == int(-1) returns false
+float(1.5) < int(-1) returns false
+float(1.5) == float(0) returns false
+float(1.5) < float(0) returns false
+float(1.5) == float(1.5) returns true
+float(1.5) < float(1.5) returns false
+float(1.5) == int(100) returns false
+float(1.5) < int(100) returns true
+float(1.5) == int(2147483647) returns false
+float(1.5) < int(2147483647) returns true
+float(1.5) == string(0) "" returns false
+float(1.5) < string(0) "" returns false
+float(1.5) == string(1) "0" returns false
+float(1.5) < string(1) "0" returns false
+float(1.5) == string(1) "1" returns false
+float(1.5) < string(1) "1" returns false
+float(1.5) == string(2) "-1" returns false
+float(1.5) < string(2) "-1" returns false
+float(1.5) == string(3) "1.0" returns false
+float(1.5) < string(3) "1.0" returns false
+float(1.5) == string(3) "1e0" returns false
+float(1.5) < string(3) "1e0" returns false
+float(1.5) == string(2) " 1" returns false
+float(1.5) < string(2) " 1" returns false
+float(1.5) == string(2) "1 " returns false
+float(1.5) < string(2) "1 " returns false
+float(1.5) == string(1) "a" returns false
+float(1.5) < string(1) "a" returns false
+float(1.5) == string(3) "abc" returns false
+float(1.5) < string(3) "abc" returns false
+float(1.5) == string(4) "1abc" returns false
+float(1.5) < string(4) "1abc" returns false
+float(1.5) == string(4) "null" returns false
+float(1.5) < string(4) "null" returns false
+float(1.5) == string(2) "00" returns false
+float(1.5) < string(2) "00" returns false
+float(1.5) == string(3) "0.0" returns false
+float(1.5) < string(3) "0.0" returns false
+float(1.5) == string(19) "9223372036854775808" returns false
+float(1.5) < string(19) "9223372036854775808" returns true
+float(1.5) == string(2) "\303\244" returns false
+float(1.5) < string(2) "\303\244" returns false
+float(1.5) == array() returns false
+float(1.5) < array() returns true
+float(1.5) == array(int(0) => int(0)) returns false
+float(1.5) < array(int(0) => int(0)) returns true
+int(100) == null returns false
+int(100) < null returns false
+int(100) == true returns true
+int(100) < true returns false
+int(100) == false returns false
+int(100) < false returns false
+int(100) == int(0) returns false
+int(100) < int(0) returns false
+int(100) == int(1) returns false
+int(100) < int(1) returns false
+int(100) == int(-1) returns false
+int(100) < int(-1) returns false
+int(100) == float(0) returns false
+int(100) < float(0) returns false
+int(100) == float(1.5) returns false
+int(100) < float(1.5) returns false
+int(100) == int(100) returns true
+int(100) < int(100) returns false
+int(100) == int(2147483647) returns false
+int(100) < int(2147483647) returns true
+int(100) == string(0) "" returns false
+int(100) < string(0) "" returns false
+int(100) == string(1) "0" returns false
+int(100) < string(1) "0" returns false
+int(100) == string(1) "1" returns false
+int(100) < string(1) "1" returns false
+int(100) == string(2) "-1" returns false
+int(100) < string(2) "-1" returns false
+int(100) == string(3) "1.0" returns false
+int(100) < string(3) "1.0" returns false
+int(100) == string(3) "1e0" returns false
+int(100) < string(3) "1e0" returns false
+int(100) == string(2) " 1" returns false
+int(100) < string(2) " 1" returns false
+int(100) == string(2) "1 " returns false
+int(100) < string(2) "1 " returns false
+int(100) == string(1) "a" returns false
+int(100) < string(1) "a" returns false
+int(100) == string(3) "abc" returns false
+int(100) < string(3) "abc" returns false
+int(100) == string(4) "1abc" returns false
+int(100) < string(4) "1abc" returns false
+int(100) == string(4) "null" returns false
+int(100) < string(4) "null" returns false
+int(100) == string(2) "00" returns false
+int(100) < string(2) "00" returns false
+int(100) == string(3) "0.0" returns false
+int(100) < string(3) "0.0" returns false
+int(100) == string(19) "9223372036854775808" returns false
+int(100) < string(19) "9223372036854775808" returns true
+int(100) == string(2) "\303\244" returns false
+int(100) < string(2) "\303\244" returns false
+int(100) == array() returns false
+int(100) < array() returns true
+int(100) == array(int(0) => int(0)) returns false
+int(100) < array(int(0) => int(0)) returns true
+int(2147483647) == null returns false
+int(2147483647) < null returns false
+int(2147483647) == true returns true
+int(2147483647) < true returns false
+int(2147483647) == false returns false
+int(2147483647) < false returns false
+int(2147483647) == int(0) returns false
+int(2147483647) < int(0) returns false
+int(2147483647) == int(1) returns false
+int(2147483647) < int(1) returns false
+int(2147483647) == int(-1) returns false
+int(2147483647) < int(-1) returns false
+int(2147483647) == float(0) returns false
+int(2147483647) < float(0) returns false
+int(2147483647) == float(1.5) returns false
+int(2147483647) < float(1.5) returns false
+int(2147483647) == int(100) returns false
+int(2147483647) < int(100) returns false
+int(2147483647) == int(2147483647) returns true
+int(2147483647) < int(2147483647) returns false
+int(2147483647) == string(0) "" returns false
+int(2147483647) < string(0) "" returns false
+int(2147483647) == string(1) "0" returns false
+int(2147483647) < string(1) "0" returns false
+int(2147483647) == string(1) "1" returns false
+int(2147483647) < string(1) "1" returns false
+int(2147483647) == string(2) "-1" returns false
+int(2147483647) < string(2) "-1" returns false
+int(2147483647) == string(3) "1.0" returns false
+int(2147483647) < string(3) "1.0" returns false
+int(2147483647) == string(3) "1e0" returns false
+int(2147483647) < string(3) "1e0" returns false
+int(2147483647) == string(2) " 1" returns false
+int(2147483647) < string(2) " 1" returns false
+int(2147483647) == string(2) "1 " returns false
+int(2147483647) < string(2) "1 " returns false
+int(2147483647) == string(1) "a" returns false
+int(2147483647) < string(1) "a" returns false
+int(2147483647) == string(3) "abc" returns false
+int(2147483647) < string(3) "abc" returns false
+int(2147483647) == string(4) "1abc" returns false
+int(2147483647) < string(4) "1abc" returns false
+int(2147483647) == string(4) "null" returns false
+int(2147483647) < string(4) "null" returns false
+int(2147483647) == string(2) "00" returns false
+int(2147483647) < string(2) "00" returns false
+int(2147483647) == string(3) "0.0" returns false
+int(2147483647) < string(3) "0.0" returns false
+int(2147483647) == string(19) "9223372036854775808" returns false
+int(2147483647) < string(19) "9223372036854775808" returns true
+int(2147483647) == string(2) "\303\244" returns false
+int(2147483647) < string(2) "\303\244" returns false
+int(2147483647) == array() returns false
+int(2147483647) < array() returns true
+int(2147483647) == array(int(0) => int(0)) returns false
+int(2147483647) < array(int(0) => int(0)) returns true
+string(0) "" == null returns true
+string(0) "" < null returns false
+string(0) "" == true returns false
+string(0) "" < true returns true
+string(0) "" == false returns true
+string(0) "" < false returns false
+string(0) "" == int(0) returns true
+string(0) "" < int(0) returns false
+string(0) "" == int(1) returns false
+string(0) "" < int(1) returns true
+string(0) "" == int(-1) returns false
+string(0) "" < int(-1) returns false
+string(0) "" == float(0) returns true
+string(0) "" < float(0) returns false
+string(0) "" == float(1.5) returns false
+string(0) "" < float(1.5) returns true
+string(0) "" == int(100) returns false
+string(0) "" < int(100) returns true
+string(0) "" == int(2147483647) returns false
+string(0) "" < int(2147483647) returns true
+string(0) "" == string(0) "" returns true
+string(0) "" < string(0) "" returns false
+string(0) "" == string(1) "0" returns false
+string(0) "" < string(1) "0" returns true
+string(0) "" == string(1) "1" returns false
+string(0) "" < string(1) "1" returns true
+string(0) "" == string(2) "-1" returns false
+string(0) "" < string(2) "-1" returns true
+string(0) "" == string(3) "1.0" returns false
+string(0) "" < string(3) "1.0" returns true
+string(0) "" == string(3) "1e0" returns false
+string(0) "" < string(3) "1e0" returns true
+string(0) "" == string(2) " 1" returns false
+string(0) "" < string(2) " 1" returns true
+string(0) "" == string(2) "1 " returns false
+string(0) "" < string(2) "1 " returns true
+string(0) "" == string(1) "a" returns false
+string(0) "" < string(1) "a" returns true
+string(0) "" == string(3) "abc" returns false
+string(0) "" < string(3) "abc" returns true
+string(0) "" == string(4) "1abc" returns false
+string(0) "" < string(4) "1abc" returns true
+string(0) "" == string(4) "null" returns false
+string(0) "" < string(4) "null" returns true
+string(0) "" == string(2) "00" returns false
+string(0) "" < string(2) "00" returns true
+string(0) "" == string(3) "0.0" returns false
+string(0) "" < string(3) "0.0" returns true
+string(0) "" == string(19) "9223372036854775808" returns false
+string(0) "" < string(19) "9223372036854775808" returns true
+string(0) "" == string(2) "\303\244" returns false
+string(0) "" < string(2) "\303\244" returns true
+string(0) "" == array() returns false
+string(0) "" < array() returns true
+string(0) "" == array(int(0) => int(0)) returns false
+string(0) "" < array(int(0) => int(0)) returns true
+string(1) "0" == null returns false
+string(1) "0" < null returns false
+string(1) "0" == true returns false
+string(1) "0" < true returns true
+string(1) "0" == false returns true
+string(1) "0" < false returns false
+string(1) "0" == int(0) returns true
+string(1) "0" < int(0) returns false
+string(1) "0" == int(1) returns false
+string(1) "0" < int(1) returns true
+string(1) "0" == int(-1) returns false
+string(1) "0" < int(-1) returns false
+string(1) "0" == float(0) returns true
+string(1) "0" < float(0) returns false
+string(1) "0" == float(1.5) returns false
+string(1) "0" < float(1.5) returns true
+string(1) "0" == int(100) returns false
+string(1) "0" < int(100) returns true
+string(1) "0" == int(2147483647) returns false
+string(1) "0" < int(2147483647) returns true
+string(1) "0" == string(0) "" returns false
+string(1) "0" < string(0) "" returns false
+string(1) "0" == string(1) "0" returns true
+string(1) "0" < string(1) "0" returns false
+string(1) "0" == string(1) "1" returns false
+string(1) "0" < string(1) "1" returns true
+string(1) "0" == string(2) "-1" returns false
+string(1) "0" < string(2) "-1" returns false
+string(1) "0" == string(3) "1.0" returns false
+string(1) "0" < string(3) "1.0" returns true
+string(1) "0" == string(3) "1e0" returns false
+string(1) "0" < string(3) "1e0" returns true
+string(1) "0" == string(2) " 1" returns false
+string(1) "0" < string(2) " 1" returns true
+string(1) "0" == string(2) "1 " returns false
+string(1) "0" < string(2) "1 " returns true
+string(1) "0" == string(1) "a" returns false
+string(1) "0" < string(1) "a" returns true
+string(1) "0" == string(3) "abc" returns false
+string(1) "0" < string(3) "abc" returns true
+string(1) "0" == string(4) "1abc" returns false
+string(1) "0" < string(4) "1abc" returns true
+string(1) "0" == string(4) "null" returns false
+string(1) "0" < string(4) "null" returns true
+string(1) "0" == string(2) "00" returns true
+string(1) "0" < string(2) "00" returns false
+string(1) "0" == string(3) "0.0" returns true
+string(1) "0" < string(3) "0.0" returns false
+string(1) "0" == string(19) "9223372036854775808" returns false
+string(1) "0" < string(19) "9223372036854775808" returns true
+string(1) "0" == string(2) "\303\244" returns false
+string(1) "0" < string(2) "\303\244" returns true
+string(1) "0" == array() returns false
+string(1) "0" < array() returns true
+string(1) "0" == array(int(0) => int(0)) returns false
+string(1) "0" < array(int(0) => int(0)) returns true
+string(1) "1" == null returns false
+string(1) "1" < null returns false
+string(1) "1" == true returns true
+string(1) "1" < true returns false
+string(1) "1" == false returns false
+string(1) "1" < false returns false
+string(1) "1" == int(0) returns false
+string(1) "1" < int(0) returns false
+string(1) "1" == int(1) returns true
+string(1) "1" < int(1) returns false
+string(1) "1" == int(-1) returns false
+string(1) "1" < int(-1) returns false
+string(1) "1" == float(0) returns false
+string(1) "1" < float(0) returns false
+string(1) "1" == float(1.5) returns false
+string(1) "1" < float(1.5) returns true
+string(1) "1" == int(100) returns false
+string(1) "1" < int(100) returns true
+string(1) "1" == int(2147483647) returns false
+string(1) "1" < int(2147483647) returns true
+string(1) "1" == string(0) "" returns false
+string(1) "1" < string(0) "" returns false
+string(1) "1" == string(1) "0" returns false
+string(1) "1" < string(1) "0" returns false
+string(1) "1" == string(1) "1" returns true
+string(1) "1" < string(1) "1" returns false
+string(1) "1" == string(2) "-1" returns false
+string(1) "1" < string(2) "-1" returns false
+string(1) "1" == string(3) "1.0" returns true
+string(1) "1" < string(3) "1.0" returns false
+string(1) "1" == string(3) "1e0" returns true
+string(1) "1" < string(3) "1e0" returns false
+string(1) "1" == string(2) " 1" returns true
+string(1) "1" < string(2) " 1" returns false
+string(1) "1" == string(2) "1 " returns false
+string(1) "1" < string(2) "1 " returns true
+string(1) "1" == string(1) "a" returns false
+string(1) "1" < string(1) "a" returns true
+string(1) "1" == string(3) "abc" returns false
+string(1) "1" < string(3) "abc" returns true
+string(1) "1" == string(4) "1abc" returns false
+string(1) "1" < string(4) "1abc" returns true
+string(1) "1" == string(4) "null" returns false
+string(1) "1" < string(4) "null" returns true
+string(1) "1" == string(2) "00" returns false
+string(1) "1" < string(2) "00" returns false
+string(1) "1" == string(3) "0.0" returns false
+string(1) "1" < string(3) "0.0" returns false
+string(1) "1" == string(19) "9223372036854775808" returns false
+string(1) "1" < string(19) "9223372036854775808" returns true
+string(1) "1" == string(2) "\303\244" returns false
+string(1) "1" < string(2) "\303\244" returns true
+string(1) "1" == array() returns false
+string(1) "1" < array() returns true
+string(1) "1" == array(int(0) => int(0)) returns false
+string(1) "1" < array(int(0) => int(0)) returns true
+string(2) "-1" == null returns false
+string(2) "-1" < null returns false
+string(2) "-1" == true returns true
+string(2) "-1" < true returns false
+string(2) "-1" == false returns false
+string(2) "-1" < false returns false
+string(2) "-1" == int(0) returns false
+string(2) "-1" < int(0) returns true
+string(2) "-1" == int(1) returns false
+string(2) "-1" < int(1) returns true
+string(2) "-1" == int(-1) returns true
+string(2) "-1" < int(-1) returns false
+string(2) "-1" == float(0) returns false
+string(2) "-1" < float(0) returns true
+string(2) "-1" == float(1.5) returns false
+string(2) "-1" < float(1.5) returns true
+string(2) "-1" == int(100) returns false
+string(2) "-1" < int(100) returns true
+string(2) "-1" == int(2147483647) returns false
+string(2) "-1" < int(2147483647) returns true
+string(2) "-1" == string(0) "" returns false
+string(2) "-1" < string(0) "" returns false
+string(2) "-1" == string(1) "0" returns false
+string(2) "-1" < string(1) "0" returns true
+string(2) "-1" == string(1) "1" returns false
+string(2) "-1" < string(1) "1" returns true
+string(2) "-1" == string(2) "-1" returns true
+string(2) "-1" < string(2) "-1" returns false
+string(2) "-1" == string(3) "1.0" returns false
+string(2) "-1" < string(3) "1.0" returns true
+string(2) "-1" == string(3) "1e0" returns false
+string(2) "-1" < string(3) "1e0" returns true
+string(2) "-1" == string(2) " 1" returns false
+string(2) "-1" < string(2) " 1" returns true
+string(2) "-1" == string(2) "1 " returns false
+string(2) "-1" < string(2) "1 " returns true
+string(2) "-1" == string(1) "a" returns false
+string(2) "-1" < string(1) "a" returns true
+string(2) "-1" == string(3) "abc" returns false
+string(2) "-1" < string(3) "abc" returns true
+string(2) "-1" == string(4) "1abc" returns false
+string(2) "-1" < string(4) "1abc" returns true
+string(2) "-1" == string(4) "null" returns false
+string(2) "-1" < string(4) "null" returns true
+string(2) "-1" == string(2) "00" returns false
+string(2) "-1" < string(2) "00" returns true
+string(2) "-1" == string(3) "0.0" returns false
+string(2) "-1" < string(3) "0.0" returns true
+string(2) "-1" == string(19) "9223372036854775808" returns false
+string(2) "-1" < string(19) "9223372036854775808" returns true
+string(2) "-1" == string(2) "\303\244" returns false
+string(2) "-1" < string(2) "\303\244" returns true
+string(2) "-1" == array() returns false
+string(2) "-1" < array() returns true
+string(2) "-1" == array(int(0) => int(0)) returns false
+string(2) "-1" < array(int(0) => int(0)) returns true
+string(3) "1.0" == null returns false
+string(3) "1.0" < null returns false
+string(3) "1.0" == true returns true
+string(3) "1.0" < true returns false
+string(3) "1.0" == false returns false
+string(3) "1.0" < false returns false
+string(3) "1.0" == int(0) returns false
+string(3) "1.0" < int(0) returns false
+string(3) "1.0" == int(1) returns true
+string(3) "1.0" < int(1) returns false
+string(3) "1.0" == int(-1) returns false
+string(3) "1.0" < int(-1) returns false
+string(3) "1.0" == float(0) returns false
+string(3) "1.0" < float(0) returns false
+string(3) "1.0" == float(1.5) returns false
+string(3) "1.0" < float(1.5) returns true
+string(3) "1.0" == int(100) returns false
+string(3) "1.0" < int(100) returns true
+string(3) "1.0" == int(2147483647) returns false
+string(3) "1.0" < int(2147483647) returns true
+string(3) "1.0" == string(0) "" returns false
+string(3) "1.0" < string(0) "" returns false
+string(3) "1.0" == string(1) "0" returns false
+string(3) "1.0" < string(1) "0" returns false
+string(3) "1.0" == string(1) "1" returns true
+string(3) "1.0" < string(1) "1" returns false
+string(3) "1.0" == string(2) "-1" returns false
+string(3) "1.0" < string(2) "-1" returns false
+string(3) "1.0" == string(3) "1.0" returns true
+string(3) "1.0" < string(3) "1.0" returns false
+string(3) "1.0" == string(3) "1e0" returns true
+string(3) "1.0" < string(3) "1e0" returns false
+string(3) "1.0" == string(2) " 1" returns true
+string(3) "1.0" < string(2) " 1" returns false
+string(3) "1.0" == string(2) "1 " returns false
+string(3) "1.0" < string(2) "1 " returns false
+string(3) "1.0" == string(1) "a" returns false
+string(3) "1.0" < string(1) "a" returns true
+string(3) "1.0" == string(3) "abc" returns false
+string(3) "1.0" < string(3) "abc" returns true
+string(3) "1.0" == string(4) "1abc" returns false
+string(3) "1.0" < string(4) "1abc" returns true
+string(3) "1.0" == string(4) "null" returns false
+string(3) "1.0" < string(4) "null" returns true
+string(3) "1.0" == string(2) "00" returns false
+string(3) "1.0" < string(2) "00" returns false
+string(3) "1.0" == string(3) "0.0" returns false
+string(3) "1.0" < string(3) "0.0" returns false
+string(3) "1.0" == string(19) "9223372036854775808" returns false
+string(3) "1.0" < string(19) "9223372036854775808" returns true
+string(3) "1.0" == string(2) "\303\244" returns false
+string(3) "1.0" < string(2) "\303\244" returns true
+string(3) "1.0" == array() returns false
+string(3) "1.0" < array() returns true
+string(3) "1.0" == array(int(0) => int(0)) returns false
+string(3) "1.0" < array(int(0) => int(0)) returns true
+string(3) "1e0" == null returns false
+string(3) "1e0" < null returns false
+string(3) "1e0" == true returns true
+string(3) "1e0" < true returns false
+string(3) "1e0" == false returns false
+string(3) "1e0" < false returns false
+string(3) "1e0" == int(0) returns false
+string(3) "1e0" < int(0) returns false
+string(3) "1e0" == int(1) returns true
+string(3) "1e0" < int(1) returns false
+string(3) "1e0" == int(-1) returns false
+string(3) "1e0" < int(-1) returns false
+string(3) "1e0" == float(0) returns false
+string(3) "1e0" < float(0) returns false
+string(3) "1e0" == float(1.5) returns false
+string(3) "1e0" < float(1.5) returns true
+string(3) "1e0" == int(100) returns false
+string(3) "1e0" < int(100) returns true
+string(3) "1e0" == int(2147483647) returns false
+string(3) "1e0" < int(2147483647) returns true
+string(3) "1e0" == string(0) "" returns false
+string(3) "1e0" < string(0) "" returns false
+string(3) "1e0" == string(1) "0" returns false
+string(3) "1e0" < string(1) "0" returns false
+string(3) "1e0" == string(1) "1" returns true
+string(3) "1e0" < string(1) "1" returns false
+string(3) "1e0" == string(2) "-1" returns false
+string(3) "1e0" < string(2) "-1" returns false
+string(3) "1e0" == string(3) "1.0" returns true
+string(3) "1e0" < string(3) "1.0" returns false
+string(3) "1e0" == string(3) "1e0" returns true
+string(3) "1e0" < string(3) "1e0" returns false
+string(3) "1e0" == string(2) " 1" returns true
+string(3) "1e0" < string(2) " 1" returns false
+string(3) "1e0" == string(2) "1 " returns false
+string(3) "1e0" < string(2) "1 " returns false
+string(3) "1e0" == string(1) "a" returns false
+string(3) "1e0" < string(1) "a" returns true
+string(3) "1e0" == string(3) "abc" returns false
+string(3) "1e0" < string(3) "abc" returns true
+string(3) "1e0" == string(4) "1abc" returns false
+string(3) "1e0" < string(4) "1abc" returns false
+string(3) "1e0" == string(4) "null" returns false
+string(3) "1e0" < string(4) "null" returns true
+string(3) "1e0" == string(2) "00" returns false
+string(3) "1e0" < string(2) "00" returns false
+string(3) "1e0" == string(3) "0.0" returns false
+string(3) "1e0" < string(3) "0.0" returns false
+string(3) "1e0" == string(19) "9223372036854775808" returns false
+string(3) "1e0" < string(19) "9223372036854775808" returns true
+string(3) "1e0" == string(2) "\303\244" returns false
+string(3) "1e0" < string(2) "\303\244" returns true
+string(3) "1e0" == array() returns false
+string(3) "1e0" < array() returns true
+string(3) "1e0" == array(int(0) => int(0)) returns false
+string(3) "1e0" < array(int(0) => int(0)) returns true
+string(2) " 1" == null returns false
+string(2) " 1" < null returns false
+string(2) " 1" == true returns true
+string(2) " 1" < true returns false
+string(2) " 1" == false returns false
+string(2) " 1" < false returns false
+string(2) " 1" == int(0) returns false
+string(2) " 1" < int(0) returns false
+string(2) " 1" == int(1) returns true
+string(2) " 1" < int(1) returns false
+string(2) " 1" == int(-1) returns false
+string(2) " 1" < int(-1) returns false
+string(2) " 1" == float(0) returns false
+string(2) " 1" < float(0) returns false
+string(2) " 1" == float(1.5) returns false
+string(2) " 1" < float(1.5) returns true
+string(2) " 1" == int(100) returns false
+string(2) " 1" < int(100) returns true
+string(2) " 1" == int(2147483647) returns false
+string(2) " 1" < int(2147483647) returns true
+string(2) " 1" == string(0) "" returns false
+string(2) " 1" < string(0) "" returns false
+string(2) " 1" == string(1) "0" returns false
+string(2) " 1" < string(1) "0" returns false
+string(2) " 1" == string(1) "1" returns true
+string(2) " 1" < string(1) "1" returns false
+string(2) " 1" == string(2) "-1" returns false
+string(2) " 1" < string(2) "-1" returns false
+string(2) " 1" == string(3) "1.0" returns true
+string(2) " 1" < string(3) "1.0" returns false
+string(2) " 1" == string(3) "1e0" returns true
+string(2) " 1" < string(3) "1e0" returns false
+string(2) " 1" == string(2) " 1" returns true
+string(2) " 1" < string(2) " 1" returns false
+string(2) " 1" == string(2) "1 " returns false
+string(2) " 1" < string(2) "1 " returns true
+string(2) " 1" == string(1) "a" returns false
+string(2) " 1" < string(1) "a" returns true
+string(2) " 1" == string(3) "abc" returns false
+string(2) " 1" < string(3) "abc" returns true
+string(2) " 1" == string(4) "1abc" returns false
+string(2) " 1" < string(4) "1abc" returns true
+string(2) " 1" == string(4) "null" returns false
+string(2) " 1" < string(4) "null" returns true
+string(2) " 1" == string(2) "00" returns false
+string(2) " 1" < string(2) "00" returns false
+string(2) " 1" == string(3) "0.0" returns false
+string(2) " 1" < string(3) "0.0" returns false
+string(2) " 1" == string(19) "9223372036854775808" returns false
+string(2) " 1" < string(19) "9223372036854775808" returns true
+string(2) " 1" == string(2) "\303\244" returns false
+string(2) " 1" < string(2) "\303\244" returns true
+string(2) " 1" == array() returns false
+string(2) " 1" < array() returns true
+string(2) " 1" == array(int(0) => int(0)) returns false
+string(2) " 1" < array(int(0) => int(0)) returns true
+string(2) "1 " == null returns false
+string(2) "1 " < null returns false
+string(2) "1 " == true returns true
+string(2) "1 " < true returns false
+string(2) "1 " == false returns false
+string(2) "1 " < false returns false
+string(2) "1 " == int(0) returns false
+string(2) "1 " < int(0) returns false
+string(2) "1 " == int(1) returns true
+string(2) "1 " < int(1) returns false
+string(2) "1 " == int(-1) returns false
+string(2) "1 " < int(-1) returns false
+string(2) "1 " == float(0) returns false
+string(2) "1 " < float(0) returns false
+string(2) "1 " == float(1.5) returns false
+string(2) "1 " < float(1.5) returns true
+string(2) "1 " == int(100) returns false
+string(2) "1 " < int(100) returns true
+string(2) "1 " == int(2147483647) returns false
+string(2) "1 " < int(2147483647) returns true
+string(2) "1 " == string(0) "" returns false
+string(2) "1 " < string(0) "" returns false
+string(2) "1 " == string(1) "0" returns false
+string(2) "1 " < string(1) "0" returns false
+string(2) "1 " == string(1) "1" returns false
+string(2) "1 " < string(1) "1" returns false
+string(2) "1 " == string(2) "-1" returns false
+string(2) "1 " < string(2) "-1" returns false
+string(2) "1 " == string(3) "1.0" returns false
+string(2) "1 " < string(3) "1.0" returns true
+string(2) "1 " == string(3) "1e0" returns false
+string(2) "1 " < string(3) "1e0" returns true
+string(2) "1 " == string(2) " 1" returns false
+string(2) "1 " < string(2) " 1" returns false
+string(2) "1 " == string(2) "1 " returns true
+string(2) "1 " < string(2) "1 " returns false
+string(2) "1 " == string(1) "a" returns false
+string(2) "1 " < string(1) "a" returns true
+string(2) "1 " == string(3) "abc" returns false
+string(2) "1 " < string(3) "abc" returns true
+string(2) "1 " == string(4) "1abc" returns false
+string(2) "1 " < string(4) "1abc" returns true
+string(2) "1 " == string(4) "null" returns false
+string(2) "1 " < string(4) "null" returns true
+string(2) "1 " == string(2) "00" returns false
+string(2) "1 " < string(2) "00" returns false
+string(2) "1 " == string(3) "0.0" returns false
+string(2) "1 " < string(3) "0.0" returns false
+string(2) "1 " == string(19) "9223372036854775808" returns false
+string(2) "1 " < string(19) "9223372036854775808" returns true
+string(2) "1 " == string(2) "\303\244" returns false
+string(2) "1 " < string(2) "\303\244" returns true
+string(2) "1 " == array() returns false
+string(2) "1 " < array() returns true
+string(2) "1 " == array(int(0) => int(0)) returns false
+string(2) "1 " < array(int(0) => int(0)) returns true
+string(1) "a" == null returns false
+string(1) "a" < null returns false
+string(1) "a" == true returns true
+string(1) "a" < true returns false
+string(1) "a" == false returns false
+string(1) "a" < false returns false
+string(1) "a" == int(0) returns true
+string(1) "a" < int(0) returns false
+string(1) "a" == int(1) returns false
+string(1) "a" < int(1) returns true
+string(1) "a" == int(-1) returns false
+string(1) "a" < int(-1) returns false
+string(1) "a" == float(0) returns true
+string(1) "a" < float(0) returns false
+string(1) "a" == float(1.5) returns false
+string(1) "a" < float(1.5) returns true
+string(1) "a" == int(100) returns false
+string(1) "a" < int(100) returns true
+string(1) "a" == int(2147483647) returns false
+string(1) "a" < int(2147483647) returns true
+string(1) "a" == string(0) "" returns false
+string(1) "a" < string(0) "" returns false
+string(1) "a" == string(1) "0" returns false
+string(1) "a" < string(1) "0" returns false
+string(1) "a" == string(1) "1" returns false
+string(1) "a" < string(1) "1" returns false
+string(1) "a" == string(2) "-1" returns false
+string(1) "a" < string(2) "-1" returns false
+string(1) "a" == string(3) "1.0" returns false
+string(1) "a" < string(3) "1.0" returns false
+string(1) "a" == string(3) "1e0" returns false
+string(1) "a" < string(3) "1e0" returns false
+string(1) "a" == string(2) " 1" returns false
+string(1) "a" < string(2) " 1" returns false
+string(1) "a" == string(2) "1 " returns false
+string(1) "a" < string(2) "1 " returns false
+string(1) "a" == string(1) "a" returns true
+string(1) "a" < string(1) "a" returns false
+string(1) "a" == string(3) "abc" returns false
+string(1) "a" < string(3) "abc" returns true
+string(1) "a" == string(4) "1abc" returns false
+string(1) "a" < string(4) "1abc" returns false
+string(1) "a" == string(4) "null" returns false
+string(1) "a" < string(4) "null" returns true
+string(1) "a" == string(2) "00" returns false
+string(1) "a" < string(2) "00" returns false
+string(1) "a" == string(3) "0.0" returns false
+string(1) "a" < string(3) "0.0" returns false
+string(1) "a" == string(19) "9223372036854775808" returns false
+string(1) "a" < string(19) "9223372036854775808" returns false
+string(1) "a" == string(2) "\303\244" returns false
+string(1) "a" < string(2) "\303\244" returns true
+string(1) "a" == array() returns false
+string(1) "a" < array() returns true
+string(1) "a" == array(int(0) => int(0)) returns false
+string(1) "a" < array(int(0) => int(0)) returns true
+string(3) "abc" == null returns false
+string(3) "abc" < null returns false
+string(3) "abc" == true returns true
+string(3) "abc" < true returns false
+string(3) "abc" == false returns false
+string(3) "abc" < false returns false
+string(3) "abc" == int(0) returns true
+string(3) "abc" < int(0) returns false
+string(3) "abc" == int(1) returns false
+string(3) "abc" < int(1) returns true
+string(3) "abc" == int(-1) returns false
+string(3) "abc" < int(-1) returns false
+string(3) "abc" == float(0) returns true
+string(3) "abc" < float(0) returns false
+string(3) "abc" == float(1.5) returns false
+string(3) "abc" < float(1.5) returns true
+string(3) "abc" == int(100) returns false
+string(3) "abc" < int(100) returns true
+string(3) "abc" == int(2147483647) returns false
+string(3) "abc" < int(2147483647) returns true
+string(3) "abc" == string(0) "" returns false
+string(3) "abc" < string(0) "" returns false
+string(3) "abc" == string(1) "0" returns false
+string(3) "abc" < string(1) "0" returns false
+string(3) "abc" == string(1) "1" returns false
+string(3) "abc" < string(1) "1" returns false
+string(3) "abc" == string(2) "-1" returns false
+string(3) "abc" < string(2) "-1" returns false
+string(3) "abc" == string(3) "1.0" returns false
+string(3) "abc" < string(3) "1.0" returns false
+string(3) "abc" == string(3) "1e0" returns false
+string(3) "abc" < string(3) "1e0" returns false
+string(3) "abc" == string(2) " 1" returns false
+string(3) "abc" < string(2) " 1" returns false
+string(3) "abc" == string(2) "1 " returns false
+string(3) "abc" < string(2) "1 " returns false
+string(3) "abc" == string(1) "a" returns false
+string(3) "abc" < string(1) "a" returns false
+string(3) "abc" == string(3) "abc" returns true
+string(3) "abc" < string(3) "abc" returns false
+string(3) "abc" == string(4) "1abc" returns false
+string(3) "abc" < string(4) "1abc" returns false
+string(3) "abc" == string(4) "null" returns false
+string(3) "abc" < string(4) "null" returns true
+string(3) "abc" == string(2) "00" returns false
+string(3) "abc" < string(2) "00" returns false
+string(3) "abc" == string(3) "0.0" returns false
+string(3) "abc" < string(3) "0.0" returns false
+string(3) "abc" == string(19) "9223372036854775808" returns false
+string(3) "abc" < string(19) "9223372036854775808" returns false
+string(3) "abc" == string(2) "\303\244" returns false
+string(3) "abc" < string(2) "\303\244" returns true
+string(3) "abc" == array() returns false
+string(3) "abc" < array() returns true
+string(3) "abc" == array(int(0) => int(0)) returns false
+string(3) "abc" < array(int(0) => int(0)) returns true
+string(4) "1abc" == null returns false
+string(4) "1abc" < null returns false
+string(4) "1abc" == true returns true
+string(4) "1abc" < true returns false
+string(4) "1abc" == false returns false
+string(4) "1abc" < false returns false
+string(4) "1abc" == int(0) returns false
+string(4) "1abc" < int(0) returns false
+string(4) "1abc" == int(1) returns true
+string(4) "1abc" < int(1) returns false
+string(4) "1abc" == int(-1) returns false
+string(4) "1abc" < int(-1) returns false
+string(4) "1abc" == float(0) returns false
+string(4) "1abc" < float(0) returns false
+string(4) "1abc" == float(1.5) returns false
+string(4) "1abc" < float(1.5) returns true
+string(4) "1abc" == int(100) returns false
+string(4) "1abc" < int(100) returns true
+string(4) "1abc" == int(2147483647) returns false
+string(4) "1abc" < int(2147483647) returns true
+string(4) "1abc" == string(0) "" returns false
+string(4) "1abc" < string(0) "" returns false
+string(4) "1abc" == string(1) "0" returns false
+string(4) "1abc" < string(1) "0" returns false
+string(4) "1abc" == string(1) "1" returns false
+string(4) "1abc" < string(1) "1" returns false
+string(4) "1abc" == string(2) "-1" returns false
+string(4) "1abc" < string(2) "-1" returns false
+string(4) "1abc" == string(3) "1.0" returns false
+string(4) "1abc" < string(3) "1.0" returns false
+string(4) "1abc" == string(3) "1e0" returns false
+string(4) "1abc" < string(3) "1e0" returns true
+string(4) "1abc" == string(2) " 1" returns false
+string(4) "1abc" < string(2) " 1" returns false
+string(4) "1abc" == string(2) "1 " returns false
+string(4) "1abc" < string(2) "1 " returns false
+string(4) "1abc" == string(1) "a" returns false
+string(4) "1abc" < string(1) "a" returns true
+string(4) "1abc" == string(3) "abc" returns false
+string(4) "1abc" < string(3) "abc" returns true
+string(4) "1abc" == string(4) "1abc" returns true
+string(4) "1abc" < string(4) "1abc" returns false
+string(4) "1abc" == string(4) "null" returns false
+string(4) "1abc" < string(4) "null" returns true
+string(4) "1abc" == string(2) "00" returns false
+string(4) "1abc" < string(2) "00" returns false
+string(4) "1abc" == string(3) "0.0" returns false
+string(4) "1abc" < string(3) "0.0" returns false
+string(4) "1abc" == string(19) "9223372036854775808" returns false
+string(4) "1abc" < string(19) "9223372036854775808" returns true
+string(4) "1abc" == string(2) "\303\244" returns false
+string(4) "1abc" < string(2) "\303\244" returns true
+string(4) "1abc" == array() returns false
+string(4) "1abc" < array() returns true
+string(4) "1abc" == array(int(0) => int(0)) returns false
+string(4) "1abc" < array(int(0) => int(0)) returns true
+string(4) "null" == null returns false
+string(4) "null" < null returns false
+string(4) "null" == true returns true
+string(4) "null" < true returns false
+string(4) "null" == false returns false
+string(4) "null" < false returns false
+string(4) "null" == int(0) returns true
+string(4) "null" < int(0) returns false
+string(4) "null" == int(1) returns false
+string(4) "null" < int(1) returns true
+string(4) "null" == int(-1) returns false
+string(4) "null" < int(-1) returns false
+string(4) "null" == float(0) returns true
+string(4) "null" < float(0) returns false
+string(4) "null" == float(1.5) returns false
+string(4) "null" < float(1.5) returns true
+string(4) "null" == int(100) returns false
+string(4) "null" < int(100) returns true
+string(4) "null" == int(2147483647) returns false
+string(4) "null" < int(2147483647) returns true
+string(4) "null" == string(0) "" returns false
+string(4) "null" < string(0) "" returns false
+string(4) "null" == string(1) "0" returns false
+string(4) "null" < string(1) "0" returns false
+string(4) "null" == string(1) "1" returns false
+string(4) "null" < string(1) "1" returns false
+string(4) "null" == string(2) "-1" returns false
+string(4) "null" < string(2) "-1" returns false
+string(4) "null" == string(3) "1.0" returns false
+string(4) "null" < string(3) "1.0" returns false
+string(4) "null" == string(3) "1e0" returns false
+string(4) "null" < string(3) "1e0" returns false
+string(4) "null" == string(2) " 1" returns false
+string(4) "null" < string(2) " 1" returns false
+string(4) "null" == string(2) "1 " returns false
+string(4) "null" < string(2) "1 " returns false
+string(4) "null" == string(1) "a" returns false
+string(4) "null" < string(1) "a" returns false
+string(4) "null" == string(3) "abc" returns false
+string(4) "null" < string(3) "abc" returns false
+string(4) "null" == string(4) "1abc" returns false
+string(4) "null" < string(4) "1abc" returns false
+string(4) "null" == string(4) "null" returns true
+string(4) "null" < string(4) "null" returns false
+string(4) "null" == string(2) "00" returns false
+string(4) "null" < string(2) "00" returns false
+string(4) "null" == string(3) "0.0" returns false
+string(4) "null" < string(3) "0.0" returns false
+string(4) "null" == string(19) "9223372036854775808" returns false
+string(4) "null" < string(19) "9223372036854775808" returns false
+string(4) "null" == string(2) "\303\244" returns false
+string(4) "null" < string(2) "\303\244" returns true
+string(4) "null" == array() returns false
+string(4) "null" < array() returns true
+string(4) "null" == array(int(0) => int(0)) returns false
+string(4) "null" < array(int(0) => int(0)) returns true
+string(2) "00" == null returns false
+string(2) "00" < null returns false
+string(2) "00" == true returns true
+string(2) "00" < true returns false
+string(2) "00" == false returns false
+string(2) "00" < false returns false
+string(2) "00" == int(0) returns true
+string(2) "00" < int(0) returns false
+string(2) "00" == int(1) returns false
+string(2) "00" < int(1) returns true
+string(2) "00" == int(-1) returns false
+string(2) "00" < int(-1) returns false
+string(2) "00" == float(0) returns true
+string(2) "00" < float(0) returns false
+string(2) "00" == float(1.5) returns false
+string(2) "00" < float(1.5) returns true
+string(2) "00" == int(100) returns false
+string(2) "00" < int(100) returns true
+string(2) "00" == int(2147483647) returns false
+string(2) "00" < int(2147483647) returns true
+string(2) "00" == string(0) "" returns false
+string(2) "00" < string(0) "" returns false
+string(2) "00" == string(1) "0" returns true
+string(2) "00" < string(1) "0" returns false
+string(2) "00" == string(1) "1" returns false
+string(2) "00" < string(1) "1" returns true
+string(2) "00" == string(2) "-1" returns false
+string(2) "00" < string(2) "-1" returns false
+string(2) "00" == string(3) "1.0" returns false
+string(2) "00" < string(3) "1.0" returns true
+string(2) "00" == string(3) "1e0" returns false
+string(2) "00" < string(3) "1e0" returns true
+string(2) "00" == string(2) " 1" returns false
+string(2) "00" < string(2) " 1" returns true
+string(2) "00" == string(2) "1 " returns false
+string(2) "00" < string(2) "1 " returns true
+string(2) "00" == string(1) "a" returns false
+string(2) "00" < string(1) "a" returns true
+string(2) "00" == string(3) "abc" returns false
+string(2) "00" < string(3) "abc" returns true
+string(2) "00" == string(4) "1abc" returns false
+string(2) "00" < string(4) "1abc" returns true
+string(2) "00" == string(4) "null" returns false
+string(2) "00" < string(4) "null" returns true
+string(2) "00" == string(2) "00" returns true
+string(2) "00" < string(2) "00" returns false
+string(2) "00" == string(3) "0.0" returns true
+string(2) "00" < string(3) "0.0" returns false
+string(2) "00" == string(19) "9223372036854775808" returns false
+string(2) "00" < string(19) "9223372036854775808" returns true
+string(2) "00" == string(2) "\303\244" returns false
+string(2) "00" < string(2) "\303\244" returns true
+string(2) "00" == array() returns false
+string(2) "00" < array() returns true
+string(2) "00" == array(int(0) => int(0)) returns false
+string(2) "00" < array(int(0) => int(0)) returns true
+string(3) "0.0" == null returns false
+string(3) "0.0" < null returns false
+string(3) "0.0" == true returns true
+string(3) "0.0" < true returns false
+string(3) "0.0" == false returns false
+string(3) "0.0" < false returns false
+string(3) "0.0" == int(0) returns true
+string(3) "0.0" < int(0) returns false
+string(3) "0.0" == int(1) returns false
+string(3) "0.0" < int(1) returns true
+string(3) "0.0" == int(-1) returns false
+string(3) "0.0" < int(-1) returns false
+string(3) "0.0" == float(0) returns true
+string(3) "0.0" < float(0) returns false
+string(3) "0.0" == float(1.5) returns false
+string(3) "0.0" < float(1.5) returns true
+string(3) "0.0" == int(100) returns false
+string(3) "0.0" < int(100) returns true
+string(3) "0.0" == int(2147483647) returns false
+string(3) "0.0" < int(2147483647) returns true
+string(3) "0.0" == string(0) "" returns false
+string(3) "0.0" < string(0) "" returns false
+string(3) "0.0" == string(1) "0" returns true
+string(3) "0.0" < string(1) "0" returns false
+string(3) "0.0" == string(1) "1" returns false
+string(3) "0.0" < string(1) "1" returns true
+string(3) "0.0" == string(2) "-1" returns false
+string(3) "0.0" < string(2) "-1" returns false
+string(3) "0.0" == string(3) "1.0" returns false
+string(3) "0.0" < string(3) "1.0" returns true
+string(3) "0.0" == string(3) "1e0" returns false
+string(3) "0.0" < string(3) "1e0" returns true
+string(3) "0.0" == string(2) " 1" returns false
+string(3) "0.0" < string(2) " 1" returns true
+string(3) "0.0" == string(2) "1 " returns false
+string(3) "0.0" < string(2) "1 " returns true
+string(3) "0.0" == string(1) "a" returns false
+string(3) "0.0" < string(1) "a" returns true
+string(3) "0.0" == string(3) "abc" returns false
+string(3) "0.0" < string(3) "abc" returns true
+string(3) "0.0" == string(4) "1abc" returns false
+string(3) "0.0" < string(4) "1abc" returns true
+string(3) "0.0" == string(4) "null" returns false
+string(3) "0.0" < string(4) "null" returns true
+string(3) "0.0" == string(2) "00" returns true
+string(3) "0.0" < string(2) "00" returns false
+string(3) "0.0" == string(3) "0.0" returns true
+string(3) "0.0" < string(3) "0.0" returns false
+string(3) "0.0" == string(19) "9223372036854775808" returns false
+string(3) "0.0" < string(19) "9223372036854775808" returns true
+string(3) "0.0" == string(2) "\303\244" returns false
+string(3) "0.0" < string(2) "\303\244" returns true
+string(3) "0.0" == array() returns false
+string(3) "0.0" < array() returns true
+string(3) "0.0" == array(int(0) => int(0)) returns false
+string(3) "0.0" < array(int(0) => int(0)) returns true
+string(19) "9223372036854775808" == null returns false
+string(19) "9223372036854775808" < null returns false
+string(19) "9223372036854775808" == true returns true
+string(19) "9223372036854775808" < true returns false
+string(19) "9223372036854775808" == false returns false
+string(19) "9223372036854775808" < false returns false
+string(19) "9223372036854775808" == int(0) returns false
+string(19) "9223372036854775808" < int(0) returns false
+string(19) "9223372036854775808" == int(1) returns false
+string(19) "9223372036854775808" < int(1) returns false
+string(19) "9223372036854775808" == int(-1) returns false
+string(19) "9223372036854775808" < int(-1) returns false
+string(19) "9223372036854775808" == float(0) returns false
+string(19) "9223372036854775808" < float(0) returns false
+string(19) "9223372036854775808" == float(1.5) returns false
+string(19) "9223372036854775808" < float(1.5) returns false
+string(19) "9223372036854775808" == int(100) returns false
+string(19) "9223372036854775808" < int(100) returns false
+string(19) "9223372036854775808" == int(2147483647) returns false
+string(19) "9223372036854775808" < int(2147483647) returns false
+string(19) "9223372036854775808" == string(0) "" returns false
+string(19) "9223372036854775808" < string(0) "" returns false
+string(19) "9223372036854775808" == string(1) "0" returns false
+string(19) "9223372036854775808" < string(1) "0" returns false
+string(19) "9223372036854775808" == string(1) "1" returns false
+string(19) "9223372036854775808" < string(1) "1" returns false
+string(19) "9223372036854775808" == string(2) "-1" returns false
+string(19) "9223372036854775808" < string(2) "-1" returns false
+string(19) "9223372036854775808" == string(3) "1.0" returns false
+string(19) "9223372036854775808" < string(3) "1.0" returns false
+string(19) "9223372036854775808" == string(3) "1e0" returns false
+string(19) "9223372036854775808" < string(3) "1e0" returns false
+string(19) "9223372036854775808" == string(2) " 1" returns false
+string(19) "9223372036854775808" < string(2) " 1" returns false
+string(19) "9223372036854775808" == string(2) "1 " returns false
+string(19) "9223372036854775808" < string(2) "1 " returns false
+string(19) "9223372036854775808" == string(1) "a" returns false
+string(19) "9223372036854775808" < string(1) "a" returns true
+string(19) "9223372036854775808" == string(3) "abc" returns false
+string(19) "9223372036854775808" < string(3) "abc" returns true
+string(19) "9223372036854775808" == string(4) "1abc" returns false
+string(19) "9223372036854775808" < string(4) "1abc" returns false
+string(19) "9223372036854775808" == string(4) "null" returns false
+string(19) "9223372036854775808" < string(4) "null" returns true
+string(19) "9223372036854775808" == string(2) "00" returns false
+string(19) "9223372036854775808" < string(2) "00" returns false
+string(19) "9223372036854775808" == string(3) "0.0" returns false
+string(19) "9223372036854775808" < string(3) "0.0" returns false
+string(19) "9223372036854775808" == string(19) "9223372036854775808" returns true
+string(19) "9223372036854775808" < string(19) "9223372036854775808" returns false
+string(19) "9223372036854775808" == string(2) "\303\244" returns false
+string(19) "9223372036854775808" < string(2) "\303\244" returns true
+string(19) "9223372036854775808" == array() returns false
+string(19) "9223372036854775808" < array() returns true
+string(19) "9223372036854775808" == array(int(0) => int(0)) returns false
+string(19) "9223372036854775808" < array(int(0) => int(0)) returns true
+string(2) "\303\244" == null returns false
+string(2) "\303\244" < null returns false
+string(2) "\303\244" == true returns true
+string(2) "\303\244" < true returns false
+string(2) "\303\244" == false returns false
+string(2) "\303\244" < false returns false
+string(2) "\303\244" == int(0) returns true
+string(2) "\303\244" < int(0) returns false
+string(2) "\303\244" == int(1) returns false
+string(2) "\303\244" < int(1) returns true
+string(2) "\303\244" == int(-1) returns false
+string(2) "\303\244" < int(-1) returns false
+string(2) "\303\244" == float(0) returns true
+string(2) "\303\244" < float(0) returns false
+string(2) "\303\244" == float(1.5) returns false
+string(2) "\303\244" < float(1.5) returns true
+string(2) "\303\244" == int(100) returns false
+string(2) "\303\244" < int(100) returns true
+string(2) "\303\244" == int(2147483647) returns false
+string(2) "\303\244" < int(2147483647) returns true
+string(2) "\303\244" == string(0) "" returns false
+string(2) "\303\244" < string(0) "" returns false
+string(2) "\303\244" == string(1) "0" returns false
+string(2) "\303\244" < string(1) "0" returns false
+string(2) "\303\244" == string(1) "1" returns false
+string(2) "\303\244" < string(1) "1" returns false
+string(2) "\303\244" == string(2) "-1" returns false
+string(2) "\303\244" < string(2) "-1" returns false
+string(2) "\303\244" == string(3) "1.0" returns false
+string(2) "\303\244" < string(3) "1.0" returns false
+string(2) "\303\244" == string(3) "1e0" returns false
+string(2) "\303\244" < string(3) "1e0" returns false
+string(2) "\303\244" == string(2) " 1" returns false
+string(2) "\303\244" < string(2) " 1" returns false
+string(2) "\303\244" == string(2) "1 " returns false
+string(2) "\303\244" < string(2) "1 " returns false
+string(2) "\303\244" == string(1) "a" returns false
+string(2) "\303\244" < string(1) "a" returns false
+string(2) "\303\244" == string(3) "abc" returns false
+string(2) "\303\244" < string(3) "abc" returns false
+string(2) "\303\244" == string(4) "1abc" returns false
+string(2) "\303\244" < string(4) "1abc" returns false
+string(2) "\303\244" == string(4) "null" returns false
+string(2) "\303\244" < string(4) "null" returns false
+string(2) "\303\244" == string(2) "00" returns false
+string(2) "\303\244" < string(2) "00" returns false
+string(2) "\303\244" == string(3) "0.0" returns false
+string(2) "\303\244" < string(3) "0.0" returns false
+string(2) "\303\244" == string(19) "9223372036854775808" returns false
+string(2) "\303\244" < string(19) "9223372036854775808" returns false
+string(2) "\303\244" == string(2) "\303\244" returns true
+string(2) "\303\244" < string(2) "\303\244" returns false
+string(2) "\303\244" == array() returns false
+string(2) "\303\244" < array() returns true
+string(2) "\303\244" == array(int(0) => int(0)) returns false
+string(2) "\303\244" < array(int(0) => int(0)) returns true
+array() == null returns true
+array() < null returns false
+array() == true returns false
+array() < true returns true
+array() == false returns true
+array() < false returns false
+array() == int(0) returns false
+array() < int(0) returns false
+array() == int(1) returns false
+array() < int(1) returns false
+array() == int(-1) returns false
+array() < int(-1) returns false
+array() == float(0) returns false
+array() < float(0) returns false
+array() == float(1.5) returns false
+array() < float(1.5) returns false
+array() == int(100) returns false
+array() < int(100) returns false
+array() == int(2147483647) returns false
+array() < int(2147483647) returns false
+array() == string(0) "" returns false
+array() < string(0) "" returns false
+array() == string(1) "0" returns false
+array() < string(1) "0" returns false
+array() == string(1) "1" returns false
+array() < string(1) "1" returns false
+array() == string(2) "-1" returns false
+array() < string(2) "-1" returns false
+array() == string(3) "1.0" returns false
+array() < string(3) "1.0" returns false
+array() == string(3) "1e0" returns false
+array() < string(3) "1e0" returns false
+array() == string(2) " 1" returns false
+array() < string(2) " 1" returns false
+array() == string(2) "1 " returns false
+array() < string(2) "1 " returns false
+array() == string(1) "a" returns false
+array() < string(1) "a" returns false
+array() == string(3) "abc" returns false
+array() < string(3) "abc" returns false
+array() == string(4) "1abc" returns false
+array() < string(4) "1abc" returns false
+array() == string(4) "null" returns false
+array() < string(4) "null" returns false
+array() == string(2) "00" returns false
+array() < string(2) "00" returns false
+array() == string(3) "0.0" returns false
+array() < string(3) "0.0" returns false
+array() == string(19) "9223372036854775808" returns false
+array() < string(19) "9223372036854775808" returns false
+array() == string(2) "\303\244" returns false
+array() < string(2) "\303\244" returns false
+array() == array() returns true
+array() < array() returns false
+array() == array(int(0) => int(0)) returns false
+array() < array(int(0) => int(0)) returns true
+array(int(0) => int(0)) == null returns false
+array(int(0) => int(0)) < null returns false
+array(int(0) => int(0)) == true returns true
+array(int(0) => int(0)) < true returns false
+array(int(0) => int(0)) == false returns false
+array(int(0) => int(0)) < false returns false
+array(int(0) => int(0)) == int(0) returns false
+array(int(0) => int(0)) < int(0) returns false
+array(int(0) => int(0)) == int(1) returns false
+array(int(0) => int(0)) < int(1) returns false
+array(int(0) => int(0)) == int(-1) returns false
+array(int(0) => int(0)) < int(-1) returns false
+array(int(0) => int(0)) == float(0) returns false
+array(int(0) => int(0)) < float(0) returns false
+array(int(0) => int(0)) == float(1.5) returns false
+array(int(0) => int(0)) < float(1.5) returns false
+array(int(0) => int(0)) == int(100) returns false
+array(int(0) => int(0)) < int(100) returns false
+array(int(0) => int(0)) == int(2147483647) returns false
+array(int(0) => int(0)) < int(2147483647) returns false
+array(int(0) => int(0)) == string(0) "" returns false
+array(int(0) => int(0)) < string(0) "" returns false
+array(int(0) => int(0)) == string(1) "0" returns false
+array(int(0) => int(0)) < string(1) "0" returns false
+array(int(0) => int(0)) == string(1) "1" returns false
+array(int(0) => int(0)) < string(1) "1" returns false
+array(int(0) => int(0)) == string(2) "-1" returns false
+array(int(0) => int(0)) < string(2) "-1" returns false
+array(int(0) => int(0)) == string(3) "1.0" returns false
+array(int(0) => int(0)) < string(3) "1.0" returns false
+array(int(0) => int(0)) == string(3) "1e0" returns false
+array(int(0) => int(0)) < string(3) "1e0" returns false
+array(int(0) => int(0)) == string(2) " 1" returns false
+array(int(0) => int(0)) < string(2) " 1" returns false
+array(int(0) => int(0)) == string(2) "1 " returns false
+array(int(0) => int(0)) < string(2) "1 " returns false
+array(int(0) => int(0)) == string(1) "a" returns false
+array(int(0) => int(0)) < string(1) "a" returns false
+array(int(0) => int(0)) == string(3) "abc" returns false
+array(int(0) => int(0)) < string(3) "abc" returns false
+array(int(0) => int(0)) == string(4) "1abc" returns false
+array(int(0) => int(0)) < string(4) "1abc" returns false
+array(int(0) => int(0)) == string(4) "null" returns false
+array(int(0) => int(0)) < string(4) "null" returns false
+array(int(0) => int(0)) == string(2) "00" returns false
+array(int(0) => int(0)) < string(2) "00" returns false
+array(int(0) => int(0)) == string(3) "0.0" returns false
+array(int(0) => int(0)) < string(3) "0.0" returns false
+array(int(0) => int(0)) == string(19) "9223372036854775808" returns false
+array(int(0) => int(0)) < string(19) "9223372036854775808" returns false
+array(int(0) => int(0)) == string(2) "\303\244" returns false
+array(int(0) => int(0)) < string(2) "\303\244" returns false
+array(int(0) => int(0)) == array() returns false
+array(int(0) => int(0)) < array() returns false
+array(int(0) => int(0)) == array(int(0) => int(0)) returns true
+array(int(0) => int(0)) < array(int(0) => int(0)) returns false

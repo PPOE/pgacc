@@ -1,0 +1,11 @@
+# requests received by the local membership stub
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php
+GET /adm_api/adm_names.php

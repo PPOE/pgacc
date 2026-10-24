@@ -10,8 +10,12 @@ global $user_id;
 $user_id = 0;
 global $user_prefs_hide;
 $user_prefs_hide = array();
+// The form token of the session that checklogin() accepted (csrf_field()).
+global $csrf_token;
+$csrf_token = false;
 function login($user, $pass)
 {
+  global $dbconn;
   $user = pg_escape_string($user);
   $pass = pg_escape_string($pass);
   $data = pg_query("SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -19,16 +23,16 @@ function login($user, $pass)
     return 0;
   while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
   {
-    if ($line['success'] == 't')
+    // Fails closed without a valid $key, a CSPRNG or a stored session
+    // (functions.php): the login form is shown again.
+    if ($line['success'] == 't' && ($token = login_start_session($dbconn, $line['id'])) !== false)
     {
       $id = $line['id'];
-      $rand = mt_rand();
-      pg_query("UPDATE users SET cookie = $rand, login = now() WHERE id = $id");
-      setcookie("pp_pgacc_login", $rand, time()+86400);
-      setcookie("pp_pgacc_id", $id, time()+86400);
+      header(login_cookie_header("pp_pgacc_login", $token, 86400), false);
+      header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
       pg_free_result($data);
       if (isset($_POST['target']))
-        header("Location: " . hex2ascii($_POST['target']));
+        header("Location: " . login_target($_POST['target']));
       else
         header("Location: index.php");
       return $id;
@@ -73,14 +77,25 @@ function checklogin($get = 'name', $redir = true)
 {
   global $user_id;
   global $user_prefs_hide;
-  if (isset($_COOKIE["pp_pgacc_login"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_login"]) == 1 && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
+  global $dbconn;
+  global $csrf_token;
+  $csrf_token = false;
+  if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
-    $data = pg_query("SELECT * FROM users WHERE cookie = {$_COOKIE["pp_pgacc_login"]} AND id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
+    $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
     if (!$data)
       return $get == 'id'?0:'';
-    while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
+    $line = pg_fetch_array($data, null, PGSQL_ASSOC);
+    do
     {
+      // Compare once even without a row; the result is used by the same
+      // guard. A missing row or cleared nonce can never authenticate.
+      $token = $line ? login_session_token($line['id'], $line['cookie'], $line['login']) : login_session_token(0, 0, '');
+      $tokenMatches = login_token_equals($token, $_COOKIE["pp_pgacc_login"]);
+      if (!$tokenMatches || !$line || strval($line['cookie']) === '')
+        continue;
       $user_id = $line['id'];
+      $csrf_token = csrf_session_token($line['id'], $line['cookie'], $line['login']);
       $hide_cols = explode(",",$line['hide']);
       foreach ($hide_cols as $col)
       {
@@ -102,7 +117,7 @@ function checklogin($get = 'name', $redir = true)
         pg_free_result($data);
         return $line['rights'];
       } 
-    }
+    } while ($line && ($line = pg_fetch_array($data, null, PGSQL_ASSOC)));
     pg_free_result($data);
   }
   if ($redir)
@@ -126,6 +141,39 @@ if (isset($_GET["print_empty"]))
   $print_empty = true;
 }
 
+// Before any output (the CSV byte order mark or acc_header()): protected
+// pages send visitors who are not logged in the login redirect (checklogin()
+// then returns nothing), and the member search sends its redirect.
+if (in_array($page,array("all","mb","open","merge","edit","new","closed","deleted","recover","accounts","import","import2")) && checklogin('id') === null)
+{
+  pg_close($dbconn);
+  return;
+}
+// Form tokens (CSRF): every POST request except the login form and the
+// public captcha forms must carry the form token of its session
+// (csrf_field()), checked before anything is written. Merge, recovery, the
+// column preferences and logout write only on POST.
+$csrf_exempt = in_array($page,array("login","donations","kdonations"));
+if (request_is_post() && !$csrf_exempt)
+{
+  checklogin('id', false);
+  if (!csrf_request_valid())
+  {
+    acc_header($dbconn,$page,date('Y'));
+    echo '<div class="slot_error" id="slot_error">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';
+    acc_footer();
+    pg_close($dbconn);
+    return;
+  }
+}
+if ($page == "search")
+{
+  $rights = checklogin('rights',false);
+  page_search($rights);
+  pg_close($dbconn);
+  return;
+}
+
 global $make_csv;
 $make_csv = false;
 if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"],array("search","all","open","transactions","spendings","closed","deleted")))
@@ -147,12 +195,12 @@ if ($page == "file")
     return;
   }
 }
-if (isset($_GET["hide"]))
+if (isset($_POST["hide"]) && !$csrf_exempt)
 {
   global $user_id;
   global $user_prefs_hide;
   $id = checklogin('id');
-  $col = intval($_GET["hide"]);
+  $col = intval($_POST["hide"]);
   if ($col > 0)
     $user_prefs_hide[$col] = 1;
   elseif ($col < 0)
@@ -168,6 +216,32 @@ if (isset($_GET["hide"]))
   $cols = implode(',',$cols_array);
   $data = pg_query("UPDATE users SET hide = '$cols' WHERE id = $id") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   pg_free_result($data);
+}
+
+// relocate() (edit.php) answers edit and merge requests with a redirect
+// instead of the page: buffer the page so that it can be discarded.
+if ($page == "edit" || $page == "merge")
+  ob_start();
+
+// Login and logout send cookies and redirects: answer them before
+// acc_header() starts the page.
+if ($page == "logout" && request_is_post())
+{
+  // Ends the session on the server too: its cookies stop working even if
+  // a copy was kept. Wrong or missing cookies end nothing.
+  $logoutId = checklogin('id', false);
+  if ($logoutId > 0)
+    pg_query($dbconn, "UPDATE users SET cookie = NULL WHERE id = $logoutId");
+  header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);
+  header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);
+  header("Location: index.php");
+  pg_close($dbconn);
+  return;
+}
+if ($page == "login" && login_redirect())
+{
+  pg_close($dbconn);
+  return;
 }
 
 $year = date('Y');
@@ -199,15 +273,10 @@ else if ($page == "open")
   $rights = checklogin('rights');
   page_open($rights);
 }
-else if ($page == "search")
-{
-  $rights = checklogin('rights');
-  page_search($rights);
-}
 else if ($page == "merge")
 {
   $rights = checklogin('rights');
-  page_edit_merge($rights,intval($_POST["bid1"]),intval($_POST["bid2"]));
+  page_edit_merge($rights);
 }
 else if ($page == "edit")
 {
@@ -218,8 +287,6 @@ else if ($page == "edit")
     page_edit_save($rights);
   else if (isset($_POST["ack"]))
     page_edit_ack($rights);
-  else if (isset($_POST["beleg"]))
-    page_edit_finalize($rights);
   else if (isset($_POST["belegfehler"]))
     page_edit_drop_acks($rights);
   else
@@ -285,19 +352,24 @@ else if ($page == "login")
 }
 else if ($page == "logout")
 {
-  setcookie("pp_pgacc_login", "", time() - 3600);
-  setcookie("pp_pgacc_id", "", time() - 3600);
-  header("Location: index.php");
+  // A GET request (old link or bookmark) ends no session.
+  echo '<div class="slot_notice" id="slot_notice"><h1>Abmelden mit der Schaltfläche „Logout“.</h1></div>';
 }
 else if ($page == "import")
 {
   $rights = checklogin('rights');
-  page_import($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import($rights);
 }
 else if ($page == "import2")
 {
   $rights = checklogin('rights');
-  page_import2($rights);
+  if (write_rights($rights) === false)
+    echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  else
+    page_import2(write_rights($rights));
 }
 else if ($page == "statistics")
 {

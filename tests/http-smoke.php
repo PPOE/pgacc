@@ -7,6 +7,11 @@ assert_contains($report['body'], 'Rechenschaftsbericht der Piratenpartei Österr
 assert_contains($report['body'], '160.00&nbsp;€', '2024 report income');
 assert_contains($report['body'], '-65.00&nbsp;€', '2024 report expenses');
 assert_no_fatal_error($report['body'], '2024 report');
+// Every per-unit section and the appendices must render; a failing query
+// ends the page early with the "or die" message.
+assert_not_contains($report['body'], 'Abfrage fehlgeschlagen', '2024 report completeness');
+assert_contains($report['body'], 'Ausgaben für die Wahlwerbung Länder', '2024 report completeness');
+assert_contains($report['body'], 'Anlage B: Einnahmen aus Sponsoring', '2024 report completeness');
 
 $transactions = http_request('/index.php?action=transactions');
 assert_status($transactions, 200, 'transactions');
@@ -51,4 +56,5 @@ assert_contains($ledger['body'], 'Synthetic Draft', 'authenticated ledger');
 assert_not_contains($ledger['body'], 'Deleted donation', 'authenticated ledger');
 assert_no_fatal_error($ledger['body'], 'authenticated ledger');
 
+assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL HTTP characterization tests passed\n";

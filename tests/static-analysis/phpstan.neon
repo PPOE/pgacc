@@ -1,0 +1,7 @@
+# PHPStan check used in CI: the application analysis plus the reviewed,
+# explicit list of existing findings. A new finding fails; a baseline entry
+# that no longer occurs (or occurs a different number of times) also fails
+# until it is removed, so fixes cannot be silently undone later.
+includes:
+  - phpstan-application.neon
+  - phpstan-baseline.neon

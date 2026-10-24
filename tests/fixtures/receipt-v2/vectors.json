@@ -1,0 +1,110 @@
+{
+    "generator": "tests/fixtures/receipt-v2/generate-vectors.php",
+    "php": "7.4.33",
+    "fingerprints": {
+        "synthetic-test-only-encryption-key": "b3c87107",
+        "another-synthetic-receipt-key": "ec1cf7a9"
+    },
+    "vectors": [
+        {
+            "name": "empty",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "",
+            "file": "50475232000102030405060708090a0b0c0d0e0f2c2d74846a4ea832b4c2c25cb6b406c641b9da4a982cf0076e764e60f7f0d7a53a09b411f54b059cd473da5967abc912"
+        },
+        {
+            "name": "15 bytes",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "252525252525252525252525252525",
+            "file": "50475232000102030405060708090a0b0c0d0e0fc9864b4ad8aaf4f66d4f65892c2b893279523425cad333cf0779b26386e8ba30a59d66adfcddf6e6e37f1cef5d0ecfe4"
+        },
+        {
+            "name": "16 bytes",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "25252525252525252525252525252525",
+            "file": "50475232000102030405060708090a0b0c0d0e0fb260a899eb3afcc77e96958b3fc3a50a6d0b65ded2bb8e1728500390d498f9be78a4991886e3d7562efe73adbbae5d35408c77e43ac7f0ac094d77bf7ba78747"
+        },
+        {
+            "name": "pdf document",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "255044462d312e340a25e2e3cfd30a312030206f626a0a3c3c202f54797065202f436174616c6f67203e3e0a656e646f626a0a747261696c65720a3c3c202f526f6f74203120302052203e3e0a2525454f460a",
+            "file": "50475232000102030405060708090a0b0c0d0e0f78622ee4fb86460ebfba682bae0d9839b9032e64b4582ef6efb54094c8baf2c64ac3136f3a413edbca9ff94b7d9e4dd2eb4240a8fa42bdfd6a58a2e3cad74a8c1b086cb9678deaf42b11c5ec964b0f6c36ce8cd85602434b6de40546ecc7002928ec7114ee511e5c8abaf204c4ab6d82aa90c513d3151090e219717c0f46f5e0"
+        },
+        {
+            "name": "pdf document, file 43",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "43",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "255044462d312e340a25e2e3cfd30a312030206f626a0a3c3c202f54797065202f436174616c6f67203e3e0a656e646f626a0a747261696c65720a3c3c202f526f6f74203120302052203e3e0a2525454f460a",
+            "file": "50475232000102030405060708090a0b0c0d0e0f15e8869fbc9f81684bf6656b4b1c89df93e15c08475846e261a50327042baab84069c34064b15c9886bc83eb23123fc1538ec98bd086f5b951877598485e195f86a1ba40d597d6b0e81c1b3353b8846b27e661c8df4a104e954f7dd0253d449c147f8dd03a28d3fd622386397f75535a1ccd9473fcda02787d2e31423c9297ee"
+        },
+        {
+            "name": "pdf document, other IV",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+            "plain": "255044462d312e340a25e2e3cfd30a312030206f626a0a3c3c202f54797065202f436174616c6f67203e3e0a656e646f626a0a747261696c65720a3c3c202f526f6f74203120302052203e3e0a2525454f460a",
+            "file": "50475232a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a571dd25079a0fce78adb9ad627888a4cacbd2e532603e624a2365aa45656298ca157c64a85ee6bf26e606a885079f9f90cab9bb75bb13950aeb0e07415adc44030fdebb5e613f0b39cf6a95ae6435964f6dda6e3e6f88472347c577c1ad5535e152769463462fab862cb88481021c4dfe35bc42a6e779a00df40f4ab2908621ab"
+        },
+        {
+            "name": "pdf document, other key",
+            "key": "another-synthetic-receipt-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "255044462d312e340a25e2e3cfd30a312030206f626a0a3c3c202f54797065202f436174616c6f67203e3e0a656e646f626a0a747261696c65720a3c3c202f526f6f74203120302052203e3e0a2525454f460a",
+            "file": "50475232000102030405060708090a0b0c0d0e0f40e5647b6a5c14d07ea2699384b6a73aa699d2f144bfd779820c683ed3c63e5ee8352dc3969232654834eddf41f090065d68f9fc8d488852b6e4fa3ad7b654b00c36579ce3c83c51a1384bc6af6ec52375ac6501c4188cd81fe198f829fa32891bc4c295df202e02eee7287890fa4a631c0fc7ca8eecc41372983193e80b1a35"
+        },
+        {
+            "name": "jpeg with trailing NUL bytes",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "815",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "ffd8ffe000104a46494600010100000100010000ffdb004300080606070605080707070909080a0c140d0c0b0b0c73796e746865746963ffd90000",
+            "file": "50475232000102030405060708090a0b0c0d0e0f94774a4ed0488ddccce4b58f43a7217e65bcab3edfcaf8ffb07d6f42cefb0e413ff51fbbdabfdb4f564e90ebcfafc17a94b2a2953e07ba7a089b852e5db353218f77308ff5272af65e040c05b01fce8bc122e16d8698f53fac524f8fe89de130"
+        },
+        {
+            "name": "png (other type)",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain": "89504e470d0a1a0a73796e746865746963",
+            "file": "50475232000102030405060708090a0b0c0d0e0f05ff55a9200f2f3796199d0533a504beeb1c149039c5d1fac732786f4c1538a94eccc3f158ed8a2bc059da116b66d1f788496cd43d794c5f4cedd60df8f8dede"
+        },
+        {
+            "name": "three chunks and a bit",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain_parts": [
+                "25504446",
+                "73796e74686574696300ff",
+                17000,
+                "0a2525454f460a"
+            ],
+            "file_sha256": "f21bf7954303c0afeedf2c59fc536f010d206ccc2696ae425248e69698dffb30",
+            "file_length": 187076
+        },
+        {
+            "name": "exactly two chunks",
+            "key": "synthetic-test-only-encryption-key",
+            "number": "42",
+            "iv": "000102030405060708090a0b0c0d0e0f",
+            "plain_parts": [
+                "",
+                "ffd8ff",
+                43690,
+                "ffd9"
+            ],
+            "file_sha256": "267e38818c5513e880bf36bcbb08639d5a02785acb8dcf02fd096880cd70b307",
+            "file_length": 131140
+        }
+    ]
+}

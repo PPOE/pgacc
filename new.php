@@ -13,7 +13,27 @@ if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name 
         $value = $default_if_true;
 return $value;
 }
-function get_voucher($part,$rights)
+// The organization of a voucher part that posts none: the user's single
+// (numeric, trimmed) organization, otherwise 10.
+function default_organization($rights)
+{
+$default_lo = 10;
+$rights2 = rights_tokens($rights);
+if (count($rights2) == 1 && preg_match('/^\d+$/D', $rights2[0]) == 1)
+{
+  $default_lo = intval($rights2[0]);
+}
+return $default_lo;
+}
+// get_voucher() text fields: SQL-escaped for the insert, as posted for a
+// form that is shown again.
+function voucher_text($value, $escape)
+{
+  if ($escape)
+    return pg_escape_string($value);
+  return $value;
+}
+function get_voucher($part,$rights,$escape = true)
 {
   $filepart = $part;
 $voucher['bid'] = get_param($part, 'bid', 0, '/^\d+$/');
@@ -34,33 +54,40 @@ else if ($voucher['dir'] == 'bel')
     $part = $part - 1;
 }
 
-$voucher['date'] = format_date(get_param($part, 'date', null, '/^((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1)))$/'));
+$voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
-$default_lo = 10;
-$rights2 = explode(",", $rights);
-if (count($rights2) == 1 && is_numeric($rights))
-{
-  $default_lo = intval($rights);
-}
-$voucher['lo'] = get_param($part, 'lo', $default_lo, '/^\d+$/');
+$voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
 if ($voucher['type'] == 45)
   $voucher['amount'] = "0.00";
-$voucher['gegenkonto'] = pg_escape_string(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'));
-$voucher['konto'] = pg_escape_string(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['vkonto'] = pg_escape_string(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'));
-$voucher['comment'] = pg_escape_string(get_param($part, 'comment', '', null));
-$voucher['commentgf'] = pg_escape_string(get_param($part, 'commentgf', '', null));
+$voucher['gegenkonto'] = voucher_text(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'), $escape);
+$voucher['konto'] = voucher_text(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['vkonto'] = voucher_text(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
+$voucher['comment'] = voucher_text(get_param($part, 'comment', '', null), $escape);
+$voucher['commentgf'] = voucher_text(get_param($part, 'commentgf', '', null), $escape);
 $voucher['purpose'] = get_param_bool($part, 'purpose', 'false', null, 'true');
 $voucher['refund'] = get_param_bool($part, 'refund', 'false', null, 'true');
 $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
 $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
-$voucher['name'] = pg_escape_string(get_param($part, 'name', '', null));
-$voucher['street'] = pg_escape_string(get_param($part, 'street', '', null));
-$voucher['plz'] = pg_escape_string(get_param($part, 'plz', '', null));
-$voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
+$voucher['name'] = voucher_text(get_param($part, 'name', '', null), $escape);
+$voucher['street'] = voucher_text(get_param($part, 'street', '', null), $escape);
+$voucher['plz'] = voucher_text(get_param($part, 'plz', '', null), $escape);
+$voucher['city'] = voucher_text(get_param($part, 'city', '', null), $escape);
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
+}
+// Whether the organizations of the parts of a voucher may be used
+// (organization_allowed()): the posted ones, or the default one of
+// get_voucher() for a part that posts none.
+function posted_organizations_allowed($parts, $rights)
+{
+for ($part = 0; $part < $parts; $part++)
+{
+  $lo = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
+  if (!organization_allowed($lo, $rights))
+    return false;
+}
+return true;
 }
 function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
 {
@@ -129,7 +156,7 @@ else
   $query = "SELECT name FROM ppmembers WHERE id = {$voucher['mitgliedsnummer']};";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $voucher['name'] = $line['name'];
+    $voucher['name'] = pg_escape_string($line['name']);
   }
   pg_free_result($result);
 }
@@ -155,8 +182,8 @@ VALUES
   '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
   '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
   {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},".
-  ($ack1_old == null ? "NULL" : "'" . $ack1_old . "'").",".
-  ($ack2_old == null ? "NULL" : "'" . $ack2_old . "'").
+  ($ack1_old == null ? "NULL" : "'" . pg_escape_string($ack1_old) . "'").",".
+  ($ack2_old == null ? "NULL" : "'" . pg_escape_string($ack2_old) . "'").
   ");";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -164,12 +191,23 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 return $voucher_number;
 }
-function page_new_save()
+function page_new_save($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = $_POST["parts"];
 
+if (!posted_organizations_allowed($parts, $rights))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $query = "SELECT nextval('voucher_number') AS num;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -186,6 +224,12 @@ for ($i = 0; $i < $parts; $i++)
 }
 function page_new_file($rights)
 {
+$rights = write_rights($rights);
+if ($rights === false)
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+  return;
+}
 $parts = 1;
 if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
         $parts = intval($_POST["parts"]);
@@ -223,17 +267,31 @@ elseif (isset($_POST["id"]))
 {
   $id = $_POST["id"];
 }
-else
+if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
 $rightssql = rights2orgasql($rights);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;";
+// Only a current row of this voucher that the user sees; checked before the
+// finalized check, so that other organizations learn nothing about it.
+$query = "SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+$previous_file = intval($line['file']);
+pg_free_result($result);
+
+// A finalized row blocks the upload, also a row of another organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
   pg_free_result($result);
   return;
 }
@@ -246,18 +304,24 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-$sourcepath = $_FILES["file$file"]["tmp_name"];
-$targetpath = getcwd() . '/files/' . $file_number . ".aes";
-$data = file_get_contents($sourcepath);
-file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
-
-  vouchers_reset_ack($id, $rightssql);
-
-$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+// The scoped update must match the row (checked above) before the receipt
+// is stored and the approvals of the voucher are reset.
+$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
+$updated = pg_affected_rows($result);
 pg_free_result($result);
+
+$sourcepath = $_FILES["file$file"]["tmp_name"];
+if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath))
+{
+  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  pg_free_result($result);
+  echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
+  return;
+}
+
+  // An upload resets the approvals of the whole voucher.
+  vouchers_reset_ack($id, '');
 
 echo "<h1>Upload erfolgreich - Buchung Nr. $id - Buchungszeile Nr. $bid</h1>";
 block_start();
@@ -297,7 +361,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -311,7 +375,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+  echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -325,7 +389,7 @@ echo '
 $query = "SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+    echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
 }
 pg_free_result($result);
@@ -339,15 +403,16 @@ echo '
 $query = "SELECT id,name FROM person_type ORDER BY used DESC,id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    echo '<option value="'.($voucher['person_type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.$line['name'].'</option>
+    echo '<option value="'.($voucher['person_type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
 }
 pg_free_result($result);
 echo '
 </select>
 ';
-$rights2 = explode(",", $rights);
-if (count($rights2) != 1 && !is_numeric($rights))
+// The organization field for rights with several entries (a single one is
+// the default organization).
+if (count(rights_tokens($rights)) != 1)
 {
 echo '
 </div>
@@ -358,9 +423,8 @@ echo '
 $query = "SELECT id,name FROM lo ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array('root',$rights2) || in_array($line['id'], konto2lo($rights2)))
-  echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.$line['name'].'</option>
+if (organization_allowed($line['id'], $rights))
+  echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.html_escape($line['name']).'</option>
 ';
 }
 pg_free_result($result);
@@ -375,23 +439,23 @@ echo '
 <label class="ui_field_label" for="mitgliedsnummer'.$part.'">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer'.$part.'" value="'.$voucher['mitgliedsnummer'].'" onchange="clicked();" />
 </div>
 <div id="gegenkonto'.$part.'">
-<label class="ui_field_label" for="gegenkonto'.$part.'">Fremdkonto</label><input type="text" name="gegenkonto'.$part.'" value="'.$voucher['gegenkonto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="gegenkonto'.$part.'">Fremdkonto</label><input type="text" name="gegenkonto'.$part.'" value="'.html_escape($voucher['gegenkonto']).'" onchange="clicked();" />
 </div>
 <div>
 <label class="ui_field_label" for="amount'.$part.'">Betrag (in €)</label><input type="text" id="amount'.$part.'" name="amount'.$part.'" value="'.sprintf("%1.2f",$voucher['amount'] / 100.0) .'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="konto'.$part.'">Konto</label><input type="text" id="konto'.$part.'" name="konto'.$part.'" value="'.$voucher['konto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="konto'.$part.'">Konto</label><input type="text" id="konto'.$part.'" name="konto'.$part.'" value="'.html_escape($voucher['konto']).'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.$voucher['comment'].'" onchange="clicked();" />
+<label class="ui_field_label" for="comment'.$part.'">Buchungstext</label><input type="text" id="comment'.$part.'" name="comment'.$part.'" value="'.html_escape($voucher['comment']).'" onchange="clicked();" />
 </div>
 </div>
 <div>
-<label class="ui_field_label" for="commentgf'.$part.'">Kommentar</label><input type="text" id="commentgf'.$part.'" name="commentgf'.$part.'" value="'.$voucher['commentgf'].'" onchange="clicked();" />
+<label class="ui_field_label" for="commentgf'.$part.'">Kommentar</label><input type="text" id="commentgf'.$part.'" name="commentgf'.$part.'" value="'.html_escape($voucher['commentgf']).'" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="vkonto'.$part.'">Virtuelles Konto</label><input type="text" id="vkonto'.$part.'" name="vkonto'.$part.'" value="'.$voucher['vkonto'].'" onchange="clicked();" />
+<label class="ui_field_label" for="vkonto'.$part.'">Virtuelles Konto</label><input type="text" id="vkonto'.$part.'" name="vkonto'.$part.'" value="'.html_escape($voucher['vkonto']).'" onchange="clicked();" />
 </div>
 <div id="not_bel_b_'.$part.'"'.($voucher['dir'] == 'bel'?' style="display: none;"':'').'>
 <div id="purpose_block'.$part.'">
@@ -401,16 +465,16 @@ echo '
 <label class="ui_field_label" for="refund'.$part.'">Rückerstattung</label><input type="checkbox" id="refund'.$part.'" name="refund'.$part.'" value="1" '.($voucher['refund']=='true'?' checked="checked"':'').' onchange="clicked();" />
 </div>
 <div id="name'.$part.'">
-<label class="ui_field_label" for="name'.$part.'">Name</label><input type="text" name="name'.$part.'" value="'.$voucher['name'].'" onchange="clicked();" />
+<label class="ui_field_label" for="name'.$part.'">Name</label><input type="text" name="name'.$part.'" value="'.html_escape($voucher['name']).'" onchange="clicked();" />
 </div>
 <div id="street'.$part.'">
-<label class="ui_field_label" for="street'.$part.'">Straße</label><input type="text" name="street'.$part.'" value="'.$voucher['street'].'" onchange="clicked();" />
+<label class="ui_field_label" for="street'.$part.'">Straße</label><input type="text" name="street'.$part.'" value="'.html_escape($voucher['street']).'" onchange="clicked();" />
 </div>
 <div id="plz'.$part.'">
-<label class="ui_field_label" for="plz'.$part.'">PLZ</label><input type="text" name="plz'.$part.'" value="'.$voucher['plz'].'" onchange="clicked();" />
+<label class="ui_field_label" for="plz'.$part.'">PLZ</label><input type="text" name="plz'.$part.'" value="'.html_escape($voucher['plz']).'" onchange="clicked();" />
 </div>
 <div id="city'.$part.'">
-<label class="ui_field_label" for="city'.$part.'">Ort</label><input type="text" name="city'.$part.'" value="'.$voucher['city'].'" onchange="clicked();" />
+<label class="ui_field_label" for="city'.$part.'">Ort</label><input type="text" name="city'.$part.'" value="'.html_escape($voucher['city']).'" onchange="clicked();" />
 </div>
 </div>
 <div id="city'.$part.'">
@@ -433,8 +497,7 @@ else
 }
 echo '
 </div>';
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($voucher['lo'], konto2lo($rights2)))
+if (organization_allowed($voucher['lo'], $rights))
 {
 echo '
 <div id="del_voucher_'.$part.'" style="float: right;">
@@ -447,14 +510,14 @@ echo '
 block_end();
 }
 
-function page_new_buchung($part = 0, $part_to_remove,$rights,$add)
+function page_new_buchung($part, $part_to_remove,$rights,$add)
 {
 if ($part_to_remove != -1 && $part >= $part_to_remove)
-	$voucher = get_voucher($part+1,$rights);
+	$voucher = get_voucher($part+1,$rights,false);
 else if ($add)
-  $voucher = get_voucher($part-1,$rights);
+  $voucher = get_voucher($part-1,$rights,false);
 else
-	$voucher = get_voucher($part,$rights);
+	$voucher = get_voucher($part,$rights,false);
 
 if ($add == 2)
 {
@@ -578,6 +641,7 @@ function clicked(init)
 }
 </script>
 <form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action='.$p.'" method="post">
+'.csrf_field().'
 ';
 }
 
@@ -615,8 +679,8 @@ end_of_form($parts,$rights,$bgfandack,$rights,true,false);
 
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)
 {
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2)))
+$rights2 = rights_tokens($rights);
+if (write_rights($rights) !== false && (has_right($rights, 'bgf') || in_array(trim($lo), konto2lo($rights2))))
 {
 if ($bgfandack)
 {

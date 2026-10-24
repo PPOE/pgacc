@@ -1,0 +1,20 @@
+# step: all-csv-unitone
+# request: GET /index.php?action=all&format=csv as unitone
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (2550 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+1007	108	2011-12-31	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-008	TEST-ACCOUNT-1	TEST-VIRTUAL-1	50,00€	Voucher before public transaction cutoff		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2005	205	2012-03-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-205	TEST-ACCOUNT-1	TEST-VIRTUAL-1	3,33€	Year 2012 a		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor 2012   	
+2006	206	2012-03-02	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-206	TEST-ACCOUNT-1	TEST-VIRTUAL-1	6,67€	Year 2012 b		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Donor 2012   	
+2007	207	2012-12-31	Synthetic expense	Synthetic National Unit	Nein	SYNTHETIC-207	TEST-ACCOUNT-1	TEST-VIRTUAL-1	-0,01€	Year 2012 c		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier 2012   	
+1001	101	2024-02-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-001	TEST-ACCOUNT-1	TEST-VIRTUAL-1	120,00€	Closed donation		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+1002	102	2024-03-01	Synthetic legacy donation	Synthetic National Unit	Nein	SYNTHETIC-002	TEST-ACCOUNT-1	TEST-VIRTUAL-1	30,00€	Partially reviewed legacy donation		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+1006	107	2024-07-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-007	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,00€	Zero-value closed voucher		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+1009	110	2024-08-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-010	TEST-ACCOUNT-1	TEST-VIRTUAL-1	10,00€	Partially reviewed donation		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2013	213	2024-10-02	Synthetic in-kind service	Synthetic National Unit	Nein	SYNTHETIC-213	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,05€	Dienstleistung		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Service Donor   	
+2016	216	2024-12-01	Synthetic internal transfer in	Synthetic National Unit	Nein		TEST-ACCOUNT-1		1000,00€	Umbuchung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Intern   	
+1008	109	2025-01-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-009	TEST-ACCOUNT-1	TEST-VIRTUAL-1	25,00€	Different reporting year		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Future Donor   	
+

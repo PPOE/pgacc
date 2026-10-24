@@ -1,0 +1,380 @@
+# step: all-reviewer
+# request: GET /index.php?action=all&filter_date=2024 as reviewer
+status: 200
+header: Content-type: text/html
+--- body (17800 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page all">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026" class="selected">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<table><tr><td><b><a href="index.php?action=all&amp;sort=idd&amp;filter_date=2024">Buchung</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="1"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="2"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=datea&amp;filter_date=2024">Datum</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="3"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=typea&amp;filter_date=2024">Art</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="4"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=loa&amp;filter_date=2024">LO</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="5"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=membera&amp;filter_date=2024">Mitglied</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="6"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="7"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=ka&amp;filter_date=2024">Konto</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="8"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="9"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=ama&amp;filter_date=2024">Betrag</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="10"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=texta&amp;filter_date=2024">Text</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="11"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="12"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="13"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="14"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="15"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=refunda&amp;filter_date=2024">Rück.</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="16"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=bela&amp;filter_date=2024">Datei</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="17"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=all&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><form class="inline" action="index.php?action=all" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="18"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+</tr>
+<form action="index.php" method="GET"> <tr>
+<td><input type="hidden" name="action" value="all" />
+<input type="text" name="filter_id" value="" size="1" /></td><td><input type="text" name="filter_bid" value="" size="1" /></td><td><input type="text" name="filter_date" value="2024" size="4" /></td><td><input type="text" name="filter_type" value="" size="5" /></td><td><input type="text" name="filter_lo" value="" size="5" /></td><td><input type="text" name="filter_member_id" value="" size="1" /></td><td><select type="text" name="filter_gk" value="" size="1" /></td><td><input type="text" name="filter_k" value="" size="7" /></td><td><input type="text" name="filter_vk" value="" size="7" /></td><td><input type="text" name="filter_amount" value="" size="1" /></td><td><input type="text" name="filter_text" value="" size="15" /></td><td><input type="text" name="filter_comment" value="" size="15" /></td><td><input type="checkbox" name="filter_comm" value="" size="1" /></td><td><input type="text" name="filter_ack" value="" size="3" /></td><td><input type="text" name="filter_ack_old" value="" size="3" /></td><td><input type="checkbox" name="filter_refund" value="" size="1" /></td><td><input type="checkbox" name="filter_bel" value="" size="1" /></td><td><input type="text" name="filter_name" value="" size="1" /><input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
+</td>
+</tr></form><tr><td><a href="index.php?action=edit&id=1001&bid=101">1001</a></td>
+<td>101</td>
+<td>2024-02-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-001</td>
+<td>TEST-ACCOUNT-1</td>
+<td>TEST-VIRTUAL-1</td>
+<td>120.00€</td>
+<td>Closed donation</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Donor   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1002&bid=102">1002</a></td>
+<td>102</td>
+<td>2024-03-01</td>
+<td>Synthetic legacy donation</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-002</td>
+<td>TEST-ACCOUNT-1</td>
+<td>TEST-VIRTUAL-1</td>
+<td>30.00€</td>
+<td>Partially reviewed legacy donation</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Donor   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2020&bid=220">2020</a></td>
+<td>220</td>
+<td>2024-03-15</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-220</td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-12.34€</td>
+<td>Lastschrift BG/000000220</td>
+<td></td>
+<td>Ja</td>
+<td> </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Statement Supplier   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2021&bid=221">2021</a></td>
+<td>221</td>
+<td>2024-03-31</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td></td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-0.50€</td>
+<td>Zinsen BG/000000221</td>
+<td></td>
+<td>Ja</td>
+<td> </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Bank   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2014&bid=214">2014</a></td>
+<td>214</td>
+<td>2024-03-31</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>-7.50€</td>
+<td>Entgelt für Kontoführung</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Bank   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1003&bid=103">1003</a></td>
+<td>103</td>
+<td>2024-04-01</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-003</td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>-50.00€</td>
+<td>Closed expense with attachment</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Ja</td>
+<td>Synthetic Supplier   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1003&bid=104">1003</a></td>
+<td>104</td>
+<td>2024-04-01</td>
+<td>Synthetic legacy expense</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-004</td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>-15.00€</td>
+<td>Second row of attached voucher</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Supplier   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1004&bid=105">1004</a></td>
+<td>105</td>
+<td>2024-05-01</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-005</td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>-25.00€</td>
+<td>Unreviewed expense</td>
+<td></td>
+<td>Ja</td>
+<td> </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Draft   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2022&bid=222">2022</a></td>
+<td>222</td>
+<td>2024-06-30</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td></td>
+<td>AT606000050110117300</td>
+<td></td>
+<td>-7.00€</td>
+<td>Entgelt für Kontoführung</td>
+<td></td>
+<td>Ja</td>
+<td> </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Bank   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1006&bid=107">1006</a></td>
+<td>107</td>
+<td>2024-07-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-007</td>
+<td>TEST-ACCOUNT-1</td>
+<td>TEST-VIRTUAL-1</td>
+<td>0.00€</td>
+<td>Zero-value closed voucher</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Donor   </td>
+</tr><tr><td><a href="index.php?action=edit&id=1009&bid=110">1009</a></td>
+<td>110</td>
+<td>2024-08-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-010</td>
+<td>TEST-ACCOUNT-1</td>
+<td>TEST-VIRTUAL-1</td>
+<td>10.00€</td>
+<td>Partially reviewed donation</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Donor   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2012&bid=212">2012</a></td>
+<td>212</td>
+<td>2024-10-01</td>
+<td>Synthetic in-kind donation</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>BG/123456789 12</td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>99.99€</td>
+<td>Sachspende Österreich
+zweite Zeile BG/123456789 12</td>
+<td>Kommentar &lt;b&gt;GF&lt;/b&gt;</td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Jörg &quot;Quote&quot; O&#039;Brien Gasse 2 8010 Graz</td>
+</tr><tr><td><a href="index.php?action=edit&id=2013&bid=213">2013</a></td>
+<td>213</td>
+<td>2024-10-02</td>
+<td>Synthetic in-kind service</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td>SYNTHETIC-213</td>
+<td>TEST-ACCOUNT-1</td>
+<td>TEST-VIRTUAL-1</td>
+<td>0.05€</td>
+<td>Dienstleistung</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a </td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Synthetic Service Donor   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2015&bid=215">2015</a></td>
+<td>215</td>
+<td>2024-11-11</td>
+<td>Synthetic private refund</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td>AT000000000000000215</td>
+<td>TEST-ACCOUNT-2</td>
+<td>TEST-VIRTUAL-2</td>
+<td>-42.00€</td>
+<td>Rückerstattung</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Ja</td>
+<td>Nein</td>
+<td>Private Person   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2016&bid=216">2016</a></td>
+<td>216</td>
+<td>2024-12-01</td>
+<td>Synthetic internal transfer in</td>
+<td>Synthetic National Unit</td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-1</td>
+<td></td>
+<td>1000.00€</td>
+<td>Umbuchung</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Intern   </td>
+</tr><tr><td><a href="index.php?action=edit&id=2016&bid=217">2016</a></td>
+<td>217</td>
+<td>2024-12-01</td>
+<td>Synthetic internal transfer out</td>
+<td>Synthetic Regional Unit</td>
+<td>Nein</td>
+<td></td>
+<td>TEST-ACCOUNT-2</td>
+<td></td>
+<td>-1000.00€</td>
+<td>Umbuchung</td>
+<td></td>
+<td>Ja</td>
+<td>reviewer-a reviewer-b</td>
+<td><del></del> <del></del></td>
+<td>Nein</td>
+<td>Nein</td>
+<td>Intern   </td>
+</tr></table>
+</div>
+<br style="clear: both;" /><center><a href="/index.php?action=all&amp;filter_date=2024&amp;format=csv">Als CSV Datei herunterladen</a></center>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

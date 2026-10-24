@@ -1,0 +1,17 @@
+# PHPStan for the tracked top-level application files, without the baseline
+# (used by --report and --update-baselines). analyse.sh runs it in a disposable
+# workspace that holds exactly those files, plus the synthetic
+# tests/runtime/test-constants.php as constants.php and the locked application
+# vendor/ directory, so require() paths resolve.
+includes:
+  - phpstan-common.neon
+
+parameters:
+  # A directory path, not a file list: PHPStan does not report stale baseline
+  # entries when it is given only files.
+  paths:
+    - ../..
+  excludePaths:
+    - ../../constants.php
+    - ../../tests
+    - ../../vendor

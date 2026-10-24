@@ -1,0 +1,25 @@
+# Paths left out of `git archive` (scripts/release.sh) and of GitHub's
+# automatic source archives. Only development files are listed here: every
+# top-level *.php page, css, js/, icons/, .htaccess, table-schema.txt, the
+# READMEs, CHANGELOG.md and composer.json/composer.lock stay in. No line-ending
+# attributes: several files are CRLF and must stay byte-exact.
+
+# Test harness, CI and tooling.
+/tests/** export-ignore
+/compose*.yaml export-ignore
+/phpunit.xml export-ignore
+/.github export-ignore
+/scripts export-ignore
+/AGENTS.md export-ignore
+/.dockerignore export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+
+# Ad-hoc voucher-number check without login; production's web server denies it.
+/check.php export-ignore
+
+# The database schema referenced by the README setup stays in. Directories
+# matching an export-ignore pattern drop all of their contents, so tests/fixtures
+# itself is re-included (its other entries still match /tests/**).
+/tests/fixtures -export-ignore
+/tests/fixtures/schema.sql -export-ignore

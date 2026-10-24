@@ -1,0 +1,9 @@
+# step: login-reviewer
+# request: POST /index.php?action=login as anon
+# form: submit=Anmeldung&name=synthetic-reviewer&pass=reviewer-password
+status: 302
+header: Set-Cookie: pp_pgacc_login={{cookie}}; expires=Tue, 16 Jun 2026 {{time}} GMT; Max-Age=86400; secure; HttpOnly; SameSite=Lax
+header: Set-Cookie: pp_pgacc_id=2; expires=Tue, 16 Jun 2026 {{time}} GMT; Max-Age=86400; secure; HttpOnly; SameSite=Lax
+header: Location: index.php
+header: Content-type: text/html
+--- body (0 bytes) ---

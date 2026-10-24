@@ -19,7 +19,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-      echo "<tr><td>{$line['name']}</td><td>";
+      echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -59,7 +59,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-      echo "<tr><td>{$line['name']}</td><td>";
+      echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -96,7 +96,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     if (intval($line2['sum']) != 0 || $print_empty)
     {
-      echo "<tr><td>{$line['name']}</td><td>";
+      echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
       echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
   }
@@ -128,6 +128,8 @@ $months = "";
 $last = "31.12.$year";
 $prev = "31.12." . ($year-1);
 $prev_cond = "AND date < '".(intval($year))."-01-01'";
+// unit_report() never reads its first parameter; it always received null.
+$prevcond = null;
 $cond = date_condition($year,1);
 $precond = "";
 $condall = date_condition($year,0);
@@ -162,7 +164,7 @@ echo "</tr>\n";
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td><a href=\"#{$line['name']}\">{$line['name']}</a></td>\n";
+  echo "<tr><td><a href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></td>\n";
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND ".eyes()." AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
@@ -268,7 +270,7 @@ echo "</tr>\n";
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<tr><td><a href=\"#{$line['name']}\">{$line['name']}</a></td>\n";
+  echo "<tr><td><a href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></td>\n";
 /*  $query = "SELECT name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
   $result2 = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   if (pg_num_rows($result2) > 0)
@@ -354,12 +356,12 @@ block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<br /><h2><a name=\"{$line['name']}\" href=\"#{$line['name']}\">{$line['name']}</a></h2>\n";
+  echo "<br /><h2><a name=\"" . html_escape($line['name']) . "\" href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></h2>\n";
   unit_report($prevcond,$cond,$condall,$line['id'],$year);
 $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-  echo "<h3><a name=\"{$line2['name']}\">{$line2['name']}</a></h3>\n";
+  echo "<h3><a name=\"" . html_escape($line2['name']) . "\">" . html_escape($line2['name']) . "</a></h3>\n";
   unit_report($prevcond,$cond,$condall,$line2['id'],$year);
 }
 pg_free_result($result2);
@@ -388,12 +390,12 @@ block_start();
 $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo "<br /><h2><a name=\"{$line['name']}\" href=\"#{$line['name']}\">{$line['name']}</a></h2>\n";
+  echo "<br /><h2><a name=\"" . html_escape($line['name']) . "\" href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></h2>\n";
   unit_report($prevcond,$cond,$condall,$line['id'],$year, 'wk');
   $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
   $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-    echo "<h3><a name=\"{$line2['name']}\">{$line2['name']}</a></h3>\n";
+    echo "<h3><a name=\"" . html_escape($line2['name']) . "\">" . html_escape($line2['name']) . "</a></h3>\n";
     unit_report($prevcond,$cond,$condall,$line2['id'],$year,'wk');
   }
   pg_free_result($result2);
@@ -440,7 +442,7 @@ foreach ($ptypes2 as $ptype)
   }
   pg_free_result($result);
   $amount = $amount / 100.0;
-  echo "<tr><td><b>{$ptype['description']}</b></td><td>$amount&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>\n";
+  echo "<tr><td><b>" . html_escape($ptype['description']) . "</b></td><td>$amount&nbsp;€</td><td>0&nbsp;€</td><td>0&nbsp;€</td></tr>\n";
 }
 echo '</table>';
 block_end();

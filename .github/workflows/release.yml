@@ -1,0 +1,127 @@
+name: Release
+
+# Release tooling (README.md, "Releases"):
+# - a pushed tag v<version> builds the install archive (code plus vendor/,
+#   scripts/release.sh), checks vendor/ on PHP 5.3 and creates a DRAFT GitHub
+#   release with the archive, its .sha256 and the CHANGELOG.md section as
+#   notes; the owner reviews and publishes it;
+# - a manual run is a dry run: it builds the archive for the given version and
+#   uploads it as a workflow artifact, without a release.
+# Both fail unless CHANGELOG.md has a dated section for the version.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v (e.g. 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the archive and check vendor/ on PHP 5.3
+    runs-on: ubuntu-latest
+    # The PHP 5.3 check builds the squeeze i386 image.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # Only HEAD (and, on tag pushes, the tag) is needed.
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Determine the version
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT" = push ]; then
+            version=${REF_NAME#v}
+          else
+            version=${INPUT_VERSION#v}
+          fi
+          # Validate before writing $GITHUB_OUTPUT (no newlines or other
+          # characters); scripts/release.sh checks the format again.
+          case "$version" in
+            '' | *[!0-9A-Za-z.-]*)
+              echo "Invalid version" >&2
+              exit 1
+              ;;
+          esac
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "Version must look like 1.2.3 or 1.2.3-rc.1: $version" >&2
+            exit 1
+          fi
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - name: Build the archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: sh scripts/release.sh "$VERSION"
+
+      - name: Upload the archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pgacc-${{ steps.version.outputs.version }}
+          path: |
+            build/release/*.tar.gz
+            build/release/*.tar.gz.sha256
+            build/release/notes-*.md
+            build/release/title-*.txt
+          if-no-files-found: warn
+
+  draft-release:
+    # Tag pushes only; the only job with write access and the only way
+    # releases are created. A tag push builds exactly the tagged commit.
+    name: Create the draft release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download the archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pgacc-${{ needs.build.outputs.version }}
+          path: build/release
+
+      - name: Create the draft release
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="v$VERSION"
+          cd build/release
+          sha256sum -c "pgacc-$VERSION.tar.gz.sha256"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "A release for $tag already exists; edit or delete it on GitHub" >&2
+            exit 1
+          fi
+          case "$VERSION" in
+            *-*) prerelease=--prerelease ;;
+            *) prerelease= ;;
+          esac
+          # --verify-tag: use the pushed tag, never create one.
+          gh release create "$tag" --draft $prerelease --verify-tag \
+            --title "$(cat "title-$VERSION.txt")" --notes-file "notes-$VERSION.md" \
+            "pgacc-$VERSION.tar.gz" "pgacc-$VERSION.tar.gz.sha256"

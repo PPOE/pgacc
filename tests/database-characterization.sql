@@ -1,19 +1,28 @@
 -- Representative SQL contracts copied from the current application.
--- Any failed assertion aborts the test run.
+-- Any failed assertion aborts the test run. Comparisons use IS DISTINCT FROM,
+-- so an unexpected NULL fails instead of passing silently.
+-- Must stay valid on every PGACC_TEST_PG server (8.4 and 18): each check is a
+-- temporary plpgsql function instead of a DO block (9.0+), lists are built
+-- with ARRAY(SELECT ... ORDER BY) instead of array_agg(... ORDER BY) (9.0+),
+-- and plpgsql itself is created around this file on 8.4
+-- (tests/fixtures/plpgsql-create.sql).
 
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_tables text[];
   actual_sequences text[];
   actual_constraints text[];
+  actual_not_null text[];
 BEGIN
-  SELECT array_agg(table_name::text ORDER BY table_name)
-  INTO actual_tables
-  FROM information_schema.tables
-  WHERE table_schema = 'public'
-    AND table_type = 'BASE TABLE';
+  actual_tables := ARRAY(
+    SELECT table_name::text
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_type = 'BASE TABLE'
+    ORDER BY table_name
+  );
 
-  IF actual_tables <> ARRAY[
+  IF actual_tables IS DISTINCT FROM ARRAY[
     'balance',
     'donation_type',
     'import',
@@ -27,12 +36,14 @@ BEGIN
     RAISE EXCEPTION 'Unexpected application tables: %', actual_tables;
   END IF;
 
-  SELECT array_agg(sequence_name::text ORDER BY sequence_name)
-  INTO actual_sequences
-  FROM information_schema.sequences
-  WHERE sequence_schema = 'public';
+  actual_sequences := ARRAY(
+    SELECT sequence_name::text
+    FROM information_schema.sequences
+    WHERE sequence_schema = 'public'
+    ORDER BY sequence_name
+  );
 
-  IF actual_sequences <> ARRAY[
+  IF actual_sequences IS DISTINCT FROM ARRAY[
     'balance_id_seq',
     'donation_type_id_seq',
     'file_number',
@@ -47,19 +58,60 @@ BEGIN
     RAISE EXCEPTION 'Unexpected application sequences: %', actual_sequences;
   END IF;
 
-  SELECT array_agg(conname::text ORDER BY conname)
-  INTO actual_constraints
-  FROM pg_constraint
-  WHERE connamespace = 'public'::regnamespace;
+  actual_constraints := ARRAY(
+    SELECT conname::text
+    FROM pg_constraint
+    -- PostgreSQL 18 also records NOT NULL as constraints (contype 'n'); 8.4
+    -- (production) keeps them only in attnotnull. A pg_namespace lookup
+    -- instead of 'public'::regnamespace (PostgreSQL 9.5+) keeps this valid on 8.4.
+    WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+      AND contype <> 'n'
+    ORDER BY conname
+  );
 
-  IF actual_constraints <> ARRAY['import_line_key', 'users_name_key']::text[] THEN
+  IF actual_constraints IS DISTINCT FROM ARRAY['import_line_key', 'users_name_key']::text[] THEN
     RAISE EXCEPTION 'Unexpected application constraints: %', actual_constraints;
   END IF;
+
+  -- NOT NULL columns, read from attnotnull on every server version.
+  actual_not_null := ARRAY(
+    SELECT (c.relname || '.' || a.attname)::text
+    FROM pg_attribute AS a
+    JOIN pg_class AS c ON c.oid = a.attrelid
+    WHERE c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+      AND c.relkind = 'r'
+      AND a.attnum > 0
+      AND NOT a.attisdropped
+      AND a.attnotnull
+    ORDER BY c.relname, a.attname
+  );
+
+  IF actual_not_null IS DISTINCT FROM ARRAY[
+    'balance.id',
+    'donation_type.id',
+    'donation_type.name',
+    'lo.id',
+    'lo.name',
+    'oo.id',
+    'oo.lo',
+    'oo.name',
+    'person_type.id',
+    'type.id',
+    'type.name',
+    'type.used',
+    'users.id',
+    'vouchers.deleted',
+    'vouchers.id'
+  ]::text[] THEN
+    RAISE EXCEPTION 'Unexpected NOT NULL columns: %', actual_not_null;
+  END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- The insert paths in new.php and import.php rely on these database defaults.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   probe vouchers%ROWTYPE;
 BEGIN
@@ -80,10 +132,12 @@ BEGIN
 
   DELETE FROM vouchers WHERE id = probe.id;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- index.php login() and accounts.php password generation.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   correct_password boolean;
   wrong_password boolean;
@@ -99,56 +153,64 @@ BEGIN
     RAISE EXCEPTION 'Password hash characterization failed';
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- open.php: partially reviewed and unreviewed rows remain open.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_ids integer[];
 BEGIN
-  SELECT array_agg(id ORDER BY id)
-  INTO actual_ids
-  FROM (
-    SELECT vouchers.id
-    FROM vouchers
-    LEFT JOIN lo ON orga = lo.id
-    LEFT JOIN type ON type = type.id
-    WHERE NOT deleted
-      AND (ack1 IS NULL OR ack2 IS NULL)
-  ) AS open_vouchers;
+  actual_ids := ARRAY(
+    SELECT id
+    FROM (
+      SELECT vouchers.id
+      FROM vouchers
+      LEFT JOIN lo ON orga = lo.id
+      LEFT JOIN type ON type = type.id
+      WHERE NOT deleted
+        AND (ack1 IS NULL OR ack2 IS NULL)
+    ) AS open_vouchers
+    ORDER BY id
+  );
 
-  IF actual_ids <> ARRAY[102, 105, 109, 110] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[102, 105, 109, 110] THEN
     RAISE EXCEPTION 'Unexpected open voucher IDs: %', actual_ids;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- closed.php: an attachment on one row marks every closed row of that voucher.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_rows text[];
 BEGIN
-  SELECT array_agg((id::text || ':' || COALESCE(file, 0)::text) ORDER BY id)
-  INTO actual_rows
-  FROM (
-    SELECT anyfile AS file, vouchers.id
-    FROM vouchers
-    LEFT JOIN lo ON vouchers.orga = lo.id
-    LEFT JOIN type ON vouchers.type = type.id
-    LEFT JOIN (
-      SELECT voucher_id, 1 AS anyfile
-      FROM vouchers AS attachment
-      WHERE attachment.file != 0
-        AND attachment.ack1 IS NOT NULL
-        AND attachment.ack2 IS NOT NULL
-      GROUP BY voucher_id
-    ) AS attached ON attached.voucher_id = vouchers.voucher_id
-    WHERE NOT deleted
-      AND ack1 IS NOT NULL
-      AND ack2 IS NOT NULL
-  ) AS closed_vouchers;
+  actual_rows := ARRAY(
+    SELECT (id::text || ':' || COALESCE(file, 0)::text)
+    FROM (
+      SELECT anyfile AS file, vouchers.id
+      FROM vouchers
+      LEFT JOIN lo ON vouchers.orga = lo.id
+      LEFT JOIN type ON vouchers.type = type.id
+      LEFT JOIN (
+        SELECT voucher_id, 1 AS anyfile
+        FROM vouchers AS attachment
+        WHERE attachment.file != 0
+          AND attachment.ack1 IS NOT NULL
+          AND attachment.ack2 IS NOT NULL
+        GROUP BY voucher_id
+      ) AS attached ON attached.voucher_id = vouchers.voucher_id
+      WHERE NOT deleted
+        AND ack1 IS NOT NULL
+        AND ack2 IS NOT NULL
+    ) AS closed_vouchers
+    ORDER BY id
+  );
 
-  IF actual_rows <> ARRAY[
+  IF actual_rows IS DISTINCT FROM ARRAY[
     '101:0',
     '103:1',
     '104:1',
@@ -158,46 +220,56 @@ BEGIN
     RAISE EXCEPTION 'Unexpected closed voucher attachment rows: %', actual_rows;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- transactions.php: omit deleted, zero-value, and pre-2012 rows.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_ids integer[];
 BEGIN
-  SELECT array_agg(id ORDER BY id)
-  INTO actual_ids
-  FROM vouchers
-  WHERE NOT deleted
-    AND amount != 0
-    AND date > timestamp '2011-12-31';
+  actual_ids := ARRAY(
+    SELECT id
+    FROM vouchers
+    WHERE NOT deleted
+      AND amount != 0
+      AND date > timestamp '2011-12-31'
+    ORDER BY id
+  );
 
-  IF actual_ids <> ARRAY[101, 102, 103, 104, 105, 109, 110] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[101, 102, 103, 104, 105, 109, 110] THEN
     RAISE EXCEPTION 'Unexpected public transaction IDs: %', actual_ids;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- spendings.php with the default eyes() condition.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_ids integer[];
 BEGIN
-  SELECT array_agg(id ORDER BY id)
-  INTO actual_ids
-  FROM vouchers
-  WHERE NOT deleted
-    AND (ack1 IS NOT NULL OR ack2 IS NOT NULL)
-    AND amount < 0;
+  actual_ids := ARRAY(
+    SELECT id
+    FROM vouchers
+    WHERE NOT deleted
+      AND (ack1 IS NOT NULL OR ack2 IS NOT NULL)
+      AND amount < 0
+    ORDER BY id
+  );
 
-  IF actual_ids <> ARRAY[103, 104] THEN
+  IF actual_ids IS DISTINCT FROM ARRAY[103, 104] THEN
     RAISE EXCEPTION 'Unexpected public spending IDs: %', actual_ids;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- donations.php: only direct type 8 rows contribute to the donor total.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_total bigint;
 BEGIN
@@ -215,10 +287,12 @@ BEGIN
     RAISE EXCEPTION 'Unexpected 2024 synthetic donation total: %', actual_total;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- report.php: legacy types roll up through type.realtype.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   actual_total bigint;
 BEGIN
@@ -236,10 +310,12 @@ BEGIN
     RAISE EXCEPTION 'Unexpected mapped donation total: %', actual_total;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();
 
 -- functions.php percent_of_bookings(): characterize workflow counts.
-DO $test$
+CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
   total_count bigint;
   first_review_count bigint;
@@ -260,4 +336,6 @@ BEGIN
       second_review_count;
   END IF;
 END
-$test$;
+$test$ LANGUAGE plpgsql;
+SELECT pg_temp.pgacc_check();
+DROP FUNCTION pg_temp.pgacc_check();

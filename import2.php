@@ -5,6 +5,8 @@ function page_import2_form()
   ?>
   Bitte wähle die Beleg Dateien für den Import:
   <form enctype="multipart/form-data" action="index.php?action=import2" method="POST">
+    <?php echo csrf_field(); ?>
+
     <input type="hidden" name="MAX_FILE_SIZE" value="10000000" />
     <input name="upload[]" type="file" multiple="multiple" /><br />
     <br />
@@ -23,14 +25,14 @@ function page_import2_process($rights)
   block_start();
   for($i=0; $i < count($_FILES['upload']['name']); $i++)
   {
-    echo "Datei ".($i+1)." (".$_FILES['upload']['name'][$i]."):<br />";
+    echo "Datei ".($i+1)." (".html_escape($_FILES['upload']['name'][$i])."):<br />";
     if (strlen($_FILES['upload']['name'][$i]) <= 0)
     {
       continue;
     }
     if (strlen($_FILES['upload']['type'][$i]) <= 0 || (!in_array($_FILES['upload']['type'][$i], $mimetypes_whitelist)))
     {
-      echo "Hat ein ungültiges Dateiformat ({$_FILES['upload']['type'][$i]}) und konnte daher nicht importiert werden.<br />";
+      echo "Hat ein ungültiges Dateiformat (".html_escape($_FILES['upload']['type'][$i]).") und konnte daher nicht importiert werden.<br />";
       continue;
     }
     if ($_FILES['upload']['error'][$i] != 0)
@@ -146,7 +148,11 @@ function page_import2_process_multi_ids($rights, $i, $text)
 
 function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
 {
-  $query = "SELECT * FROM vouchers WHERE comment LIKE '%" . $id . "%' AND date = date '" . $date . " 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL)";
+  // Only rows of the user's organizations, of vouchers without a finalized
+  // row (of any organization).
+  $rightssql = rights2orgasql($rights);
+  $query = "SELECT * FROM vouchers WHERE comment LIKE '%" . $id . "%' AND date = date '" . $date . " 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL) $rightssql"
+    . " AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received)";
   if ($account !== null)
   {
     $query .= "AND account LIKE '%" . $account . "%'";
@@ -174,8 +180,6 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   $id = $voucher["voucher_id"];
   $bid = $voucher["id"];
 
-  $rightssql = rights2orgasql($rights);
-
   $query = "SELECT nextval('file_number') AS num;";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -183,18 +187,22 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   }
   pg_free_result($result);
 
-  $sourcepath = $_FILES["upload"]["tmp_name"][$i];
-  $targetpath = getcwd() . '/files/' . $file_number . ".aes";
-  $data = file_get_contents($sourcepath);
-  file_put_contents($targetpath,mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($id . $key . $id), $data, MCRYPT_MODE_CBC, md5($key . $id)));
-
-  vouchers_reset_ack($id, $rightssql);
-
-  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+  // The receipt is stored only for a row that the scoped update matched.
+  $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = 0 $rightssql;";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-  while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  }
+  $updated = pg_affected_rows($result);
   pg_free_result($result);
+
+  $sourcepath = $_FILES["upload"]["tmp_name"][$i];
+  if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath)) {
+    $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    pg_free_result($result);
+    echo "Beleg konnte nicht gespeichert werden.<br />";
+    return;
+  }
+
+  // An import resets the approvals of the whole voucher.
+  vouchers_reset_ack($id, '');
 
   echo 'done: <a href="index.php?action=edit&id=' . $voucher["voucher_id"] . '&bid='.$voucher["id"].'">' . $voucher["voucher_id"] . "</a><br />";
 }

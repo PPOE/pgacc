@@ -22,16 +22,16 @@ echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td",str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"]));
+echo tag("td",listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"])));
 }
 pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
 $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-echo tag("td", $line2["name"]);
+echo tag("td", listing_text($line2["name"]));
 }
 pg_free_result($result2);
-echo tag("td", str_replace(array(
+echo tag("td", listing_text(str_replace(array(
 '50110117369',
 '10110123642',
 '50110117318',
@@ -63,7 +63,7 @@ echo tag("td", str_replace(array(
 'Sachspenden Kärnten',
 'Piratenpartei Österreichs (Bank Austria)',
 'Piratenpartei Österreichs (Altes BAWAG Konto)'
-),$line["account"]));
+),$line["account"])));
 echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 if ($make_csv)
   echo "\n";

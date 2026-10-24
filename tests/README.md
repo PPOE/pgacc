@@ -1,131 +1,583 @@
 # Test harness
 
-This directory contains an isolated characterization-test environment for the
-legacy pgacc application. It does not use production credentials, production
-data, or the production attachment directory.
+An isolated characterization-test environment for the legacy pgacc
+application. It uses no production credentials, data or attachment directory.
+The change workflow and the verification order are in
+[AGENTS.md](../AGENTS.md#verification-cadence): focused tests while editing,
+one readiness batch for the finished branch, the rest in CI.
 
-Run the current harness with:
+## Running the harness
 
 ```bash
-sh tests/run.sh
+sh tests/run.sh                       # every lane
+sh tests/run.sh 7.4                   # one lane: 5.3, 7.4 or 8.5
+PGACC_TEST_PG=8.4 sh tests/run.sh 7.4 # another PostgreSQL server
+PGACC_TEST_ID=worktree-a sh tests/run.sh 7.4
 ```
 
-The runner currently performs four checks:
+Each lane gets a fresh synthetic PostgreSQL database. `sh tests/run.sh`
+attempts every lane (PHP 7.4 / PostgreSQL 18 with coverage, 7.4 / 8.4, 5.3 /
+8.4, 8.5 / 18) and fails if any lane fails. A single lane runs on its default
+server: 8.4 for PHP 5.3 (the production pair), 18 otherwise.
 
-1. It syntax-checks every top-level PHP application file in pinned PHP 5.5,
-   5.6, and 7.4 containers. It also checks PHP 8.0 for the known failure at
-   `functions.php:14` and reports that incompatibility as an expected result.
-2. It syntax-checks every top-level PHP application file under the regular
-   PHP 7.4 lint container.
-3. It installs a data-free copy of the pgacc schema and synthetic fixtures in
-   PostgreSQL, then runs database characterization assertions with `psql`.
-4. It starts the unchanged application in a disposable PHP 7.4 runtime with
-   the PostgreSQL extension and exercises real HTTP routes against the fixture
-   database, then runs PHPUnit and prints `functions.php` coverage.
+| Lane | Role |
+|---|---|
+| PHP 5.3 (`compose.php53.yaml`) | Production-like server (squeeze i386, Lighttpd + PHP-CGI 5.3.3); its HTTP test client is a PHP 5.6 image. See [PHP 5.3 lane](#php-53-lane-production-like). |
+| PHP 7.4 (`compose.test.yaml`) | Coverage lane (on PostgreSQL 18), mutation runner, Infection; the PHP floor after `php5-last`. |
+| PHP 8.5 (`compose.php85.yaml`) | Upgrade target. Fails by design until the PHP 8 fixes land (see `COMPATIBILITY_PLAN.md`). |
 
-PHP 7.4 is used only as a temporary characterization bridge because the
-unchanged application contains syntax removed in PHP 8. It is not a supported
-deployment target. The database uses PostgreSQL 17 as the initial replacement
-platform target.
+There are no PHP 5.6, 8.0 or 8.4 lanes (owner decision); the PHP 5.6 image is
+only the 5.3 lane's HTTP client. Static analysis (PHPCompatibility 5.3-8.5) and
+each lane's `php -l` of every top-level file replace a separate syntax matrix.
+
+`PGACC_TEST_ID` (lowercase letters, digits, `_`, `-`) is appended to the
+Compose project names and image tags, so concurrent runs (worktrees, agents)
+share no containers, networks, databases or images. Without it the names are
+`pgacc-test-php74`, `pgacc-test-application`, ... Tagged images stay behind
+(also `pgacc-test-postgres84-<id>`); remove them with `docker rmi`.
+
+Each lane:
+
+1. runs `php -l` on every top-level application file under its runtime;
+2. loads the data-free schema and synthetic fixtures and runs
+   `database-characterization.sql` with `psql`;
+3. starts the application and runs the HTTP tests, the PHPUnit suite and the
+   write workflows. HTTP checks fail on any PHP diagnostic that is not in
+   `tests/known-diagnostics.php`. The PHP 7.4 / 18 lane also collects
+   [coverage](#coverage).
+
+### Focused tests
+
+While developing a red test or a fix, run only the affected PHPUnit method or
+HTTP script against a warm setup instead of a whole lane. Example on the
+default PHP 7.4 / PostgreSQL 18 configuration (pick your own ID and test):
+
+```sh
+export PGACC_TEST_ID=focus-receipt
+export PGACC_TEST_SUFFIX=-${PGACC_TEST_ID}
+p="--project-name pgacc-focus-${PGACC_TEST_ID} -f compose.test.yaml"
+
+docker compose $p up --detach --wait database
+docker compose $p run --rm database-test          # load (or reset) the fixtures
+docker compose $p build application               # after EVERY source or test edit
+docker compose $p run --rm --no-deps application env XDEBUG_MODE=off \
+  php vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result \
+  --filter ReceiptStorageTest::testConfiguredKeyIsTheValidGlobalKey
+docker compose $p down --volumes --remove-orphans # when done
+```
+
+- The source is baked into the image. **Rebuild `application` after each
+  edit**; a running container still tests the old code.
+- Rerun `database-test` between scenarios that change the database, not
+  between tests that roll back their own transactions.
+- For an HTTP script: rebuild, start or recreate `application`, then run the
+  script through `application-test` (e.g.
+  `docker compose $p run --rm application-test php tests/http-login.php`).
+  The HTTP scripts have no filter option; do not invent one.
+- A red test must fail on an assertion. A broken fixture, connection, parse
+  error or fatal setup error is not red evidence.
+- The full lane stays the authoritative check. Remove only your own image
+  tags afterwards.
+
+## What the tests cover
 
 `fixtures/schema.sql` was reconstructed from a read-only inspection of the
-deployed PostgreSQL 8.4.20 catalog. It preserves the observed tables, columns,
-defaults, sequences, and constraints while excluding the dated backup table,
-owners, permissions, credentials, and all production rows. `fixtures/data.sql`
-contains only visibly synthetic records.
+production PostgreSQL 8.4.20 catalog (tables, columns, defaults, sequences,
+constraints; no backup table, owners, permissions, credentials or rows).
+`fixtures/data.sql` holds only visibly synthetic records.
 
-`database-characterization.sql` covers password hashing, open and closed
-voucher states, attachment propagation, public transactions and spendings,
-donation totals, report type mapping, and review-progress counts using SQL
-contracts from the current PHP application.
+- `database-characterization.sql`: password hashing, open and closed voucher
+  states, attachment propagation, public transactions and spendings, donation
+  totals, report type mapping and review-progress counts.
+- `http-smoke.php`: public report, transactions, spendings, rejected and
+  successful login, an authenticated ledger request.
+- `http-login.php`: a valid login returns 302 with an empty body and
+  `Location: index.php` (or the hex-decoded `target` if it is a page of the
+  application; other targets, also absolute URLs, `//`, backslashes and line
+  breaks, lead to `index.php`), an HMAC `pp_pgacc_login` token and the numeric
+  `pp_pgacc_id` (24-hour expiry, `secure`, `HttpOnly`, `SameSite=Lax`), a
+  random nonce in `users.cookie` with a fresh `users.login`, and cookies that
+  authenticate a follow-up request; wrong, old-format, other users' and
+  expired tokens are rejected. A logged-in user gets "Login erfolgreich!" or
+  the posted target. Rejected logins (wrong password, unknown user, quotes in
+  user name or password) return 200 with the form, no `Location`, no cookies
+  and no database change. Logout (POST with the form token) returns an empty
+  302 to `index.php`, clears both cookies and ends the session on the server;
+  a GET request or a request without a session ends nothing.
+- `http-session-lifecycle.php`: session invalidation (logout, also a token
+  computed for the cleared nonce; a new login replaces the form token and
+  logout ends it; own and root password changes end that user's sessions,
+  rights-only changes keep them). `php
+  tests/http-session-lifecycle.php logout|password` runs one scenario for
+  focused red evidence; reset the fixtures after a red failure.
+- `http-redirects.php`: every protected page (also CSV listings and `?hide=`)
+  answers visitors with exactly a 302 to
+  `index.php?action=login&target=<hex of the request URI>` and an empty body;
+  the member search redirects to the filtered ledger. The import page is
+  requested last.
+- `http-import.php`: the bank CSV import (`import.php`) with the synthetic CSV
+  files of `tests/reference/fixtures/import/`. Lines whose date is not a date
+  or whose organization the user may not use are reported ("Ungültige
+  Buchungszeile", line number) and skipped; the other lines and files are
+  imported. The `/g` regular-expression warning of every imported line is the
+  known failure `KF-IMPORT-REGEX-G`.
+- `http-listing-prefs.php`: the ledger (`?action=all`, `closed.php`) with hidden
+  columns. `synthetic-hide-odd`/`synthetic-hide-even` hide each of the 18
+  columns once; header, filter row, voucher rows and CSV must match the output
+  for `synthetic-admin`. The column buttons (POST `hide=-3`/`hide=1` with the
+  form token) change the stored preference; the old GET `?hide=` does not.
+- `http-csrf.php` (last in every lane): form tokens. For every write action
+  (voucher creation, revision, approval, approval reset, receipt upload,
+  merge, recovery, accounts, both imports, column preferences, logout) a
+  missing, a wrong and another session's token return 200 with "FEHLER:
+  Ungültiges Formular-Token" and change no table or sequence; GET merge,
+  recovery, `?hide=` and logout write nothing; the forms carry the token of
+  their session; the valid token works; a new login replaces the token. The
+  HTTP helper adds the session's token to every POST with session cookies
+  (`session_csrf_token()`, read from the user list) unless a test sets
+  `csrf_token` itself (`null`: none).
+- `http-donations.php`: the donation list answers the captcha like a browser.
+  2024 (above the 100 € threshold) and 2025 show heading, year links, notice
+  and an empty table; no donor name (plain or base64), row or sum may appear
+  (publication is disabled for legal reasons). Years before 2012 show 2013.
+  Requests without `year` are not tested (see `COMPATIBILITY_PLAN.md`).
+- `write-workflows.php`: voucher creation, organization-scoped approval,
+  distinct first and second reviewers, the removed finalization (a POST with
+  `beleg` changes nothing), the finalized-entry edit lock, the approval reset,
+  revisions, merges (also by a user of another organization) and root-only
+  recovery, with their database effects. Approval, revision and merge
+  redirects must be an empty 302 to the voucher's edit page with the exact
+  hint; visitors get only the login redirect and change nothing. `synthetic-unit-one`,
+  `synthetic-unit-two` and `synthetic-no-rights` cover the organization scope.
+- `http-receipts.php`: receipt upload, PDF import (PHP 5.3 server only: the
+  locked `smalot/pdfparser` does not load on 7.2+), download of `<n>.v2.aes`
+  and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
+  migration script's 404 and the `mbapi.php` export. It reads and writes the
+  server's `files/` through a volume shared with the client.
 
-`http-smoke.php` covers the public report, transactions, spendings, rejected
-login, successful login, and an authenticated ledger request. The runtime uses
-test-only constants and the locked Composer dependencies. It has no published
-host port, cannot reach external networks, and receives only synthetic data.
-The test server enables `output_buffering=4096` because the current login flow
-sends redirect and cookie headers after page rendering has started.
+The membership system never leaves the test network: `compose.test.yaml` runs
+the reference stub (`tests/reference/membership/router.php`) as the service
+`membership` under the alias `mitglieder.piratenpartei.at`, and
+`tests/runtime/test-constants.php` sets the synthetic `$datakey` of its member
+list. The application service waits for it.
 
-`write-workflows.php` exercises real HTTP mutations and verifies their database
-effects: voucher creation, organization-scoped approval, distinct first and
-second reviewers, finalization, the finalized-entry edit lock, revision history,
-and root-only recovery. Receipt encryption/upload is deliberately excluded
-because the unchanged application requires the removed `mcrypt` extension;
-the tests use a synthetic receipt reference instead.
+All test servers run with `output_buffering=4096`, but no redirect depends on
+it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat
+their redirects on a second server with `output_buffering=0` started inside
+the test container.
 
-`tests/unit/FunctionsTest.php` runs PHPUnit 9.6 on the PHP 7.4 test runtime and
-collects coverage only for `functions.php`. Xdebug 3.1.6 is enabled in that
-test-only image. The suite exercises the utility and rendering helpers plus the
-two PostgreSQL helpers against the synthetic database. PHPUnit's text report is
-printed in CI, and a Clover report is written to `/tmp/functions-clover.xml`
-inside the disposable test container. The current suite covers 333 of 334
-executable lines (99.70%). The remaining statement is `functions.php:74`,
-behind a malformed regular expression on line 73 (`^*...`) that cannot match
-any input. A test records that current malformed-regex behavior; reaching the
-following statement requires a production fix, which is outside this test-only
-change. PHPUnit 9 and Xdebug 3.1 are pinned as a legacy-runtime bridge; neither
-is a production dependency.
+### PHPUnit
 
-The PHP 7.4 package repository is archived, so `php-runtime.Dockerfile` pins
-the base images and installs `pgsql` from the archived Bullseye repository.
-This runtime is only a characterization bridge, not a deployment target.
+`tests/unit/` runs on PHPUnit 9.6 (PHP 7.4 and 8.5) and PHPUnit 4.8.36 on PHP
+5.3 (`tests/php53/phpunit.xml` lists the tests it leaves out and why). The
+assertions are shared; only the bootstrap, lifecycle signature and two string
+assertion aliases differ. Every configuration sets `error_reporting=-1`, so
+notices fail tests on every lane. The suite covers `functions.php` (utility,
+rendering and the two PostgreSQL helpers), `InfectionShimTest.php` (the
+Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
+(vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
+(stubbed `http://` stream wrapper), `ImportMemberMatchTest.php`,
+`ReceiptImportTest.php` (the import's `<n>.v2.aes`, refusals without a valid
+key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
+short reads via `ShortReadStream.php`, and the 20 MB memory check
+`tests/receipt-memory.php`), `ReceiptMigrationTest.php` and
+`ReceiptMigrationCommandTest.php` (`migrate-receipt-key.php` on synthetic
+files) and `ShortOpenTagTest.php`. Tests that pass null capture
+every diagnostic with their own error handler, because PHPUnit 9 only prints
+deprecations. The suite also passes in random order, as Infection runs it.
 
-## Test improvement plan
+`functions.php:74` is unreachable: the regular expression on line 73 (`^*...`)
+is malformed and cannot match; a test records that behaviour. PHPUnit 9 and Xdebug 3.1 are a legacy-runtime bridge, not
+production dependencies.
 
-The current shell and HTTP checks remain useful characterization tests.
-PHPUnit 9.6 is pinned for the PHP 7.4 test runtime because newer PHPUnit releases
-require PHP 8. PHPUnit 9 is end of life and is a temporary bridge while the
-application's PHP 8 syntax blocker remains. The initial PHPUnit suite covers
-`functions.php`; the existing shell and HTTP checks have not been migrated.
+`http-output-escaping.php` runs last and covers the output encoding: it
+adds synthetic organizations, types, a user and vouchers whose text columns
+contain markup, quotes, `&` and umlauts, then checks that the ledger
+listing, the voucher form, the user list, the public report, campaign,
+transaction, spending and virtual-account pages, the account report, the
+membership-fee page and the import reports show them as text
+(`&lt;s&gt;...`), that ordinary values and umlauts are unchanged, that
+reflected filter values, sort links and the CSV link are encoded, and that
+the CSV export keeps the raw text, prefixes formula and quoted cells (`=`,
+`+`, `-`, `@`, `"`, also after spaces) with `'` and keeps tabs and line
+breaks from splitting cells. Forms shown again from posted values keep
+quotes and backslashes as entered, and saving stores them unchanged. It removes its rows afterwards. Pages
+with known diagnostics outside its scope are attributed to the known
+failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR`, `KF-NEW-UNDEFINED-BGFANDACK`, `KF-ACCOUNTS-QUERY-ERROR` (the warning of the deliberately failing user query) and
+`KF-REPORT-UNDEFINED-UNIT` (see `COMPATIBILITY_PLAN.md`), which must still
+occur.
 
-### Planned slices
+### PHP diagnostics are failures
 
-- [x] Add PHPUnit to the isolated test environment and begin PHPUnit coverage
-  with `functions.php`. Keep `tests/run.sh` as the single entry point for
-  syntax, database, and application checks; existing shell and HTTP checks
-  remain in place.
-- [ ] Add a BAWAG import integration test through the real multipart HTTP
-  upload route. Use synthetic semicolon-delimited CSV fixtures and assert
-  voucher fields, import-line deduplication, duplicate re-upload behavior,
-  malformed rows, and unknown account handling.
-- [ ] Stub the membership lookup locally for import tests. The application
-  fetches `http://mitglieder.piratenpartei.at/adm_api/adm_names.php` before
-  processing imports, so tests must serve a synthetic response inside the
-  isolated test network and must not contact the live service. The current
-  decryption path depends on `mcrypt`; assess a pinned, test-only extension in
-  the PHP runtime so tests exercise the real code path with a synthetic key.
-- [ ] Add a contract test for `mbapi.php` using synthetic PostgreSQL rows and
-  test-only encryption keys. Assert the checksum and response framing, decrypt
-  the payload, and cover the amount threshold, date cutoff, acknowledgement,
-  deleted-voucher filtering, and per-member totals.
+Every HTTP test server loads `tests/runtime/diagnostics-prepend.php` with
+`auto_prepend_file` (on PHP 7.4 through the coverage prepend). It records every
+diagnostic, including fatal errors, notices and deprecations that the runtime
+hides and `@`-silenced ones (marked "hidden"), to a per-request JSON-lines file
+on a shared tmpfs (`PGACC_TEST_DIAGNOSTICS_DIR`; the server's `files/` is
+shared the same way for `http-receipts.php`), then returns `false` so PHP's
+handling continues. `error_reporting`, `display_errors` and output buffering
+are unchanged. Each request carries an `X-Pgacc-Test-Request` ID; the client
+fails if the recorder did not complete for it, and cross-checks the body for
+displayed diagnostics missing from the log.
+
+The HTTP scripts print every diagnostic they saw and fail on any that is not
+in `tests/known-diagnostics.php`. That reviewed baseline matches an exact PHP
+minor version, type, file, line set, message pattern and reported/hidden, with
+an ID and reason. It is currently empty, and PHP 8.5 never gets entries. Remove
+entries when the application is fixed; never add one without review. On PHP
+8.5, OPcache reports compile-time deprecations only on the first request that
+compiles a file.
+
+The test client also fails on its own unsilenced diagnostics. It reads response
+headers with `http_get_last_response_headers()` (PHP 8.4+), else with
+`$http_response_header` in `tests/http-legacy-headers.php`, which is not
+included on PHP 8.5 (deprecated at compile time).
+
+### PHP 5.3 lane (production-like)
+
+`sh tests/run.sh 5.3` (`compose.php53.yaml`, `tests/php53/`) reproduces the
+production server, where the `php5-last` hotfix is deployed:
+
+- `debian/eol:squeeze`, the **linux/386** manifest pinned by digest: 32-bit like
+  production (`PHP_INT_SIZE` 4), run under `linux32` (`php_uname('m')` is
+  `i686`), natively on x86-64 hosts and GitHub runners.
+- Packages from archive.debian.org pinned to the production versions:
+  `php5-cgi`, `php5-cli`, `php5-common`, `php5-pgsql`, `php5-mcrypt`
+  5.3.3-7+squeeze19 (with the Suhosin patch), `lighttpd` 1.4.28-2+squeeze1.6,
+  `libpq5` 8.4.20-0squeeze1 (list in `/opt/pgacc-php53-packages.txt`).
+- Debian's stock CGI `php.ini`, which matches production
+  (`output_buffering=4096`, `short_open_tag` On, `display_errors` Off,
+  `error_reporting` 22527, no `register_globals`/`magic_quotes_gpc`, no
+  `date.timezone`, so the system zone UTC applies, no `default_charset`).
+  `tests/php53/ini-check.php` asserts these at build time. The only test
+  addition is the diagnostics `auto_prepend_file`.
+- Lighttpd + PHP-CGI over FastCGI with Debian's stock configuration
+  (`tests/php53/lighttpd.conf` lists the test deviations), as `www-data`. A
+  second instance on port 8081 runs with `output_buffering=0`
+  (`PGACC_TEST_UNBUFFERED_BASE_URL`).
+- `vendor/` comes from `composer.lock` in a Composer build stage; the build
+  checks it on 5.3 (`composer check-platform-reqs`,
+  `tests/php53/vendor-check.php`: TCPDF, smalot/pdfparser, and phpseclib
+  reproducing all mcrypt contract vectors with the mcrypt and pure-PHP engines).
+
+PHP 5.3 has no built-in server, so the HTTP and write-workflow scripts run from
+the PHP 5.6 client image (`tests/php53/client.Dockerfile`) with
+`PGACC_TEST_SERVER_PHP=5.3`, which selects diagnostics and version-dependent
+expectations. `tests/php53/http-cgi.php` first proves both servers are
+`PHP/5.3.3-7+squeeze19` on `lighttpd/1.4.28`, that the recorder ran, and that a
+request without `X-Forwarded-Proto: https` is redirected to HTTPS as behind the
+TLS proxy. Known differences from 5.6: `setcookie()` sends no `Max-Age`, a
+cleared cookie expires one year before the request, and notices are logged
+(production's `error_reporting`). There is no mutation run on this lane. With
+`PGACC_TEST_PG=18` the server switches to MD5 authentication for libpq 8.4.
+
+The other Dockerfiles pin base images and compile `pgsql`: archived Bullseye
+for PHP 7.4, archived Stretch for the 5.6 client, Trixie for PHP 8.5.
+
+### PHP 8.5 lane
+
+The PHP 8 driver runs the HTTP, PHPUnit and write-workflow groups even if one
+fails, and fails if any group failed. Shared assertions are not relaxed for
+PHP 8. PHP 8.5 currently fails on implicit PostgreSQL connection deprecations
+displayed before the headers, which break the unbuffered redirects (see
+`COMPATIBILITY_PLAN.md`). Until PHP 5 support is dropped, the CI job is
+`continue-on-error`: the failures are reported, not blocking.
+
+### Mutation testing
+
+`tests/mutation/run.sh <7.4|8.5> <target>` mutation-tests code against the
+PHPUnit and HTTP suites, also top-level page code that Infection cannot
+mutate; `tests/mutation/infection.sh` runs Infection on `functions.php`. See
+the [mutation README](mutation/README.md).
+
+## PostgreSQL versions
+
+`PGACC_TEST_PG` selects the server (default `8.4` for PHP 5.3, `18`
+otherwise). It works with every lane, the reference comparison, the mutation
+runner and `PGACC_TEST_ID`; a non-default version appends `-pg84`/`-pg18` to
+project names and image tags.
+
+```bash
+PGACC_TEST_ID=pg84 PGACC_TEST_PG=8.4 sh tests/run.sh 7.4
+PGACC_TEST_PG=8.4 sh tests/mutation/run.sh 7.4 login-logout
+PGACC_TEST_PG=18 sh tests/run.sh 5.3
+```
+
+| `PGACC_TEST_PG` | Image | Notes |
+|---|---|---|
+| `8.4` | `pgacc-test-postgres84[-<id>]`, built from `tests/postgres84/` | Production's 8.4.20: `debian/eol:squeeze` i386 (digest-pinned), `postgresql-8.4`, `-client-8.4`, `-contrib-8.4` and `libpq5` 8.4.20-0squeeze1 (list in `/opt/pgacc-postgres84-packages.txt`). MD5 authentication; `password_encryption` is a boolean. |
+| `18` | `postgres:18-bookworm` (digest in `tests/postgres-version.sh` and `compose.test.yaml`) | Records NOT NULL as `pg_constraint` rows. |
+
+The 8.4 server is configured like production: UTF8 databases with
+`en_US.UTF-8` collation, ctype and `lc_*`, `DateStyle` `ISO, MDY`, UTC
+`TimeZone`/`log_timezone`, `standard_conforming_strings` off,
+`default_text_search_config` `pg_catalog.english`, `max_connections` 100,
+`shared_buffers` 28MB, `ssl` off (tests only), and `pgcrypto` in `template1`.
+`tests/postgres84/entrypoint.sh` mimics the official images' environment and
+init directory; a small `pg_isready` serves the healthcheck. The cluster is
+initialised at build time and copied into the tmpfs on start.
+`tests/postgres-version.sh` (`pgacc_test_pg_build`) builds the image for
+`tests/run.sh`, `tests/reference/run.sh` and `tests/mutation/run.sh`;
+`database-test` uses the server's image, so `psql` matches.
+
+Test-side adaptations for 8.4 (application SQL unchanged):
+
+- `tests/database-smoke.sh` and `pgacc_mutation_fixture_files()` pick the
+  fixtures by `server_version_num`: `pgcrypto.sql` only on 18; on 8.4
+  `plpgsql-create.sql`/`plpgsql-drop.sql` wrap the characterization in the
+  same transaction. `psql` before 9.6 runs only the last `--file`, hence one
+  generated `\i` script.
+- `database-characterization.sql` uses temporary plpgsql functions instead of
+  `DO`, `ARRAY(SELECT ... ORDER BY)` instead of `array_agg(... ORDER BY)`, and
+  `pg_attribute.attnotnull` for NOT NULL.
+- The mutation runner drops databases with `WITH (FORCE)` from 13, otherwise
+  after terminating backends (`pg_stat_activity.pid`, `procpid` before 9.2).
+- The reference statement log is set in `postgresql.conf`
+  (`tests/reference/runtime/postgres-statement-log.sh`); 8.4 has no
+  `application_name` (see [PHP 5 reference recordings](#php-5-reference-recordings)).
+
+`tests/known-diagnostics.php` has no PostgreSQL-specific entries. The reference
+pages are the same on 8.4 and 18 (the unordered `GROUP BY` in `mb.php`,
+formerly `RD-PG-UNORDERED-MB-LO`, is ordered by `lo.id` now).
+
+## Continuous integration
+
+`.github/workflows/tests.yaml` follows the owner's cost policy. A `plan` job
+chooses a per-push or full run and the comparison base: `github.event.before`
+for pushes and pull request updates, else `origin/<default branch>` or
+`origin/<PR base>`; a force-pushed `before` that no longer exists falls back
+to the default branch. Only pushes to `master` trigger push runs; other
+branches run through their pull request, so each push starts one run. A pull
+request gets a full run only while it carries the `full-ci` label (add it once
+before merging to `master`).
+
+| Job (name in GitHub) | Every push / pull request update | Weekly (Mon 03:17 UTC), manual, `full-ci` pull requests |
+|---|---|---|
+| `Plan (full or per-push run)` | yes | yes |
+| `Static analysis (PHPCompatibility, PHPStan)` | yes | yes |
+| `PHP 5.3 / PostgreSQL 8.4 characterization harness` | yes | yes |
+| `PHP 7.4 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
+| `PHP 8.5 / PostgreSQL 18 characterization harness` (non-blocking) | yes | yes |
+| `PHP 7.4 / PostgreSQL 8.4 characterization harness` | no | yes |
+| Mutation step in the 7.4 and 8.5 harness jobs (`tests/mutation/ci.sh`) | changed lines only (`--changed-since=<base>`) | every target of the lane |
+| `PHP 5 reference comparison (PHP 5.3)`, `(PHP 7.4)`, `(PHP 8.5)` | yes | yes |
+| `Infection mutation report (functions\|shim, PHP 7.4\|8.5, non-blocking)` | no | yes |
+
+The coverage gate is off only on scheduled and manual runs, which have no
+base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`). The
+PHP 5.3 lane has no mutation step.
+
+## Coverage
+
+`tests/run.sh 7.4` (PostgreSQL 18 only) adds `compose.coverage.yaml` and
+measures all 30 top-level application files:
+
+- The application server runs with `auto_prepend_file=tests/coverage/prepend.php`
+  and `XDEBUG_MODE=develop,coverage`. Per request the prepend starts Xdebug
+  line and branch coverage and, after the application and its shutdown
+  functions, writes the raw data to a project-scoped volume. It prints
+  nothing, sends no headers and defines no globals.
+- PHPUnit writes its coverage (with branch data, `--path-coverage`) in
+  php-code-coverage's serialized format.
+- `tests/coverage/merge.php` merges both with the locked php-code-coverage
+  9.2, prints a per-file line/branch table, and writes `build/coverage/`
+  (override with `PGACC_COVERAGE_HOST_DIR`): `summary.txt`, `clover.xml`,
+  `html/index.html`, `coverage.cov` and `uncovered-branches.txt`. Unreached
+  files count with zero coverage; the test-only `constants.php` and `tests/`
+  are excluded.
+- CI publishes the summary on the job page and uploads the `coverage-php74`
+  artifact.
+
+Branch coverage makes each request several seconds slower.
+`PGACC_COVERAGE_BRANCHES=0` keeps line coverage and the changed-line gate but
+skips branch data; use it for local readiness runs. Path coverage is discarded
+(8341 paths in `functions.php` alone). Branch totals count branches inside
+functions only; script-level code is covered by lines and listed in
+`uncovered-branches.txt` as `{main}`.
+
+Only one `auto_prepend_file` is possible, so the coverage prepend chains the
+diagnostics recorder (`PGACC_COVERAGE_CHAINED_PREPEND`), whose shutdown
+functions run before coverage is written. `compose.coverage.yaml` replaces the
+whole application command: keep it identical to `compose.test.yaml` apart from
+`auto_prepend_file`. Requests to the second `output_buffering=0` servers are
+not covered.
+
+Coverage is measured on PHP 7.4 only. A covered line ran; mutation testing
+checks that its result was asserted.
+
+### Proving coverage of changed lines
+
+Application changes must cover every changed executable line:
+
+```bash
+PGACC_TEST_ID=mine PGACC_COVERAGE_BRANCHES=0 PGACC_COVERAGE_BASE=<real PR base> sh tests/run.sh 7.4
+```
+
+Use the branch the pull request targets as the base (e.g.
+`origin/test/php56-runtime`), not just `HEAD~1`, which proves only the last
+commit. `tests/coverage/changed-lines.sh <base>` lists the lines changed since
+the merge base, including uncommitted and untracked `*.php` files, as
+`file:start-end` ranges. `tests/coverage/check-changed-lines.php` then fails
+the lane if any of them is executable and unexecuted. Non-executable lines are
+ignored and paths outside the scope (`tests/`, non-PHP files) skipped; a
+changed top-level PHP file missing from the report is an error. Uncovered
+branches on changed lines are warnings (`PGACC_COVERAGE_STRICT_BRANCHES=1`
+makes them fail).
+
+Check the log: each changed file must print
+`<file>: N changed executable lines, all covered`. An exit status of 0 without
+that line means the gate did not run on your change.
+
+The checker also runs on its own (PHP 5.6+ with SimpleXML) on any ranges:
+
+```bash
+sh tests/coverage/changed-lines.sh origin/main >changes.txt
+php tests/coverage/check-changed-lines.php \
+  --branches=build/coverage/uncovered-branches.txt \
+  build/coverage/clover.xml changes.txt
+printf 'functions.php:12-40\nindex.php:27,31-33\n' |
+  php tests/coverage/check-changed-lines.php build/coverage/clover.xml -
+```
+
+## PHP 5 reference recordings
+
+PHP 5 support ends with the `php5-last` tag (new floor: 7.4). Until then,
+`tests/reference/` pins PHP 5 behaviour as a golden master recorded on the
+production pair, PHP 5.3 with PostgreSQL 8.4, and compares the other lanes
+against it:
+
+```bash
+sh tests/reference/record.sh                              # rewrite tests/reference/php5/
+PGACC_TEST_ID=ref sh tests/reference/run.sh compare 7.4   # or 5.3, 8.5; PGACC_TEST_PG=8.4 for 7.4 on 8.4
+```
+
+`run.sh` builds the lane's image plus a reference image (`runtime.Dockerfile`,
+libfaketime) and starts the lane's services and a membership stub
+(`tests/reference/compose.yaml`). `PGACC_TEST_ID` and `PGACC_TEST_PG` work as
+for `tests/run.sh`; remove the `pgacc-test-reference-*` images afterwards. A
+recording has:
+
+- `http/<step>.txt`: status, headers (without transport details: Date, Host,
+  Connection, X-Powered-By, Server, a Content-Length equal to the body length)
+  and body of the ~300 requests in `scenario.php`: every page and action,
+  report years, listings with every filter and sort, CSV exports, captchas and
+  the voucher, approval, merge, recovery and account workflows, as visitor and
+  seven synthetic users. Binary bodies are base64.
+- `sql/<step>.sql`: the request's SQL statements and errors from PostgreSQL's
+  CSV statement log. The server sets `application_name=ref:<request id>`
+  through `PGAPPNAME` (`runtime/prepend.php`). PostgreSQL 8.4 has no
+  `application_name`: there the recorder attributes statements by connection
+  from the application server (one request at a time).
+- `db/<step>.txt`: row changes (`-`/`+`) of every written table and sequences;
+  `db/initial.txt` and `db/final.txt` are full sorted dumps.
+- `helpers/*.txt`: `helpers.php` runs the `functions.php` and page helpers and
+  copied value-handling idioms (amounts, money format, percentages, loose
+  comparisons, sorting) over a deterministic corpus (numeric strings, `''`,
+  `null`, `'1e3'`, `' 12'`, UTF-8 and ISO-8859 bytes, floats, 64-bit limits).
+- Imports: synthetic BAWAG, ISO-8859-15, Handkassa, Sparkasse and PayPal CSV
+  (`import.php`), generated PDF statements (`import2.php`,
+  `fixtures/make-pdf.php`), receipt upload/download, `mbapi.php` and the
+  member-fee page. `mitglieder.piratenpartei.at` resolves to the stub
+  (`membership/router.php`) inside the network; it serves
+  `membership/adm_names.b64` (synthetic members, key in
+  `runtime/reference-constants.php`, regenerated by `membership/generate.php`)
+  and `membership-stub.txt` records what it received.
+- `diagnostics/*.txt`: PHP diagnostics per request (informational).
+
+Nondeterminism is removed explicitly (`tests/reference/lib.php`): a fixed
+"now" (2026-06-15 10:00 UTC, libfaketime), Xdebug off, `display_errors=0`, and
+placeholders for cookie values and expiry times, captcha numbers, the
+impressum's versions, PostgreSQL timestamps (`users.login`,
+`vouchers.save_date`) and md5-crypt salts. `fixtures/extra.sql` adds
+reference-only rows. A second PHP 5.3 run reproduces the recording byte for
+byte (`compare 5.3`).
+
+`compare.php` fails on every difference unless a reviewed entry in
+`tests/reference/allowlist.php` (ID, PHP versions, optional `pg`, file glob,
+line pattern, reason, category) accepts it; unused entries fail as stale.
+`accepted` is an expected environment difference (`default_charset`, cookie
+`Max-Age`/expiry format, 32- vs 64-bit integers); `todo` is a defect to fix
+later (PDF import on 7.2+, PHP 8 TypeErrors, exponent and hex numeric
+strings). `todo` entries come first so they take precedence over the broad
+32-bit entry. `diagnostics/` differences are reported, not failed. Reports go
+to `build/reference/php<lane>/`; `selftest.php` tests the allowlist and
+normalizations first. CI compares PHP 5.3 (PostgreSQL 8.4), 7.4 and 8.5
+(PostgreSQL 18).
+
+On PHP 5.3 (`tests/reference/compose.php53.yaml`) the application is the
+Lighttpd/PHP-CGI server with squeeze's `faketime` and the reference prepend
+(`PGACC_PHP_CGI_PREPEND`). libpq 8.4 ignores `PGAPPNAME`, so against
+PostgreSQL 18 the prepend sets `PGOPTIONS=-c application_name=...`
+(`PGACC_REFERENCE_PGOPTIONS`; 8.4 servers reject it). `helpers.php` runs on the 5.3 CLI; scenario,
+comparison and stub run from an image on the PHP 5.6 client.
+
+Re-record, and review the diff, when an intended behaviour change lands (the
+recording includes the security hardening and the receipt v2 downloads). Do
+not re-record while related branches are still changing behaviour.
+
+## Static analysis
+
+```bash
+sh tests/static-analysis.sh                     # check against the baselines (CI)
+sh tests/static-analysis.sh --report            # every finding, baselines ignored
+sh tests/static-analysis.sh --update-baselines  # rewrite both baselines
+```
+
+It runs in its own image (`tests/static-analysis/Dockerfile`): pinned
+`php:8.5-cli` with tools from `tests/static-analysis/composer.lock`
+(PHP_CodeSniffer 4.0.4, PHPCompatibility 10.0.0-alpha2, PHPCSUtils 1.2.3,
+PHPStan 2.3.1, its PHAR SHA-256 checked). Only the build needs network; the
+analysis has no network, a read-only repository mount and root filesystem. It
+analyses a copy of the 30 tracked top-level application files (no `vendor/`,
+`tests/`, `files/`, `proxy/`), with `tests/runtime/test-constants.php` as
+`constants.php` and the locked `vendor/`, so `require()` paths resolve.
+`PGACC_TEST_ID` suffixes the image name.
+
+- **PHPCompatibility** (`phpcs.xml`): `testVersion` 5.3-8.5 plus
+  `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
+- **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
+  variables, unknown functions, argument counts and types, invalid regular
+  expressions. `phpVersion` is 7.1-8.5 (PHPStan cannot model older PHP;
+  PHPCompatibility covers 5.3). It reads the locked `smalot/pdfparser` and
+  `phpseclib` sources.
+
+The check fails on any finding not in a baseline, and on a baseline entry that
+is no longer reported or occurs a different number of times, so a fix must
+remove its entry. `phpcs-baseline.txt` lists file, sniff and message per
+finding; `phpstan-baseline.neon` is PHPStan's format (message, identifier,
+count, path). Neither uses line numbers. Every entry is explained in
+[COMPATIBILITY_PLAN.md](COMPATIBILITY_PLAN.md#static-analysis-findings). Review
+every `--update-baselines` diff like code. Fixing a finding that is also a
+`tests/known-diagnostics.php` entry removes both.
+
+A canary self-test runs first. `tests/static-analysis/canaries/` holds minimal
+copies of the bug classes found so far (`$ascii{$i}`, an uninitialized array,
+result-loop arrays, `$key` without `global`, optional-before-required
+parameters, a short open tag, and `[]`/`??` for the 5.3 floor);
+`canaries/expected.txt` names the finding each tool must report. A weakened
+configuration (lower PHPStan level, narrower `testVersion`) fails here even
+with regenerated baselines.
+
+Each tool has blind spots: PHPStan's parser accepts `$ascii{$i}` and
+PHP_CodeSniffer has no data flow; the missing-upload `count()` crashes in
+`import.php`/`import2.php` appear only at PHPStan level 9; neither reports PHP
+8.5's implicit PostgreSQL connection deprecation. The HTTP tests cover those.
+
+## Open test work
+
+Findings and the fix list are in [COMPATIBILITY_PLAN.md](COMPATIBILITY_PLAN.md).
+Open harness items:
+
+- [ ] Close the real Infection gaps listed in the [mutation notes](mutation/README.md#suggested-tests-for-the-real-gaps)
+  (mainly `acc_header` output and `getfilter` validation), then gate CI on no
+  new escaped mutants.
+- [ ] Extend the bank import test (`http-import.php`) to import-line
+  deduplication, duplicate re-uploads and the BAWAG voucher IDs once
+  `KF-IMPORT-REGEX-G` is fixed.
 - [ ] Document the `mbapi.php` output contract and verify it against the
-  membership system's consumer implementation or an agreed sample. A local
-  test can characterize this repository's output, but cannot by itself prove
-  compatibility with the external consumer.
-- [x] Add Xdebug coverage reporting for the PHPUnit process and print the
-  `functions.php` report in CI. The existing HTTP checks run in a separate
-  server process and are not included in this report. Add remote-process
-  coverage and a CI artifact when coverage is extended to those checks.
-- [x] Initial syntax probe: all 29 top-level application PHP files pass on PHP
-  7.4. On PHP 8.0, parsing first fails in `functions.php:14` because curly
-  braces for string offsets were removed. This establishes PHP 8.0 as the
-  first failing major version checked; versions before 7.4 have not been
-  checked. Higher PHP versions will hit this same syntax blocker until it is
-  addressed.
-- [x] Older syntax probes: the same files also pass `php -l` on PHP 5.5 and
-  5.6. PHP 5.4 and 5.3 were not testable with the available Docker Hub images,
-  which use a manifest format rejected by the current Docker engine. This is
-  syntax-only evidence and does not establish runtime compatibility on PHP 5.
-- [x] Run these syntax checks from `tests/run.sh`, which is also the command
-  used by the GitHub Actions Docker harness. The PHP 8.0 incompatibility is an
-  expected result until the legacy syntax is addressed, rather than a failing
-  CI job.
-- [ ] After the syntax blocker is addressed, run the isolated database and
-  HTTP suite on successive PHP versions and record runtime failures separately
-  from syntax failures. Make the matrix repeatable in CI once the viable range
-  is known. A successful lint alone does not prove extensions, database calls,
-  or application behavior work on that PHP version.
-
-All new fixtures, keys, and service responses must be synthetic. Tests must
-remain isolated from production credentials, production data, and live external
-services.
+  membership system's consumer or an agreed sample.
+- [ ] Apply the HTTP diagnostics strictness to PHPUnit: PHP 8.5 prints
+  implicit-connection deprecations from `functions.php` without failing.
+- [ ] Report unused `tests/known-diagnostics.php` entries as failures.
+- [ ] Resolve the PHP 8 failures, then extend the matrix to newer PHP 8
+  releases.

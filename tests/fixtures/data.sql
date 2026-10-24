@@ -14,7 +14,11 @@ VALUES (1, 'Synthetic Local Unit', 2);
 INSERT INTO person_type (id, name, description, used, public)
 VALUES
   (1, 'Synthetic organization', 'Test-only legal entity', 1, true),
-  (2, 'Synthetic person', 'Test-only private person', 2, false);
+  (2, 'Synthetic person', 'Test-only private person', 2, false),
+  -- report.php Anlage A reads the first four public person types.
+  (3, 'Synthetic association', 'Test-only association', 3, true),
+  (4, 'Synthetic company', 'Test-only company', 4, true),
+  (5, 'Synthetic public body', 'Test-only public body', 5, true);
 
 INSERT INTO type (id, name, used, income, realtype)
 VALUES
@@ -34,7 +38,29 @@ VALUES
    timestamp '2024-01-01 12:00:00', 234567, 'bgf', ''),
   (3, 'synthetic-unit-one',
    crypt('unit-password', gen_salt('md5')),
-   timestamp '2024-01-01 12:00:00', 345678, '1', '');
+   timestamp '2024-01-01 12:00:00', 345678, '1', ''),
+  -- Stored listing column preferences (closed.php, $user_prefs_hide): the
+  -- two users together hide every one of the 18 ledger columns once.
+  (4, 'synthetic-hide-odd',
+   crypt('hide-odd-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 456789, 'root,bgf', '1,3,5,7,9,11,13,15,17'),
+  (5, 'synthetic-hide-even',
+   crypt('hide-even-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 567890, 'root,bgf', '2,4,6,8,10,12,14,16,18'),
+  -- Organization-scoped users for the cross-organization write workflows.
+  (6, 'synthetic-unit-two',
+   crypt('unit-two-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 678901, '2', ''),
+  (7, 'synthetic-no-rights',
+   crypt('no-rights-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 789012, '', ''),
+  -- Read-only bgf ("Rbgf", see accounts.php), alone and with organization 2.
+  (8, 'synthetic-read-only',
+   crypt('read-only-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 890123, 'Rbgf', ''),
+  (9, 'synthetic-read-only-two',
+   crypt('read-only-two-password', gen_salt('md5')),
+   timestamp '2024-01-01 12:00:00', 901234, 'Rbgf,2', '');
 
 INSERT INTO balance (id, value, orga, date)
 VALUES

@@ -1,0 +1,5 @@
+Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt
+15.02.2024;12,50;Handkassa;Kaffee|Milch;GF Kommentar;FREMD-1;Ja;Nein;Synthetic Kassa;0;2;Weg 1;1010;Wien
+16.02.2024;7;Handkassa;Porto;;;Nein;Ja;Testa Mitglied;9031;0;;;
+17.02.2024;0;Handkassa;Nullbuchung;;;;;;;;;;
+2024-02-18;-3.5;Handkassa;ISO Datum;;;1;Wahr;Synthetic Kassa;abc;99;;;
