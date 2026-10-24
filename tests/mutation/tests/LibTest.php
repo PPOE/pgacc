@@ -108,6 +108,14 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->assertNull($mutation['equivalent']);
     }
 
+    // Formerly covered by the PHP 7.4-only equivalents of the committed targets.
+    public function testEquivalentWithPhpListIsKept()
+    {
+        $equivalent = array('reason' => 'r', 'php' => array('8.5'));
+        $target = pgacc_mutation_validate_target(self::target(array(), array('equivalent' => $equivalent)), 'test');
+        $this->assertSame($equivalent, $target['mutations'][0]['equivalent']);
+    }
+
     public function testTargetRegionIsInheritedOnlyForTheTargetFile()
     {
         $region = array('start' => 'function a(', 'end' => 'function b(');

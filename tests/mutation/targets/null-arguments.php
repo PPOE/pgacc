@@ -5,15 +5,10 @@
  * str_replace(). checklogin() returns null for anonymous visitors (acc_header,
  * acc_footer, rights2orgasql via the listing pages), and listings pass
  * nullable columns to tag(). Removing a guard changes no return value or
- * output, only the diagnostic, so that mutant is an accepted equivalent
- * before PHP 8.1. See tests/mutation/README.md for the format.
+ * output, only the diagnostic, which the tests assert is absent (PHP 8.5,
+ * the only lane, kills every guard removal). See tests/mutation/README.md for
+ * the format.
  */
-$guardRemovedBefore81 = array(
-    'php' => array('7.4'),
-    'reason' => 'Before PHP 8.1 the internal function accepts null silently, with the same result as for an '
-        . 'empty string; only PHP 8.1+ reports the deprecation that the tests assert is absent.',
-);
-
 return array(
     'description' => 'Null-argument guards in tag(), acc_header(), acc_footer() and rights2orgasql() (PHPUnit only)',
     'file' => 'functions.php',
@@ -24,8 +19,7 @@ return array(
     'mutations' => array(
         array('id' => 'tag-guard-removed',
             'search' => "array(' / ', ' / ', ' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / ', ' / ', ' / '),\$text);",
-            'rationale' => 'CSV cells of null columns must not raise a str_replace() deprecation.',
-            'equivalent' => $guardRemovedBefore81),
+            'rationale' => 'CSV cells of null columns must not raise a str_replace() deprecation.'),
         array('id' => 'tag-guard-inverted',
             'search' => "array(' / ', ' / ', ' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / ', ' / ', ' / '),\$text !== null ? '' : \$text);",
             'rationale' => 'Only null is replaced; other text is still flattened.'),
@@ -35,8 +29,7 @@ return array(
 
         array('id' => 'header-guard-removed',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) > 0)", 'replace' => 'if (strlen($rights) > 0)',
-            'rationale' => 'Anonymous page headers must not raise a strlen() deprecation.',
-            'equivalent' => $guardRemovedBefore81),
+            'rationale' => 'Anonymous page headers must not raise a strlen() deprecation.'),
         array('id' => 'header-guard-inverted',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) > 0)", 'replace' => "if (strlen(\$rights !== null ? '' : \$rights) > 0)",
             'rationale' => 'Logged-in users still get the administration links.'),
@@ -46,8 +39,7 @@ return array(
 
         array('id' => 'footer-login-guard-removed',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) == 0)", 'replace' => 'if (strlen($rights) == 0)',
-            'rationale' => 'Anonymous page footers must not raise a strlen() deprecation.',
-            'equivalent' => $guardRemovedBefore81),
+            'rationale' => 'Anonymous page footers must not raise a strlen() deprecation.'),
         array('id' => 'footer-login-guard-inverted',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) == 0)", 'replace' => "if (strlen(\$rights !== null ? '' : \$rights) == 0)",
             'rationale' => 'Logged-in users get no login link.'),
@@ -56,8 +48,7 @@ return array(
             'rationale' => 'Anonymous visitors get the login link.'),
         array('id' => 'footer-logout-guard-removed',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) != 0)", 'replace' => 'if (strlen($rights) != 0)',
-            'rationale' => 'Anonymous page footers must not raise a strlen() deprecation.',
-            'equivalent' => $guardRemovedBefore81),
+            'rationale' => 'Anonymous page footers must not raise a strlen() deprecation.'),
         array('id' => 'footer-logout-guard-inverted',
             'search' => "if (strlen(\$rights === null ? '' : \$rights) != 0)", 'replace' => "if (strlen(\$rights !== null ? '' : \$rights) != 0)",
             'rationale' => 'Logged-in users get the logout link.'),
@@ -70,8 +61,7 @@ return array(
         array('id' => 'rights-tokens-guard-removed',
             'search' => "explode(\",\", \$rights === null ? '' : \$rights));",
             'replace' => "explode(\",\", \$rights));",
-            'rationale' => 'Anonymous listing requests must not raise an explode() deprecation.',
-            'equivalent' => $guardRemovedBefore81),
+            'rationale' => 'Anonymous listing requests must not raise an explode() deprecation.'),
         array('id' => 'rights-tokens-guard-inverted',
             'search' => "explode(\",\", \$rights === null ? '' : \$rights));",
             'replace' => "explode(\",\", \$rights !== null ? '' : \$rights));",

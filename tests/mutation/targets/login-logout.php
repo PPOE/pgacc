@@ -211,10 +211,6 @@ return array(
             'search' => "\$data = pg_query(\$dbconn, \"SELECT * FROM users",
             'replace' => "\$data = pg_query(\"SELECT * FROM users",
             'rationale' => 'The session check passes its connection: PHP 8.5 deprecates the implicit one (displayed before the logout headers).',
-            'equivalent' => array(
-                'php' => array('7.4'),
-                'reason' => 'Before PHP 8.5 the implicit connection is the same link, without a diagnostic; PHP 8.5 reports the deprecation, which the diagnostics check kills.',
-            ),
         ),
         array(
             'id' => 'checklogin-token-check-inverted',
@@ -273,10 +269,6 @@ return array(
             'search' => 'pg_query($dbconn, "UPDATE users SET cookie = NULL',
             'replace' => 'pg_query("UPDATE users SET cookie = NULL',
             'rationale' => 'Logout passes its connection: PHP 8.5 deprecates the implicit one (displayed before the logout headers).',
-            'equivalent' => array(
-                'php' => array('7.4'),
-                'reason' => 'Before PHP 8.5 the implicit connection is the same link, without a diagnostic; PHP 8.5 reports the deprecation, which the diagnostics check kills.',
-            ),
         ),
         array(
             'id' => 'logout-trusts-id-cookie',
@@ -492,12 +484,6 @@ return array(
             'replace' => 'function page_new_buchung($part = 0, $part_to_remove,$rights,$add)',
             'rationale' => 'The optional-before-required default is deprecated since PHP 8.0 and reported '
                 . 'on every request that compiles new.php.',
-            'equivalent' => array(
-                'php' => array('7.4'),
-                'reason' => 'Before PHP 8.0 a default before required parameters is silently allowed and '
-                    . 'never used (the only caller passes all four arguments), so nothing is observable. '
-                    . 'PHP 8.0 and later report the deprecation, which the diagnostics check kills.',
-            ),
         ),
     ),
 );
