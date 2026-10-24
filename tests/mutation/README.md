@@ -824,6 +824,18 @@ approval reset and merge, the removed finalization, and the rights of new users.
 PHP 5.6 and 7.4: 30 killed, 1 accepted equivalent; both runs exit 0. Since the
 finalization removal the four `finalize-*` mutants are gone and
 `finalization-write-restored` is new (killed on PHP 7.4; full run in CI).
+The review fixes add, all killed on PHP 7.4 (full runs in CI):
+`ack-visibility-check-counts-deleted`; `organization-bgf-exemption-removed`,
+`organization-root-exemption-removed`, `organization-loose-comparison` and
+`default-organization-unchecked` (replacing the earlier bgf-exemption,
+loose-comparison and default mutants of `posted_organizations_allowed()`);
+`revision-visibility-check-removed`, `-unscoped`, `-counts-deleted`,
+`revision-finalized-check-scoped`, `revision-approved-check-scoped`; and one
+`strpos()` mutant per converted role check (`accounts-*-root-substring` (8),
+`recover-root-substring`, `member-fees-bgf-substring`,
+`merge-link-root-substring`). `sql-injection` adds the `view-*-raw` (4),
+`old-ack*-filter-wrong-value` (2, replacing the three escape mutants) and
+`member-name-unescaped` mutants; the new `import-checks` target has 4.
 
 Before the security fixes (`d564754`) the target had the first five and the
 `ack-*`, `finalize-unscoped` and `drop-acks-reset-removed` mutants: 12 killed
