@@ -12,6 +12,26 @@ assert_no_fatal_error($report['body'], '2024 report');
 assert_not_contains($report['body'], 'Abfrage fehlgeschlagen', '2024 report completeness');
 assert_contains($report['body'], 'Ausgaben für die Wahlwerbung Länder', '2024 report completeness');
 assert_contains($report['body'], 'Anlage B: Einnahmen aus Sponsoring', '2024 report completeness');
+// Issue #1: every amount has two decimals, also whole euros, so that the
+// digits line up. Anlage A prints one row per public person type: the
+// donation sum (no public donor in 2024: 0.00) and two fixed zero columns.
+$anlageStart = strpos($report['body'], 'Anlage A');
+$anlageEnd = strpos($report['body'], 'Anlage B');
+if ($anlageStart === false || $anlageEnd === false || $anlageEnd < $anlageStart) {
+    fail_test('2024 report Anlage A not found');
+}
+$anlage = substr($report['body'], $anlageStart, $anlageEnd - $anlageStart);
+assert_not_contains($anlage, '<td>0&nbsp;€</td>', '2024 report Anlage A zero columns');
+$rowPattern = '#<tr><td><b>[^<]*</b></td><td>-?\d+\.\d\d&nbsp;€</td><td>0\.00&nbsp;€</td><td>0\.00&nbsp;€</td></tr>#';
+if (preg_match_all($rowPattern, $anlage, $rows) !== 4) {
+    fail_test("2024 report Anlage A: expected 4 rows with two-decimal amounts\n" . $anlage);
+}
+// Amount cells (right-aligned td) use tabular digits. The static stylesheet
+// is read from the source tree: the diagnostics recorder only wraps PHP.
+$css = file_get_contents(__DIR__ . '/../style.css');
+if (preg_match('/\ntd \{[^}]*text-align: right;[^}]*font-variant-numeric: tabular-nums;[^}]*\}/', $css) !== 1) {
+    fail_test('style.css: the td rule has no right alignment with tabular digits');
+}
 
 $transactions = http_request('/index.php?action=transactions');
 assert_status($transactions, 200, 'transactions');

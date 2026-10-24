@@ -65,6 +65,7 @@ body, th, td {
 td {
   min-width: 10px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .page,
 .topbar_content {
