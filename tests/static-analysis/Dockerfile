@@ -1,5 +1,5 @@
 # Static-analysis tools only. This image never serves the application and is
-# separate from the legacy PHP 5.6/7.4/8.0/8.5 runtime images.
+# separate from the PHP 8.5 runtime image.
 # Build context: repository root (see tests/static-analysis.sh).
 
 FROM composer:2.2.25@sha256:be23a9c3f73293f966a981be03896f9aaaade6c2cc9415f4cf828d1f39c5005c AS tools

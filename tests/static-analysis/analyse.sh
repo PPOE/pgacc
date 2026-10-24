@@ -83,7 +83,11 @@ canary_check()
 {
   echo "== Canary self-test (known bug classes must still be detected)"
   run_phpcs --report=json --report-file="$results/canary-phpcs.json" "$config/canaries"
-  run_phpstan --error-format=json -c "$config/phpstan-common.neon" "$config/canaries" \
+  # curly-string-offset.php is a PHPCompatibility canary: with phpVersion 8.5
+  # it is a parse error for PHPStan, which would leave the result incomplete
+  # and hide the PHPStan canaries.
+  run_phpstan --error-format=json -c "$config/phpstan-common.neon" \
+    $(ls "$config"/canaries/*.php | grep -v '/curly-string-offset\.php$') \
     >"$results/canary-phpstan.json" || true
   $findings canaries "$config/canaries/expected.txt" \
     "$results/canary-phpcs.json" "$results/canary-phpstan.json" "$work/"
@@ -93,7 +97,7 @@ echo "Static analysis of $# application files (PHP_CodeSniffer $("$phpcs" --vers
 
 case "$mode" in
   report)
-    echo "== PHPCompatibility (testVersion 5.3-8.5) and short open tags"
+    echo "== PHPCompatibility (testVersion 8.5-) and short open tags"
     run_phpcs -s "$@"
     echo "== PHPStan (baseline not applied)"
     run_phpstan -c "$config/phpstan-application.neon" || true
@@ -124,7 +128,7 @@ case "$mode" in
   check)
     status=0
     canary_check || status=1
-    echo "== PHPCompatibility (testVersion 5.3-8.5) and short open tags"
+    echo "== PHPCompatibility (testVersion 8.5-) and short open tags"
     run_phpcs --report=json --report-file="$results/phpcs.json" "$@"
     $findings phpcs-list "$results/phpcs.json" "$work/" >"$results/phpcs.txt"
     if ! $findings compare "$config/phpcs-baseline.txt" "$results/phpcs.txt"; then
