@@ -697,6 +697,11 @@ Recommendation (owner decision):
 
 ## Tooling to catch these earlier
 
+- [x] Try Semgrep (2026-10-24, report-only). Semgrep CE 1.181.1 with the stock
+  `p/php` pack parsed all application files; its matches were mostly noise
+  (unmodeled validation and output contexts) and confirmed no new issue.
+  Not adopted as a CI gate. Revisit only with narrow, project-specific rules
+  and safe/unsafe canaries.
 - [x] Add a dedicated modern-PHP analysis container, separate from the legacy
   application runners. Scan tracked application sources first; exclude vendor,
   attachments, and unrelated obsolete proxy code. `sh tests/static-analysis.sh`
