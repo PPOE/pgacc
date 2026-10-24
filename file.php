@@ -17,23 +17,24 @@ if ($file == 0)
 
 $directory = getcwd() . '/files';
 $path = receipt_v2_path($directory, $file);
-$data = false;
+$receipt = false;
 if (file_exists($path))
 {
-  // <n>.v2.aes: keyed on the file number and the configured key.
-  $data = receipt_read_v2($path, $file);
-  if ($data === false && !file_exists(receipt_legacy_path($directory, $file)))
+  // <n>.v2.aes: keyed on the file number and the configured key; checked
+  // and sent in chunks (receipt_v2_open()/receipt_v2_send()).
+  $receipt = receipt_v2_open($path, $file);
+  if ($receipt === false && !file_exists(receipt_legacy_path($directory, $file)))
   {
     header('Content-Type: text/plain; charset=UTF-8', true, 500);
     echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
     return true;
   }
 }
-$v2 = $data !== false;
+$v2 = $receipt !== false;
 if ($v2)
 {
-  $type = receipt_content_type($data);
-  $length = strlen($data);
+  $type = receipt_content_type($receipt['head']);
+  $length = $receipt['length'];
 }
 else
 {
@@ -57,7 +58,7 @@ if ($type == 'application/pdf')
   header('Content-Transfer-Encoding: binary');
   header('Accept-Ranges: bytes');
   header('Content-Length: ' . $length);
-  echo $data;
+  $v2 ? receipt_v2_send($receipt) : print($data);
 }
 else
 {
@@ -67,7 +68,7 @@ else
   header('Content-Transfer-Encoding: binary');
   header('Content-Length: ' . $length);
   header('Accept-Ranges: bytes');
-  echo $data;
+  $v2 ? receipt_v2_send($receipt) : print($data);
 }
 
 return true;

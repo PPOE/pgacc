@@ -639,12 +639,33 @@ function receipt_has_known_type($plain)
   return receipt_content_type($plain) !== 'application/octet-stream';
 }
 
-// Encryption and MAC keys of one <n>.v2.aes file.
+// RFC 5869 HKDF-SHA256 (hash_hkdf() needs PHP 7.1.2). An empty salt is the
+// RFC's default (HMAC treats it like HashLen zero bytes).
+function receipt_hkdf_extract($salt, $ikm)
+{
+  return hash_hmac('sha256', $ikm, $salt, true);
+}
+
+function receipt_hkdf_expand($prk, $info, $length)
+{
+  $okm = '';
+  $block = '';
+  for ($counter = 1; strlen($okm) < $length; $counter++)
+  {
+    $block = hash_hmac('sha256', $block . $info . chr($counter), $prk, true);
+    $okm .= $block;
+  }
+  return substr($okm, 0, $length);
+}
+
+// Encryption and MAC keys of one <n>.v2.aes file: HKDF-SHA256 of the
+// configured key, with the purpose and the file number in the info.
 function receipt_v2_keys($key, $number)
 {
+  $prk = receipt_hkdf_extract('', $key);
   return array(
-    hash_hmac('sha256', 'pgacc-receipt-v2-enc|' . $number, $key, true),
-    hash_hmac('sha256', 'pgacc-receipt-v2-mac|' . $number, $key, true),
+    receipt_hkdf_expand($prk, 'pgacc-receipt-v2|enc|' . $number, 32),
+    receipt_hkdf_expand($prk, 'pgacc-receipt-v2|mac|' . $number, 32),
   );
 }
 
@@ -656,8 +677,23 @@ function receipt_v2_cipher($encryptionKey, $iv)
   return $cipher;
 }
 
-// Byte strings compared in constant time (hash_equals() needs PHP 5.6).
+// A CBC cipher without padding that continues across calls (chunks).
+function receipt_v2_stream_cipher($encryptionKey, $iv)
+{
+  $cipher = receipt_v2_cipher($encryptionKey, $iv);
+  $cipher->disablePadding();
+  $cipher->enableContinuousBuffer();
+  return $cipher;
+}
+
+// Byte strings compared in constant time: hash_equals() (PHP 5.6+), else
+// receipt_equals_fallback().
 function receipt_equals($known, $given)
+{
+  return function_exists('hash_equals') ? hash_equals($known, $given) : receipt_equals_fallback($known, $given);
+}
+
+function receipt_equals_fallback($known, $given)
 {
   if (strlen($known) !== strlen($given))
     return false;
@@ -671,6 +707,7 @@ function receipt_equals($known, $given)
  * The bytes of files/<number>.v2.aes: "PGR2", a 16-byte IV (random unless
  * given, for test vectors), the AES-256-CBC ciphertext with PKCS#7 padding,
  * and the HMAC-SHA256 of everything before it (encrypt-then-MAC).
+ * receipt_v2_encrypt_stream() writes the same bytes in chunks.
  */
 function receipt_v2_encrypt($key, $number, $data, $iv = null)
 {
@@ -700,20 +737,58 @@ function receipt_v2_decrypt($key, $number, $file)
   return receipt_v2_cipher($encryptionKey, substr($file, 4, 16))->decrypt($ciphertext);
 }
 
+// Encrypts stream $in to stream $out as <number>.v2.aes bytes, 64 KiB at a
+// time, so memory does not grow with the receipt. False if a write failed.
+function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
+{
+  if ($iv === null)
+    $iv = \phpseclib\Crypt\Random::string(16);
+  list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+  $cipher = receipt_v2_stream_cipher($encryptionKey, $iv);
+  $mac = hash_init('sha256', HASH_HMAC, $macKey);
+  hash_update($mac, 'PGR2' . $iv);
+  $written = fwrite($out, 'PGR2' . $iv) === 20;
+  $pending = '';
+  while (true)
+  {
+    $pending .= (string) fread($in, 65536);
+    if (feof($in))
+      break;
+    // Whole blocks now; the rest (and the padding) with the last chunk.
+    $whole = strlen($pending) - strlen($pending) % 16;
+    $ciphertext = $cipher->encrypt(substr($pending, 0, $whole));
+    $pending = (string) substr($pending, $whole);
+    hash_update($mac, $ciphertext);
+    $written = fwrite($out, $ciphertext) === strlen($ciphertext) && $written;
+  }
+  $padding = 16 - strlen($pending) % 16;
+  $ciphertext = $cipher->encrypt($pending . str_repeat(chr($padding), $padding));
+  hash_update($mac, $ciphertext);
+  $written = fwrite($out, $ciphertext) === strlen($ciphertext) && $written;
+  return fwrite($out, hash_final($mac, true)) === 32 && $written;
+}
+
+// A temporary file name next to $path, unique per process and call.
+function receipt_temp_path($path)
+{
+  return $path . '.tmp-' . getmypid() . '-' . str_replace('.', '', uniqid('', true));
+}
+
 // Writes a temporary file next to $path and renames it over $path, so readers
 // never see a partly written file. Only the temporary file is ever removed.
 function receipt_write_file($path, $bytes)
 {
-  $temp = $path . '.tmp-' . getmypid() . '-' . str_replace('.', '', uniqid('', true));
+  $temp = receipt_temp_path($path);
   if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path))
     return true;
   @unlink($temp);
   return false;
 }
 
-// Stores a new receipt as <number>.v2.aes. Fails closed: without a valid
-// configured key nothing is written.
-function receipt_store($directory, $number, $data)
+// Stores the uploaded file $source as <number>.v2.aes, encrypted in chunks
+// and renamed into place. Fails closed: without a valid configured key
+// nothing is written.
+function receipt_store($directory, $number, $source)
 {
   $receiptKey = receipt_configured_key();
   if ($receiptKey === '')
@@ -721,17 +796,30 @@ function receipt_store($directory, $number, $data)
     error_log('pgacc: receipt not stored: no valid receipt key ($key) configured');
     return false;
   }
-  if (!receipt_write_file(receipt_v2_path($directory, $number), receipt_v2_encrypt($receiptKey, $number, $data)))
-  {
-    error_log("pgacc: receipt $number.v2.aes could not be written");
-    return false;
-  }
-  return true;
+  $path = receipt_v2_path($directory, $number);
+  $temp = receipt_temp_path($path);
+  $in = @fopen($source, 'rb');
+  $out = $in === false ? false : @fopen($temp, 'xb');
+  $stored = $out !== false && receipt_v2_encrypt_stream($receiptKey, $number, $in, $out);
+  if ($in !== false)
+    fclose($in);
+  if ($out !== false)
+    $stored = fclose($out) && $stored && @rename($temp, $path);
+  if ($stored)
+    return true;
+  @unlink($temp);
+  error_log("pgacc: receipt $number.v2.aes could not be written");
+  return false;
 }
 
-// The plain text of files/<number>.v2.aes ($path), or false (logged; neither
-// the key nor its fingerprint goes to the web server's log).
-function receipt_read_v2($path, $number)
+/*
+ * Opens files/<number>.v2.aes ($path) for sending, in two passes over one
+ * open file, 64 KiB at a time: the MAC is checked over the whole file first;
+ * then the last block gives the plain text length and the first block the
+ * type. Returns what receipt_v2_send() needs, or false (logged; neither the
+ * key nor its fingerprint goes to the web server's log).
+ */
+function receipt_v2_open($path, $number)
 {
   $receiptKey = receipt_configured_key();
   if ($receiptKey === '')
@@ -739,10 +827,60 @@ function receipt_read_v2($path, $number)
     error_log("pgacc: receipt $number.v2.aes not decrypted: no valid receipt key (\$key) configured");
     return false;
   }
-  $plain = receipt_v2_decrypt($receiptKey, $number, @file_get_contents($path));
-  if ($plain === false)
+  $receipt = receipt_v2_open_with($receiptKey, $number, $path);
+  if ($receipt === false)
     error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file)");
-  return $plain;
+  return $receipt;
+}
+
+function receipt_v2_open_with($key, $number, $path)
+{
+  $in = @fopen($path, 'rb');
+  if ($in === false)
+    return false;
+  $stat = fstat($in);
+  $length = $stat['size'] - 52;
+  $header = (string) fread($in, 20);
+  list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+  $mac = hash_init('sha256', HASH_HMAC, $macKey);
+  hash_update($mac, $header);
+  for ($remaining = $length; $remaining > 0; $remaining -= 65536)
+    hash_update($mac, (string) fread($in, min(65536, $remaining)));
+  $valid = $length >= 16 && substr($header, 0, 4) === 'PGR2'
+    && receipt_equals(hash_final($mac, true), (string) fread($in, 32));
+  $iv = substr($header, 4, 16);
+  $tail = '';
+  $head = '';
+  if ($valid)
+  {
+    // The last block decrypts with the block before it (or the IV) as IV.
+    fseek($in, $stat['size'] - 64);
+    $tail = (string) fread($in, 32);
+    $last = receipt_v2_stream_cipher($encryptionKey, substr($tail, 0, 16))->decrypt(substr($tail, 16));
+    $padding = ord(substr($last, -1));
+    $valid = $padding >= 1 && $padding <= 16 && substr($last, -$padding) === str_repeat(chr($padding), $padding);
+    $length -= $padding;
+    fseek($in, 20);
+    $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, 16));
+  }
+  if (!$valid)
+  {
+    fclose($in);
+    return false;
+  }
+  return array('handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
+    'head' => substr($head, 0, min(16, $length)));
+}
+
+// Echoes the plain text of an opened <n>.v2.aes in 64 KiB chunks; closes it.
+function receipt_v2_send($receipt)
+{
+  $in = $receipt['handle'];
+  $cipher = receipt_v2_stream_cipher($receipt['key'], $receipt['iv']);
+  fseek($in, 20);
+  for ($left = $receipt['length']; $left > 0; $left -= 65536)
+    echo substr($cipher->decrypt((string) fread($in, 65536)), 0, min(65536, $left));
+  fclose($in);
 }
 
 // Membership-system exchange (getusers.php, mbapi.php): key and IV.

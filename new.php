@@ -279,8 +279,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
-$data = file_get_contents($sourcepath);
-if (!receipt_store(getcwd() . '/files', $file_number, $data))
+if (!receipt_store(getcwd() . '/files', $file_number, $sourcepath))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
   return;
