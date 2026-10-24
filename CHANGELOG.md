@@ -7,7 +7,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 First tagged release, also tagged `php5-last`: the last release that supports
 PHP 5.3. Production runs PHP 5.3.3 on Debian 6 with PostgreSQL 8.4; this
-release runs on PHP 5.3 to 8.5 and PostgreSQL 8.4 and 18. It hardens
+release is tested on PHP 5.3 and 7.4 (see Compatibility). It hardens
 authorization, login sessions, receipt encryption and output encoding, removes
 the obsolete voucher finalization and fixes a number of bugs. Read the upgrade
 notes before deploying: a valid `$key` is required and every user has to log in
@@ -67,11 +67,13 @@ again.
 
 ### Compatibility
 
-- PHP 5.3 to 8.5; PostgreSQL 8.4 and 18.
+- Tested on PHP 5.3 (production) and PHP 7.4, with PostgreSQL 8.4 and 18.
+- PHP 8.5 runs in CI but still emits known deprecations (implicit database
+  connections), so it is not supported yet; PHP 8.0 to 8.4 are not tested.
+- The PDF receipt import needs PHP below 7.2 (the locked `smalot/pdfparser`).
 - `mcrypt` is no longer required: `phpseclib` (via Composer) replaces it with
   byte-identical results and uses `mcrypt` for speed when it is loaded.
 - Short open tags are no longer needed.
-- PHP 8.5 still emits known deprecations (see `tests/COMPATIBILITY_PLAN.md`).
 - Characterization test harness, CI on PHP 5.3/7.4/8.5 × PostgreSQL 8.4/18,
   mutation testing.
 
