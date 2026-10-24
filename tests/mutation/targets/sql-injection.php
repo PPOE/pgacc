@@ -109,11 +109,20 @@ $mutations[] = array(
     'rationale' => 'Removed escape: a member name from the membership list is inserted as SQL.',
 );
 
+$mutations[] = array(
+    'id' => 'member-id-raw',
+    'file' => 'getusers.php',
+    'search' => '  $id = intval($values[1]);',
+    'replace' => '  $id = $values[1];',
+    'rationale' => 'A member id from the membership system is inserted as a number, not as SQL.',
+);
+
 return array(
     'description' => 'Request values in the SQL of the voucher edit actions, the voucher form and '
         . 'the listing filter (write-workflow tests)',
     'file' => 'edit.php',
     'tests' => array(
+        array('type' => 'phpunit', 'filter' => 'testMemberIdsAreNumbers', 'file' => 'tests/unit/GetUsersTest.php'),
         array('type' => 'http', 'script' => 'tests/write-workflows.php'),
     ),
     'timeout' => 240,

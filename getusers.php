@@ -25,7 +25,7 @@ foreach ($lines as $line)
 {
   if (strlen($line) < 5) { continue; }
   $values = explode("\t",$line);
-  $id = $values[1];
+  $id = intval($values[1]);
   $name = stripslashes(iconv('ISO-8859-15','UTF-8',$values[2]));
   $lo = $values[3];
   $paid = intval($values[4]);

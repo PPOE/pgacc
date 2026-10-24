@@ -74,6 +74,10 @@ with synthetic users and covered by a mutation target.
   name with a quote failed the query); it is escaped now. (`import.php`
   has the same assignment, but its `break` ends the import before the
   insert, an existing bug left as is.)
+  Second review fix: `getusers()` inserted the member id of the membership
+  list unchecked into `ppmembers` (a second-order value); it is `intval()`
+  now. Name (escaped), organization (mapped by a `switch`) and paid flag
+  (`intval()`) were already safe. Test in `GetUsersTest`.
   Review fix: `import.php` inserted dates read from the uploaded bank CSV
   without escaping (`format_date()` passes unrecognized text through).
   Every imported line now needs a valid date (`import_date_valid()`:
