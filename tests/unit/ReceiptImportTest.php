@@ -1,8 +1,8 @@
 <?php
 /*
- * The receipt file that the PDF import (import2.php) writes, compared byte for
- * byte with the mcrypt vector, and the refusal of the PDF import and of the
- * receipt upload (new.php) when no receipt key is configured.
+ * The receipt file that the PDF import (import2.php) writes (files/<n>.v2.aes,
+ * decrypted with the configured key and the file number), and the refusal of
+ * the PDF import and of the receipt upload (new.php) without a valid key.
  * page_import2_match_voucher() and page_new_file() are called directly: the
  * import's HTTP route also needs smalot/pdfparser, whose locked version does
  * not load on PHP 7.2+ (tests/http-receipts.php covers it on PHP 5.6), and a
@@ -130,18 +130,19 @@ final class ReceiptImportTest extends FunctionsTestCase
     public function testImportWritesTheConfiguredKeyReceipt()
     {
         // Formerly the known failure KF-RECEIPT-KEY-IGNORED: the import wrote
-        // the empty-key ciphertext although a key was configured.
-        $vector = self::receiptVector('pdf document, test-constants key');
-        self::assertSame('4711', $vector['id']);
-        self::assertSame(self::configuredTestKey(), $vector['key']);
+        // the empty-key ciphertext although a key was configured. Now the
+        // file is <n>.v2.aes, keyed on its number and the configured key.
+        $key = self::configuredTestKey();
+        $plain = hex2bin(self::receiptVector('pdf document')['plain']);
 
-        list($output, $file, $stored, $diagnostics, $log) = self::import($vector['key'], hex2bin($vector['plain']));
+        list($output, $file, $stored, $diagnostics, $log) = self::import($key, $plain);
 
         self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
         // The voucher row names the one file the import wrote.
         self::assertGreaterThan(0, intval($file));
         self::assertSame(array("$file.v2.aes"), array_keys($stored));
-        self::assertSame($vector['cipher'], bin2hex($stored["$file.v2.aes"]));
+        self::assertSame('PGR2', substr($stored["$file.v2.aes"], 0, 4));
+        self::assertSame($plain, receipt_v2_decrypt($key, $file, $stored["$file.v2.aes"]));
         self::assertSame(array(), $diagnostics);
         self::assertSame('', $log);
     }
@@ -149,14 +150,14 @@ final class ReceiptImportTest extends FunctionsTestCase
     public function testImportWithoutAConfiguredKeyIsRefused()
     {
         $vector = self::receiptVector('pdf document');
-        foreach (array(null, '') as $key) {
+        foreach (array(null, '', 'CHANGE-ME', 'short-key') as $key) {
             list($output, $file, $stored, $diagnostics, $log) = self::import($key, hex2bin($vector['plain']));
 
             self::assertSame('Beleg konnte nicht gespeichert werden.<br />', $output);
             self::assertSame('0', $file);
             self::assertSame(array(), $stored);
             self::assertSame(array(), $diagnostics);
-            self::assertStringContainsString('pgacc: receipt not stored: no receipt key ($key) configured', $log);
+            self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
         }
     }
 
@@ -164,7 +165,7 @@ final class ReceiptImportTest extends FunctionsTestCase
     {
         // The receipt upload on the voucher edit page (new.php page_new_file()).
         $vector = self::receiptVector('pdf document');
-        foreach (array(null, '') as $key) {
+        foreach (array(null, '', 'CHANGE-ME', 'short-key') as $key) {
             $_POST = array('parts' => '1', 'bid0' => '9301', 'id' => '4711');
             list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
                 $key,
@@ -180,7 +181,7 @@ final class ReceiptImportTest extends FunctionsTestCase
             self::assertSame('0', $file);
             self::assertSame(array(), $stored);
             self::assertSame(array(), $diagnostics);
-            self::assertStringContainsString('pgacc: receipt not stored: no receipt key ($key) configured', $log);
+            self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
         }
     }
 }

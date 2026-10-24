@@ -1,20 +1,47 @@
 # step: receipt-download-admin
 # request: GET /index.php?action=file&id=1001 as admin
 status: 200
+header: X-Content-Type-Options: nosniff
 header: Content-Type: application/pdf
 header: Content-Disposition: inline; filename="100.pdf"
 header: Content-Transfer-Encoding: binary
 header: Accept-Ranges: bytes
---- body (binary, 672 bytes, sha256 751929b1d525bb751a23e122cd43894d359d62b6324f60f7951d3f975f492851) ---
-JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2Jq
-CjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2Jq
-CjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUg
-ODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAw
-IFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNl
-Rm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago1IDAg
-b2JqCjw8IC9MZW5ndGggOTcgPj4Kc3RyZWFtCkJUCi9GMSAxMSBUZgoxIDAgMCAxIDUwIDgwMCBU
-bQooU3ludGhldGljIHJlY2VpcHQpIFRqCjEgMCAwIDEgNTAgNzg0IFRtCihCZXRyYWcgMTIsMzQg
-RVVSKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAK
-MDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAg
-biAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzM4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1Np
-emUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDg0CiUlRU9GCgAAAAAA
+--- body (667 bytes) ---
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 97 >>
+stream
+BT
+/F1 11 Tf
+1 0 0 1 50 800 Tm
+(Synthetic receipt) Tj
+1 0 0 1 50 784 Tm
+(Betrag 12,34 EUR) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+484
+%%EOF

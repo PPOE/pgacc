@@ -13,6 +13,7 @@
       <file>tests/unit/ReceiptImportTest.php</file>
       <file>tests/unit/ReceiptStorageTest.php</file>
       <file>tests/unit/ReceiptMigrationTest.php</file>
+      <file>tests/unit/ReceiptMigrationCommandTest.php</file>
       <file>tests/unit/ShortOpenTagTest.php</file>
     </testsuite>
   </testsuites>

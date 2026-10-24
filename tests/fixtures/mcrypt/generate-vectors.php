@@ -74,9 +74,10 @@ $allBytes .= "%PDF\0";
 $receipts = array(
     // Legacy receipts (files/<n>.aes) were written and are read with an empty
     // key part (see the receipt key item in tests/COMPATIBILITY_PLAN.md); the
-    // non-empty keys pin the derivation order. New receipts (files/<n>.v2.aes)
-    // use the configured $key: the "test-constants key" vectors use the
-    // synthetic key of tests/runtime/test-constants.php.
+    // non-empty keys pin the derivation order. The "test-constants key"
+    // vectors (the synthetic key of tests/runtime/test-constants.php) proved
+    // the ignored key (KF-RECEIPT-KEY-IGNORED); new receipts use another
+    // format (files/<n>.v2.aes, tests/fixtures/receipt-v2/).
     receipt_vector('empty', '1', '', ''),
     receipt_vector('one byte', '7', '', '%'),
     receipt_vector('pdf 31 bytes', '4711', '', substr($pdf, 0, 31)),
