@@ -7,7 +7,7 @@ name: Release
 #   notes; the owner reviews and publishes it;
 # - a manual run is a dry run: it builds the archive for the given version and
 #   uploads it as a workflow artifact, without a release.
-# Both fail if CHANGELOG.md has no section for the version.
+# Both fail unless CHANGELOG.md has a dated section for the version.
 on:
   push:
     tags:
@@ -40,7 +40,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 0
+          # Only HEAD (and, on tag pushes, the tag) is needed.
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Determine the version
         id: version
@@ -54,12 +56,24 @@ jobs:
           else
             version=${INPUT_VERSION#v}
           fi
+          # Validate before writing $GITHUB_OUTPUT (no newlines or other
+          # characters); scripts/release.sh checks the format again.
+          case "$version" in
+            '' | *[!0-9A-Za-z.-]*)
+              echo "Invalid version" >&2
+              exit 1
+              ;;
+          esac
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "Version must look like 1.2.3 or 1.2.3-rc.1: $version" >&2
+            exit 1
+          fi
           echo "version=$version" >>"$GITHUB_OUTPUT"
 
       - name: Build the archive
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: sh scripts/release.sh --check-php53 "$VERSION"
+        run: sh scripts/release.sh "$VERSION"
 
       - name: Upload the archive
         if: always()
@@ -70,10 +84,12 @@ jobs:
             build/release/*.tar.gz
             build/release/*.tar.gz.sha256
             build/release/notes-*.md
+            build/release/title-*.txt
           if-no-files-found: warn
 
   draft-release:
-    # Tag pushes only; the only job with write access.
+    # Tag pushes only; the only job with write access and the only way
+    # releases are created. A tag push builds exactly the tagged commit.
     name: Create the draft release
     needs: build
     if: github.event_name == 'push'
@@ -82,11 +98,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          fetch-depth: 0
-
       - name: Download the archive
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -94,9 +105,23 @@ jobs:
           path: build/release
 
       - name: Create the draft release
-        # release.sh checks the archive against its .sha256 and that the tag
-        # (peeled, local and on origin) points to the checked-out commit.
         env:
           VERSION: ${{ needs.build.outputs.version }}
           GH_TOKEN: ${{ github.token }}
-        run: sh scripts/release.sh --publish-only "$VERSION"
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="v$VERSION"
+          cd build/release
+          sha256sum -c "pgacc-$VERSION.tar.gz.sha256"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "A release for $tag already exists; edit or delete it on GitHub" >&2
+            exit 1
+          fi
+          case "$VERSION" in
+            *-*) prerelease=--prerelease ;;
+            *) prerelease= ;;
+          esac
+          # --verify-tag: use the pushed tag, never create one.
+          gh release create "$tag" --draft $prerelease --verify-tag \
+            --title "$(cat "title-$VERSION.txt")" --notes-file "notes-$VERSION.md" \
+            "pgacc-$VERSION.tar.gz" "pgacc-$VERSION.tar.gz.sha256"

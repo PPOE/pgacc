@@ -52,7 +52,7 @@ has known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.m
    receipts uploaded since the receipt key fix (`files/<n>.v2.aes`) cannot be
    decrypted without it or with another key. Older receipts (`files/<n>.aes`)
    stay readable; `migrate-receipt-key.php` (command line only) re-encrypts
-   them, see the runbook in [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
+   them, see the runbook in [UPGRADING.md](UPGRADING.md).
 
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
@@ -96,21 +96,21 @@ Details: [tests/README.md](tests/README.md),
 
 ## Releases
 
-Release notes come from the `## [X.Y.Z] - <date> (...)` section of
-[CHANGELOG.md](CHANGELOG.md). To cut a release (1.0.0 is also `php5-last`):
+Releases are created only by the Release workflow
+(`.github/workflows/release.yml`). To cut one (1.0.0 is also `php5-last`):
 
-1. Add or date the version's section in CHANGELOG.md and merge to `master`.
+1. Date the version's section in [CHANGELOG.md](CHANGELOG.md)
+   (`## [1.0.0] - YYYY-MM-DD (...)`) and merge to `master`.
 2. On the merged commit: `git tag -a v1.0.0 -m 'pgacc 1.0.0'` and
    `git tag -a php5-last -m 'Last release for PHP 5.3'`, then
    `git push origin v1.0.0 php5-last`.
-3. The Release workflow builds `pgacc-1.0.0.tar.gz` (code plus `vendor/`,
-   checked on PHP 5.3) and its `.sha256`, and creates a draft release.
-4. Review the draft on GitHub and publish it.
+3. The workflow builds `pgacc-1.0.0.tar.gz` (code plus `vendor/`, checked on
+   PHP 5.3) and its `.sha256`, and creates a draft release with the
+   CHANGELOG.md section as notes (a prerelease for versions with a `-`).
+4. Review the draft on GitHub and publish it. Deploy: [UPGRADING.md](UPGRADING.md).
 
-Local build (Docker, clean tree; output in `build/release/`):
-`sh scripts/release.sh [--check-php53] 1.0.0`; `--publish-draft` creates the
-draft with `gh` once the tag is pushed. A manual run of the workflow is a dry
-run that uploads the archive as an artifact.
+For testing only, `sh scripts/release.sh 1.0.0` builds the same files locally
+(Docker, clean tree, `build/release/`); a manual workflow run does the same.
 
 ## License
 

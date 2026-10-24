@@ -1000,7 +1000,7 @@ differences above are only visible for out-of-range input.
     beyond the data). On a server without mcrypt, uploads and downloads of
     large receipts can therefore hit `max_execution_time` (30 s by default)
     and need `memory_limit` headroom; the upload limit is 100 MB.
-- [ ] Deploy runbook for the receipt key (owner):
+- [ ] Deploy runbook for the receipt key (owner); shipped copy in `UPGRADING.md`, keep both in sync:
   1. Back up `files/` and `constants.php` (its `$key`) to separate, safe
      places. Without that `$key` no new receipt can be decrypted again; keep
      the backup as long as receipts must be kept.
