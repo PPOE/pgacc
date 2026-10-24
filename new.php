@@ -266,6 +266,18 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 }
 $rightssql = rights2orgasql($rights);
 
+// Only a current row of this voucher that the user sees; checked before the
+// finalized check, so that other organizations learn nothing about it.
+$query = "SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
+
 // A finalized row blocks the upload, also a row of another organization.
 $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());

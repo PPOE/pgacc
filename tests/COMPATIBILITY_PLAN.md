@@ -178,7 +178,11 @@ with synthetic users and covered by a mutation target.
   none). Now the scoped update must match the posted row first ("FEHLER:
   Buchungszeile nicht gefunden." otherwise, nothing stored or reset), and
   a failed store resets the row's file number, as in the PDF import. Tests
-  in `ReceiptImportTest`, mutations in `import-checks`.
+  in `ReceiptImportTest`, mutations in `import-checks`. PR review fix: the
+  row check (a current row of the voucher in the user's scope) now comes
+  before the finalized check, so a user of another organization gets
+  "Buchungszeile nicht gefunden" instead of learning that the voucher is
+  finalized.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`

@@ -1127,6 +1127,22 @@ foreach (array('admin' => array(null, $adminCookies, 2), 'organization two' => a
     );
 }
 
+// A user of another organization does not learn that a voucher is
+// finalized: the row check comes first ("Buchungszeile nicht gefunden").
+$foreignFinalizedId = create_voucher($database, 'Synthetic finalized voucher of organization two', '-20.50', 0, $adminCookies);
+finalize_in_database($database, $foreignFinalizedId);
+$foreignFinalizedRow = database_row($database, 'SELECT id FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($foreignFinalizedId), 'foreign finalized row');
+$foreignUpload = http_request(
+    '/index.php?action=edit',
+    'POST',
+    array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $foreignFinalizedRow['id'], 'id' => $foreignFinalizedId),
+    $unitOneCookies,
+    null,
+    $syntheticReceipt
+);
+assert_contains($foreignUpload['body'], 'FEHLER: Buchungszeile nicht gefunden.', 'receipt upload to a finalized voucher of another organization');
+assert_not_contains($foreignUpload['body'], 'finalisiert', 'receipt upload to a finalized voucher of another organization');
+
 // A receipt upload resets the approvals of the whole
 // voucher too, also of other organizations' rows, and is allowed for an
 // approved voucher.

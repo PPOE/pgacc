@@ -422,6 +422,20 @@ return array(
             'rationale' => 'A finalized row of another organization blocks the upload too.',
         ),
         array(
+            'id' => 'upload-visibility-check-unscoped',
+            'file' => 'new.php',
+            'search' => 'SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id;',
+            'rationale' => 'A user of another organization does not learn whether a voucher is finalized.',
+        ),
+        array(
+            'id' => 'upload-visibility-check-removed',
+            'file' => 'new.php',
+            'search' => 'if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))',
+            'replace' => 'if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)) && false)',
+            'rationale' => 'The upload checks the row before the finalized check.',
+        ),
+        array(
             'id' => 'drop-acks-reset-removed',
             'region' => $dropAcks,
             'search' => 'vouchers_reset_ack($id, $rights);',
