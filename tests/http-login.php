@@ -493,6 +493,12 @@ $loggedOut = login_state(1);
 check('logout clears users.cookie', $loggedOut['cookie'] === null
     ? array() : array('users.cookie was ' . var_export($loggedOut['cookie'], true) . ', expected NULL'));
 check('cookies of a logged-out session are rejected', not_authenticated_problems($adminCookies));
+// A logged-out session has no token: not even one computed for the cleared
+// (empty) users.cookie.
+check('token for the cleared users.cookie rejected', not_authenticated_problems(array(
+    'pp_pgacc_login' => expected_login_token(1, '', $loggedOut['login']),
+    'pp_pgacc_id' => '1',
+)));
 check('logout keeps the sessions of other users', authenticated_as_problems($reviewerCookies));
 
 // A logout with a wrong token for a user id ends nothing.
@@ -530,11 +536,22 @@ if (isset($unbufferedCookies['pp_pgacc_login']) && isset($unbufferedCookies['pp_
 } else {
     check('login page when already logged in, with target, with output_buffering=0', array('no login cookies to test with'));
 }
-$unbufferedLogout = http_request('/index.php?action=logout', 'GET', array(), array(), $unbufferedUrl);
+// Logout with and without the cookies of a session: the session check and
+// the end of the session run before the headers.
+$unbufferedLogout = http_request('/index.php?action=logout', 'GET', array(), $unbufferedCookies, $unbufferedUrl);
+$unbufferedLoggedOut = login_state(2);
 check('logout with output_buffering=0', array_merge(
     logout_response_problems($unbufferedLogout),
     logout_cookie_attribute_problems($unbufferedLogout),
-    redirect_body_problems($unbufferedLogout)
+    redirect_body_problems($unbufferedLogout),
+    $unbufferedLoggedOut['cookie'] === null ? array() : array('users.cookie was not cleared'),
+    not_authenticated_problems($unbufferedCookies)
+));
+$unbufferedAnonymousLogout = http_request('/index.php?action=logout', 'GET', array(), array(), $unbufferedUrl);
+check('logout without cookies with output_buffering=0', array_merge(
+    logout_response_problems($unbufferedAnonymousLogout),
+    logout_cookie_attribute_problems($unbufferedAnonymousLogout),
+    redirect_body_problems($unbufferedAnonymousLogout)
 ));
 
 if (count($problems) > 0) {

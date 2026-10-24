@@ -21,7 +21,7 @@ $logoutBlock = "if (\$page == \"logout\")\n{\n"
     . "  // Ends the session on the server too: its cookies stop working even if\n"
     . "  // a copy was kept. Wrong or missing cookies end nothing.\n"
     . "  \$logoutId = checklogin('id', false);\n  if (\$logoutId > 0)\n"
-    . "    pg_query(\"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
+    . "    pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
     . "  header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n"
     . "  header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n  header(\"Location: index.php\");\n"
     . "  pg_close(\$dbconn);\n  return;\n}\n";
@@ -194,22 +194,40 @@ return array(
         array(
             'id' => 'checklogin-token-not-checked',
             'region' => $checklogin,
-            'search' => "      if (!login_token_equals(login_session_token(\$line['id'], \$line['cookie'], \$line['login']), \$_COOKIE[\"pp_pgacc_login\"]))\n        continue;",
+            'search' => "      if (strval(\$line['cookie']) === '' || !login_token_equals(\$token, \$_COOKIE[\"pp_pgacc_login\"]))\n        continue;",
             'replace' => "      if (false)\n        continue;",
             'rationale' => 'Fail-open: any pp_pgacc_login value would authenticate as the pp_pgacc_id user.',
         ),
         array(
+            'id' => 'checklogin-logged-out-accepted',
+            'region' => $checklogin,
+            'search' => "strval(\$line['cookie']) === '' || ",
+            'replace' => '',
+            'rationale' => 'A logged-out session (users.cookie NULL) has no token, not even the one of an empty nonce.',
+        ),
+        array(
+            'id' => 'checklogin-implicit-connection',
+            'region' => $checklogin,
+            'search' => "\$data = pg_query(\$dbconn, \"SELECT * FROM users",
+            'replace' => "\$data = pg_query(\"SELECT * FROM users",
+            'rationale' => 'The session check passes its connection: PHP 8.5 deprecates the implicit one (displayed before the logout headers).',
+            'equivalent' => array(
+                'php' => array('7.4'),
+                'reason' => 'Before PHP 8.5 the implicit connection is the same link, without a diagnostic; PHP 8.5 reports the deprecation, which the diagnostics check kills.',
+            ),
+        ),
+        array(
             'id' => 'checklogin-token-check-inverted',
             'region' => $checklogin,
-            'search' => 'if (!login_token_equals(',
-            'replace' => 'if (login_token_equals(',
+            'search' => '=== \'\' || !login_token_equals(',
+            'replace' => '=== \'\' || login_token_equals(',
             'rationale' => 'Only the session token of the stored nonce and login time authenticates.',
         ),
         array(
             'id' => 'checklogin-nonce-is-token',
             'region' => $checklogin,
-            'search' => "login_token_equals(login_session_token(\$line['id'], \$line['cookie'], \$line['login']), ",
-            'replace' => "login_token_equals(\$line['cookie'], ",
+            'search' => 'login_token_equals($token, ',
+            'replace' => 'login_token_equals($line[\'cookie\'], ',
             'rationale' => 'The stored nonce itself (the token format before the fix) must not authenticate.',
         ),
         array(
@@ -231,9 +249,20 @@ return array(
         array(
             'id' => 'logout-session-kept',
             'region' => $logout,
-            'search' => 'pg_query("UPDATE users SET cookie = NULL WHERE id = $logoutId");',
+            'search' => 'pg_query($dbconn, "UPDATE users SET cookie = NULL WHERE id = $logoutId");',
             'replace' => 'true;',
             'rationale' => 'Logout ends the session on the server: a kept copy of the cookies must stop working.',
+        ),
+        array(
+            'id' => 'logout-implicit-connection',
+            'region' => $logout,
+            'search' => 'pg_query($dbconn, "UPDATE users SET cookie = NULL',
+            'replace' => 'pg_query("UPDATE users SET cookie = NULL',
+            'rationale' => 'Logout passes its connection: PHP 8.5 deprecates the implicit one (displayed before the logout headers).',
+            'equivalent' => array(
+                'php' => array('7.4'),
+                'reason' => 'Before PHP 8.5 the implicit connection is the same link, without a diagnostic; PHP 8.5 reports the deprecation, which the diagnostics check kills.',
+            ),
         ),
         array(
             'id' => 'logout-trusts-id-cookie',

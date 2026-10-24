@@ -342,7 +342,13 @@ with synthetic users and covered by a mutation target.
   without key material), so that operators can tell it from a wrong
   password. Tests in `tests/http-login.php` (token format, rotation,
   wrong, old-format and other users' tokens, 24-hour expiry) and
-  `LoginSessionTest`, mutations in `login-logout`.
+  `LoginSessionTest`, mutations in `login-logout`. Review fixes: a
+  logged-out session (`users.cookie` NULL) is refused, also with a token
+  computed for an empty nonce; for an unknown, expired or logged-out id
+  `checklogin()` still computes and compares one token, so the timing does
+  not tell recently logged-in ids. The session check and the logout pass
+  the connection explicitly (PHP 8.5 deprecates the implicit one, displayed
+  before the logout headers).
   **Deploy:** check that `constants.php` sets a valid `$key` (also needed for
   receipts, see the receipt key runbook). Every user is logged out once by
   the deploy (old cookies are numbers, no longer valid tokens). Changing

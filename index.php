@@ -74,15 +74,22 @@ function checklogin($get = 'name', $redir = true)
 {
   global $user_id;
   global $user_prefs_hide;
+  global $dbconn;
   if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1)
   {
-    $data = pg_query("SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
+    $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
     if (!$data)
       return $get == 'id'?0:'';
+    // An unknown, expired or logged-out id costs the same token check as a
+    // valid one.
+    if (pg_num_rows($data) == 0)
+      login_token_equals(login_session_token(0, 0, ''), $_COOKIE["pp_pgacc_login"]);
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
     {
-      // The session token of this login (functions.php), compared in constant time.
-      if (!login_token_equals(login_session_token($line['id'], $line['cookie'], $line['login']), $_COOKIE["pp_pgacc_login"]))
+      // The session token of this login (functions.php), compared in
+      // constant time. A logged-out session (users.cookie NULL) has none.
+      $token = login_session_token($line['id'], $line['cookie'], $line['login']);
+      if (strval($line['cookie']) === '' || !login_token_equals($token, $_COOKIE["pp_pgacc_login"]))
         continue;
       $user_id = $line['id'];
       $hide_cols = explode(",",$line['hide']);
@@ -203,7 +210,7 @@ if ($page == "logout")
   // a copy was kept. Wrong or missing cookies end nothing.
   $logoutId = checklogin('id', false);
   if ($logoutId > 0)
-    pg_query("UPDATE users SET cookie = NULL WHERE id = $logoutId");
+    pg_query($dbconn, "UPDATE users SET cookie = NULL WHERE id = $logoutId");
   header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);
   header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);
   header("Location: index.php");
