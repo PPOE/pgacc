@@ -59,6 +59,7 @@ final class FunctionsTest extends FunctionsTestCase
             'already csv' => array('/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv'),
             'csv first' => array('/index.php?format=csv&action=all', '/index.php?format=csv&amp;action=all'),
             'other format' => array('/index.php?action=all&format=csvx', '/index.php?action=all&amp;format=csvx&amp;format=csv'),
+            'prefixed format parameter' => array('/index.php?action=all&xformat=csv', '/index.php?action=all&amp;xformat=csv&amp;format=csv'),
             'format in path' => array('/x&format=csv/index.php', '/x&amp;format=csv/index.php?format=csv'),
             'format in path with query' => array('/x&format=csv&/index.php?action=all', '/x&amp;format=csv&amp;/index.php?action=all&amp;format=csv'),
         );
