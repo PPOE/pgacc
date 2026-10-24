@@ -400,7 +400,7 @@ also on PHP 8.5. The target files hold each mutation's rationale.
 | `listing-columns` | column preferences in `closed.php` (`listing_column_hidden()`, `emptytag()`) | `http-listing-prefs.php` |
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `donations` | `page_donations()` initializations, disabled publication, captcha | `http-donations.php` |
-| `receipt-crypto` | mcrypt-compatible helpers, receipt storage and migration, their call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `http-receipts.php` |
+| `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 
 Accepted equivalents (reasons in the target files):
 
@@ -419,6 +419,9 @@ Accepted equivalents (reasons in the target files):
   `import2-update-ignores-file` (differ only under a concurrent change).
 - `report-prevcond`: `prevcond-passes-prev-cond` (`unit_report()` never reads
   its first parameter).
+- `receipt-crypto`: `v2-short-file-accepted` (a shorter file has no valid MAC
+  without the key). `stream-stalled-read-not-detected` times out (an endless
+  read loop), which counts as detected.
 
 Deliberately not mutated: an unprotected import page (`redirects`) and the bank
 import check (`read-only-rights`), because the page would call the external

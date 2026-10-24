@@ -117,8 +117,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
 | `getusers.php`, `mbapi.php` | Membership-system interface (lookup and export API) |
-| `file.php` | Encrypted receipt download (mcrypt-compatible helpers in `functions.php`, phpseclib); new receipts are `files/<n>.v2.aes` (configured `$key`), legacy `files/<n>.aes` |
-| `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
+| `file.php` | Encrypted receipt download (helpers in `functions.php`, phpseclib): `files/<n>.v2.aes` (AES-256 + HMAC, keyed on `$key` and file number), legacy `files/<n>.aes` (mcrypt-compatible) |
+| `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `table-schema.txt`, `tests/fixtures/` | Schema notes; test schema and synthetic data |
 | `tests/run.sh`, `compose*.yaml`, `tests/postgres84/`, `tests/postgres-version.sh` | Harness entry point, per-lane Compose files, PostgreSQL 8.4.20 image, `PGACC_TEST_PG` selection |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |

@@ -1,1 +1,1 @@
-E_NOTICE new.php:669: Undefined variable: bgfandack
+E_NOTICE new.php:668: Undefined variable: bgfandack

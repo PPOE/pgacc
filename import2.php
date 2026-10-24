@@ -192,8 +192,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
   pg_free_result($result);
 
   $sourcepath = $_FILES["upload"]["tmp_name"][$i];
-  $data = file_get_contents($sourcepath);
-  if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $id, $data)) {
+  if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath)) {
     $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
     pg_free_result($result);
     echo "Beleg konnte nicht gespeichert werden.<br />";
