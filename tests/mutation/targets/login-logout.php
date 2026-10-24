@@ -194,14 +194,14 @@ return array(
         array(
             'id' => 'checklogin-token-not-checked',
             'region' => $checklogin,
-            'search' => "      if (strval(\$line['cookie']) === '' || !login_token_equals(\$token, \$_COOKIE[\"pp_pgacc_login\"]))\n        continue;",
+            'search' => "      if (!\$tokenMatches || !\$line || strval(\$line['cookie']) === '')\n        continue;",
             'replace' => "      if (false)\n        continue;",
             'rationale' => 'Fail-open: any pp_pgacc_login value would authenticate as the pp_pgacc_id user.',
         ),
         array(
             'id' => 'checklogin-logged-out-accepted',
             'region' => $checklogin,
-            'search' => "strval(\$line['cookie']) === '' || ",
+            'search' => " || strval(\$line['cookie']) === ''",
             'replace' => '',
             'rationale' => 'A logged-out session (users.cookie NULL) has no token, not even the one of an empty nonce.',
         ),
@@ -219,9 +219,23 @@ return array(
         array(
             'id' => 'checklogin-token-check-inverted',
             'region' => $checklogin,
-            'search' => '=== \'\' || !login_token_equals(',
-            'replace' => '=== \'\' || login_token_equals(',
+            'search' => 'if (!$tokenMatches ||',
+            'replace' => 'if ($tokenMatches ||',
             'rationale' => 'Only the session token of the stored nonce and login time authenticates.',
+        ),
+        array(
+            'id' => 'checklogin-missing-row-read',
+            'region' => $checklogin,
+            'search' => ' || !$line || ',
+            'replace' => ' || ',
+            'rationale' => 'Even a matching dummy token must not read fields from a missing row.',
+        ),
+        array(
+            'id' => 'checklogin-stops-after-first-row',
+            'region' => $checklogin,
+            'search' => '} while ($line && ($line = pg_fetch_array($data, null, PGSQL_ASSOC)));',
+            'replace' => '} while (false);',
+            'rationale' => 'The schema does not guarantee unique IDs: a nonmatching first row must not hide a later matching session.',
         ),
         array(
             'id' => 'checklogin-nonce-is-token',

@@ -299,6 +299,29 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
     check('valid login cookies still authenticate', authenticated_as_problems($cookies));
 }
 
+// Even the exact dummy token must not turn a missing database row into a
+// session. The schema does not guarantee unique user IDs, so keep looking
+// when the first row's token does not match (the name column is unique).
+check('missing user rejects the dummy token', not_authenticated_problems(array(
+    'pp_pgacc_id' => '999999', 'pp_pgacc_login' => expected_login_token(0, 0, ''),
+)));
+$duplicateSessions = pg_query(database_connection(),
+    "INSERT INTO users (id, name, login, cookie, rights, hide) VALUES
+     (59, 'synthetic-session-decoy', now(), 101, '2', ''),
+     (59, 'synthetic-session-match', now(), 102, '2', '') RETURNING cookie, login");
+if ($duplicateSessions === false || pg_num_rows($duplicateSessions) !== 2) {
+    fail_test('could not create the synthetic duplicate-id sessions');
+}
+// Check both tokens: no assumption about which row PostgreSQL returns first.
+while ($candidateSession = pg_fetch_assoc($duplicateSessions)) {
+    check('session lookup accepts matching row ' . $candidateSession['cookie'], authenticated_as_problems(array(
+        'pp_pgacc_id' => '59',
+        'pp_pgacc_login' => expected_login_token(59, $candidateSession['cookie'], $candidateSession['login']),
+    )));
+}
+pg_free_result($duplicateSessions);
+pg_query(database_connection(), "DELETE FROM users WHERE id = 59 AND name IN ('synthetic-session-decoy', 'synthetic-session-match')");
+
 // Valid login with a hex-encoded target redirects to that target.
 $target = 'index.php?action=all&filter_date=2024';
 $targetLogin = login_request('synthetic-reviewer', 'reviewer-password', $target);

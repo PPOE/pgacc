@@ -344,9 +344,13 @@ with synthetic users and covered by a mutation target.
   wrong, old-format and other users' tokens, 24-hour expiry) and
   `LoginSessionTest`, mutations in `login-logout`. Review fixes: a
   logged-out session (`users.cookie` NULL) is refused, also with a token
-  computed for an empty nonce; for an unknown, expired or logged-out id
-  `checklogin()` still computes and compares one token, so the timing does
-  not tell recently logged-in ids. The session check and the logout pass
+  computed for an empty nonce. `checklogin()` compares a token even when
+  the query returns no row, using the result in the same authentication
+  guard instead of discarding a dummy comparison (which PHPStan rejected).
+  It still iterates over rows: the legacy schema does not guarantee unique
+  user IDs. This equalizes the comparison step, not the complete HTTP/SQL
+  request timing. Tests also reject the exact dummy token for an absent user
+  and preserve lookup after a first nonmatching row. The session check and the logout pass
   the connection explicitly (PHP 8.5 deprecates the implicit one, displayed
   before the logout headers).
   **Deploy:** check that `constants.php` sets a valid `$key` (also needed for
@@ -361,15 +365,39 @@ with synthetic users and covered by a mutation target.
   wrong or no cookies changes nothing. Logout ends every session of that
   user (all sessions of a user share `users.cookie`, as before: a new login
   also ends the previous one). Tests in `tests/http-login.php`, mutations in
-  `login-logout`.
+  `login-logout`. A standalone `tests/http-session-lifecycle.php logout`
+  run on pre-fix `bac674e` fails because the cleared-nonce token authenticates;
+  the same scenario passes on the fixed branch without diagnostics.
 - [x] A password change ends the sessions of that user (`accounts.php`
   clears `users.cookie` with the new hash, for an own change and a change by
   root), so stolen cookies stop working. A change of the rights only keeps
   the sessions. Behaviour change: a user who changes the own password is
   logged out and logs in again with the new one (`page_accounts()` checks
   the session once, so the page after the change still shows the own
-  account). Tests in
-  `tests/write-workflows.php`, mutations in `rights-checks`.
+  account). Tests moved from the end of `tests/write-workflows.php` into
+  `tests/http-session-lifecycle.php`, run by both the 7.4 and production
+  lane clients and by `rights-checks`. The standalone `password` scenario
+  fails on `7c49674` because an own password change leaves `users.cookie`
+  set, and passes on the fixed branch. Root changing another password and
+  rights-only updates remain covered; the former ends only the target's
+  session, the latter preserves its token. No baseline entries or assertion
+  strength were relaxed.
+  Follow-up verification on the isolated login branch: static analysis passes
+  unchanged baselines; PHP 7.4 covers 83/83 executable lines in the login delta
+  from `2be90d8`; the PHP 5.3 lane passes. The login mutation target kills 56
+  mutants with three existing equivalents, and Infection kills all 127
+  generated login-helper mutants. Its unrelated legacy-helper survivors are
+  still reported. The read-only account target follows the cached `$ownId`
+  introduced with password invalidation and its mutant is killed.
+  The existing approval-visibility equivalent classification from `923ac01`
+  was carried to this fork: `edit.php` is byte-identical to that reviewed
+  version, and the equivalent was reconfirmed separately from the other 62
+  killed rights-check mutants.
+  **Separate inherited test gap:** `new-save-read-only-allowed` survives in
+  both parent `69ac7c3` and this follow-up; the other 12 read-only mutants are
+  killed. No voucher code changed here, and no new equivalence was assumed
+  for that case. Resolve it with the security integration rather than
+  expanding this login task. Raw mutation results remain visible.
 - [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
   with `setcookie()` and only an expiry: readable by scripts, sent over plain
   HTTP and on cross-site requests. `index.php` now sends both Set-Cookie

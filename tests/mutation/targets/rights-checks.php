@@ -17,6 +17,7 @@ return array(
         . '(write-workflow tests)',
     'file' => 'edit.php',
     'tests' => array(
+        array('type' => 'http', 'script' => 'tests/http-session-lifecycle.php'),
         array('type' => 'phpunit', 'filter' => 'testOrganizationAllowed|testHasRight|testWriteRights'),
         array('type' => 'http', 'script' => 'tests/write-workflows.php'),
     ),

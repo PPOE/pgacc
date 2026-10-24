@@ -80,16 +80,14 @@ function checklogin($get = 'name', $redir = true)
     $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
     if (!$data)
       return $get == 'id'?0:'';
-    // An unknown, expired or logged-out id costs the same token check as a
-    // valid one.
-    if (pg_num_rows($data) == 0)
-      login_token_equals(login_session_token(0, 0, ''), $_COOKIE["pp_pgacc_login"]);
-    while ($line = pg_fetch_array($data, null, PGSQL_ASSOC))
+    $line = pg_fetch_array($data, null, PGSQL_ASSOC);
+    do
     {
-      // The session token of this login (functions.php), compared in
-      // constant time. A logged-out session (users.cookie NULL) has none.
-      $token = login_session_token($line['id'], $line['cookie'], $line['login']);
-      if (strval($line['cookie']) === '' || !login_token_equals($token, $_COOKIE["pp_pgacc_login"]))
+      // Compare once even without a row; the result is used by the same
+      // guard. A missing row or cleared nonce can never authenticate.
+      $token = $line ? login_session_token($line['id'], $line['cookie'], $line['login']) : login_session_token(0, 0, '');
+      $tokenMatches = login_token_equals($token, $_COOKIE["pp_pgacc_login"]);
+      if (!$tokenMatches || !$line || strval($line['cookie']) === '')
         continue;
       $user_id = $line['id'];
       $hide_cols = explode(",",$line['hide']);
@@ -113,7 +111,7 @@ function checklogin($get = 'name', $redir = true)
         pg_free_result($data);
         return $line['rights'];
       } 
-    }
+    } while ($line && ($line = pg_fetch_array($data, null, PGSQL_ASSOC)));
     pg_free_result($data);
   }
   if ($redir)
