@@ -10,14 +10,16 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   No PHP 5.4+ syntax: no short arrays `[]`, no `f()[0]`, no traits, no `::class`, no `$this` in closures.
   No PHP 7+ syntax or functions either: no `??`, `<=>`, `match`, typed parameters/returns/properties,
   arrow functions, nullsafe `?->`, `str_contains`/`str_starts_with`, etc. Use `array()`.
-- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`). The PHP 5.3 lane
-  (`sh tests/run.sh 5.3`) runs the app on a production-like squeeze i386 image (Lighttpd + PHP-CGI
-  5.3.3-7+squeeze19); its HTTP test scripts run from the PHP 5.6 image (`tests/README.md`, "PHP 5.3 lane").
-- PostgreSQL: production runs a very old server; the schema was reconstructed from 8.4 (`tests/fixtures/schema.sql`).
-  Tests use PostgreSQL 17. Write SQL that works on both.
-- Test files must stay PHP 5.6-compatible too (`tests/known-diagnostics.php`, mutation targets, helpers).
-  `tests/unit/FunctionsTest.php`, `tests/runtime/` and the server-side `tests/php53/` scripts run on PHP 5.3
-  (no `finally`).
+- PHPCompatibility checks 5.3-8.5 (`tests/static-analysis/phpcs.xml`).
+- PostgreSQL: production runs 8.4.20 (schema: `tests/fixtures/schema.sql`). Tests use 8.4.20 (built from
+  squeeze, `tests/postgres84/`, configured like production) and 18. Write SQL that works on both.
+- Lanes (`tests/README.md`): PHP 5.3 x PG 8.4 (the production pair: squeeze i386, Lighttpd + PHP-CGI
+  5.3.3-7+squeeze19, HTTP test scripts run from a PHP 5.6 client image), PHP 7.4 x PG 18 (coverage) and
+  7.4 x 8.4, PHP 8.5 x PG 18. No PHP 5.6, 8.0 or 8.4 lanes.
+- HTTP test scripts and their helpers (`tests/http-*.php`, `tests/write-workflows.php`,
+  `tests/known-diagnostics.php`, `tests/reference/` client side) run on the PHP 5.6 client: keep them
+  5.6-compatible. `tests/unit/FunctionsTest.php`, `CryptoTest.php`, `tests/runtime/` and the server-side
+  `tests/php53/` scripts run on PHP 5.3 (no `finally`).
 
 ## Change workflow (owner's rules)
 
@@ -26,9 +28,10 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
    (PR text, `tests/COMPATIBILITY_PLAN.md`) and never slip them into a fix or refactor.
 3. Every application change must cover all changed executable lines:
    `PGACC_TEST_ID=<id> PGACC_COVERAGE_BASE=<base branch, e.g. origin/master> sh tests/run.sh 7.4`
-4. Run mutation tests before and after the change, and report both results:
-   - code reached by HTTP tests: `sh tests/mutation/run.sh <lane> <target>` with a target in
-     `tests/mutation/targets/`, on 7.4 and 5.6. Add or extend a target for new behaviour; introduce no survivors.
+4. Run mutation tests on the changed lines before (the new test must be red) and after the change, and
+   report both results:
+   - code reached by HTTP tests: `sh tests/mutation/run.sh 7.4 <target> --changed-since=<base>` with a
+     target in `tests/mutation/targets/`. Add or extend a target for new behaviour; introduce no survivors.
    - `functions.php` helpers: `sh tests/mutation/infection.sh 7.4|8.5`.
    - Details: `tests/mutation/README.md` ("Required step for fixes").
 5. Never weaken tests, baselines, canaries or analysis config to get a green run. Each baseline change is reviewed.
@@ -47,13 +50,18 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 ## Running tests
 
 - Docker only. Tests use synthetic data on internal networks with no published ports.
-- `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.3|5.6|7.4|8.0|8.5` runs one lane.
-  Coverage runs only on 7.4 (report in `build/coverage/`).
+- `sh tests/run.sh` runs all lanes. `sh tests/run.sh 5.3|7.4|8.5` runs one lane on its default server
+  (8.4 for 5.3, 18 otherwise); `PGACC_TEST_PG=8.4|18` overrides it. Coverage runs only on 7.4 x 18
+  (report in `build/coverage/`).
+- Local verification policy (CI runs the rest, `tests/README.md` "Continuous integration"): run only the
+  affected lane, usually 7.4, with the coverage gate on the changed lines; mutation only on the changed
+  lines (`--changed-since`); the red test before the fix; `sh tests/static-analysis.sh` if application code
+  changed; `sh tests/run.sh 5.3` too for hotfix changes (`php5-last`). Run checks sequentially.
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
   Remove tagged images afterwards with `docker rmi`.
-- Other checks: `sh tests/static-analysis.sh` (`--report` lists every finding) and `sh tests/php-syntax-matrix.sh`.
+- Other checks: `sh tests/static-analysis.sh` (`--report` lists every finding).
 - Some lanes fail by design until their fixes land (currently PHP 8.5: implicit-connection deprecations displayed
-  before redirects; PHP 8.0 passes since the `edit.php:120` fix).
+  before redirects).
   Check `tests/COMPATIBILITY_PLAN.md` for the current state; don't assume. Known failures (`KF-*`) fail when they
   start passing, so a fix moves them to regular assertions.
 
@@ -96,4 +104,5 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `tests/run.sh`, `compose*.yaml` | Harness entry point and per-lane Compose files |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
-| `tests/reference/` | PHP 5 golden master: `record.sh` (PHP 5.3), `run.sh compare <lane>`, reviewed `allowlist.php` (`accepted`/`todo`) |
+| `tests/reference/` | PHP 5 golden master: `record.sh` (PHP 5.3 x PG 8.4), `run.sh compare <lane>`, reviewed `allowlist.php` (`accepted`/`todo`, optional `pg`) |
+| `tests/postgres84/`, `tests/postgres-version.sh` | PostgreSQL 8.4.20 test server image; `PGACC_TEST_PG` selection |

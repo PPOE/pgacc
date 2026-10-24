@@ -27,8 +27,9 @@ Core concepts:
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
 
-Tested on PHP 5.6, 7.4, 8.0 and 8.5 and PostgreSQL 17. The PHP 8 lanes still
-have known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
+Tested on PHP 5.3 with PostgreSQL 8.4 (the production pair), PHP 7.4 with
+PostgreSQL 18 and 8.4, and PHP 8.5 with PostgreSQL 18. The PHP 8.5 lane still
+has known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
 
 ## Setup
 
@@ -78,8 +79,8 @@ All pages are served through `index.php?action=<name>`, e.g.:
 The test harness runs in Docker with synthetic data only.
 
 ```sh
-sh tests/run.sh                         # syntax matrix + all PHP lanes
-sh tests/run.sh 7.4                     # one lane: 5.6, 7.4, 8.0 or 8.5
+sh tests/run.sh                         # all lanes
+sh tests/run.sh 7.4                     # one lane: 5.3, 7.4 or 8.5 (PGACC_TEST_PG=8.4|18)
 PGACC_TEST_ID=mine sh tests/run.sh 7.4  # isolate concurrent runs
 sh tests/static-analysis.sh             # PHPCompatibility + PHPStan
 sh tests/mutation/run.sh 7.4 <target>   # target-driven mutation runner

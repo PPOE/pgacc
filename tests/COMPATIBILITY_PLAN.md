@@ -4,6 +4,11 @@ Reviewed against the synthetic Docker harness on 2026-10-23. This list separates
 completed changes from reproducible failures and configuration-dependent risks.
 Application changes beyond the completed fixes listed below remain follow-up work.
 
+Test lanes since 2026-10-24 (owner decision): PHP 5.3 / PostgreSQL 8.4.20 (the
+production pair), PHP 7.4 / 18 (coverage) and 7.4 / 8.4, PHP 8.5 / 18. The PHP
+5.6 and 8.0 lanes, the separate syntax matrix and the PostgreSQL 9.4, 14 and 17
+servers were removed; findings below that name them are historical.
+
 ## Completed and verified
 
 - [x] Change `$ascii{$i}` to `$ascii[$i]` in `functions.php`. All 29 tracked
@@ -368,90 +373,47 @@ fix. The `null-arguments` mutation target checks each guard.
 
 ## PostgreSQL version matrix
 
-Run on 2026-10-23 with `PGACC_TEST_PG` (see the
-[test README](README.md#postgresql-versions)). Production runs 8.4.20, which
-cannot be pulled; 9.4.26 is the oldest stand-in.
+Since 2026-10-24 the harness tests production's own server, PostgreSQL 8.4.20
+(Debian squeeze i386 packages 8.4.20-0squeeze1, configured like production;
+see the [test README](README.md#postgresql-versions)), and PostgreSQL 18. The
+former stand-ins 9.4, 14 and 17 are gone.
 
-| Lane | 9.4.26 | 14.24 | 17.11 | 18.6 |
-|---|---|---|---|---|
-| PHP 7.4 (`run.sh 7.4`) | pass | pass | pass (coverage lane) | pass |
-| PHP 5.6 (`run.sh 5.6`) | pass | not run | CI lane (not re-run locally) | not run |
+| Lane | 8.4.20 | 18.6 |
+|---|---|---|
+| PHP 5.3 (`run.sh 5.3`) | pass (default, production pair) | not run |
+| PHP 7.4 (`run.sh 7.4`) | CI weekly/PRs (reference compare passes locally) | pass (coverage lane) |
+| PHP 8.5 (`run.sh 8.5`) | not run | CI lane (fails by design, see above) |
 
-All lanes that ran produced the same PHP diagnostics, PHPUnit results
-(155 tests; PHP 5.6 also 237 assertions), HTTP/login and write-workflow results on every server; the
-`known-diagnostics.php` baseline therefore needs no per-PostgreSQL entries
-(no `pg` key). As an additional manual check, 28 read-only pages (report
-2023-2025, ledger, open/closed/deleted lists and their CSV exports, public
-transactions/spendings/donations, statistics, `tinyreport`, `vreport`, `wk`,
-accounts, edit and recover views) were fetched as `synthetic-admin` from
-fresh fixtures on PHP 7.4 against each server. The bodies were byte-identical
-apart from random captcha numbers and Xdebug timings in the `mb.php` error
-page (it tries to reach the membership API, which the isolated network
-blocks). `KD-REPORT-SQL-PG15` was fixed before this run, so 14 and 15+
-no longer differ; before the fix, 9.4 and 14 accepted `8AND` and 15+ did not.
+Test infrastructure adapted for 8.4 (no application change): fixtures chosen
+by server version (`CREATE EXTENSION pgcrypto` only on 9.1+, pgcrypto from
+contrib in 8.4's `template1`; plpgsql created around the characterization
+only), characterization without `DO` and `array_agg(... ORDER BY)`, the
+mutation runner's `procpid` before 9.2, and the reference statement log
+without `application_name` (attributed by connection). Earlier findings from
+9.4-18 (`psql` running only the last `--file`, `regnamespace`, PostgreSQL 18
+NOT NULL constraint rows, `password_encryption` as a boolean before 10,
+`DROP DATABASE ... WITH (FORCE)` from 13, `KD-REPORT-SQL-PG15`) stay handled.
 
-Version-specific differences found, all in test infrastructure (adapted, no
-application change):
+The PHP 5 reference is now recorded on PHP 5.3 / PostgreSQL 8.4. Compared with
+the earlier recording on 5.3 / 17, SQL, database changes and helper output
+are identical; one page differs:
 
-- [x] `psql` before 9.6 runs only the **last** `--file`. On 9.4,
-  `database-smoke.sh` therefore ran only the characterization script without
-  schema or data. The table/sequence/constraint check still passed, because
-  `array_agg()` of no rows is `NULL` and `NULL <> ARRAY[...]` is not true; the
-  run then failed at the first `vouchers` reference. Fixed by including the
-  files from one `\i` script and by using `IS DISTINCT FROM` in every
-  characterization comparison, so empty results now fail on all versions.
-- [x] `'public'::regnamespace` needs 9.5+; replaced by a `pg_namespace` lookup.
-- [x] PostgreSQL 18 stores NOT NULL as `pg_constraint` rows (`contype = 'n'`,
-  e.g. `vouchers_deleted_not_null`), which broke the exact constraint list.
-  Those rows are excluded and NOT NULL columns are now checked through
-  `pg_attribute.attnotnull` on every version (the 8.4 representation).
-- [x] The 18 image keeps its data in `/var/lib/postgresql/18/docker` and
-  refuses to start with a mount at `/var/lib/postgresql/data`; the tmpfs path
-  is selected per version.
-- [x] 9.4's `password_encryption` is a boolean (`on` = MD5) and 9.4 has no
-  SCRAM: the PHP 5.6 lane's `password_encryption=md5` is spelled `on` there.
-  PHP 7.4 authenticates with MD5 on 9.4 and SCRAM on 14+.
-- [x] `DROP DATABASE ... WITH (FORCE)` (mutation runner) needs 13+; older
-  servers terminate the other backends first. Unit-tested in
-  `tests/mutation/tests/LibTest.php`; exercised against 9.4 by the CI lane's
-  mutation step.
+- [ ] `mb.php:19` (member fees per organization) groups by `lo.name` without
+  `ORDER BY`; 8.4 and 17/18 return the groups in a different order
+  (`RD-PG-UNORDERED-MB-LO`, todo, PostgreSQL 18 lanes). Owner decision:
+  add `ORDER BY name` (a visible order change on production).
 
-No application SQL failed or changed results on 9.4, 14, 17 or 18 within the
-covered routes. Not covered: imports (`import.php`, `import2.php`), `merge`,
-`accounts` writes, and the membership pages (the membership lookup is only
-exercised by PHPUnit with a stubbed response).
+Still open from the 8.4 review:
 
-### 8.4 behaviour that 9.4 cannot show
-
-- [ ] `standard_conforming_strings` is **off** by default on 8.4 (on from
-  9.1). `pg_escape_string()` adapts to the connection setting, but literals
-  in the application that contain backslashes would change meaning (a
-  search of the `pg_query()` lines found none; values pass through
-  `pg_escape_string()` in `accounts.php`, `edit.php`, `index.php`,
-  `getusers.php`, `import.php` and `new.php`, which follows the setting of the
-  connection). A test could
-  set `standard_conforming_strings=off` on the 9.4 server to emulate 8.4.
+- [ ] `standard_conforming_strings` is **off** on 8.4 (on from 9.1), and the
+  8.4 lanes now run with it off. `pg_escape_string()` follows the connection
+  setting; no difference appeared in the reference (no literal with
+  backslashes reaches SQL in the scenario). Any value with a backslash differs
+  between 8.4 and 18 (`escape_string_warning` warnings on 8.4).
 - [ ] `bytea_output` is `escape` on 8.4 (`hex` from 9.0); the schema has no
-  `bytea` columns, so this matters only for ad-hoc queries.
-- [ ] Planner and sort differences: queries without `ORDER BY` (or with
-  ties) can return rows in a different order on 8.4. The synthetic fixtures
-  gave identical page output on 9.4-18, but they are small.
-
-Proposed read-only checks on production, for the owner to run; nothing has
-been run against production:
-
-1. `SHOW server_version; SHOW standard_conforming_strings; SHOW
-   bytea_output; SHOW datestyle; SHOW lc_collate; SHOW client_encoding;`
-   and compare with the test servers.
-2. `EXPLAIN` (not `EXPLAIN ANALYZE`, which executes the query) of the queries
-   generated for `index.php?year=<current>` (report), `action=all`,
-   `action=closed` and `action=transactions`, captured from the synthetic
-   harness with `log_statement=all`, to compare plans and spot sort or
-   hash-aggregate ordering that the pages rely on.
-3. `SELECT extname, extversion FROM pg_extension` fails on 8.4 (no
-   extensions); instead check `SELECT proname FROM pg_proc WHERE proname IN
-   ('crypt', 'gen_salt')` to confirm the contrib pgcrypto functions used by
-   login and `accounts.php`.
+  `bytea` columns.
+- [ ] Planner and sort differences beyond `mb.php`: queries without `ORDER BY`
+  (or with ties) may differ with production-sized data.
 
 ## Further array/input findings
 

@@ -9,7 +9,8 @@ Two mutation tools cover this repository:
 - `run.sh`, the target-driven runner, applies hand-written, reviewable
   mutations from `targets/` and runs the test suites that must kill them:
   PHPUnit filters and/or the HTTP suites against a `php -S` server started
-  from the mutated copy. It runs on every lane, including PHP 5.6. It replaces
+  from the mutated copy. It runs on the PHP 7.4 and 8.5 lanes (PHP 5.6/8.0
+support was removed with those lanes; PHP 5.3 has no built-in server). It replaces
   the former hand-picked `rights2orgasql.php` runner; its `rights2orgasql`
   target keeps the same 31 mutations, plus one for null rights. See
   [Target-driven runner](#target-driven-runner).
@@ -19,8 +20,7 @@ functions that PHPUnit tests call directly, and to find unasserted behavior.
 Use the target-driven runner for code that only the HTTP tests reach
 (top-level page code such as `index.php`, which Infection cannot mutate), for
 security-relevant, domain-specific mutations that Infection's operators do not
-generate (fail-open returns, `IN` to `NOT IN`, widened ID patterns), and for
-PHP 5.6, where Infection does not run. Fix pull requests use the runner's
+generate (fail-open returns, `IN` to `NOT IN`, widened ID patterns). Fix pull requests use the runner's
 targets (see [Required step for fixes](#required-step-for-fixes)).
 
 ## Infection
@@ -102,8 +102,7 @@ would only break the wrapper. Mutants are reported against the wrapper's
 ### Testing the wrapper
 
 `tests/unit/InfectionShimTest.php` is part of the normal PHPUnit suite
-(`phpunit.xml` and `tests/php56/phpunit.xml`), so it runs on all four lanes,
-including PHPUnit 5.7 on PHP 5.6. Its 40 cases check:
+(`phpunit.xml`), so it runs on the PHP 7.4 and 8.5 lanes. Its 40 cases check:
 
 - exact output for small inputs (opening tag with `\n` or `\r\n`, closing tag,
   comments, `{$x}`/`${x}` string interpolation, whitespace before `<?php`);
@@ -336,8 +335,8 @@ The [target-driven runner](#target-driven-runner) covers this code instead.
 
 ## Target-driven runner
 
-`run.sh` mutation-tests code against the existing test suites on any lane,
-including PHP 5.6. It works for code that only the HTTP tests reach, such as
+`run.sh` mutation-tests code against the existing test suites on the PHP 7.4
+and 8.5 lanes (on either PostgreSQL server, `PGACC_TEST_PG`). It works for code that only the HTTP tests reach, such as
 the top-level page code in `index.php`, `edit.php` or `new.php`, which
 Infection cannot mutate. Each target is a reviewable file of hand-written
 mutations; this is a targeted check of assertion strength, not a generated
@@ -345,13 +344,14 @@ mutation score.
 
 ```sh
 PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout
-PGACC_TEST_ID=mine sh tests/mutation/run.sh 5.6 rights2orgasql
+PGACC_TEST_ID=mine PGACC_TEST_PG=8.4 sh tests/mutation/run.sh 7.4 rights2orgasql
+PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --changed-since=origin/master
 PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --only=login-target-ignored,logout-redirect-removed
 PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 login-logout --check   # definitions only
 PGACC_TEST_ID=mine sh tests/mutation/run.sh 7.4 --self-test            # runner unit tests
 ```
 
-The lane is `5.6`, `7.4`, `8.0` or `8.5`; the target is the name of a file in
+The lane is `7.4` or `8.5`; the target is the name of a file in
 `targets/`. Results go to `build/mutation/<target>-php<lane>/` (with a
 `-pgNN` suffix for a non-default `PGACC_TEST_PG`; override with
 `PGACC_MUTATION_HOST_DIR`): `results.json`, `summary.txt`, and one test log and
@@ -361,6 +361,29 @@ one server log per mutant. `PGACC_TEST_ID` isolates concurrent runs as for
 Exit status: 0 when every valid mutant is killed, timed out, or an accepted
 equivalent; 1 for any unaccepted survivor, invalid mutant, or stale
 equivalent; 2 for a definition error, a setup error, or a failing baseline.
+
+### Changed lines only (`--changed-since`)
+
+`--changed-since=<base>` runs only the mutations whose **search region**
+overlaps a line changed since `git merge-base <base> HEAD` in the working tree
+(uncommitted and untracked files included). The search region is the
+mutation's `region` (from its start marker to its end marker) when it has one,
+otherwise the lines of the matched `search` text. A pure deletion counts as a
+change of the lines on both sides of it. A changed target file selects all of
+its mutations; changes to test files alone select none (the full runs cover
+them). With nothing selected the target passes without running its baseline.
+`run.sh` takes the diff on the host (`build/mutation/<target>-.../changed.diff`)
+and passes it to `runner.php --changed-diff=`; the selection is
+`pgacc_mutation_parse_diff()`, `pgacc_mutation_lines_changed()` and
+`pgacc_mutation_select_changed()` in `lib.php`, unit-tested in
+`tests/LibTest.php`.
+
+`sh tests/mutation/ci.sh <7.4|8.5> [--changed-since=<base>]` runs the
+self-test and the lane's target list: all 11 targets on PHP 7.4 (on either
+server); `rights2orgasql` and `null-arguments` on PHP 8.5, where the other
+baselines fail on PHP 8.5 diagnostics (`donations`, `listing-columns` and
+`report-prevcond` checked on 2026-10-24). CI uses it with `--changed-since`
+on every push and without it weekly and on pull requests.
 
 ### How a run works
 
@@ -900,15 +923,13 @@ before matching the logged diagnostic exactly.
 
 ### Required step for fixes
 
-Fix pull requests that change code reached by a target must run that target on
-PHP 7.4 and 5.6 before and after the change and report both results. A new
-behavior needs a mutation in the relevant target (or a new target), and the
-change must not introduce survivors. CI runs the self-tests and the
-`rights2orgasql` and `null-arguments` targets on every lane, the `login-logout` target on PHP
-5.6, 7.4 and 8.0 (not 8.5, where its baseline fails as described above), and
-the `redirects`, `rights-checks`, `sql-injection` and `read-only-rights` targets on PHP 5.6 and 7.4
-(on PHP 8.5 their baseline fails on the write-workflow diagnostics that have no
-baseline entry there; PHP 8.0 passes them since the `edit.php:120` fix, but is
-not enabled yet), and the `receipt-crypto` target on PHP 5.6 and 7.4 (its HTTP test
-failed on PHP 8 after the receipt upload's `relocate()`; see
-`tests/COMPATIBILITY_PLAN.md`).
+Fix pull requests that change code reached by a target run that target on PHP
+7.4 before and after the change and report both results; locally
+`--changed-since=<base>` limits the run to the mutations on the changed lines.
+A new behavior needs a mutation in the relevant target (or a new target), and
+the change must not introduce survivors. CI runs `tests/mutation/ci.sh` on the
+PHP 7.4 and 8.5 lanes: on every push for the changed lines only, weekly and
+on pull requests to `master` for every target (also on PHP 7.4 / PostgreSQL
+8.4). The PHP 8.5 list is `rights2orgasql` and `null-arguments`; the other
+targets' baselines fail there on PHP 8.5 diagnostics without baseline entries
+(see `tests/COMPATIBILITY_PLAN.md`).
