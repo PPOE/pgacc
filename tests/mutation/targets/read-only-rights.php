@@ -90,8 +90,8 @@ $mutations[] = array(
 $mutations[] = array(
     'id' => 'form-buttons-for-read-only',
     'file' => 'new.php',
-    'search' => "if (write_rights(\$rights) !== false && (in_array('bgf',\$rights2)",
-    'replace' => "if (true && (in_array('bgf',\$rights2)",
+    'search' => "if (write_rights(\$rights) !== false && (has_right(\$rights, 'bgf')",
+    'replace' => "if (true && (has_right(\$rights, 'bgf')",
     'rationale' => 'The voucher form offers no save, approval or reset buttons to read-only bgf.',
 );
 

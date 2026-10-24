@@ -708,6 +708,10 @@ $optionsDraftId = create_voucher_from_form(
 $spacedForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $spacedCookies);
 assert_contains($spacedForm['body'], '>Synthetic National Unit</option>', 'voucher form for spaced rights');
 assert_contains($spacedForm['body'], '>Synthetic Regional Unit</option>', 'voucher form for spaced rights');
+// The form's other rights checks trim too: '1, bgf' gets the save buttons
+// and the row delete link of bgf.
+assert_contains($spacedForm['body'], 'name="speichern"', 'voucher form for spaced rights');
+assert_contains($spacedForm['body'], 'Diese Buchungszeile löschen', 'voucher form for spaced rights');
 $spacedVoucher = voucher_form('Synthetic voucher of spaced rights', '-6.67', 0);
 assert_database_field(
     voucher_by_comment($database, create_voucher_comment($database, $spacedVoucher, $spacedCookies)),

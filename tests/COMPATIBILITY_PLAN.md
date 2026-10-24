@@ -140,7 +140,11 @@ with synthetic users and covered by a mutation target.
   writes organization 3. This matches the base branch, where `root` could
   not post an organization outside its numeric rights either; the form
   no longer offers `root` organizations it cannot save. Users with `bgf`
-  (all real admins have `root,bgf`) are unaffected.
+  (all real admins have `root,bgf`) are unaffected. Owner decision: rights are
+  trimmed everywhere; the voucher form's remaining checks (organization
+  field, save buttons in `end_of_form()`, row delete link) use the trimmed
+  helpers too, which also removes the PHP-version difference of
+  `is_numeric(' 2')`.
   Review fix: a part without a posted organization is checked with the
   organization `get_voucher()` falls back to (`default_organization()`: the
   user's single organization, otherwise 10). Behaviour difference: users

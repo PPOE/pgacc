@@ -403,8 +403,9 @@ pg_free_result($result);
 echo '
 </select>
 ';
-$rights2 = explode(",", $rights);
-if (count($rights2) != 1 && !is_numeric($rights))
+// The organization field for rights with several entries (a single one is
+// the default organization).
+if (count(rights_tokens($rights)) != 1)
 {
 echo '
 </div>
@@ -489,8 +490,7 @@ else
 }
 echo '
 </div>';
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($voucher['lo'], konto2lo($rights2)))
+if (organization_allowed($voucher['lo'], $rights))
 {
 echo '
 <div id="del_voucher_'.$part.'" style="float: right;">
@@ -671,8 +671,8 @@ end_of_form($parts,$rights,$bgfandack,$rights,true,false);
 
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)
 {
-$rights2 = explode(",", $rights);
-if (write_rights($rights) !== false && (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2))))
+$rights2 = rights_tokens($rights);
+if (write_rights($rights) !== false && (has_right($rights, 'bgf') || in_array(trim($lo), konto2lo($rights2))))
 {
 if ($bgfandack)
 {

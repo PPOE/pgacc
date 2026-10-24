@@ -311,7 +311,6 @@ function rights2orgasql($rights)
   $rights_r = rights_tokens($rights);
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-    $rights_r = rights_tokens($rights);
     $rights2 = array();
     foreach ($rights_r as $right)
     {

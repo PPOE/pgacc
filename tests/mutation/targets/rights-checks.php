@@ -134,7 +134,7 @@ return array(
             'id' => 'organization-options-untrimmed',
             'file' => 'new.php',
             'search' => "if (organization_allowed(\$line['id'], \$rights))",
-            'replace' => "if (in_array('bgf',\$rights2) || in_array('root',\$rights2) || in_array(\$line['id'], konto2lo(\$rights2)))",
+            'replace' => "if (in_array('bgf', explode(',', \$rights)) || in_array(\$line['id'], explode(',', \$rights)))",
             'rationale' => 'The form offers exactly the organizations the save allows.',
         ),
         array(
@@ -467,6 +467,27 @@ return array(
             'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
             'replace' => 'WHERE NOT deleted AND false AND voucher_id = $id;',
             'rationale' => 'The approval reset refuses a finalized voucher.',
+        ),
+        array(
+            'id' => 'form-buttons-untrimmed',
+            'file' => 'new.php',
+            'search' => "(has_right(\$rights, 'bgf') || in_array(trim(\$lo), konto2lo(\$rights2)))",
+            'replace' => "(in_array('bgf', explode(',', \$rights)) || in_array(trim(\$lo), konto2lo(\$rights2)))",
+            'rationale' => 'The save buttons follow the trimmed rights: "1, bgf" is bgf.',
+        ),
+        array(
+            'id' => 'delete-link-untrimmed',
+            'file' => 'new.php',
+            'search' => "if (organization_allowed(\$voucher['lo'], \$rights))",
+            'replace' => "if (in_array('bgf', explode(',', \$rights)) || in_array(\$voucher['lo'], explode(',', \$rights)))",
+            'rationale' => 'The row delete link follows the trimmed rights: "1, bgf" is bgf.',
+        ),
+        array(
+            'id' => 'organization-field-for-single-right',
+            'file' => 'new.php',
+            'search' => 'if (count(rights_tokens($rights)) != 1)',
+            'replace' => 'if (count(rights_tokens($rights)) >= 1)',
+            'rationale' => 'A single right has no organization field (its organization is the default).',
         ),
         array(
             'id' => 'drop-acks-reset-removed',
