@@ -36,7 +36,7 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = 5000 ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
 -- next
 SELECT nextval('file_number') AS num;
 -- next

@@ -249,8 +249,8 @@ ack-first	admin	POST /index.php?action=edit&id=5000	302
 ack-duplicate	admin	POST /index.php?action=edit&id=5000	200
 ack-readonly	readonly	POST /index.php?action=edit&id=5000	200
 ack-second	reviewer	POST /index.php?action=edit&id=5000	200
-finalize	admin	POST /index.php?action=edit&id=5000	302
-edit-finalized	admin	POST /index.php?action=edit&id=5000	200
+finalize	admin	POST /index.php?action=edit&id=5000	200
+edit-finalized	admin	POST /index.php?action=edit&id=5000	302
 edit-view-finalized	admin	GET /index.php?action=edit&id=5000	200
 ack-two-parts	admin	POST /index.php?action=edit&id=5001	302
 drop-acks	admin	POST /index.php?action=edit&id=5001	200

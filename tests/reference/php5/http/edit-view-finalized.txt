@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=5000 as admin
 status: 200
 header: Content-type: text/html
---- body (14842 bytes) ---
+--- body (14856 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -16,7 +16,7 @@ header: Content-type: text/html
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 21 Buchungszeilen, 9 (42.86 %) abgeschlossen, 4 (19.05 %) bearbeitet, 8 (38.1 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 21 Buchungszeilen, 9 (42.86 %) abgeschlossen, 3 (14.29 %) bearbeitet, 9 (42.86 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
 
 <div class="page edit">
 <div class="main" id="default">
@@ -138,10 +138,10 @@ function clicked(init)
 </script>
 <form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action=edit" method="post">
 <input type="hidden" name="id" value="5000" />
-<input type="hidden" name="acks" value="1" />
-<input type="hidden" name="ack1" value="synthetic-admin" />
+<input type="hidden" name="acks" value="0" />
+<input type="hidden" name="ack1" value="" />
 <input type="hidden" name="ack2" value="" />
-<input type="hidden" name="ack1_old" value="" />
+<input type="hidden" name="ack1_old" value="synthetic-admin" />
 <input type="hidden" name="ack2_old" value="" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung 5000 bearbeiten</h1>
@@ -155,11 +155,11 @@ function merge()
 </script>
 <a href="javascript:merge();" id="mergelink" name="mergelink" />Merge</a>
 <br />
-<br /><h4>Bestätigt von: synthetic-admin </h4>
+<br /><h4>Bestätigt von:  <del>synthetic-admin </del></h4>
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<h3>Buchungszeile 1000</h3>
-<input type="hidden" name="bid0" value="1000" />
+<h3>Buchungszeile 1005</h3>
+<input type="hidden" name="bid0" value="1005" />
 <div id="date_block0">
 <label class="ui_field_label" for="date0">Datum</label><input type="text" id="date0" name="date0" value="2024-09-15" onchange="clicked();" />
 </div>
@@ -242,13 +242,13 @@ function merge()
 <label class="ui_field_label" for="gegenkonto0">Fremdkonto</label><input type="text" name="gegenkonto0" value="SYNTHETICREF" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="amount0">Betrag (in €)</label><input type="text" id="amount0" name="amount0" value="-12.34" onchange="clicked();" />
+<label class="ui_field_label" for="amount0">Betrag (in €)</label><input type="text" id="amount0" name="amount0" value="-99.99" onchange="clicked();" />
 </div>
 <div>
 <label class="ui_field_label" for="konto0">Konto</label><input type="text" id="konto0" name="konto0" value="TESTACCOUNT2" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="comment0">Buchungstext</label><input type="text" id="comment0" name="comment0" value="Reference created expense" onchange="clicked();" />
+<label class="ui_field_label" for="comment0">Buchungstext</label><input type="text" id="comment0" name="comment0" value="Reference blocked revision" onchange="clicked();" />
 </div>
 </div>
 <div>

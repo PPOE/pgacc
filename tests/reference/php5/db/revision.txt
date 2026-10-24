@@ -1,4 +1,4 @@
 ## vouchers
-+ 1005	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3000	TESTACCOUNT2	Reference revised draft	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
++ 1006	1004	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-3000	TESTACCOUNT2	Reference revised draft	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
 - 105	1004	20	2	f	\N	SYNTHETIC-005	Synthetic Draft	\N	\N	\N	-2500	TEST-ACCOUNT-2	Unreviewed expense	t	f	f	2024-05-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
 + 105	1004	20	2	f	\N	SYNTHETIC-005	Synthetic Draft	\N	\N	\N	-2500	TEST-ACCOUNT-2	Unreviewed expense	t	f	t	2024-05-01 00:00:00	\N	\N	1	0	{{save_date}}	1		f	TEST-VIRTUAL-2	\N	\N	\N	\N	\N	\N
