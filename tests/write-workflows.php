@@ -639,17 +639,19 @@ assert_database_field(
     '1',
     'voucher created with its own posted organization'
 );
-// The exact root right may use any organization too, like bgf (the voucher
-// form offers root every organization).
+// Writes stay within what the user can read (rights2orgasql()): root is no
+// organization right, so a user with only root may neither write nor read
+// organization 1, and 'root,1' writes like '1'.
 $rootOnlyCookies = create_test_user($database, 52, 'synthetic-root-only', 'root-only-password', 'root');
 $rootForm = voucher_form('Synthetic voucher of root in organization one', '-6.62', 0);
 $rootForm['lo0'] = '1';
-assert_database_field(
-    voucher_by_comment($database, create_voucher_comment($database, $rootForm, $rootOnlyCookies)),
-    'orga',
-    '1',
-    'voucher created in organization 1 by root'
-);
+$rootCreation = http_request('/index.php?action=new', 'POST', $rootForm, $rootOnlyCookies);
+assert_contains($rootCreation['body'], 'FEHLER: Keine Zugriffsrechte.', 'voucher in organization 1 by root alone');
+assert_database_count($database, $commentQuery, array('Synthetic voucher of root in organization one'), 0, 'voucher in organization 1 by root alone');
+$rootOneCookies = create_test_user($database, 55, 'synthetic-root-one', 'root-one-password', 'root,1');
+$rootOneForm = voucher_form('Synthetic voucher of root,1 in organization two', '-6.61', 0);
+$rootOneCreation = http_request('/index.php?action=new', 'POST', $rootOneForm, $rootOneCookies);
+assert_contains($rootOneCreation['body'], 'FEHLER: Keine Zugriffsrechte.', 'voucher in organization 2 by root,1');
 // Without a posted organization the default one (get_voucher(): the user's
 // single organization, otherwise 10) must be allowed too: a user without
 // rights or with several organizations who posts none is refused.
@@ -687,12 +689,11 @@ assert_database_field(
 $spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
 // (The voucher form of the edit page; the new-voucher page raises the open
 // $bgfandack finding.)
-// The draft is in organization 1: the listings' rights SQL (rights2orgasql())
-// does not trim the rights, so '1, bgf' reads organization 1 only (open
-// finding), while it may write to every organization.
+// The rights SQL trims the rights too: '1, bgf' reads every organization,
+// as it may write to every one.
 $optionsDraftId = create_voucher_from_form(
     $database,
-    array_merge(voucher_form('Synthetic draft for the organization options', '-6.68', 0), array('lo0' => '1')),
+    array_merge(voucher_form('Synthetic draft for the organization options', '-6.68', 0), array('lo0' => '2')),
     $adminCookies
 );
 $spacedForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $spacedCookies);

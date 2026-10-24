@@ -270,11 +270,13 @@ function rights_tokens($rights)
   return array_map('trim', explode(",", $rights === null ? '' : $rights));
 }
 // Whether the rights may use this organization for a voucher: any for the
-// exact bgf or root right, otherwise only the numeric organizations of the
-// rights, compared as numbers like the database does ("03" is 3).
+// exact bgf right, otherwise only the numeric organizations of the rights,
+// compared as numbers like the database does ("03" is 3). This is the scope
+// that rights2orgasql() lets the user read (root is no organization right
+// there either), so users write only what they can see.
 function organization_allowed($lo, $rights)
 {
-  if (has_right($rights, 'bgf') || has_right($rights, 'root'))
+  if (has_right($rights, 'bgf'))
     return true;
   $lo = strval($lo);
   if (preg_match('/^\d+$/D', $lo) != 1)
@@ -306,10 +308,10 @@ function write_rights($rights)
 }
 function rights2orgasql($rights)
 {
-  $rights_r = explode(",", $rights === null ? '' : $rights);
+  $rights_r = rights_tokens($rights);
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-    $rights_r = explode(",", $rights === null ? '' : $rights);
+    $rights_r = rights_tokens($rights);
     $rights2 = array();
     foreach ($rights_r as $right)
     {

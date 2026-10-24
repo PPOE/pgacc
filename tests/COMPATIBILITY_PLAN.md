@@ -111,17 +111,16 @@ with synthetic users and covered by a mutation target.
   `page_edit_save()` first check every posted organization with
   `posted_organizations_allowed()`: users with the exact `bgf` right
   (`has_right()`, so not `Rbgf`) may post any, everybody else only the
-  numeric organizations of their rights, compared as written (since the
-  review fix also users with the exact `root` right). Otherwise the
+  numeric organizations of their rights. Otherwise the
   whole voucher is refused before anything is saved, with the
   "FEHLER: Keine Zugriffsrechte." error of `accounts.php`. Without a posted
   organization the default applies as before. Behaviour differences: the
   rights SQL exempts `Rbgf`, but it may not post an organization outside
   its numeric rights; an organization such as `01` is refused.
-  Mutation target `rights-checks`. Review fix (owner/coordinator decision,
-  no regression for root): the exact `root` right may post any
-  organization too, like `bgf`, as the form offers it; the check is
-  `organization_allowed()` in `functions.php`.
+  Mutation target `rights-checks`. The check is `organization_allowed()`
+  in `functions.php`. (A review round briefly let the exact `root` right
+  post any organization, as the form offered it; the PR review reverted
+  that, see below.)
   Second review fix: rights tokens are trimmed (`rights_tokens()`, used by
   `has_right()`, `write_rights()` and `organization_allowed()`), so
   `bgf, root` keeps `root` (still exact: ` Rbgf ` is not `bgf`), and
@@ -129,9 +128,15 @@ with synthetic users and covered by a mutation target.
   rights SQL (`03` allows organization 3, `01` posts organization 1). The
   voucher form's organization list uses `organization_allowed()`, so it
   offers exactly what the save allows (before, `bgf`/`root` with spaces saw
-  only their numeric organizations). [ ] Open: `rights2orgasql()` (reads)
-  does not trim, so ` 2` or ` bgf` in a rights string widens writes but
-  not reads; trimming it as well widens reads (owner decision).
+  only their numeric organizations). PR review fix: writes are a subset of
+  what the user can read. `rights2orgasql()` (reads) uses `rights_tokens()`
+  too, so ` 2` and ` bgf` count for reads as for writes, and `root` is no
+  organization right for writes either (it never was for reads): a user
+  with only `root` reads and writes no organization, `root,3` reads and
+  writes organization 3. This matches the base branch, where `root` could
+  not post an organization outside its numeric rights either; the form
+  no longer offers `root` organizations it cannot save. Users with `bgf`
+  (all real admins have `root,bgf`) are unaffected.
   Review fix: a part without a posted organization is checked with the
   organization `get_voucher()` falls back to (`default_organization()`: the
   user's single organization, otherwise 10). Behaviour difference: users
