@@ -21,7 +21,7 @@ else
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
-if (strpos($rights,'root') === false)
+if (!has_right($rights, 'root'))
 {
   echo '<div class="slot_error" id="slot_error">WARNUNG: Diese Funktion sollte nur von Admins verwendet um Fehlerfälle zu beheben. Bitte kontaktiere einen der Admins.</div><br /><br /><br />';
     return;

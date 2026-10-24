@@ -4,7 +4,7 @@
 # file: uploadcsv[] bawag.csv (text/csv, 1085 bytes)
 status: 200
 header: Content-type: text/html
---- body (3585 bytes) ---
+--- body (3643 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -44,6 +44,8 @@ Buchung 5012 erstellt!<br />
 Buchung 5013 erstellt!<br />
 Buchung 5014 erstellt!<br />
 Buchung 5015 erstellt!<br />
+Buchung 5016 erstellt!<br />
+Buchung 5017 erstellt!<br />
 Datei 1 (bawag.csv) wurde erfolgreich importiert<br />
 </table>
 Bitte wähle die CSV Dateien für den Import:

@@ -2,7 +2,7 @@
 function page_mb($rights)
 {
 $rightssql = rights2orgasql($rights);
-if (strpos($rights,"bgf") === false)
+if (!has_right($rights, 'bgf') && !has_right($rights, 'Rbgf'))
   return;
 $year = date('Y');
 $previousYear = $year - 1;

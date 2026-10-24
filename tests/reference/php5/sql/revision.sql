@@ -36,9 +36,24 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 1004 ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ;
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = 1004 ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 1004;
+-- next
+
+    UPDATE vouchers
+    SET
+      ack1_old = ack1,
+      ack2_old = ack2,
+      ack1 = NULL,
+      ack2 = NULL
+    WHERE
+      NOT deleted AND
+      (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
+      voucher_id = 1004 ;
+  
+-- next
+SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = 1004  ORDER BY id ASC LIMIT 1;
 -- next
 UPDATE vouchers SET deleted = true WHERE voucher_id = 1004 ;
 -- next

@@ -93,4 +93,43 @@ final class GetUsersTest extends FunctionsTestCase
         // The last line before the zero padding, which rtrim() removes.
         self::assertSame(array('id' => '2032', 'name' => 'Last Synthetic', 'lo' => '2', 'paid' => '0'), $rows[31]);
     }
+
+    public function testMemberIdsAreNumbers()
+    {
+        // A member id that is not a number (second-order input from the
+        // membership system) is inserted as intval(), not as SQL.
+        $datakey = 'synthetic-getusers-test-key';
+        $plain = "1\t2101 OR 1=1\tSynthetic Odd Id\t38\t1\n";
+        for ($i = 2; $i < 40; $i++) {
+            $plain .= "$i\t" . (2100 + $i) . "\tSynthetic Padding Member $i\t40\t0\n";
+        }
+        $rows = self::importMembers($datakey, base64_encode(membership_encrypt($datakey, $plain)));
+        self::assertCount(39, $rows);
+        self::assertSame(array('id' => '2101', 'name' => 'Synthetic Odd Id', 'lo' => '1', 'paid' => '1'), $rows[0]);
+    }
+
+    private static function importMembers($key, $response)
+    {
+        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
+        $GLOBALS['datakey'] = $key;
+        MembershipStubStream::$response = $response;
+        MembershipStubStream::$requested = array();
+        stream_wrapper_unregister('http');
+        stream_wrapper_register('http', 'MembershipStubStream');
+        $connection = pg_connect(pgacc_test_connection_string());
+        pg_query($connection, 'BEGIN');
+        try {
+            AppExitGuard::enter('getUsers()');
+            getUsers();
+            $result = pg_query($connection, 'SELECT id, name, lo, paid FROM ppmembers ORDER BY id');
+            $rows = pg_fetch_all($result);
+            pg_free_result($result);
+        } finally {
+            AppExitGuard::leave();
+            stream_wrapper_restore('http');
+            pg_query($connection, 'ROLLBACK');
+            $GLOBALS['datakey'] = $datakey;
+        }
+        return $rows;
+    }
 }

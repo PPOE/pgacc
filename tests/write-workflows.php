@@ -208,13 +208,50 @@ assert_database_field($created, 'ack1', 'synthetic-admin', 'voucher after second
 assert_database_field($created, 'ack2', 'synthetic-reviewer', 'voucher after second approval');
 assert_database_field($created, 'receipt_received', 'f', 'voucher after second approval');
 
-$finalization = http_request(
-    '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
-    'POST',
-    array('id' => $createdVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
-    $adminCookies
+// Finalization ("beleg") is removed: the form has had no button for it since
+// 68cda09 (2015), and production has a single finalized row. A POST with
+// "beleg" shows the voucher page and changes nothing, for every user (users
+// who see no row of the voucher are left out: the voucher page then raises
+// the open edit.php $vouchers finding).
+$finalizeForm = array('beleg' => 'Beleg erhalten');
+$finalizationUsers = array(
+    'admin' => $adminCookies,
+    'bgf' => $reviewerCookies,
+    'organization two' => login_user('synthetic-unit-two', 'unit-two-password'),
+    'read-only bgf' => login_user('synthetic-read-only', 'read-only-password'),
 );
-assert_redirect($finalization, edit_location($createdVoucherId, 2), 'voucher finalization');
+foreach ($finalizationUsers as $userLabel => $cookies) {
+    $finalization = http_request(
+        '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
+        'POST',
+        array('id' => $createdVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
+        $cookies
+    );
+    assert_status($finalization, 200, "finalization request by $userLabel");
+    assert_not_contains($finalization['body'], 'finalisiert', "finalization request by $userLabel");
+    assert_database_count(
+        $database,
+        'SELECT COUNT(*) AS count FROM vouchers WHERE receipt_received AND voucher_id = $1',
+        array($createdVoucherId),
+        0,
+        "voucher after a finalization request by $userLabel"
+    );
+}
+assert_contains($finalization['body'], 'value="' . $createdComment . '"', 'finalization request (voucher page)');
+
+// The existing finalized rows stay locked: set up in the database.
+function finalize_in_database($database, $voucherId, $orga = null)
+{
+    $result = @pg_query_params(
+        $database,
+        'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $1 AND ($2::integer IS NULL OR orga = $2)',
+        array($voucherId, $orga)
+    );
+    if ($result === false) {
+        fail_test('could not finalize voucher ' . $voucherId . ': ' . pg_last_error($database));
+    }
+}
+finalize_in_database($database, $createdVoucherId);
 $created = database_row(
     $database,
     'SELECT id, receipt_received, deleted FROM vouchers
@@ -357,12 +394,6 @@ $unbufferedSteps = array(
         $reviewerCookies,
         edit_location($unbufferedVoucherId, 4),
     ),
-    'finalization' => array(
-        '/index.php?action=edit&id=' . rawurlencode($unbufferedVoucherId),
-        array('id' => $unbufferedVoucherId, 'parts' => '1', 'beleg' => 'Beleg erhalten'),
-        $adminCookies,
-        edit_location($unbufferedVoucherId, 2),
-    ),
     'revision' => array(
         '/index.php?action=edit&id=' . rawurlencode($unbufferedRevisionId),
         revision_form($unbufferedRevisionId, 'Synthetic unbuffered revision', '-4.50'),
@@ -387,11 +418,10 @@ $unbuffered = database_row(
     $database,
     'SELECT ack1, ack2, receipt_received FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
     array($unbufferedVoucherId),
-    'voucher after unbuffered approvals and finalization'
+    'voucher after unbuffered approvals'
 );
 assert_database_field($unbuffered, 'ack1', 'synthetic-admin', 'voucher after unbuffered approvals');
 assert_database_field($unbuffered, 'ack2', 'synthetic-reviewer', 'voucher after unbuffered approvals');
-assert_database_field($unbuffered, 'receipt_received', 't', 'voucher after unbuffered finalization');
 $unbufferedRevision = database_row(
     $database,
     'SELECT voucher_id, amount, deleted FROM vouchers WHERE comment = $1',
@@ -531,6 +561,19 @@ function create_voucher_comment($database, $form, $cookies)
     return $form['comment0'];
 }
 
+function create_test_user($database, $id, $name, $password, $rights)
+{
+    $result = @pg_query_params(
+        $database,
+        "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
+        array($id, $name, $password, $rights)
+    );
+    if ($result === false) {
+        fail_test("could not create user $name: " . pg_last_error($database));
+    }
+    return login_user($name, $password);
+}
+
 function voucher_by_comment($database, $comment)
 {
     return database_row(
@@ -596,12 +639,91 @@ assert_database_field(
     '1',
     'voucher created with its own posted organization'
 );
-// Organizations are compared as written ('01' is not organization 1).
+// Writes stay within what the user can read (rights2orgasql()): root is no
+// organization right, so a user with only root may neither write nor read
+// organization 1, and 'root,1' writes like '1'.
+$rootOnlyCookies = create_test_user($database, 52, 'synthetic-root-only', 'root-only-password', 'root');
+$rootForm = voucher_form('Synthetic voucher of root in organization one', '-6.62', 0);
+$rootForm['lo0'] = '1';
+$rootCreation = http_request('/index.php?action=new', 'POST', $rootForm, $rootOnlyCookies);
+assert_contains($rootCreation['body'], 'FEHLER: Keine Zugriffsrechte.', 'voucher in organization 1 by root alone');
+assert_database_count($database, $commentQuery, array('Synthetic voucher of root in organization one'), 0, 'voucher in organization 1 by root alone');
+$rootOneCookies = create_test_user($database, 55, 'synthetic-root-one', 'root-one-password', 'root,1');
+$rootOneForm = voucher_form('Synthetic voucher of root,1 in organization two', '-6.61', 0);
+$rootOneCreation = http_request('/index.php?action=new', 'POST', $rootOneForm, $rootOneCookies);
+assert_contains($rootOneCreation['body'], 'FEHLER: Keine Zugriffsrechte.', 'voucher in organization 2 by root,1');
+// Without a posted organization the default one (get_voucher(): the user's
+// single organization, otherwise 10) must be allowed too: a user without
+// rights or with several organizations who posts none is refused.
+$twoUnitsCookies = create_test_user($database, 53, 'synthetic-two-units', 'two-units-password', '1,2');
+foreach (array('without rights' => $noRightsCookies, 'of two organizations' => $twoUnitsCookies) as $userLabel => $cookies) {
+    $comment = "Synthetic voucher without organization by a user $userLabel";
+    $response = http_request('/index.php?action=new', 'POST', voucher_form_without_organization($comment, '-6.63', 0), $cookies);
+    assert_contains($response['body'], 'FEHLER: Keine Zugriffsrechte.', "creation without organization by a user $userLabel");
+    assert_database_count($database, $commentQuery, array($comment), 0, "voucher without organization by a user $userLabel");
+}
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, voucher_form('Synthetic voucher of two organizations', '-6.64', 0), $twoUnitsCookies)),
+    'orga',
+    '2',
+    'voucher created with a posted organization by a user of two organizations'
+);
+$twoUnitsDraftId = create_voucher($database, 'Synthetic draft for two organizations', '-6.65', 0, $adminCookies);
+$twoUnitsRevision = edit_request(
+    $twoUnitsDraftId,
+    array_diff_key(revision_form($twoUnitsDraftId, 'Synthetic revision without organization', '-6.66'), array('lo0' => true)),
+    $twoUnitsCookies
+);
+assert_contains($twoUnitsRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision without organization by a user of two organizations');
+assert_database_count($database, $commentQuery, array('Synthetic revision without organization'), 0, 'revision without organization by a user of two organizations');
+// Organizations are compared as numbers, as the database compares them
+// ('01' is organization 1), and spaces around rights do not count.
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
 $paddedForm['lo0'] = '01';
-$padded = http_request('/index.php?action=new', 'POST', $paddedForm, $unitOneCookies);
-assert_contains($padded['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation with a padded organization');
-assert_database_count($database, $commentQuery, array('Synthetic voucher with a padded organization'), 0, 'voucher with a padded organization');
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, $paddedForm, $unitOneCookies)),
+    'orga',
+    '1',
+    'voucher with a padded organization'
+);
+// The default organization uses the trimmed single organization ('2 ' is
+// organization 2 on every PHP version).
+$trailingCookies = create_test_user($database, 56, 'synthetic-trailing-space', 'trailing-password', '2 ');
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, voucher_form_without_organization('Synthetic voucher of trailing-space rights', '-6.69', 0), $trailingCookies)),
+    'orga',
+    '2',
+    'voucher without organization of trailing-space rights'
+);
+$spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
+// (The voucher form of the edit page; the new-voucher page raises the open
+// $bgfandack finding.)
+// The rights SQL trims the rights too: '1, bgf' reads every organization,
+// as it may write to every one.
+$optionsDraftId = create_voucher_from_form(
+    $database,
+    array_merge(voucher_form('Synthetic draft for the organization options', '-6.68', 0), array('lo0' => '2')),
+    $adminCookies
+);
+$spacedForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $spacedCookies);
+assert_contains($spacedForm['body'], '>Synthetic National Unit</option>', 'voucher form for spaced rights');
+assert_contains($spacedForm['body'], '>Synthetic Regional Unit</option>', 'voucher form for spaced rights');
+// The form's other rights checks trim too: '1, bgf' gets the save buttons
+// and the row delete link of bgf.
+assert_contains($spacedForm['body'], 'name="speichern"', 'voucher form for spaced rights');
+assert_contains($spacedForm['body'], 'Diese Buchungszeile löschen', 'voucher form for spaced rights');
+$spacedVoucher = voucher_form('Synthetic voucher of spaced rights', '-6.67', 0);
+assert_database_field(
+    voucher_by_comment($database, create_voucher_comment($database, $spacedVoucher, $spacedCookies)),
+    'orga',
+    '2',
+    'voucher of spaced rights'
+);
+$adminNewForm = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $adminCookies);
+$unitTwoOptions = http_request('/index.php?action=edit&id=' . $optionsDraftId, 'GET', array(), $twoUnitsCookies);
+assert_contains($adminNewForm['body'], '>Synthetic National Unit</option>', 'voucher form for root,bgf');
+assert_contains($adminNewForm['body'], '>Synthetic Regional Unit</option>', 'voucher form for root,bgf');
+assert_contains($unitTwoOptions['body'], '>Synthetic Regional Unit</option>', 'voucher form for 1,2');
 // The second part of a two-part voucher is in organization 2.
 $foreignPartForm = two_organization_form('Synthetic voucher with a foreign second part', 0);
 $foreignPart = http_request('/index.php?action=new', 'POST', $foreignPartForm, $unitOneCookies);
@@ -662,12 +784,7 @@ assert_database_field(
 // not tell whether the voucher is finalized.
 $approveForm = array('ack' => 'Bestätigen');
 $finalizedId = create_voucher($database, 'Synthetic finalized draft', '-9.50', 9004, $adminCookies);
-$finalizeForm = array('beleg' => 'Beleg erhalten');
-assert_redirect(
-    edit_request($finalizedId, $finalizeForm, $adminCookies),
-    edit_location($finalizedId, 2),
-    'finalization without approvals'
-);
+finalize_in_database($database, $finalizedId);
 $finalizedApproval = edit_request($finalizedId, $approveForm, $adminCookies);
 assert_status($finalizedApproval, 200, 'approval of a finalized voucher');
 assert_contains($finalizedApproval['body'], 'bereits finalisiert', 'approval of a finalized voucher');
@@ -716,23 +833,9 @@ $mixedFinalizedId = create_voucher_from_form(
     two_organization_form('Synthetic partly finalized voucher', 9006),
     $adminCookies
 );
-// Finalization needs the exact bgf right (the old treasurer button; the
-// current form has no finalization button): organization users and users
-// without rights are refused and nothing changes.
-$unfinalizedState = array(voucher_row_state('1', null, null, 'f'), voucher_row_state('2', null, null, 'f'));
-foreach (array('of organization one' => $unitOneCookies, 'of organization two' => $unitTwoCookies, 'without rights' => $noRightsCookies) as $userLabel => $cookies) {
-    $finalization = edit_request($mixedFinalizedId, $finalizeForm, $cookies);
-    assert_status($finalization, 200, "finalization by a user $userLabel");
-    assert_contains($finalization['body'], 'FEHLER: Keine Zugriffsrechte.', "finalization by a user $userLabel");
-    assert_voucher_rows($database, $mixedFinalizedId, $unfinalizedState, "mixed voucher after finalization by a user $userLabel");
-}
-// A partly finalized voucher (as organization users could finalize their
-// rows before), set up in the database.
-pg_query_params(
-    $database,
-    'UPDATE vouchers SET receipt_received = true WHERE voucher_id = $1 AND orga = 1',
-    array($mixedFinalizedId)
-);
+// A partly finalized voucher (organization users could finalize their rows
+// before the removal), set up in the database.
+finalize_in_database($database, $mixedFinalizedId, 1);
 // The finalized row of organization one blocks the approval by organization
 // two.
 $partlyFinalizedApproval = edit_request($mixedFinalizedId, $approveForm, $unitTwoCookies);
@@ -760,11 +863,175 @@ assert_status($receiptCheck, 200, 'approval of a row without a receipt');
 assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
 assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
 
+// A revision needs a current row of the voucher that the user sees; the
+// finalized and approved checks then cover the whole voucher, also the rows
+// of other organizations.
+$missingRevision = edit_request('999999', revision_form('999999', 'Synthetic revision of a missing voucher', '-1.10'), $adminCookies);
+assert_status($missingRevision, 200, 'revision of a missing voucher');
+assert_contains($missingRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a missing voucher');
+assert_database_count($database, $commentQuery, array('Synthetic revision of a missing voucher'), 0, 'revision of a missing voucher');
+$deletedRevisionId = create_voucher($database, 'Synthetic voucher with old revisions only', '-1.20', 0, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET deleted = true WHERE voucher_id = $1', array($deletedRevisionId));
+$deletedRevision = edit_request($deletedRevisionId, revision_form($deletedRevisionId, 'Synthetic revision of old revisions', '-1.30'), $adminCookies);
+assert_contains($deletedRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a voucher with old revisions only');
+assert_database_count($database, $commentQuery, array('Synthetic revision of old revisions'), 0, 'revision of a voucher with old revisions only');
+$foreignRevisionId = create_voucher_from_form(
+    $database,
+    array_merge(voucher_form('Synthetic voucher of organization one only', '-1.40', 0), array('lo0' => '1')),
+    $adminCookies
+);
+$foreignRevision = edit_request($foreignRevisionId, revision_form($foreignRevisionId, 'Synthetic rows added by organization two', '-1.50'), $unitTwoCookies);
+assert_contains($foreignRevision['body'], 'FEHLER: Buchung nicht gefunden.', 'revision of a voucher of another organization');
+assert_database_count($database, $commentQuery, array('Synthetic rows added by organization two'), 0, 'revision of a voucher of another organization');
+assert_voucher_rows($database, $foreignRevisionId, array(voucher_row_state('1', null, null, 'f')), 'voucher of another organization after a revision');
+// A finalized row of another organization refuses the revision.
+$lockedId = create_voucher_from_form($database, two_organization_form('Synthetic mixed voucher finalized in one', 0), $adminCookies);
+finalize_in_database($database, $lockedId, 1);
+$lockedRevision = edit_request($lockedId, revision_form($lockedId, 'Synthetic revision of a voucher finalized in one', '-1.60'), $unitTwoCookies);
+assert_contains($lockedRevision['body'], 'bereits finalisiert', 'revision of a voucher finalized in another organization');
+assert_database_count($database, $commentQuery, array('Synthetic revision of a voucher finalized in one'), 0, 'revision of a voucher finalized in another organization');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($lockedId), 2, 'rows of the voucher finalized in another organization');
+
+// A user may correct their own rows although rows of another
+// organization are approved; every change resets the approvals of the whole
+// voucher: each current row's ack1/ack2 move to ack1_old/ack2_old.
+function voucher_approvals($database, $voucherId, $label)
+{
+    $result = @pg_query_params(
+        $database,
+        'SELECT orga, ack1, ack2, ack1_old, ack2_old, comment FROM vouchers WHERE voucher_id = $1 AND NOT deleted ORDER BY orga, id',
+        array($voucherId)
+    );
+    if ($result === false) {
+        fail_test("database query failed for $label: " . pg_last_error($database));
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows === false ? array() : $rows;
+}
+function approval_row($orga, $ack1, $ack2, $ack1Old, $ack2Old, $comment)
+{
+    return array('orga' => $orga, 'ack1' => $ack1, 'ack2' => $ack2, 'ack1_old' => $ack1Old, 'ack2_old' => $ack2Old, 'comment' => $comment);
+}
+function assert_voucher_approvals($database, $voucherId, $expected, $label)
+{
+    $actual = voucher_approvals($database, $voucherId, $label);
+    if ($actual !== $expected) {
+        fail_test("$label approvals were " . var_export($actual, true) . ', expected ' . var_export($expected, true));
+    }
+}
+$approvedOneId = create_voucher_from_form($database, two_organization_form('Synthetic mixed voucher approved in one', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1 AND orga = 1", array($approvedOneId));
+$correctionForm = revision_form($approvedOneId, 'Synthetic correction by organization two', '-1.65');
+$correctionForm['ack1_old'] = 'synthetic-forged-first';
+$correctionForm['ack2_old'] = 'synthetic-forged-second';
+$correction = edit_request($approvedOneId, $correctionForm, $unitTwoCookies);
+assert_redirect($correction, edit_location($approvedOneId, 5), 'correction of own rows of a voucher approved in another organization');
+assert_voucher_approvals($database, $approvedOneId, array(
+    approval_row('1', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic mixed voucher approved in one'),
+    approval_row('2', null, null, null, null, 'Synthetic correction by organization two'),
+), 'voucher approved in another organization after a correction');
+
+// A member voucher takes the member's name from the membership list
+// (getusers(), the stub's synthetic members); it is escaped like posted names.
+$memberForm = voucher_form('Synthetic voucher of a member with a quote', '-1.70', 0);
+$memberForm['member0'] = '1';
+$memberForm['mitgliedsnummer0'] = '9033';
+$memberVoucher = http_request('/index.php?action=new', 'POST', $memberForm, $adminCookies);
+assert_contains($memberVoucher['body'], 'Buchung erfasst', 'member voucher');
+assert_not_contains($memberVoucher['body'], 'fehlgeschlagen', 'member voucher');
+$memberRow = database_row(
+    $database,
+    'SELECT name, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member with a quote'),
+    'member voucher'
+);
+assert_database_field($memberRow, 'name', "O'Brien Synthetisch", 'member voucher');
+assert_database_field($memberRow, 'member_id', '9033', 'member voucher');
+
+// The voucher page of a voucher without current rows answers "Buchung nicht
+// gefunden" for every user, also bgf and Rbgf (before, they got an empty
+// form that the save refuses); deleted rows are restored with the recovery
+// page.
+foreach (array('admin' => $adminCookies, 'bgf' => $reviewerCookies, 'read-only bgf' => login_user('synthetic-read-only', 'read-only-password')) as $userLabel => $cookies) {
+    $missingPage = http_request('/index.php?action=edit&id=999999', 'GET', array(), $cookies);
+    assert_status($missingPage, 200, "voucher page of a missing voucher for $userLabel");
+    assert_contains($missingPage['body'], 'FEHLER: Buchung nicht gefunden.', "voucher page of a missing voucher for $userLabel");
+    assert_not_contains($missingPage['body'], 'name="speichern"', "voucher page of a missing voucher for $userLabel");
+}
+
+// A voucher whose rows are all deleted (old revisions only) counts as not
+// visible: approval is refused and the deleted rows keep their state.
+$deletedOnlyId = create_voucher($database, 'Synthetic voucher with deleted rows only', '-10.25', 9013, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET deleted = true WHERE voucher_id = $1', array($deletedOnlyId));
+$deletedOnlyApproval = edit_request($deletedOnlyId, $approveForm, $unitTwoCookies);
+assert_status($deletedOnlyApproval, 200, 'approval of a voucher with deleted rows only');
+assert_contains($deletedOnlyApproval['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a voucher with deleted rows only');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND ack1 IS NULL AND deleted',
+    array($deletedOnlyId),
+    1,
+    'deleted rows after an approval attempt'
+);
+foreach (array('bgf' => $reviewerCookies, 'root,bgf' => $adminCookies, 'Rbgf' => login_user('synthetic-read-only', 'read-only-password')) as $userLabel => $cookies) {
+    $deletedOnlyPage = http_request('/index.php?action=edit&id=' . $deletedOnlyId, 'GET', array(), $cookies);
+    assert_contains($deletedOnlyPage['body'], 'FEHLER: Buchung nicht gefunden.', "voucher page of a voucher with deleted rows only for $userLabel");
+}
+
+// Approval ignores old revisions (deleted rows): it does not stamp them or
+// clear their old approvals, and they do not count as an open row of the
+// receipt check.
+$historyId = create_voucher($database, 'Synthetic voucher with history', '-10.75', 0, $adminCookies);
+$historyRevision = revision_form($historyId, 'Synthetic revised voucher with history', '-10.80');
+$historyRevision['file0'] = '9014';
+assert_redirect(edit_request($historyId, $historyRevision, $adminCookies), edit_location($historyId, 5), 'revision before the history check');
+pg_query_params($database, "UPDATE vouchers SET ack1_old = 'synthetic-old-first' WHERE voucher_id = $1 AND deleted", array($historyId));
+assert_redirect(edit_request($historyId, $approveForm, $adminCookies), edit_location($historyId, 4), 'approval of a voucher with history');
+assert_database_count(
+    $database,
+    "SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND deleted AND ack1 IS NULL AND ack1_old = 'synthetic-old-first'",
+    array($historyId),
+    1,
+    'old revision after the approval'
+);
+assert_database_count(
+    $database,
+    "SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND NOT deleted AND ack1 = 'synthetic-admin'",
+    array($historyId),
+    1,
+    'current row after the approval'
+);
+// The second approval leaves an approved-once old revision alone too.
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-old-first' WHERE voucher_id = $1 AND deleted", array($historyId));
+assert_redirect(edit_request($historyId, $approveForm, $reviewerCookies), edit_location($historyId, 4), 'second approval of a voucher with history');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND deleted AND ack2 IS NULL',
+    array($historyId),
+    1,
+    'old revision after the second approval'
+);
+pg_query_params($database, 'UPDATE vouchers SET ack1 = NULL, ack2 = NULL WHERE voucher_id = $1', array($historyId));
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-admin' WHERE voucher_id = $1 AND NOT deleted", array($historyId));
+// The current row is approved once and has no receipt; the old revision
+// (unapproved) must not make the receipt check pass.
+pg_query_params($database, 'UPDATE vouchers SET file = 0 WHERE voucher_id = $1 AND NOT deleted', array($historyId));
+$historyApproval = edit_request($historyId, $approveForm, $reviewerCookies);
+assert_contains($historyApproval['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'second approval of a current row without receipt');
+assert_database_count(
+    $database,
+    'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND ack2 IS NOT NULL',
+    array($historyId),
+    0,
+    'voucher with history after the refused second approval'
+);
+
 // Resetting the approvals ("Bestätigungen zurücksetzen!", offered only to bgf
 // users) needs the exact bgf right; other users are refused and nothing
 // changes (before, empty rights reset any voucher). For bgf users the reset
-// still fails, a known failure (see tests/COMPATIBILITY_PLAN.md,
-// page_edit_drop_acks()).
+// works (before, the rights string itself was appended to the SQL and the
+// query failed, the former known failure KF-DROP-ACKS-BGF).
 $resetId = create_voucher($database, 'Synthetic approved voucher', '-10.50', 9007, $adminCookies);
 assert_redirect(edit_request($resetId, $approveForm, $adminCookies), edit_location($resetId, 4), 'first approval before the reset');
 assert_redirect(edit_request($resetId, $approveForm, $reviewerCookies), edit_location($resetId, 4), 'second approval before the reset');
@@ -776,17 +1043,23 @@ foreach (array('without rights' => $noRightsCookies, 'of organization two' => $u
     assert_contains($reset['body'], 'FEHLER: Keine Zugriffsrechte.', "approval reset by a user $userLabel");
     assert_voucher_rows($database, $resetId, $approvedState, "voucher after approval reset by a user $userLabel");
 }
-function known_failure_reset($voucherId, $form, $cookies)
-{
-    return with_known_failure('KF-DROP-ACKS-BGF', function () use ($voucherId, $form, $cookies) {
-        return edit_request($voucherId, $form, $cookies);
-    });
-}
-$bgfReset = known_failure_reset($resetId, $resetForm, $reviewerCookies);
-assert_contains($bgfReset['body'], 'Abfrage fehlgeschlagen: ERROR:  syntax error', 'approval reset by a bgf user (KF-DROP-ACKS-BGF)');
-assert_voucher_rows($database, $resetId, $approvedState, 'voucher after approval reset by a bgf user (KF-DROP-ACKS-BGF)');
+$bgfReset = edit_request($resetId, $resetForm, $reviewerCookies);
+assert_redirect($bgfReset, edit_location($resetId, 3), 'approval reset by a bgf user');
+assert_voucher_approvals($database, $resetId, array(
+    approval_row('2', null, null, 'synthetic-admin', 'synthetic-reviewer', 'Synthetic approved voucher'),
+), 'voucher after approval reset by a bgf user');
+// A finalized voucher refuses the reset too, as every other change.
+$finalizedResetId = create_voucher($database, 'Synthetic finalized approved voucher', '-10.60', 9015, $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", array($finalizedResetId));
+finalize_in_database($database, $finalizedResetId);
+$finalizedReset = edit_request($finalizedResetId, $resetForm, $reviewerCookies);
+assert_status($finalizedReset, 200, 'approval reset of a finalized voucher');
+assert_contains($finalizedReset['body'], 'bereits finalisiert', 'approval reset of a finalized voucher');
+assert_voucher_approvals($database, $finalizedResetId, array(
+    approval_row('2', 'synthetic-a', 'synthetic-b', null, null, 'Synthetic finalized approved voucher'),
+), 'finalized voucher after an approval reset');
 
-// Voucher IDs of the edit actions (approval, finalization, approval reset,
+// Voucher IDs of the edit actions (approval, approval reset,
 // revision, receipt upload) are used in SQL. Only digits are accepted; any
 // other value gets "Buchung nicht gefunden" and changes nothing.
 $injectionTargetId = create_voucher($database, 'Synthetic injection target', '-11.00', 9008, $adminCookies);
@@ -802,7 +1075,6 @@ $injectedIds = array(
 );
 $injectionActions = array(
     'approval' => array($approveForm, $reviewerCookies),
-    'finalization' => array($finalizeForm, $adminCookies),
     'approval reset' => array(array('belegfehler' => 'Bestätigungen zurücksetzen!'), $noRightsCookies),
     'revision' => array(revision_form('', 'Synthetic injected revision', '-13.00'), $adminCookies),
 );
@@ -840,12 +1112,107 @@ foreach ($injectedIds as $kind => $injectedId) {
     assert_not_contains($response['body'], 'Abfrage fehlgeschlagen', $label);
 }
 
-// Approval names posted with a revision are stored as the old approvals;
-// they are escaped (a quote failed the query before).
+// The voucher page shows the voucher and row IDs as numbers, as it uses them
+// (intval()), and does not echo other request text.
+$markup = '<b id="synthetic-markup">x</b>';
+foreach (array(1, 2, 3, 4, 5, 6) as $hint) {
+    $markupPage = http_request(
+        '/index.php?action=edit&id=' . rawurlencode($injectionTargetId . $markup) . '&bid=' . rawurlencode('7' . $markup) . '&hint=' . $hint,
+        'GET',
+        array(),
+        $adminCookies
+    );
+    assert_status($markupPage, 200, "voucher page with markup in the IDs (hint $hint)");
+    assert_not_contains($markupPage['body'], 'synthetic-markup', "voucher page with markup in the IDs (hint $hint)");
+    assert_contains($markupPage['body'], 'Buchung Nr. ' . $injectionTargetId, "voucher page with markup in the IDs (hint $hint)");
+    assert_contains($markupPage['body'], '<h1>Buchung ' . $injectionTargetId . ' bearbeiten</h1>', "voucher page with markup in the IDs (hint $hint)");
+}
+assert_contains($markupPage['body'], 'value="Synthetic injection target"', 'voucher page with markup in the IDs');
+$markupPost = http_request('/index.php?action=edit&hint=1', 'POST', array('id' => $injectionTargetId . $markup, 'bid' => '7' . $markup), $adminCookies);
+assert_not_contains($markupPost['body'], 'synthetic-markup', 'voucher page with markup in the posted IDs');
+assert_contains($markupPost['body'], 'Buchung Nr. ' . $injectionTargetId . ' - Buchungszeile Nr. 7<', 'voucher page with markup in the posted IDs');
+
+// A receipt upload to a voucher with a finalized row, also of another
+// organization, is refused and changes nothing.
+foreach (array('admin' => array(null, $adminCookies, 2), 'organization two' => array(1, $unitTwoCookies, 2)) as $uploadLabel => $case) {
+    $uploadId = create_voucher_from_form($database, two_organization_form("Synthetic finalized upload target ($uploadLabel)", 0), $adminCookies);
+    finalize_in_database($database, $uploadId, $case[0]);
+    $uploadRow = database_row(
+        $database,
+        'SELECT id FROM vouchers WHERE voucher_id = $1 AND orga = $2 AND NOT deleted',
+        array($uploadId, $case[2]),
+        "upload row ($uploadLabel)"
+    );
+    $upload = http_request(
+        '/index.php?action=edit',
+        'POST',
+        array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $uploadRow['id'], 'id' => $uploadId),
+        $case[1],
+        null,
+        $syntheticReceipt
+    );
+    assert_status($upload, 200, "receipt upload to a finalized voucher ($uploadLabel)");
+    assert_contains($upload['body'], 'bereits finalisiert', "receipt upload to a finalized voucher ($uploadLabel)");
+    assert_database_count(
+        $database,
+        'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1 AND file != 0',
+        array($uploadId),
+        0,
+        "finalized voucher after a receipt upload ($uploadLabel)"
+    );
+}
+
+// A user of another organization does not learn that a voucher is
+// finalized: the row check comes first ("Buchungszeile nicht gefunden").
+$foreignFinalizedId = create_voucher($database, 'Synthetic finalized voucher of organization two', '-20.50', 0, $adminCookies);
+finalize_in_database($database, $foreignFinalizedId);
+$foreignFinalizedRow = database_row($database, 'SELECT id FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($foreignFinalizedId), 'foreign finalized row');
+$foreignUpload = http_request(
+    '/index.php?action=edit',
+    'POST',
+    array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $foreignFinalizedRow['id'], 'id' => $foreignFinalizedId),
+    $unitOneCookies,
+    null,
+    $syntheticReceipt
+);
+assert_contains($foreignUpload['body'], 'FEHLER: Buchungszeile nicht gefunden.', 'receipt upload to a finalized voucher of another organization');
+assert_not_contains($foreignUpload['body'], 'finalisiert', 'receipt upload to a finalized voucher of another organization');
+
+// A receipt upload resets the approvals of the whole
+// voucher too, also of other organizations' rows, and is allowed for an
+// approved voucher.
+$uploadResetId = create_voucher_from_form($database, two_organization_form('Synthetic upload voucher approved in one', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", array($uploadResetId));
+$uploadResetRow = database_row(
+    $database,
+    'SELECT id FROM vouchers WHERE voucher_id = $1 AND orga = 2 AND NOT deleted',
+    array($uploadResetId),
+    'upload row of the approved voucher'
+);
+$uploadReset = http_request(
+    '/index.php?action=edit',
+    'POST',
+    array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => $uploadResetRow['id'], 'id' => $uploadResetId),
+    $unitTwoCookies,
+    null,
+    $syntheticReceipt
+);
+assert_redirect($uploadReset, 'index.php?action=edit&id=' . $uploadResetId . '&bid=' . $uploadResetRow['id'] . '&hint=1', 'receipt upload to an approved voucher');
+assert_voucher_approvals($database, $uploadResetId, array(
+    approval_row('1', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic upload voucher approved in one'),
+    approval_row('2', null, null, 'synthetic-a', 'synthetic-b', 'Synthetic upload voucher approved in one'),
+), 'approved voucher after a receipt upload by organization two');
+
+// A revision keeps the approvals of the replaced rows as old approvals,
+// taken from the database (posted old approval names are ignored) and
+// escaped (a quote failed the query before).
 $quotedRevisionId = create_voucher($database, 'Synthetic draft with a quoted approval', '-14.00', 0, $adminCookies);
+pg_query_params($database, 'UPDATE vouchers SET ack1 = $1, ack2 = $2 WHERE voucher_id = $3', array("synthetic-o'reviewer", "synthetic-reviewer'2", $quotedRevisionId));
 $quotedRevisionForm = revision_form($quotedRevisionId, 'Synthetic revision with a quoted approval', '-14.50');
-$quotedRevisionForm['ack1_old'] = "synthetic-o'reviewer";
-$quotedRevisionForm['ack2_old'] = "synthetic-reviewer'2";
+$quotedRevisionForm['ack1_old'] = 'synthetic-forged';
+$quotedRevisionForm['ack2_old'] = 'synthetic-forged';
+$quotedRevisionForm['ack1'] = 'synthetic-forged';
+$quotedRevisionForm['ack2'] = 'synthetic-forged';
 assert_redirect(edit_request($quotedRevisionId, $quotedRevisionForm, $adminCookies), edit_location($quotedRevisionId, 5), 'revision with quoted old approvals');
 $quotedRevision = database_row(
     $database,
@@ -880,13 +1247,15 @@ foreach ($dateForms as $date => $stored) {
     assert_database_field($dated, 'date', $stored, $dateComment);
 }
 
-// The old-approval filter of the listings uses the approval filter's value
-// (filter_ack), escaped.
+// The old-approval filter of the listings (filter_ack_old) filters by its own
+// value (before the fix it used filter_ack's); values outside its pattern
+// are ignored like those of the other filters.
 pg_query_params($database, 'UPDATE vouchers SET ack1_old = $1 WHERE comment = $2', array('synthetic-old-approver', 'Synthetic injection target'));
 $filterCases = array(
-    'filter_ack=synthetic-old&filter_ack_old=any' => true,
-    'filter_ack_old=any' => true,
-    'filter_ack=' . rawurlencode("synthetic-old'") . '&filter_ack_old=any' => false,
+    'filter_ack_old=synthetic-old' => true,
+    'filter_ack_old=any' => false,
+    'filter_ack=synthetic-old&filter_ack_old=any' => false,
+    'filter_ack_old=' . rawurlencode("synthetic-old'") => true,
 );
 foreach ($filterCases as $query => $listed) {
     $listing = http_request('/index.php?action=all&' . $query, 'GET', array(), $adminCookies);
@@ -993,7 +1362,6 @@ $writeRequests = array(
     'revision' => array('/index.php?action=edit&id=' . $readOnlyTwoId, revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50')),
     'revision without an organization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array_diff_key(revision_form($readOnlyTwoId, 'Synthetic revision by read-only bgf', '-18.50'), array('lo0' => true))),
     'approval' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'ack' => 'Bestätigen')),
-    'finalization' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'beleg' => 'Beleg erhalten')),
     'approval reset' => array('/index.php?action=edit&id=' . $readOnlyTwoId, array('id' => $readOnlyTwoId, 'parts' => '1', 'belegfehler' => 'Bestätigungen zurücksetzen!')),
     'merge' => array('/index.php?action=merge&bid1=' . $readOnlyOneId . '&bid2=' . $readOnlyTwoId, null),
     'receipt upload' => array('/index.php?action=edit', $readOnlyUpload),
@@ -1040,8 +1408,6 @@ assert_redirect(edit_request($readOnlyTwoId, $approveForm, $readOnlyTwoCookies),
 assert_voucher_rows($database, $readOnlyTwoId, array(voucher_row_state('2', 'synthetic-read-only-two', null, 'f')), 'voucher approved by Rbgf,2');
 $readOnlyTwoMerge = http_request('/index.php?action=merge&bid1=' . $readOnlyTwoId . '&bid2=' . $readOnlyOneId, 'GET', array(), $readOnlyTwoCookies);
 assert_contains($readOnlyTwoMerge['body'], 'nur von Admins', 'merge by Rbgf,2');
-$readOnlyTwoFinalization = edit_request($readOnlyTwoId, $finalizeForm, $readOnlyTwoCookies);
-assert_contains($readOnlyTwoFinalization['body'], 'FEHLER: Keine Zugriffsrechte.', 'finalization by Rbgf,2');
 $foreignByReadOnlyTwo = http_request('/index.php?action=new', 'POST', array_merge(voucher_form('Synthetic voucher of Rbgf,2 in one', '-19.00', 0), array('lo0' => '1')), $readOnlyTwoCookies);
 assert_contains($foreignByReadOnlyTwo['body'], 'FEHLER: Keine Zugriffsrechte.', 'creation in organization one by Rbgf,2');
 assert_database_field(
@@ -1055,6 +1421,83 @@ assert_database_field(
 $readOnlyImport = http_request('/index.php?action=import', 'GET', array(), $readOnlyCookies);
 assert_status($readOnlyImport, 200, 'bank import by read-only bgf');
 assert_contains($readOnlyImport['body'], 'FEHLER: Keine Zugriffsrechte.', 'bank import by read-only bgf');
+
+// Role checks match exact rights: "xroot" and "xbgf" are neither root nor
+// bgf (before, strpos() matched any right containing the word).
+$substringCookies = create_test_user($database, 51, 'synthetic-role-substrings', 'substring-password', '2,xroot,xbgf');
+$adminRights = database_row($database, 'SELECT rights FROM users WHERE id = 1', array(), 'admin rights');
+$substringAccounts = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 1 aktualisieren', 'password1' => '******', 'rights1' => '2'),
+    $substringCookies
+);
+assert_contains($substringAccounts['body'], 'FEHLER: Keine Zugriffsrechte.', 'rights change of another user by xroot');
+assert_database_field(
+    database_row($database, 'SELECT rights FROM users WHERE id = 1', array(), 'admin rights after xroot'),
+    'rights',
+    $adminRights['rights'],
+    'admin rights after a change by xroot'
+);
+$adminHash = database_row($database, 'SELECT hash FROM users WHERE id = 1', array(), 'admin password');
+$substringPassword = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 1 aktualisieren', 'password1' => 'hijacked-password'),
+    $substringCookies
+);
+assert_contains($substringPassword['body'], 'FEHLER: Keine Zugriffsrechte.', 'password change of another user by xroot');
+assert_database_field(
+    database_row($database, 'SELECT hash FROM users WHERE id = 1', array(), 'admin password after xroot'),
+    'hash',
+    $adminHash['hash'],
+    'admin password after a change by xroot'
+);
+$substringOwnRights = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 51 aktualisieren', 'password51' => '******', 'rights51' => 'bgf'),
+    $substringCookies
+);
+assert_contains($substringOwnRights['body'], 'FEHLER: Keine Zugriffsrechte.', 'own rights change by xroot');
+// Their own account: the password changes, the rights stay.
+$substringOwn = http_request(
+    '/index.php?action=accounts',
+    'POST',
+    array('submit' => 'Benutzer 51 aktualisieren', 'password51' => 'changed-substring-password', 'rights51' => 'bgf'),
+    $substringCookies
+);
+assert_status($substringOwn, 200, 'own account change by xroot');
+assert_database_field(
+    database_row($database, 'SELECT rights FROM users WHERE id = 51', array(), 'xroot rights'),
+    'rights',
+    '2,xroot,xbgf',
+    'rights after an own account change by xroot'
+);
+$substringCookies = login_user('synthetic-role-substrings', 'changed-substring-password');
+$substringUserList = http_request('/index.php?action=accounts', 'GET', array(), $substringCookies);
+assert_not_contains($substringUserList['body'], 'synthetic-admin', 'user list for xroot');
+assert_not_contains($substringUserList['body'], 'name="rights51"', 'user list for xroot');
+assert_not_contains($substringUserList['body'], 'Benutzer -1 erstellen', 'user list for xroot');
+assert_contains($substringUserList['body'], '<tr><td>synthetic-role-substrings</td>', 'user list for xroot');
+$adminUserList = http_request('/index.php?action=accounts', 'GET', array(), $adminCookies);
+foreach (array('synthetic-admin', 'name="rights51"', 'Benutzer -1 erstellen', '<td><b>Rechte</b></td>', 'Ein vorgestelltes R') as $expected) {
+    assert_contains($adminUserList['body'], $expected, "user list for root ($expected)");
+    assert_not_contains($substringUserList['body'], $expected, "user list for xroot ($expected)");
+}
+pg_query($database, 'UPDATE vouchers SET deleted = true WHERE id = 105');
+$substringRecovery = http_request('/index.php?action=recover&id=1004&bid=105&doit=1', 'GET', array(), $substringCookies);
+assert_contains($substringRecovery['body'], 'nur von Admins', 'recovery by xroot');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE id = 105 AND deleted', array(), 1, 'row after recovery by xroot');
+$substringDraftId = create_voucher($database, 'Synthetic draft for role substrings', '-20.00', 0, $adminCookies);
+$substringVoucherPage = http_request('/index.php?action=edit&id=' . $substringDraftId, 'GET', array(), $substringCookies);
+assert_contains($substringVoucherPage['body'], 'value="Synthetic draft for role substrings"', 'voucher page for xroot');
+assert_not_contains($substringVoucherPage['body'], 'mergelink', 'voucher page for xroot');
+$substringMemberFees = http_request('/index.php?action=mb', 'GET', array(), $substringCookies);
+assert_status($substringMemberFees, 200, 'member fees for xbgf');
+assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'member fees for xbgf');
+// (The page itself is not requested for bgf: on the synthetic data it divides
+// by zero, an open finding in tests/COMPATIBILITY_PLAN.md.)
 
 pg_close($database);
 assert_no_unexpected_diagnostics();

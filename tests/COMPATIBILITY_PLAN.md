@@ -57,10 +57,11 @@ with synthetic users and covered by a mutation target.
     `20YY-M-D` is accepted; text before or after a date is treated like a
     missing date ("Kein Datum angegeben", saved as 1800-01-01, the existing
     handling) instead of being passed to the database.
-  - The old-approval listing filter (`getfilter()`, `filter_ack_old`) inserts
-    the value of `filter_ack` (an existing mix-up, kept), which is not
-    checked against a pattern there; it is escaped now. Without `filter_ack`
-    it no longer raises an undefined-index notice (same SQL as before).
+  - The old-approval listing filter (`getfilter()`, `filter_ack_old`)
+    inserted the value of `filter_ack`, which is not checked against a
+    pattern there. First escaped; since the review fix it uses its own
+    value, which its pattern checks (bug fix: the filter now filters by the
+    entered old approver; without a valid `filter_ack_old` it is not applied).
   Reviewed without change: `intval()`/digit-pattern values (`edit.php`
   merge, `page_edit()`, `recover.php`, `search.php`, `donations.php`,
   `index.php` hide and cookies, `file.php`), escaped values (`index.php`
@@ -68,22 +69,145 @@ with synthetic users and covered by a mutation target.
   values without quotes (the other `getfilter()` filters, `kdonations.php`,
   `spendings.php`, `tinyreport.php`, `vreport.php`, `check.php`,
   `index.php` year), and whitelists (`getsort()`, `index.php` action).
-  Open: `import.php` inserts dates read from the uploaded bank CSV without
-  escaping (`format_date()` passes unrecognized text through); there is no
-  import test yet (see the import items below).
+  Review fix: a member voucher (`page_save_buchung()`) takes the member's
+  name from the membership list (`ppmembers`) and inserted it unescaped (a
+  name with a quote failed the query); it is escaped now. PR review fix:
+  `import.php` has the same assignment (member found by its name in a
+  line without a name); it is escaped too, and its `break`, which ended
+  the import of the whole file there (the remaining lines were dropped
+  while the file was reported as imported), is removed. **Behaviour note:**
+  such a line and the following ones are imported now. The bank import
+  compares the line without spaces, so only one-word member names match.
+  Third PR review fix: the lookup escaped the already escaped line a
+  second time (quoted names never matched) and used member names as LIKE
+  patterns (`%`, `_` and an empty name matched every line, which since the
+  `break` fix led to wrong member vouchers). The line is escaped once, the
+  wildcards and the escape character of the name are escaped (`E''`
+  strings, so independent of `standard_conforming_strings`) and empty
+  names are skipped. Tests in `ImportMemberMatchTest` (synthetic member
+  list through a replaced stream wrapper), mutations in `import-checks`.
+  Second review fix: `getusers()` inserted the member id of the membership
+  list unchecked into `ppmembers` (a second-order value); it is `intval()`
+  now. Name (escaped), organization (mapped by a `switch`) and paid flag
+  (`intval()`) were already safe. Test in `GetUsersTest`.
+  Review fix: `import.php` inserted dates read from the uploaded bank CSV
+  without escaping (`format_date()` passes unrecognized text through).
+  Every imported line now needs a valid date (`import_date_valid()`:
+  `YYYY-M-D` after `format_date()` and `checkdate()`, so no month 13 or
+  February 30) and an
+  organization the user may use (`organization_allowed()`, the rule of the
+  voucher form; the bank import used the CSV's organization column or the
+  account's organization unchecked). Otherwise the line gets the existing
+  "Ungültige Buchungszeile" report with its line number and is skipped; the
+  remaining lines and files are imported, and each file ends with a summary
+  of its skipped lines (second review fix; at first the import stopped
+  there, as it still does for an unknown account). Behaviour difference: organization users can import only
+  lines of their own organizations (before, any line, e.g. PayPal and
+  Sparkasse lines of organizations 10 and 6). The other CSV values were
+  already escaped or `intval()`; `import2.php` uses only values matched by
+  digit/ID patterns. Second review fix in `import2.php`
+  (`page_import2_match_voucher()`): the voucher lookup had no rights
+  restriction and no finalized check, so a statement could match a voucher
+  of another organization (the receipt was stored and "done" printed,
+  although the scoped update changed nothing) or a finalized voucher. The
+  lookup now uses the rights SQL and skips vouchers with a finalized row
+  of any organization ("Keine Buchung gefunden."), and the receipt is
+  stored only after the scoped update matched the row (otherwise "Beleg
+  konnte nicht gespeichert werden.", and a failed store resets the row's
+  file number). Tests in `ReceiptImportTest` (the PDF import itself runs
+  only on PHP < 7.2, see the dependency notes). New `tests/http-import.php`
+  (synthetic CSV fixtures of `tests/reference/fixtures/import/` and the
+  membership stub), mutation target `import-checks`.
 - [x] Posted organization of a new voucher or a revision. `get_voucher()`
   saved any posted organization (`lo<part>`). Now `page_new_save()` and
   `page_edit_save()` first check every posted organization with
   `posted_organizations_allowed()`: users with the exact `bgf` right
   (`has_right()`, so not `Rbgf`) may post any, everybody else only the
-  numeric organizations of their rights, compared as written. Otherwise the
+  numeric organizations of their rights. Otherwise the
   whole voucher is refused before anything is saved, with the
   "FEHLER: Keine Zugriffsrechte." error of `accounts.php`. Without a posted
   organization the default applies as before. Behaviour differences: the
-  voucher form offers every organization to `root` (`new.php`) and the
-  rights SQL exempts `Rbgf`, but neither may now post an organization
-  outside their numeric rights; an organization such as `01` is refused.
-  Mutation target `rights-checks`.
+  rights SQL exempts `Rbgf`, but it may not post an organization outside
+  its numeric rights; an organization such as `01` is refused.
+  Mutation target `rights-checks`. The check is `organization_allowed()`
+  in `functions.php`. (A review round briefly let the exact `root` right
+  post any organization, as the form offered it; the PR review reverted
+  that, see below.)
+  Second review fix: rights tokens are trimmed (`rights_tokens()`, used by
+  `has_right()`, `write_rights()` and `organization_allowed()`), so
+  `bgf, root` keeps `root` (still exact: ` Rbgf ` is not `bgf`), and
+  organizations are compared as numbers like the database compares the
+  rights SQL (`03` allows organization 3, `01` posts organization 1). The
+  voucher form's organization list uses `organization_allowed()`, so it
+  offers exactly what the save allows (before, `bgf`/`root` with spaces saw
+  only their numeric organizations). PR review fix: writes are a subset of
+  what the user can read. `rights2orgasql()` (reads) uses `rights_tokens()`
+  too, so ` 2` and ` bgf` count for reads as for writes, and `root` is no
+  organization right for writes either (it never was for reads): a user
+  with only `root` reads and writes no organization, `root,3` reads and
+  writes organization 3. This matches the base branch, where `root` could
+  not post an organization outside its numeric rights either; the form
+  no longer offers `root` organizations it cannot save. Users with `bgf`
+  (all real admins have `root,bgf`) are unaffected. Owner decision: rights are
+  trimmed everywhere; the voucher form's remaining checks (organization
+  field, save buttons in `end_of_form()`, row delete link) use the trimmed
+  helpers too, which also removes the PHP-version difference of
+  `is_numeric(' 2')`.
+  Review fix: a part without a posted organization is checked with the
+  organization `get_voucher()` falls back to (`default_organization()`: the
+  user's single organization, otherwise 10). Behaviour difference: users
+  without rights, and users of several organizations who post none, can
+  no longer save vouchers into organization 10 (the form always posts an
+  organization for several organizations).
+- [x] Revisions (`page_edit_save()`, review fix). The finalized and
+  approved checks used the rights SQL, so a user of one organization could
+  revise (add rows to) a voucher whose rows of another organization were
+  finalized or approved, and a revision of a voucher number without rows,
+  or without rows of the user's organization, created rows under that
+  number. Now a revision needs a current (not deleted) row that the user
+  sees ("FEHLER: Buchung nicht gefunden." otherwise), and the finalized
+  check covers the whole voucher. Behaviour difference: `bgf` can no
+  longer revive a voucher number whose rows are all deleted through the
+  empty voucher form. Mutation target `rights-checks`.
+- [x] Approvals when a voucher changes (owner decision
+  on item 8 of the second review). The "bereits bestätigt" refusal of
+  revisions (first organization-scoped, then briefly voucher-wide) is
+  removed: a user may correct their own rows also while rows of another
+  organization are approved. Instead every revision, receipt upload
+  (`page_new_file()`) and PDF receipt import (`import2.php`) resets the
+  approvals of the whole voucher: for every current row of every
+  organization `ack1`/`ack2` move to `ack1_old`/`ack2_old` and are cleared
+  (`vouchers_reset_ack()` without rights restriction). The new rows of a
+  revision take their old approvals from the user's first current row in
+  the database, after the reset (the same names the form used to post);
+  posted `ack1`/`ack2`/`ack1_old`/`ack2_old` are no longer used, which
+  closes the open "posted old approval names" finding. A finalized row
+  anywhere in the voucher still refuses the change. Behaviour differences:
+  approved vouchers can be revised and get receipts again (their approvals
+  are reset, also of other organizations' rows); before, a revision of an
+  approved voucher was refused and an upload reset only the user's rows.
+  Tests in `tests/write-workflows.php` and `ReceiptImportTest`, mutations
+  in `rights-checks` and `import-checks`.
+- [x] Receipt upload (`page_new_file()`, second review fix): there was no
+  finalized check, so a receipt could be attached to a finalized voucher
+  (which also reset its approvals). A finalized row of any organization now
+  refuses the upload with "bereits finalisiert". Its approved check is
+  removed with the approval reset below. Mutation target
+  `rights-checks`. Third review fix: the upload stored the receipt and
+  reset the voucher's approvals before its organization-scoped update,
+  which might match no row (a row of another organization or voucher, or
+  none). Now the scoped update must match the posted row first ("FEHLER:
+  Buchungszeile nicht gefunden." otherwise, nothing stored or reset), and
+  a failed store gives the row back its previous file number (PR review
+  fix; at first it was reset to 0, which dropped an existing receipt). The
+  update also requires the file number it checked, and the PDF import's
+  update requires `file = 0`, so a concurrent change is not overwritten
+  (race only; the mutants are accepted equivalents). Tests
+  in `ReceiptImportTest`, mutations in `import-checks`. PR review fix: the
+  row check (a current row of the voucher in the user's scope) now comes
+  before the finalized check, so a user of another organization gets
+  "Buchungszeile nicht gefunden" instead of learning that the voucher is
+  finalized.
 - [x] Merging vouchers (`page_edit_merge()`, `?action=merge`) had no
   server-side check; the edit page offers it only to `root`
   (`edit.php`, `strpos($rights, 'root')`). It now requires the exact `root`
@@ -96,36 +220,51 @@ with synthetic users and covered by a mutation target.
   rights instead of the rights SQL: with empty rights it reset the
   approvals of any voucher, other rights failed with an SQL error. It now
   requires the exact `bgf` right; other users get "FEHLER: Keine
-  Zugriffsrechte." and nothing changes. The argument is deliberately not
-  corrected, because that would enable a reset that has never worked for
-  `bgf` users. [ ] **Known bug for the owner** (`KF-DROP-ACKS-BGF` in
-  `tests/write-workflows.php`): for `bgf` users the reset still fails with
-  "Abfrage fehlgeschlagen" (syntax error); passing `$rightssql` would make
-  it work. Mutation target `rights-checks`.
-- [x] Finalization (`page_edit_finalize()`, POST `beleg`). The voucher form
-  has had no finalization button since `68cda09` (2015); before, only the
-  treasurer (`bsm`) saw it, after both approvals. The action stayed
-  reachable by a direct request for every user, within the rights SQL. It
-  now requires the exact `bgf` right; other users get "FEHLER: Keine
-  Zugriffsrechte." and nothing changes. Behaviour difference: organization
-  users (and `Rbgf`) can no longer finalize their own rows; `bgf` users
-  are unchanged (they may still finalize without approvals). The
-  `finalize-unscoped` mutant of `rights-checks` is an accepted equivalent
-  since: the rights SQL of a `bgf` user is empty.
+  Zugriffsrechte." and nothing changes. At first the argument was left
+  as it was (the reset failed for `bgf` users with a syntax error, known
+  failure `KF-DROP-ACKS-BGF`). PR review fix: appending the rights string
+  to the SQL was a second-order injection, so the reset now gets the rights
+  SQL (empty for `bgf`: the approvals of the whole voucher are reset, as on
+  every other change), and a finalized row refuses the reset ("bereits
+  finalisiert"), as for approval, revision and upload. **Behaviour change
+  approved by the owner:** the reset button works for `bgf` users for the
+  first time (it was first left broken on purpose). Mutation target
+  `rights-checks`.
+- [x] Finalization (`page_edit_finalize()`, POST `beleg`) is **removed**
+  (owner decision). History: the treasurer button ("Ja, es ist alles in
+  Ordnung. Ich möchte die Buchung finalisieren.") was shown to `bsm` after
+  both approvals until `68cda09` (2015) and was never checked on the
+  server; afterwards the action stayed reachable by a direct request for
+  every user, within the rights SQL. Evidence: on production a single
+  voucher row has ever been finalized (booking date 2011), none of about
+  6,400 rows booked 2012-2025 (read-only count by the owner). The function,
+  its `index.php` dispatch and the unused `$beleg` of `page_edit()` are
+  deleted; a POST with `beleg` now shows the voucher page and writes
+  nothing (tested for admin, `bgf`, an organization user and `Rbgf`). The
+  `receipt_received` column and every "bereits finalisiert" check (approval,
+  revision, receipt upload) stay, so the existing finalized row stays
+  locked. Mutation target `rights-checks` (`finalization-write-restored`).
 - [x] Approval of a voucher of another organization (`page_edit_ack()`,
   `KD-EDIT-RIGHTSSQL`): the finalized check ran without the (then undefined)
   rights SQL, so a user of another organization learned whether a voucher
   number was finalized. The approval is now refused with "Hier fehlt noch
   der Beleg!" first when the user sees no row of the voucher; see the
   [diagnostics table](#diagnostics-surfaced-by-the-strict-http-checks).
-  No approval outcome changes.
+  No approval outcome changes. Review fix: the visibility check counts only
+  rows that are not deleted, so a voucher with nothing but old revisions in
+  the user's organization is refused too (before, its deleted rows could
+  get approvals; the approval updates themselves are unchanged). Second
+  review fix: the receipt check and both approval updates skip deleted
+  rows too, so an approval no longer stamps old revisions or clears their
+  old approvals (`ack1_old`/`ack2_old`, shown in the revision history), and
+  an unapproved old revision no longer lets the receipt check pass.
 - [x] New users (`accounts.php`, "Benutzer -1 erstellen", root only) were
   stored with the creating root user's rights instead of the entered ones
   (the update path used the entered rights). Bug fix: the entered, escaped
   rights are stored. **Flagged for the owner:** users created so far have
   the rights of their creator; review them in the user list. Mutation
   target `rights-checks`.
-- [x] Read-only `Rbgf` (**owner-approved**). `accounts.php` documents a
+- [x] Read-only `Rbgf` (owner decision). `accounts.php` documents a
   leading `R` as read-only access ("Rbgf"), but only the rights SQL knew
   `Rbgf` (as unrestricted), so it could write everywhere. `write_rights()`
   (`functions.php`) drops the `Rbgf` token for writes and returns false
@@ -164,22 +303,48 @@ with synthetic users and covered by a mutation target.
   `read-only-rights` (the bank import check is not mutated, because its
   removal would contact the membership system).
 
+- [x] Exact role checks (review fix). Role checks used `strpos($rights,
+  'root'|'bgf')`, which matches any right containing the word (`xroot`,
+  `Rbgf`), so for example a user with a right `xroot` could change other
+  users' rights and passwords. All are exact tokens now (`has_right()`):
+  `accounts.php` (9 checks: other users, password and rights updates, user
+  list, help text, rights column and inputs, new-user row), `recover.php`
+  (root), the merge link (`edit.php`, root), the approval reset button
+  (`$bgfandack`, bgf). Read checks keep `Rbgf` explicitly: the empty
+  voucher page for bgf (`edit.php`, bgf or Rbgf), the member-fee page
+  (`mb.php`, bgf or Rbgf) and the old-revisions menu link (`functions.php`,
+  bgf, Rbgf or root). Behaviour difference: only for rights that contain
+  but are not `root`/`bgf`/`Rbgf`; real users are unaffected. The other
+  role checks (`in_array()` in `new.php`, `rights2orgasql()`) were already
+  exact. Tests in `tests/write-workflows.php` (a user with `2,xroot,xbgf`)
+  and `FunctionsTest`, mutations in `rights-checks`; the empty voucher page
+  and the reset button are not mutated (the first raises the open
+  `$vouchers` finding, the second is hidden by `end_of_form()` anyway).
+- [ ] `mb.php` divides by zero on the synthetic data (member-fee page for
+  `bgf`); not requested by the tests.
+
 Open security findings (not changed here; owner decisions):
 
 - [ ] No CSRF protection: every write action is a plain form POST or GET
   link authenticated by cookies.
 - [ ] Output is not HTML-escaped in several places, e.g. the user names in
-  the user list (`accounts.php`, root only), request values echoed by the
-  voucher page (`page_edit()`: voucher and row IDs in the notices and the
-  heading) and the listing filter fields (`closed.php`).
-- [ ] The default organization of a single-organization user
-  (`get_voucher()`, `new.php`) uses `is_numeric()` and `intval()`, whose
-  results differ between PHP versions for unusual rights values (hex,
-  exponent notation, surrounding whitespace). Rights are entered by root.
+  the user list (`accounts.php`, root only) and the listing filter fields
+  (`closed.php`). [x] Fixed: the voucher page (`page_edit()`) echoed the
+  request's voucher and row IDs in its notices and heading; it now uses
+  them as `intval()` numbers throughout, as its query already did (a
+  request such as `id=5abc` shows "Buchung 5" instead of "Buchung 5abc").
+- [x] The default organization of a single-organization user
+  (`default_organization()`, `new.php`) used `is_numeric()` and `intval()`,
+  whose results differ between PHP versions for unusual rights values.
+  Fixed in the PR review: it takes the trimmed single token
+  (`rights_tokens()`, null-safe) and accepts only digits, like
+  `organization_allowed()`, so `2 ` is organization 2 on every version and
+  hex or exponent notation falls back to 10.
 - [ ] The login `target` is redirected to without a check
   (`login_redirect()`, `login()`).
-- [ ] Old approval names posted with a revision are stored as given
-  (`page_edit_save()`); they are only displayed as former approvals.
+- [x] Old approval names posted with a revision were stored as given
+  (`page_edit_save()`); fixed with the approval reset (they
+  come from the database).
 - [ ] `edit.php` still shows the approval reset button to `bgf` via
   `strpos()` (`$bgfandack`); it is hidden for `Rbgf` by `end_of_form()`.
 
@@ -274,10 +439,8 @@ explains that dropping the unused default generally preserves behavior; see
     hidden, then redirected).
   The receipt upload redirect (`new.php:266`, PDF upload on the edit page)
   is tested in `tests/http-receipts.php` since the `mcrypt` replacement.
-  `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") never
-  reaches its redirect for `bgf` users, because it passes `$rights` instead
-  of the rights SQL to `vouchers_reset_ack()` and the query fails ("syntax
-  error at or near ..."; known failure `KF-DROP-ACKS-BGF`, see
+  `page_edit_drop_acks()` ("Bestätigungen zurücksetzen!") reaches its
+  redirect for `bgf` users since the PR review fix (see
   [Security fixes](#security-fixes-before-php5-last)). The receipt download (`file.php`) and the
   CSV headers were already sent before any output.
 - [x] Review every `page_new_buchung()` call and remove the ineffective default.
@@ -419,7 +582,7 @@ Still open from the 8.4 review:
 
 | Location | Trigger and evidence | Follow-up |
 |---|---|---|
-| `edit.php:345` | A missing voucher ID leaves `$vouchers` undefined when the query yields no rows. An authenticated scoped-user request reproduced `count(null)` on PHP 8.0. | Initialize the result array; test missing, deleted, and unauthorized voucher IDs while preserving the existing BGF behavior. |
+| `edit.php:345` | A missing voucher ID leaves `$vouchers` undefined when the query yields no rows. An authenticated scoped-user request reproduced `count(null)` on PHP 8.0. | [x] Fixed in the PR review: `page_edit()` initializes `$vouchers` and answers "Buchung nicht gefunden" for a voucher without current rows for every user. **Behaviour note:** `bgf`/`Rbgf` users got an empty form there before, which the save refuses since the revision check; deleted rows are restored with the recovery page. PHPStan baseline entries (`$vouchers` 12, the two always-false conditions) removed. |
 | `import.php:27` | `count($_FILES['uploadcsv']['name'])` assumes a multiple-upload array. Reproduced the missing-upload `TypeError` with the membership lookup stubbed locally. | Validate/normalize upload structure before counting; cover GET, no file, malformed structure, and upload errors. Keep membership traffic synthetic. |
 | `import2.php:24` | A normal authenticated GET with no uploaded PDF reproduced `count(null)` on PHP 8.0. | Render the upload form without processing absent files; add malformed-upload tests. |
 | `donations.php:116-122` | With a synthetic qualifying donation and captcha submission, `$donations` is undefined and `array_multisort()` receives null. The collection assignment is commented out for legal reasons. Reproduced on PHP 8.0. | [x] Fixed: `page_donations()` initializes `$donations`, `$sort_sum` and `$sort_name` to empty arrays. Donor publication stays disabled (the commented-out assignment is untouched), so the list is the header row only, as before; only the diagnostics disappear (on 5.6/7.4 they were displayed between the header row and `</table>`). New `tests/http-donations.php` (captcha answered from the form, wrong/missing answer, 2024 above and 2025 below the threshold, years before 2012; asserts that no donor name, encoded name, row or sum appears) failed before the fix on 5.6 and 7.4 and passes on 5.6, 7.4 and 8.0. Mutation target `donations`. `kdonations.php` does not share the pattern: its loop body is empty (publication disabled the same way) and it collects nothing. |
@@ -632,6 +795,14 @@ differences above are only visible for out-of-range input.
   actions only on POST. Several actions are currently triggered by GET links
   (for example merge); convert those links to small forms and refuse GET for
   them. Until then, those links carry the CSRF token in the query string.
+  GET-triggered writes found in the security review: merge
+  (`?action=merge&bid1=&bid2=`, root only), recovery
+  (`?action=recover&id=&bid=&doit=1`, root only) and the column preferences
+  (`?hide=`, own user only).
+- [ ] Bug: merge (`page_edit_merge()`) redirects with "Buchungen
+  zusammengeführt" even when its `UPDATE` changed no row (unknown or
+  invisible second voucher). Fix the message together with the POST
+  conversion.
 
 ## Dependencies
 
@@ -796,22 +967,22 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
-| Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`, fixed) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. The `donations.php` entries (5 findings) were removed with the fix. |
+| Possibly undefined arrays reaching `count()`/`array_multisort()` | `edit.php:345-411` (`$vouchers`, 12; 11 after the finalization removal; fixed in the PR review), `donations.php:116-124` (`$donations`, `$sort_name`, `$sort_sum`, fixed) | Known (array/input table). `edit.php:346` "always false" comparisons follow from the same variable. The `donations.php` entries (5 findings) were removed with the fix. |
 | Empty array passed to `foreach` | `donations.php:119`, `:127` (2) | Added with the `donations.php` fix: `$donations` is now always `array()`, because the assignment that filled it is commented out (publication disabled for legal reasons). PHPStan correctly reports the sort and output loops as dead code. Kept on purpose until the owner decides on publication; see the array/input table. |
 | Malformed regular expression | `functions.php:73` | Known |
-| Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321`; `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
+| Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321` (fixed: `page_import()` takes the rights for the import checks); `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
 | Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` and `wk.php` were not observed by the strict HTTP checks. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
-| Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. Cover with the planned BAWAG import test. |
+| Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
-| Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`) | **New**, logic smells; no direct version impact. |
+| Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **New**, low. It is coerced to a string at runtime. |
 | Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |
 

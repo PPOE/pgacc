@@ -77,24 +77,12 @@ return array(
             'rationale' => 'Organization 0 is a valid ID.'),
         array('id' => 'leading-zero-id-rejected', 'search' => "'/^\\d+$/'", 'replace' => "'/^[1-9]\\d*$/'",
             'rationale' => 'IDs with leading zeros (and 0) stay accepted.'),
-        array('id' => 'privilege-delimiter-changed',
-            // Old runner: 'explode(",", $rights)' (first of two occurrences).
-            // Second spelling: after the null guard (PHP 8.1 null-argument deprecation).
-            'search' => array("\$rights_r = explode(\",\", \$rights);\n  if (", "\$rights_r = explode(\",\", \$rights === null ? '' : \$rights);\n  if ("),
-            'replace' => array("\$rights_r = explode(\";\", \$rights);\n  if (", "\$rights_r = explode(\";\", \$rights === null ? '' : \$rights);\n  if ("),
-            'rationale' => 'Privileges are comma-separated.'),
-        array('id' => 'organization-delimiter-changed',
-            'search' => array(
-                "\$rights_r = explode(\",\", \$rights);\n    \$rights2 = array();",
-                "\$rights_r = explode(\",\", \$rights);\n    \$rights2 = [];",
-                "\$rights_r = explode(\",\", \$rights === null ? '' : \$rights);\n    \$rights2 = array();",
-            ),
-            'replace' => array(
-                "\$rights_r = explode(\";\", \$rights);\n    \$rights2 = array();",
-                "\$rights_r = explode(\";\", \$rights);\n    \$rights2 = [];",
-                "\$rights_r = explode(\";\", \$rights === null ? '' : \$rights);\n    \$rights2 = array();",
-            ),
-            'rationale' => 'Organization IDs are comma-separated.'),
+        // The tokens come from rights_tokens() (comma-separated, trimmed; its
+        // delimiter is mutated in rights-checks).
+        array('id' => 'privilege-tokens-untrimmed',
+            'search' => "  \$rights_r = rights_tokens(\$rights);\n  if (",
+            'replace' => "  \$rights_r = explode(\",\", \$rights === null ? '' : \$rights);\n  if (",
+            'rationale' => 'Rights are trimmed: "2, bgf" is bgf and "1, 2" reads organization 2.'),
         array('id' => 'mixed-roles-drop-valid-ids', 'search' => "preg_match('/^\\d+$/', \$right) == 1", 'replace' => "preg_match('/^\\d+(,\\d+)*$/', \$rights) == 1 && preg_match('/^\\d+$/', \$right) == 1",
             'rationale' => 'Valid IDs are kept when other roles are present.'),
         array('id' => 'empty-rights-fail-open', 'search' => 'return " AND false ";', 'replace' => 'return $rights === "" ? "" : " AND false ";',

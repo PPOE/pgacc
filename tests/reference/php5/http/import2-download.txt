@@ -2,7 +2,7 @@
 # request: GET /index.php?action=file&id=220 as admin
 status: 200
 header: Content-Type: application/pdf
-header: Content-Disposition: inline; filename="102.pdf"
+header: Content-Disposition: inline; filename="101.pdf"
 header: Content-Transfer-Encoding: binary
 header: Accept-Ranges: bytes
 --- body (binary, 736 bytes, sha256 0b7fdaa96ff9a565485b2607a9d0a09d298b51c62d2a15b6c604f0b5d42af771) ---

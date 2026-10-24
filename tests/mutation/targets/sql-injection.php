@@ -1,19 +1,19 @@
 <?php
 /*
  * Request values used in SQL: the voucher ID of the edit actions (approval,
- * finalization, approval reset, revision, receipt upload) accepts digits
- * only, old approval names and the old-approval filter are escaped, and the
+ * approval reset, revision, receipt upload) accepts digits
+ * only, old approval names are escaped, the old-approval filter uses its own
+ * (pattern-checked) value, and the
  * voucher date must match its pattern as a whole. Tested with
  * tests/write-workflows.php. See tests/mutation/README.md for the format.
  */
-$finalize = array('start' => 'function page_edit_finalize($rights)', 'end' => 'function page_edit_merge($rights)');
 $dropAcks = array('start' => 'function page_edit_drop_acks($rights)', 'end' => 'function page_edit_ack($rights)');
 $ack = array('start' => 'function page_edit_ack($rights)', 'end' => 'function page_edit_save($rights)');
 $save = array('start' => 'function page_edit_save($rights)', 'end' => 'function page_edit_buchung(');
 $check = 'if (!is_string($id) || preg_match(\'/^\d+$/D\', $id) != 1)';
 
 $mutations = array();
-foreach (array('finalize' => $finalize, 'drop-acks' => $dropAcks, 'ack' => $ack, 'save' => $save) as $name => $region) {
+foreach (array('drop-acks' => $dropAcks, 'ack' => $ack, 'save' => $save) as $name => $region) {
     $mutations[] = array(
         'id' => "$name-id-unchecked",
         'region' => $region,
@@ -74,27 +74,47 @@ $mutations[] = array(
         . 'after a date reaches the SQL.',
 );
 $mutations[] = array(
-    'id' => 'old-ack-filter-unescaped',
+    'id' => 'old-ack-filter-wrong-value',
     'file' => 'functions.php',
-    'search' => "LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '') . \"%' OR ack2_old",
-    'replace' => "LIKE '%\" . (isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '') . \"%' OR ack2_old",
-    'rationale' => 'Removed escape: the old-approval filter inserts filter_ack, which is not '
-        . 'checked against a pattern there, as SQL.',
+    'search' => "ack1_old LIKE '%\" . \$_GET['filter_ack_old'] . \"%'",
+    'replace' => "ack1_old LIKE '%\" . \$_GET['filter_ack'] . \"%'",
+    'rationale' => 'The old-approval filter uses its own value, which its pattern checks (before the '
+        . 'fix it used filter_ack, which is not checked there).',
 );
 $mutations[] = array(
-    'id' => 'old-ack2-filter-unescaped',
+    'id' => 'old-ack2-filter-wrong-value',
     'file' => 'functions.php',
-    'search' => "ack2_old LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'replace' => "ack2_old LIKE '%\" . (isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'rationale' => 'Removed escape in the second column of the old-approval filter.',
+    'search' => "ack2_old LIKE '%\" . \$_GET['filter_ack_old'] . \"%'",
+    'replace' => "ack2_old LIKE '%\" . \$_GET['filter_ack'] . \"%'",
+    'rationale' => 'Both columns of the old-approval filter use its own value.',
 );
+
+$view = array('start' => 'function page_edit($rights)', 'end' => '$hint = 0;');
+foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval($_POST["id"]);' => 'view-post-id-raw',
+    '$bid = intval($_GET["bid"]);' => 'view-get-bid-raw', '$bid = intval($_POST["bid"]);' => 'view-post-bid-raw') as $search => $id) {
+    $mutations[] = array(
+        'id' => $id,
+        'region' => $view,
+        'search' => $search,
+        'replace' => preg_replace('/intval\((.*)\);$/', '$1;', $search),
+        'rationale' => 'The voucher page echoes request IDs only as numbers (reflected markup otherwise).',
+    );
+}
+
 $mutations[] = array(
-    'id' => 'old-ack-filter-unset',
-    'file' => 'functions.php',
-    'search' => "ack1_old LIKE '%\" . pg_escape_string(isset(\$_GET['filter_ack']) ? \$_GET['filter_ack'] : '')",
-    'replace' => "ack1_old LIKE '%\" . pg_escape_string(\$_GET['filter_ack'])",
-    'rationale' => 'Without filter_ack the old-approval filter matches every old approval, without '
-        . 'an undefined-index diagnostic.',
+    'id' => 'member-name-unescaped',
+    'file' => 'new.php',
+    'search' => "    \$voucher['name'] = pg_escape_string(\$line['name']);",
+    'replace' => "    \$voucher['name'] = \$line['name'];",
+    'rationale' => 'Removed escape: a member name from the membership list is inserted as SQL.',
+);
+
+$mutations[] = array(
+    'id' => 'member-id-raw',
+    'file' => 'getusers.php',
+    'search' => '  $id = intval($values[1]);',
+    'replace' => '  $id = $values[1];',
+    'rationale' => 'A member id from the membership system is inserted as a number, not as SQL.',
 );
 
 return array(
@@ -102,6 +122,7 @@ return array(
         . 'the listing filter (write-workflow tests)',
     'file' => 'edit.php',
     'tests' => array(
+        array('type' => 'phpunit', 'filter' => 'testMemberIdsAreNumbers', 'file' => 'tests/unit/GetUsersTest.php'),
         array('type' => 'http', 'script' => 'tests/write-workflows.php'),
     ),
     'timeout' => 240,

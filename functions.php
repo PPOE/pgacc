@@ -85,7 +85,7 @@ function getfilter()
   if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack']) == 1)
     $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
   if (isset($_GET['filter_ack_old']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i',$_GET['filter_ack_old']) == 1)
-    $filter .= " AND (ack1_old LIKE '%" . pg_escape_string(isset($_GET['filter_ack']) ? $_GET['filter_ack'] : '') . "%' OR ack2_old LIKE '%" . pg_escape_string(isset($_GET['filter_ack']) ? $_GET['filter_ack'] : '') . "%') ";
+    $filter .= " AND (ack1_old LIKE '%" . $_GET['filter_ack_old'] . "%' OR ack2_old LIKE '%" . $_GET['filter_ack_old'] . "%') ";
   if (isset($_GET['filter_refund']))
     $filter .= " AND refund ";
   if (isset($_GET['filter_bel']))
@@ -191,7 +191,7 @@ if (strlen($rights === null ? '' : $rights) > 0)
   echo '<a href="index.php?action=mb"'.($page == "mb"?' class="selected"':'').'>Mitgliedsbeiträge</a>';
   echo '<a href="index.php?action=tinyreport"'.($page == "tinyreport"?' class="selected"':'').'>Konten</a>';
   //echo '<a href="index.php?action=vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>';
-  if (strpos($rights,'bgf') !== false || strpos($rights,'root') !== false)
+  if (has_right($rights, 'bgf') || has_right($rights, 'Rbgf') || has_right($rights, 'root'))
     echo '<a href="index.php?action=deleted&filter_date='.$year.'"'.($page == "deleted"?' class="selected"':'').'>Alte Rev.</a>';
 //  if (strpos($rights,'root') !== false)
     echo '<a href="index.php?action=accounts"'.($page == "accounts"?' class="selected"':'').'>Benutzer</a>';
@@ -262,14 +262,38 @@ function format_date($date)
 // not contained in "Rbgf").
 function has_right($rights, $right)
 {
-  return in_array($right, explode(",", $rights === null ? '' : $rights), true);
+  return in_array($right, rights_tokens($rights), true);
+}
+// The comma-separated rights, without surrounding whitespace.
+function rights_tokens($rights)
+{
+  return array_map('trim', explode(",", $rights === null ? '' : $rights));
+}
+// Whether the rights may use this organization for a voucher: any for the
+// exact bgf right, otherwise only the numeric organizations of the rights,
+// compared as numbers like the database does ("03" is 3). This is the scope
+// that rights2orgasql() lets the user read (root is no organization right
+// there either), so users write only what they can see.
+function organization_allowed($lo, $rights)
+{
+  if (has_right($rights, 'bgf'))
+    return true;
+  $lo = strval($lo);
+  if (preg_match('/^\d+$/D', $lo) != 1)
+    return false;
+  foreach (rights_tokens($rights) as $right)
+  {
+    if (preg_match('/^\d+$/D', $right) == 1 && ltrim($right, '0') === ltrim($lo, '0'))
+      return true;
+  }
+  return false;
 }
 // Rights for changing data. The read-only right "Rbgf" (see accounts.php)
 // does not count: false for a user who has no other right, otherwise the
 // other rights. Rights without "Rbgf" are returned unchanged.
 function write_rights($rights)
 {
-  $tokens = explode(",", $rights === null ? '' : $rights);
+  $tokens = rights_tokens($rights);
   if (!in_array('Rbgf', $tokens, true))
     return $rights;
   $rights_w = array();
@@ -284,10 +308,9 @@ function write_rights($rights)
 }
 function rights2orgasql($rights)
 {
-  $rights_r = explode(",", $rights === null ? '' : $rights);
+  $rights_r = rights_tokens($rights);
   if (!in_array('bgf',$rights_r) && !in_array('Rbgf',$rights_r))
   {
-    $rights_r = explode(",", $rights === null ? '' : $rights);
     $rights2 = array();
     foreach ($rights_r as $right)
     {

@@ -1,8 +1,8 @@
 ## (sequences)
 - voucher_number	5017	t
 + voucher_number	5022	t
-- vouchers_id_seq	1016	t
-+ vouchers_id_seq	1021	t
+- vouchers_id_seq	1019	t
++ vouchers_id_seq	1024	t
 ## import
 + 15.02.2024;12,50;Handkassa;KaffeeMilch;GFKommentar;FREMD-1;Ja;Nein;SyntheticKassa;0;2;Weg1;1010;Wien
 + 16.02.2024;7;Handkassa;Porto;;;Nein;Ja;TestaMitglied;9031;0;;;
@@ -12,8 +12,8 @@
 ## ppmembers
 (absent before and after)
 ## vouchers
-+ 1017	5018	8	6	f	0	BAWAATWW AT666666666666666666	Jörg Österreicher				1234	AT716000020810070316	Spende für Büro\nBAWAATWW AT666666666666666666 Jörg Österreicher	f	f	f	2024-01-12 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-+ 1018	5019	28	6	t	9025	BAWAATWW AT777777777777777777	Zoë Synthetisch				-500	AT496000020810070324	Rückzahlung €\nBAWAATWW AT777777777777777777 Zoë Synthetisch	f	f	f	2024-01-13 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-+ 1019	5020	8	2	f	0	FREMD-1	Synthetic Kassa				1250	Handkassa	Kaffee\nMilch	f	f	f	2024-02-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-+ 1020	5021	1	10	t	9031		Testa Mitglied				700	Handkassa	Porto	f	f	f	2024-02-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
-+ 1021	5022	28	99	f	0		Synthetic Kassa				-35	Handkassa	ISO Datum	f	f	f	2024-02-18 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1020	5018	8	6	f	0	BAWAATWW AT666666666666666666	Jörg Österreicher				1234	AT716000020810070316	Spende für Büro\nBAWAATWW AT666666666666666666 Jörg Österreicher	f	f	f	2024-01-12 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1021	5019	28	6	t	9025	BAWAATWW AT777777777777777777	Zoë Synthetisch				-500	AT496000020810070324	Rückzahlung €\nBAWAATWW AT777777777777777777 Zoë Synthetisch	f	f	f	2024-01-13 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1022	5020	8	2	f	0	FREMD-1	Synthetic Kassa				1250	Handkassa	Kaffee\nMilch	f	f	f	2024-02-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1023	5021	1	10	t	9031		Testa Mitglied				700	Handkassa	Porto	f	f	f	2024-02-16 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N
++ 1024	5022	28	99	f	0		Synthetic Kassa				-35	Handkassa	ISO Datum	f	f	f	2024-02-18 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N

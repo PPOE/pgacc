@@ -36,8 +36,6 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 1004  AND orga IN ('1') ;
--- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = 1004  AND orga IN ('1') ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 1004  AND orga IN ('1') ;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 3 AND login > now() - '24 hours'::interval

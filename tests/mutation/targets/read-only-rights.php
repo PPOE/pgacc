@@ -31,6 +31,10 @@ foreach ($regions as $name => $region) {
         'replace' => str_replace('if ($rights === false)', 'if (false)', $check),
         'rationale' => 'Fail-open: read-only bgf changes data.',
     );
+    if ($name === 'new-save') {
+        $mutations[count($mutations) - 1]['equivalent'] = array('reason' => 'Rbgf alone has no organization '
+            . 'right, so the organization check of the save refuses every voucher of it as well.');
+    }
 }
 foreach (array('ack', 'new-save') as $name) {
     $mutations[] = array(
@@ -90,8 +94,8 @@ $mutations[] = array(
 $mutations[] = array(
     'id' => 'form-buttons-for-read-only',
     'file' => 'new.php',
-    'search' => "if (write_rights(\$rights) !== false && (in_array('bgf',\$rights2)",
-    'replace' => "if (true && (in_array('bgf',\$rights2)",
+    'search' => "if (write_rights(\$rights) !== false && (has_right(\$rights, 'bgf')",
+    'replace' => "if (true && (has_right(\$rights, 'bgf')",
     'rationale' => 'The voucher form offers no save, approval or reset buttons to read-only bgf.',
 );
 

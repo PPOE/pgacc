@@ -8,46 +8,6 @@ function relocate($loc)
   header("Location: " . $loc);
   exit;
 }
-function page_edit_finalize($rights)
-{
-$parts = 1;
-if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
-        $parts = $_POST["parts"];
-
-$id = -1;
-if (isset($_GET["id"]))
-{
-  $id = $_GET["id"];
-}
-elseif (isset($_POST["id"]))
-{
-  $id = $_POST["id"];
-}
-if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
-{
-  echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
-  return;
-}
-
-if (!has_right($rights, 'bgf'))
-{
-  echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
-  return;
-}
-echo "<h1>Buchung finalisiert - Buchung Nr. $id</h1>";
-block_start();
-echo "<a href=\"index.php?action=edit&id=$id&hint=2\">Zurück zur Buchung</a>";
-block_end();
-$rightssql = rights2orgasql($rights);
-
-$name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET receipt_received = true WHERE voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
-pg_free_result($result);
-relocate("index.php?action=edit&id=$id&hint=2");
-}
 function page_edit_merge($rights)
 {
 $bid1 = 0;
@@ -102,13 +62,22 @@ if (!has_right($rights, 'bgf'))
   echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
   return;
 }
+// A finalized row blocks the reset, as every other change of the voucher.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+pg_free_result($result);
 echo "<h1>Bestätigungen wurden zurückgesetzt - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=3\">Zurück zur Buchung</a>";
 block_end();
 $rightssql = rights2orgasql($rights);
 
-vouchers_reset_ack($id, $rights);
+vouchers_reset_ack($id, $rightssql);
 relocate("index.php?action=edit&id=$id&hint=3");
 }
 function page_edit_ack($rights)
@@ -139,9 +108,9 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 }
 
 $rightssql = rights2orgasql($rights);
-// A user who sees no row of the voucher gets the answer for a voucher
-// without a receipt, whether or not it is finalized.
-$query = "SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;";
+// A user who sees no current (not deleted) row of the voucher gets the
+// answer for a voucher without a receipt, whether or not it is finalized.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
@@ -162,7 +131,7 @@ if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $hasfile = false;
-$query = "SELECT file FROM vouchers WHERE (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
+$query = "SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $hasfile = true;
@@ -175,7 +144,7 @@ if (!$hasfile)
   return;
 }
 $name = pg_escape_string(checklogin('name'));
-$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE ack1 IS NULL AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -186,7 +155,7 @@ block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
 block_end();
 
-$query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
+$query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
@@ -219,35 +188,24 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
 }
-  $ack1 = null;
-  $ack2 = null;
-  if ((isset($_POST["ack1_old"]) || isset($_POST["ack2_old"])) &&
-    strlen($_POST["ack1_old"]) > 0 || strlen($_POST["ack2_old"]) > 0)
-  {
-    $ack1 = $_POST["ack1_old"];
-    $ack2 = $_POST["ack2_old"];
-  }
-  if ((isset($_POST["ack1"]) || isset($_POST["ack2"])) &&
-      strlen($_POST["ack1"]) > 0 || strlen($_POST["ack2"]) > 0)
-  {
-    $ack1 = $_POST["ack1"];
-    $ack2 = $_POST["ack2"];
-  }
 $rightssql = rights2orgasql($rights);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id $rightssql;";
+// Only a voucher of which the user sees a current row; a finalized row
+// blocks the revision of the whole voucher, also a row of another
+// organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   pg_free_result($result);
   return;
 }
 pg_free_result($result);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;";
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
   pg_free_result($result);
   return;
 }
@@ -262,6 +220,21 @@ echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
 block_start();
 echo "<a href=\"index.php?action=edit&id=$id&hint=5\">Zurück zur Buchung</a>";
 block_end();
+
+// Every change resets the approvals of the whole voucher,
+// also of other organizations' rows (they move to ack1_old/ack2_old). The
+// new rows keep the old approvals of the user's first current row, taken
+// from the database (posted approval names are not used).
+vouchers_reset_ack($id, '');
+$ack1 = null;
+$ack2 = null;
+$query = "SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql ORDER BY id ASC LIMIT 1;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  $ack1 = $line['ack1_old'];
+  $ack2 = $line['ack2_old'];
+}
+pg_free_result($result);
 
 $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
@@ -338,11 +311,11 @@ function page_edit($rights)
 $id = -1;
 if (isset($_GET["id"]))
 {
-  $id = $_GET["id"];
+  $id = intval($_GET["id"]);
 }
 elseif (isset($_POST["id"]))
 {
-  $id = $_POST["id"];
+  $id = intval($_POST["id"]);
 }
 else
 {
@@ -352,11 +325,11 @@ else
 $bid = -1;
 if (isset($_GET["bid"]))
 {
-    $bid = $_GET["bid"];
+    $bid = intval($_GET["bid"]);
 }
 elseif (isset($_POST["bid"]))
 {
-    $bid = $_POST["bid"];
+    $bid = intval($_POST["bid"]);
 }
 $hint = 0;
 if (isset($_GET["hint"]))
@@ -385,12 +358,15 @@ switch ($hint)
 $rightssql = rights2orgasql($rights);
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " $rightssql ORDER BY id ASC;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$vouchers = array();
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $vouchers[] = $line;
 }
 pg_free_result($result);
 $parts = count($vouchers);
-if ($parts == 0 && strpos($rights, 'bgf') === false)
+// A voucher without current rows has nothing to edit, also for bgf; old
+// revisions are restored with the recovery page.
+if ($parts == 0)
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
   return;
@@ -418,7 +394,7 @@ echo '<input type="hidden" name="id" value="'.intval($id).'" />
 <input type="hidden" name="changed" value="1" />
 <h1>Buchung '.$id.' bearbeiten</h1>
 ';
-if (strpos($rights, 'root') !== false)
+if (has_right($rights, 'root'))
 {
   echo '<script type="text/javascript">
 function merge()
@@ -454,10 +430,7 @@ if (isset($_POST["addB"]))
 }
 
 $user_name = checklogin('name');
-$bgfandack = strpos($rights, 'bgf') !== false && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
-$beleg = $vouchers[0]['receipt_received'] == 't' ? ' checked="checked"':'';
-if (isset($_POST["beleg"]))
-        $beleg = ' checked="checked"';
+$bgfandack = has_right($rights, 'bgf') && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 
 
 end_of_form($parts,$rights,$bgfandack,$rights);

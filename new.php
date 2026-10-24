@@ -13,6 +13,18 @@ if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name 
         $value = $default_if_true;
 return $value;
 }
+// The organization of a voucher part that posts none: the user's single
+// (numeric, trimmed) organization, otherwise 10.
+function default_organization($rights)
+{
+$default_lo = 10;
+$rights2 = rights_tokens($rights);
+if (count($rights2) == 1 && preg_match('/^\d+$/D', $rights2[0]) == 1)
+{
+  $default_lo = intval($rights2[0]);
+}
+return $default_lo;
+}
 function get_voucher($part,$rights)
 {
   $filepart = $part;
@@ -36,13 +48,7 @@ else if ($voucher['dir'] == 'bel')
 
 $voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
 $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
-$default_lo = 10;
-$rights2 = explode(",", $rights);
-if (count($rights2) == 1 && is_numeric($rights))
-{
-  $default_lo = intval($rights);
-}
-$voucher['lo'] = get_param($part, 'lo', $default_lo, '/^\d+$/');
+$voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
 $voucher['amount'] = round(str_replace(",",".",get_param($part, 'amount', '0.00', '/^-?\d+((\.|,)\d\d?)?$/')) * 100.0);
 if ($voucher['type'] == 45)
   $voucher['amount'] = "0.00";
@@ -62,17 +68,15 @@ $voucher['city'] = pg_escape_string(get_param($part, 'city', '', null));
 $voucher['file'] = get_param($filepart, 'file', -1, '/^\d+$/');
 return $voucher;
 }
-// Whether the organizations posted for the parts of a voucher may be used:
-// any for bgf, otherwise only the user's own (numeric) organizations.
+// Whether the organizations of the parts of a voucher may be used
+// (organization_allowed()): the posted ones, or the default one of
+// get_voucher() for a part that posts none.
 function posted_organizations_allowed($parts, $rights)
 {
-if (has_right($rights, 'bgf'))
-  return true;
-$rights2 = explode(",", $rights === null ? '' : $rights);
 for ($part = 0; $part < $parts; $part++)
 {
-  $lo = get_param($part, 'lo', null, '/^\d+$/');
-  if ($lo !== null && !in_array($lo, $rights2, true))
+  $lo = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
+  if (!organization_allowed($lo, $rights))
     return false;
 }
 return true;
@@ -144,7 +148,7 @@ else
   $query = "SELECT name FROM ppmembers WHERE id = {$voucher['mitgliedsnummer']};";
   $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $voucher['name'] = $line['name'];
+    $voucher['name'] = pg_escape_string($line['name']);
   }
   pg_free_result($result);
 }
@@ -262,10 +266,24 @@ if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1)
 }
 $rightssql = rights2orgasql($rights);
 
-$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NOT NULL AND voucher_id = $id $rightssql;";
+// Only a current row of this voucher that the user sees; checked before the
+// finalized check, so that other organizations learn nothing about it.
+$query = "SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits bestätigt und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))
+{
+  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
+  pg_free_result($result);
+  return;
+}
+$previous_file = intval($line['file']);
+pg_free_result($result);
+
+// A finalized row blocks the upload, also a row of another organization.
+$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
+  echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
   pg_free_result($result);
   return;
 }
@@ -278,21 +296,25 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
+// The scoped update must match the row (checked above) before the receipt
+// is stored and the approvals of the voucher are reset.
+$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;";
+$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$updated = pg_affected_rows($result);
+pg_free_result($result);
+
 $sourcepath = $_FILES["file$file"]["tmp_name"];
 $data = file_get_contents($sourcepath);
-if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
+if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $id, $data))
 {
+  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  pg_free_result($result);
   echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
   return;
 }
 
-  vouchers_reset_ack($id, $rightssql);
-
-$query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
-while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-}
-pg_free_result($result);
+  // An upload resets the approvals of the whole voucher.
+  vouchers_reset_ack($id, '');
 
 echo "<h1>Upload erfolgreich - Buchung Nr. $id - Buchungszeile Nr. $bid</h1>";
 block_start();
@@ -381,8 +403,9 @@ pg_free_result($result);
 echo '
 </select>
 ';
-$rights2 = explode(",", $rights);
-if (count($rights2) != 1 && !is_numeric($rights))
+// The organization field for rights with several entries (a single one is
+// the default organization).
+if (count(rights_tokens($rights)) != 1)
 {
 echo '
 </div>
@@ -393,8 +416,7 @@ echo '
 $query = "SELECT id,name FROM lo ORDER BY id ASC";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array('root',$rights2) || in_array($line['id'], konto2lo($rights2)))
+if (organization_allowed($line['id'], $rights))
   echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.$line['name'].'</option>
 ';
 }
@@ -468,8 +490,7 @@ else
 }
 echo '
 </div>';
-$rights2 = explode(",", $rights);
-if (in_array('bgf',$rights2) || in_array($voucher['lo'], konto2lo($rights2)))
+if (organization_allowed($voucher['lo'], $rights))
 {
 echo '
 <div id="del_voucher_'.$part.'" style="float: right;">
@@ -650,8 +671,8 @@ end_of_form($parts,$rights,$bgfandack,$rights,true,false);
 
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)
 {
-$rights2 = explode(",", $rights);
-if (write_rights($rights) !== false && (in_array('bgf',$rights2) || in_array($lo, konto2lo($rights2))))
+$rights2 = rights_tokens($rights);
+if (write_rights($rights) !== false && (has_right($rights, 'bgf') || in_array(trim($lo), konto2lo($rights2))))
 {
 if ($bgfandack)
 {

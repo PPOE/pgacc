@@ -1,5 +1,5 @@
 rights2orgasql(array(int(0) => string(1) "1")): 2 explode() expects parameter 2 to be string, array given
+rights2orgasql(array(int(0) => string(1) "1")): 2 array_map(): Argument #2 should be an array
 rights2orgasql(array(int(0) => string(1) "1")): 2 in_array() expects parameter 2 to be array, null given
 rights2orgasql(array(int(0) => string(1) "1")): 2 in_array() expects parameter 2 to be array, null given
-rights2orgasql(array(int(0) => string(1) "1")): 2 explode() expects parameter 2 to be string, array given
 rights2orgasql(array(int(0) => string(1) "1")): 2 Invalid argument supplied for foreach()

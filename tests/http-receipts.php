@@ -286,8 +286,8 @@ $ciphertext = base64_decode($lines[1], true);
 if ($ciphertext === false || strlen($ciphertext) !== 64) {
     fail_test('membership export payload is not 64 bytes of base64: ' . var_export($lines[1], true));
 }
-// tests/runtime/test-constants.php sets an empty $datakey.
-if (membership_decrypt('', $ciphertext) !== str_pad($text, 64, "\0")) {
+// The synthetic $datakey of tests/runtime/test-constants.php.
+if (membership_decrypt('synthetic-reference-membership-key', $ciphertext) !== str_pad($text, 64, "\0")) {
     fail_test('membership export payload does not decrypt to the expected members');
 }
 

@@ -39,5 +39,3 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = 9999  ORDER BY id ASC;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
--- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval

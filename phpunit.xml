@@ -11,6 +11,7 @@
       <file>tests/unit/CryptoTest.php</file>
       <file>tests/unit/GetUsersTest.php</file>
       <file>tests/unit/ReceiptImportTest.php</file>
+      <file>tests/unit/ImportMemberMatchTest.php</file>
       <file>tests/unit/ReceiptStorageTest.php</file>
       <file>tests/unit/ReceiptMigrationTest.php</file>
       <file>tests/unit/ShortOpenTagTest.php</file>
@@ -20,6 +21,7 @@
     <include>
       <file>functions.php</file>
       <file>getusers.php</file>
+      <file>import.php</file>
       <file>import2.php</file>
       <file>migrate-receipt-key.php</file>
       <file>new.php</file>

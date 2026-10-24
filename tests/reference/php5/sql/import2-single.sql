@@ -36,9 +36,11 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT * FROM vouchers WHERE comment LIKE '%BG/000000220%' AND date = date '2024-03-15 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL);
+SELECT * FROM vouchers WHERE comment LIKE '%BG/000000220%' AND date = date '2024-03-15 00:00:00' AND NOT deleted AND (ack1 IS NULL OR ack2 IS NULL)  AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received);
 -- next
 SELECT nextval('file_number') AS num;
+-- next
+UPDATE vouchers SET file = 101 WHERE NOT deleted AND id = 220 AND voucher_id = 2020 AND file = 0 ;
 -- next
 
     UPDATE vouchers
@@ -52,7 +54,5 @@ SELECT nextval('file_number') AS num;
       (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
       voucher_id = 2020 ;
   
--- next
-UPDATE vouchers SET file = 102 WHERE NOT deleted AND id = 220 AND voucher_id = 2020 ;
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval

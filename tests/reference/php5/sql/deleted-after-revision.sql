@@ -7,3 +7,7 @@ SELECT vouchers.*,lo.name AS lo_name,type.name AS type_name FROM vouchers LEFT J
 SELECT name FROM type WHERE id = 20
 -- next
 SELECT name FROM lo WHERE id = 2
+-- next
+SELECT name FROM type WHERE id = 20
+-- next
+SELECT name FROM lo WHERE id = 2

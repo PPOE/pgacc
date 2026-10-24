@@ -36,6 +36,37 @@ SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24
 -- next
 SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000 ;
+SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
 -- next
-SELECT * FROM users WHERE cookie = {{cookie}} AND id = 1 AND login > now() - '24 hours'::interval
+SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
+-- next
+
+    UPDATE vouchers
+    SET
+      ack1_old = ack1,
+      ack2_old = ack2,
+      ack1 = NULL,
+      ack2 = NULL
+    WHERE
+      NOT deleted AND
+      (ack1 IS NOT NULL OR ack2 IS NOT NULL) AND
+      voucher_id = 5000 ;
+  
+-- next
+SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = 5000  ORDER BY id ASC LIMIT 1;
+-- next
+UPDATE vouchers SET deleted = true WHERE voucher_id = 5000 ;
+-- next
+
+INSERT INTO vouchers
+(voucher_id, date, type, person_type, orga, member,
+member_id, contra_account, name, street, plz, city,
+amount, account, vaccount, comment, commentgf,
+committed, file, refund, ack1_old, ack2_old)
+VALUES
+(5000, '2024-09-15', 20,1,2,false,
+  0,'SYNTHETICREF',
+  'Synthetic Reference Supplier','Test Street 1','0000',
+  'Test City',-9999,'TESTACCOUNT2',
+  'TESTVIRTUAL2','Reference blocked revision','Reference workflow',
+  false,0,false,'synthetic-admin',NULL);
