@@ -264,6 +264,27 @@ final class ReceiptImportTest extends FunctionsTestCase
         );
     }
 
+    public function testUploadFailureKeepsTheRowsPreviousReceipt()
+    {
+        // A row that already has a receipt keeps it when storing the new one
+        // fails (no receipt key).
+        $vector = self::receiptVector('pdf document');
+        $_POST = array('parts' => '1', 'bid0' => '9301', 'id' => '4711');
+        list($output, $file, $stored) = self::runWithReceipt(
+            null,
+            hex2bin($vector['plain']),
+            'file0',
+            function () {
+                pg_query('UPDATE vouchers SET file = 77 WHERE id = 9301');
+                page_new_file('2');
+            }
+        );
+        self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div>'
+            . '<br /><br /><br />', $output);
+        self::assertSame('77', $file);
+        self::assertSame(array(), $stored);
+    }
+
     public function testUploadWithoutAConfiguredKeyIsRefused()
     {
         // The receipt upload on the voucher edit page (new.php page_new_file()).

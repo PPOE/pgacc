@@ -119,9 +119,17 @@ return array(
         array(
             'id' => 'upload-failed-store-keeps-file',
             'file' => 'new.php',
-            'search' => '  $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'search' => '  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
             'replace' => '  $result = pg_query("SELECT 1;")',
-            'rationale' => 'A receipt that could not be stored leaves the row without a file number.',
+            'rationale' => 'A receipt that could not be stored does not stay referenced: the row gets its '
+                . 'previous file number back.',
+        ),
+        array(
+            'id' => 'upload-failed-store-clears-file',
+            'file' => 'new.php',
+            'search' => 'UPDATE vouchers SET file = $previous_file WHERE NOT deleted',
+            'replace' => 'UPDATE vouchers SET file = 0 WHERE NOT deleted',
+            'rationale' => 'A failed upload keeps the row\'s previous receipt.',
         ),
     ),
 );

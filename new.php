@@ -276,6 +276,7 @@ if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))
   pg_free_result($result);
   return;
 }
+$previous_file = intval($line['file']);
 pg_free_result($result);
 
 // A finalized row blocks the upload, also a row of another organization.
@@ -312,7 +313,7 @@ $sourcepath = $_FILES["file$file"]["tmp_name"];
 $data = file_get_contents($sourcepath);
 if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
 {
-  $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   pg_free_result($result);
   echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
   return;
