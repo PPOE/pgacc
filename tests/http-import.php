@@ -90,6 +90,10 @@ $paypal = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal.csv');
 $importedPaypal = import_csv('paypal.csv', $paypal, $adminCookies);
 assert_contains($importedPaypal['body'], 'wurde erfolgreich importiert', 'paypal fixture');
 
+// An unknown account is reported the same way (unchanged).
+$unknown = file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-unknown-account.csv');
+assert_import_refused(import_csv('bawag-unknown-account.csv', $unknown, $adminCookies), 'BAWAG unknown account');
+
 // Dates must be dates (format_date() passes other text through).
 $badDates = array("15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag');
 foreach ($badDates as $index => $date) {
