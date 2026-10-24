@@ -97,10 +97,11 @@ return array(
         array(
             'id' => 'upload-row-check-removed',
             'file' => 'new.php',
-            'search' => "if (\$updated != 1)\n{\n  echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Buchungszeile nicht gefunden.",
-            'replace' => "if (false)\n{\n  echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Buchungszeile nicht gefunden.",
-            'rationale' => 'A receipt upload for a row the scoped update did not match stores nothing and '
-                . 'resets no approvals.',
+            'search' => "if (\$updated != 1 || !receipt_store(",
+            'replace' => "if (!receipt_store(",
+            'rationale' => 'The receipt is stored only after the scoped update matched the row.',
+            'equivalent' => array('reason' => 'The scoped row check before the finalized check has already '
+                . 'found the row with the same conditions; the update can only miss it in a race.'),
         ),
         array(
             'id' => 'upload-update-unscoped',

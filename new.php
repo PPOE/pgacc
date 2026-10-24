@@ -296,22 +296,16 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
-// Only a current row of this voucher that the user may change: the scoped
-// update must match it before the receipt is stored and the approvals of
-// the voucher are reset.
+// The scoped update must match the row (checked above) before the receipt
+// is stored and the approvals of the voucher are reset.
 $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
 $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
 $updated = pg_affected_rows($result);
 pg_free_result($result);
-if ($updated != 1)
-{
-  echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
-  return;
-}
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
 $data = file_get_contents($sourcepath);
-if (!receipt_store(getcwd() . '/files', $file_number, $id, $data))
+if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $id, $data))
 {
   $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
   pg_free_result($result);
