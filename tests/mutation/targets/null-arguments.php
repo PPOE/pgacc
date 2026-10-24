@@ -23,14 +23,14 @@ return array(
     'timeout' => 120,
     'mutations' => array(
         array('id' => 'tag-guard-removed',
-            'search' => "array(' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / '),\$text);",
+            'search' => "array(' / ', ' / ', ' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / ', ' / ', ' / '),\$text);",
             'rationale' => 'CSV cells of null columns must not raise a str_replace() deprecation.',
             'equivalent' => $guardRemovedBefore81),
         array('id' => 'tag-guard-inverted',
-            'search' => "array(' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / '),\$text !== null ? '' : \$text);",
+            'search' => "array(' / ', ' / ', ' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / ', ' / ', ' / '),\$text !== null ? '' : \$text);",
             'rationale' => 'Only null is replaced; other text is still flattened.'),
         array('id' => 'tag-null-not-empty',
-            'search' => "array(' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / '),\$text === null ? 'NULL' : \$text);",
+            'search' => "array(' / ', ' / ', ' / '),\$text === null ? '' : \$text);", 'replace' => "array(' / ', ' / ', ' / '),\$text === null ? 'NULL' : \$text);",
             'rationale' => 'A null CSV cell stays empty.'),
 
         array('id' => 'header-guard-removed',
