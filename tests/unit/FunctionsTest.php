@@ -130,8 +130,13 @@ final class FunctionsTest extends FunctionsTestCase
             'formula with +' => array(array('td', '+A1'), "<td>+A1</td>\n", "'+A1\t"),
             'formula with -' => array(array('td', '-2+3'), "<td>-2+3</td>\n", "'-2+3\t"),
             'formula with @' => array(array('td', '@SUM(A1)'), "<td>@SUM(A1)</td>\n", "'@SUM(A1)\t"),
-            'formula with tab' => array(array('td', "\tx"), "<td>\tx</td>\n", "'\tx\t"),
-            'formula with carriage return' => array(array('td', "\rx"), "<td>\rx</td>\n", "'\rx\t"),
+            // Tabs and line breaks inside a cell would split the
+            // tab-separated cell or row.
+            'tab in a cell' => array(array('td', "one\ttwo"), "<td>one\ttwo</td>\n", "one two\t"),
+            'carriage return in a cell' => array(array('td', "one\rtwo"), "<td>one\rtwo</td>\n", "one two\t"),
+            'windows line break in a cell' => array(array('td', "one\r\ntwo"), "<td>one\r\ntwo</td>\n", "one / two\t"),
+            'leading tab' => array(array('td', "\t=1"), "<td>\t=1</td>\n", " =1\t"),
+            'tabs of a row are kept' => array(array('tr', "a\tb\t"), "<tr>a\tb\t</tr>\n", "a\tb\t\n"),
             'formula character inside' => array(array('td', 'a=b+c-d@e'), "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"),
             'formula character in other tags' => array(array('tr', '=x'), "<tr>=x</tr>\n", "=x\n"),
             'negative euro amount is no formula' => array(array('td', '-50.00€'), "<td>-50.00€</td>\n", "-50,00€\t"),

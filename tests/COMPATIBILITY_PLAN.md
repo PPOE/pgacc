@@ -453,9 +453,11 @@ Open security findings (not changed here; owner decisions):
   `import.php`'s upload-error message (PHP leaves the MIME type empty for
   upload errors, so the type check reports the file first), and dead code
   (the `wk` variant of `wk_unit_report()`, `kdonations_page_listing_line()`).
-- [x] CSV export cells that start with `=`, `+`, `-`, `@`, a tab or a
-  carriage return are prefixed with `'` (`tag()`), so spreadsheets do not
-  evaluate them as formulas. Amount cells (`-12,50€`) and plain numbers
+- [x] CSV export cells that start with `=`, `+`, `-`, `@` are prefixed with
+  `'` (`tag()`), so spreadsheets do not evaluate them as formulas. Tabs and
+  carriage returns inside a cell become spaces and a Windows line break
+  becomes ` / ` like `\n`, so a cell can no longer split the tab-separated
+  row (before, `one<TAB>two` added a field). Amount cells (`-12,50€`) and plain numbers
   (`-5`, `-5,25`) are unchanged. **Behaviour change** for such cells only
   (e.g. a name `+43 ...` or a text starting with `-` or `=`).
 - [x] The default organization of a single-organization user

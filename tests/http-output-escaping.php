@@ -9,7 +9,8 @@
  * "&lt;s&gt;field&lt;/s&gt; &amp; &quot;Ö&quot; &#039;x&#039;", never as
  * markup, while umlauts and ordinary values stay unchanged. The CSV export
  * keeps the raw text (no HTML entities) and prefixes cells that start with
- * = + - @ tab or carriage return with a single quote.
+ * = + - @ with a single quote; tabs and carriage returns inside a cell
+ * become spaces, so they cannot split cells.
  *
  * Runs last on the lane's database and removes its rows again.
  * Must stay compatible with PHP 5.6.
@@ -179,7 +180,7 @@ assert_contains($csv, "\n" . $csvRow, 'CSV row with markup');
 assert_not_contains($csv, '&lt;', 'CSV export');
 assert_not_contains($csv, '&quot;', 'CSV export');
 assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
-assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x \tTab \rCR @SUM(A1)\t\n", 'CSV row with formulas');
+assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x  Tab  CR @SUM(A1)\t\n", 'CSV row with formulas');
 
 // Filter values are reflected in the sort links and the filter inputs.
 $filters = array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_k',

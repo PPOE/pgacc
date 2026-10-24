@@ -99,14 +99,17 @@ function tag($tag, $text)
   global $make_csv;
   if ($make_csv)
   {
-    $text = str_replace(array("\n"),array(' / '),$text === null ? '' : $text);
+    $text = str_replace(array("\r\n", "\n"),array(' / ', ' / '),$text === null ? '' : $text);
+    // Tabs and carriage returns would split the tab-separated cell.
+    if ($tag == 'td')
+      $text = str_replace(array("\t", "\r"),array(' ', ' '),$text);
     if (preg_match('/^-?\d+(.\d+)?€$/',$text) == 1)
     {
       $text = str_replace(array("."),array(","),$text);
     }
     // A cell that a spreadsheet would read as a formula (not a number) starts
     // with a quote.
-    else if ($tag == 'td' && preg_match('/^[=+\-@\t\r]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+    else if ($tag == 'td' && preg_match('/^[=+\-@]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
       $text = "'" . $text;
     if ($tag == 'tr')
       return "$text\n";

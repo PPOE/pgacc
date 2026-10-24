@@ -10,14 +10,12 @@
  * See tests/mutation/README.md for the format.
  */
 $csvNumber = "preg_match('/^-?\\d+([.,]\\d+)?$/', \$text) != 1";
-$csvCheck = "    else if (\$tag == 'td' && preg_match('/^[=+\\-@\\t\\r]/', \$text) == 1 && $csvNumber)\n      \$text = \"'\" . \$text;";
+$csvCheck = "    else if (\$tag == 'td' && preg_match('/^[=+\\-@]/', \$text) == 1 && $csvNumber)\n      \$text = \"'\" . \$text;";
 $csvClass = array(
     'equals' => '=',
     'plus' => '+',
     'minus' => '\\-',
     'at' => '@',
-    'tab' => '\\t',
-    'carriage-return' => '\\r',
 );
 $mutations = array(
     array(
@@ -87,7 +85,7 @@ $mutations = array(
         'id' => 'csv-formula-check-disabled',
         'file' => 'functions.php',
         'search' => $csvCheck,
-        'replace' => str_replace("else if (\$tag == 'td' && preg_match('/^[=+\\-@\\t\\r]/', \$text) == 1 && $csvNumber)", 'else if (false)', $csvCheck),
+        'replace' => str_replace("else if (\$tag == 'td' && preg_match('/^[=+\\-@]/', \$text) == 1 && $csvNumber)", 'else if (false)', $csvCheck),
         'rationale' => 'Formula cells reach the spreadsheet unchanged.',
     ),
     array(
@@ -139,13 +137,41 @@ $mutations = array(
         'replace' => str_replace("([.,]\\d+)?$", '$', $csvCheck),
         'rationale' => 'Decimal numbers (-5,25) are numbers too.',
     ),
+    array(
+        'id' => 'csv-cell-tab-kept',
+        'file' => 'functions.php',
+        'search' => "      \$text = str_replace(array(\"\\t\", \"\\r\"),array(' ', ' '),\$text);",
+        'replace' => "      \$text = str_replace(array(\"\\r\"),array(' '),\$text);",
+        'rationale' => 'A tab inside a cell adds a field to the tab-separated export.',
+    ),
+    array(
+        'id' => 'csv-cell-carriage-return-kept',
+        'file' => 'functions.php',
+        'search' => "      \$text = str_replace(array(\"\\t\", \"\\r\"),array(' ', ' '),\$text);",
+        'replace' => "      \$text = str_replace(array(\"\\t\"),array(' '),\$text);",
+        'rationale' => 'A carriage return inside a cell breaks the row.',
+    ),
+    array(
+        'id' => 'csv-row-tabs-replaced',
+        'file' => 'functions.php',
+        'search' => "    if (\$tag == 'td')\n      \$text = str_replace(array(\"\\t\", \"\\r\")",
+        'replace' => "    if (true)\n      \$text = str_replace(array(\"\\t\", \"\\r\")",
+        'rationale' => 'The tabs that separate the cells of a row stay.',
+    ),
+    array(
+        'id' => 'csv-windows-line-break-split',
+        'file' => 'functions.php',
+        'search' => "array(\"\\r\\n\", \"\\n\"),array(' / ', ' / ')",
+        'replace' => "array(\"\\n\"),array(' / ')",
+        'rationale' => 'A Windows line break is one separator, not a space and a separator.',
+    ),
 );
 foreach ($csvClass as $name => $character) {
     $mutations[] = array(
         'id' => "csv-formula-$name-allowed",
         'file' => 'functions.php',
         'search' => $csvCheck,
-        'replace' => str_replace("[=+\\-@\\t\\r]", str_replace($character, '', "[=+\\-@\\t\\r]"), $csvCheck),
+        'replace' => str_replace("[=+\\-@]", str_replace($character, '', "[=+\\-@]"), $csvCheck),
         'rationale' => 'A cell starting with this character stays a formula.',
     );
 }
