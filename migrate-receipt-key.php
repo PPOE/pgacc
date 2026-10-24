@@ -37,12 +37,18 @@ if (PHP_SAPI !== 'cli') {
  *                    working directory)
  *   --database       PostgreSQL connection string (default: dbname=accounting,
  *                    as the application)
+ *   --sync           command that flushes written files to disk before
+ *                    --delete-legacy deletes (default: sync)
  *
  * One run at a time: a run holds an exclusive lock on
- * files/.migrate-receipt-key.lock. Safe to run again. The summary shows the
- * key fingerprint, which the web application also logs when a <n>.v2.aes
- * does not decrypt; the key itself is never printed. Exit status: 0 done
- * (skipped files are listed), 1 a file failed, 2 not run.
+ * files/.migrate-receipt-key.lock. Safe to run again. An existing <n>.v2.aes
+ * is checked like a download (MAC, then chunked decryption); an invalid one
+ * is re-created from <n>.aes, or reported. The first phase never deletes
+ * anything. Before --delete-legacy deletes anything it runs --sync (default:
+ * sync), because PHP 5.3 cannot fsync the new files. The summary shows a key
+ * fingerprint to compare runs (only here; the web application never logs
+ * it); the key itself is never printed. Exit status: 0 done (skipped files
+ * are listed), 1 a file failed, 2 not run.
  *
  * Runs on PHP 5.3 and newer.
  */
@@ -54,7 +60,7 @@ if (!function_exists('receipt_encrypt')) require_once __DIR__ . '/functions.php'
 function receipt_migration_usage()
 {
     return "Usage: php migrate-receipt-key.php [--dry-run] [--delete-legacy] [--limit=N]\n"
-        . "       [--max-size=BYTES] [--files=DIR] [--constants=FILE] [--database=CONNINFO]\n";
+        . "       [--max-size=BYTES] [--files=DIR] [--constants=FILE] [--database=CONNINFO] [--sync=COMMAND]\n";
 }
 
 // A php.ini size ("128M", "1G", "512K", "1048576") in bytes; -1 is unlimited.
@@ -87,6 +93,7 @@ function receipt_migration_options($arguments)
         'files' => __DIR__ . '/files',
         'constants' => 'constants.php',
         'database' => 'dbname=accounting',
+        'sync' => 'sync',
     );
     foreach ($arguments as $argument) {
         if ($argument === '--dry-run' || $argument === '--delete-legacy') {
@@ -95,8 +102,8 @@ function receipt_migration_options($arguments)
             $options[$match[1]] = intval($match[2]);
         } elseif (preg_match('/^--(files|constants)=(.+)$/', $argument, $match)) {
             $options[$match[1]] = substr($match[2], 0, 1) === '/' ? $match[2] : getcwd() . '/' . $match[2];
-        } elseif (preg_match('/^--database=(.+)$/', $argument, $match)) {
-            $options['database'] = $match[1];
+        } elseif (preg_match('/^--(database|sync)=(.+)$/', $argument, $match)) {
+            $options[$match[1]] = $match[2];
         } else {
             return false;
         }
@@ -195,18 +202,25 @@ function receipt_migration_file($connection, $options, $key, $number)
     if ($options['delete-legacy'] && !$hasV2) {
         return array('pending', "not migrated yet; $number.aes kept");
     }
-    if (!$options['delete-legacy'] && $hasV2) {
+    // An existing <n>.v2.aes is checked the way a download reads it.
+    $invalidV2 = !$options['delete-legacy'] && $hasV2 && receipt_v2_read_with($key, $number, $v2Path) === false;
+    if (!$options['delete-legacy'] && $hasV2 && !$invalidV2) {
         return array('present', "already migrated; $number.aes kept until --delete-legacy");
     }
     $legacy = receipt_migration_legacy($connection, $options, $number);
+    if ($legacy[0] !== 'ok' && $invalidV2) {
+        return array('failed', "$number.v2.aes does not verify, and $number.aes cannot replace it ("
+            . preg_replace('/^not migrated: /', '', $legacy[1]) . '); both kept');
+    }
     if ($legacy[0] !== 'ok') {
         return $legacy;
     }
     $id = $legacy[1];
     $plain = $legacy[2];
+    $recreate = $invalidV2 ? "$number.v2.aes does not verify; " : '';
 
     if ($options['delete-legacy']) {
-        if (receipt_v2_decrypt($key, $number, (string) @file_get_contents($v2Path)) !== $plain) {
+        if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) {
             return array('failed', "$number.v2.aes does not decrypt to the content of $number.aes with this key; both kept");
         }
         if ($options['dry-run']) {
@@ -217,15 +231,15 @@ function receipt_migration_file($connection, $options, $key, $number)
     }
 
     if ($options['dry-run']) {
-        return array('migrated', "would migrate (voucher $id)");
+        return array('migrated', $recreate === '' ? "would migrate (voucher $id)" : $recreate . "would re-create it (voucher $id)");
     }
     if (!receipt_write_file($v2Path, receipt_v2_encrypt($key, $number, $plain))) {
         return array('failed', "$number.v2.aes could not be written; $number.aes kept");
     }
     // Read back. One statement: a written file cannot be made to differ in the
     // tests. The file is this run's own, so it may be removed.
-    if (receipt_v2_decrypt($key, $number, (string) @file_get_contents($v2Path)) !== $plain) return @unlink($v2Path) ? array('failed', "$number.v2.aes did not verify and was removed; $number.aes kept") : array('failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept");
-    return array('migrated', "migrated (voucher $id); $number.aes kept until --delete-legacy");
+    if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) return @unlink($v2Path) ? array('failed', "$number.v2.aes did not verify and was removed; $number.aes kept") : array('failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept");
+    return array('migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy");
 }
 
 // Migrates the listed files; returns the exit status.
@@ -259,6 +273,13 @@ function receipt_migration_run($connection, $options, $key, $names, $out)
         . "{$counts['pending']} not yet migrated, {$counts['skipped']} skipped, {$counts['failed']} failed; "
         . 'key fingerprint ' . receipt_key_fingerprint($key) . "\n");
     return $counts['failed'] > 0 ? 1 : 0;
+}
+
+// Runs the flush command; true if it succeeded.
+function receipt_migration_sync($command)
+{
+    exec($command . ' 2>&1', $output, $status);
+    return $status === 0;
 }
 
 function receipt_migration_main($arguments, $out, $err)
@@ -296,7 +317,13 @@ function receipt_migration_main($arguments, $out, $err)
     if ($connection === false) {
         fwrite($err, "Cannot connect to the database. Nothing was changed.\n");
     }
-    $status = $connection === false ? 2 : receipt_migration_run($connection, $options, $key, $names, $out);
+    // PHP 5.3 has no fsync(): flush everything written so far (the new
+    // <n>.v2.aes of earlier runs) before the first legacy file is deleted.
+    $flushed = $connection === false || !$options['delete-legacy'] || $options['dry-run'] || receipt_migration_sync($options['sync']);
+    if (!$flushed) {
+        fwrite($err, "Could not flush the receipt files to disk with `{$options['sync']}`; nothing was deleted.\n");
+    }
+    $status = $connection === false || !$flushed ? 2 : receipt_migration_run($connection, $options, $key, $names, $out);
     if ($lock !== null) {
         fclose($lock);
     }
