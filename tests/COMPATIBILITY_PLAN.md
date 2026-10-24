@@ -1034,13 +1034,14 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix)
+### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`)
 
 | Finding | Locations | Status |
 |---|---|---|
 | Short open tag | `file.php:1`, `getusers.php:1` | **Fixed** (short-tag item above) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
+| `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
 ### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal)
 
