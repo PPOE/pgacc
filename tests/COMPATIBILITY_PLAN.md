@@ -854,6 +854,19 @@ differences above are only visible for out-of-range input.
 
 ## Planned security follow-ups
 
+- [ ] Known limitation, receipt download (owner: fix later). A download checks the
+  MAC of `files/<n>.v2.aes`, then reads the file again to decrypt and send it.
+  `receipt_v2_identity()` only compares size and second-resolution change times
+  around that second pass, so a same-size in-place edit within the same second
+  is sent unauthenticated. The padding tail and the type-sniffing head are also
+  read again after the MAC pass. The app writes receipts only by rename, so this
+  needs local write access to `files/`. Planned fix: pin a SHA-256 digest of each
+  64 KiB ciphertext chunk during the MAC pass and compare it before decrypting
+  and sending that chunk (as paragonie/Halite `File::decrypt` does); take the
+  tail and head from the verified pass. No format change. A v3 format with
+  per-chunk authentication (STREAM, libsodium secretstream) would be the later
+  principled fix. Tests: in-place same-size change with restored mtime (no
+  changed byte sent), change in the first chunk, change in the padding block.
 - [ ] CSRF protection, before the `php5-last` tag. A stateless token per login:
   `hash_hmac('sha256', <login cookie value>, $csrf_secret)` with an optional new
   `$csrf_secret` in `constants.php`; when it is not set, fall back to a token

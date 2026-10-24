@@ -906,9 +906,9 @@ function receipt_v2_open_with($key, $number, $path)
     'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat));
 }
 
-// Size and change times of an open file: receipts are only ever replaced by
-// rename, which an open file does not see, so a difference means the file
-// was changed in place after receipt_v2_open() checked its MAC.
+// Size and change times of an open file. Receipts are only replaced by rename,
+// so a difference means an in-place change after the MAC check; same-size
+// edits within a second go unnoticed (known limitation, COMPATIBILITY_PLAN).
 function receipt_v2_identity($stat)
 {
   return array($stat['size'], $stat['mtime'], $stat['ctime']);
@@ -917,7 +917,7 @@ function receipt_v2_identity($stat)
 /*
  * Decrypts an opened <n>.v2.aes in 64 KiB chunks and passes each plain text
  * chunk to $emit; closes the file. Returns false, and stops before passing
- * on anything else, if the file changed since its MAC was checked or a read
+ * on anything else, if its size or change times differ since the MAC check or a read
  * came back short (the bytes would not be the checked ones).
  */
 function receipt_v2_decrypt_chunks($receipt, $emit)
