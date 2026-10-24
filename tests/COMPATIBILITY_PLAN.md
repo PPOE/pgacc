@@ -716,7 +716,10 @@ differences above are only visible for out-of-range input.
     format (e.g. ext-sodium secretstream on PHP 8). Uploads are encrypted in
     64 KiB chunks from the uploaded file into a unique temporary file that
     is renamed into place; downloads read the open file twice in chunks (MAC
-    over the whole file, then decrypt and send), so a 20 MB receipt needs
+    over the whole file, then decrypt and send; the send stops, and is
+    logged, if a read comes back short or the open file's size or change
+    times differ from the MAC pass, since receipts are only ever replaced by
+    rename), so a 20 MB receipt needs
     about 4 MB of memory (`tests/receipt-memory.php` runs it with
     `memory_limit=40M`; whole-file processing does not fit). The legacy
     path still decrypts whole files, and the migration holds a file in
@@ -745,9 +748,13 @@ differences above are only visible for out-of-range input.
     are never decrypted with the legacy scheme.
   - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3
     has no fsync): a normal run writes and verifies `<n>.v2.aes` and keeps
-    `<n>.aes`; after `sync`, `--delete-legacy` decrypts both again and
-    deletes `<n>.aes` only where the plain texts match; it prints a reminder
-    to check receipts first. It reads `$key` like `index.php` (an explicit
+    `<n>.aes`; it checks an existing `<n>.v2.aes` like a download (MAC, then
+    chunked decryption) and re-creates an invalid one from `<n>.aes`, or
+    reports it (exit status 1); it never deletes anything. `--delete-legacy`
+    first runs `sync` (`--sync=COMMAND`; nothing is deleted if it fails),
+    then decrypts both files again, the new one through the download's
+    chunked path, and deletes `<n>.aes` only where the plain texts match; it
+    prints a reminder to check receipts first. It reads `$key` like `index.php` (an explicit
     relative `--constants` or `--files` is relative to the working
     directory), refuses invalid keys, prints the key fingerprint (first 8 hex
     digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, only in its own
@@ -760,7 +767,8 @@ differences above are only visible for out-of-range input.
     exit status unchanged) and other types, and exits 2 when it cannot read
     the directory. Its first statement stops any server API but the
     command line (404 for web requests, a message for php-cgi from a shell,
-    exit status 1), before any include. Runbook below.
+    exit status 1), before any include; `.htaccess` also denies it (defence
+    in depth; production runs Lighttpd). Runbook below.
   - Tests: `tests/unit/ReceiptStorageTest.php` (key validation, fingerprint,
     v2 vectors, random IV, rejected keys/numbers/modifications, atomic
     writes, store and read); `ReceiptImportTest.php` (the import's
@@ -828,7 +836,8 @@ differences above are only visible for out-of-range input.
      `php -d memory_limit=1G` (or set `--max-size`). Legacy files are kept.
      Exit status 1 means a file failed; rerun until the summary shows 0
      migrated and 0 failed.
-  6. Run `sync` (the migration cannot flush files to disk on PHP 5.3).
+  6. Run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy` also runs
+     `sync` itself before it deletes anything and stops if that fails).
   7. Spot-check several migrated receipts (PDF and JPEG) in the browser,
      before deleting anything, and check the web server's error log for
      `pgacc: receipt <n>.v2.aes could not be decrypted; sent the legacy
