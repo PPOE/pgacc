@@ -1,11 +1,7 @@
 -- Representative SQL contracts copied from the current application.
 -- Any failed assertion aborts the test run. Comparisons use IS DISTINCT FROM,
 -- so an unexpected NULL fails instead of passing silently.
--- Must stay valid on every PGACC_TEST_PG server (8.4 and 18): each check is a
--- temporary plpgsql function instead of a DO block (9.0+), lists are built
--- with ARRAY(SELECT ... ORDER BY) instead of array_agg(... ORDER BY) (9.0+),
--- and plpgsql itself is created around this file on 8.4
--- (tests/fixtures/plpgsql-create.sql).
+-- Each check is a temporary plpgsql function.
 
 CREATE FUNCTION pg_temp.pgacc_check() RETURNS void AS $test$
 DECLARE
@@ -61,9 +57,8 @@ BEGIN
   actual_constraints := ARRAY(
     SELECT conname::text
     FROM pg_constraint
-    -- PostgreSQL 18 also records NOT NULL as constraints (contype 'n'); 8.4
-    -- (production) keeps them only in attnotnull. A pg_namespace lookup
-    -- instead of 'public'::regnamespace (PostgreSQL 9.5+) keeps this valid on 8.4.
+    -- PostgreSQL 18 also records NOT NULL as constraints (contype 'n'); they
+    -- are checked from attnotnull below.
     WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
       AND contype <> 'n'
     ORDER BY conname
@@ -73,7 +68,7 @@ BEGIN
     RAISE EXCEPTION 'Unexpected application constraints: %', actual_constraints;
   END IF;
 
-  -- NOT NULL columns, read from attnotnull on every server version.
+  -- NOT NULL columns, read from attnotnull.
   actual_not_null := ARRAY(
     SELECT (c.relname || '.' || a.attname)::text
     FROM pg_attribute AS a

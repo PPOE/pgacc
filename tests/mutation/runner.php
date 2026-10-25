@@ -108,14 +108,9 @@ function database_name()
     return $name;
 }
 
-function server_version_num($connection)
-{
-    return pg_fetch_result(sql($connection, 'SHOW server_version_num'), 0, 0);
-}
-
 function drop_database($connection, $name)
 {
-    foreach (pgacc_mutation_drop_database_sql($name, server_version_num($connection)) as $query) {
+    foreach (pgacc_mutation_drop_database_sql($name) as $query) {
         sql($connection, $query);
     }
 }
@@ -141,7 +136,7 @@ function create_template($app)
         pgacc_mutation_fail("cannot connect to $template");
     }
     $sql = 'BEGIN;';
-    foreach (pgacc_mutation_fixture_files(server_version_num($connection)) as $file) {
+    foreach (pgacc_mutation_fixture_files() as $file) {
         $sql .= "\n" . file_get_contents($app . '/' . $file);
     }
     sql($connection, $sql . "\nCOMMIT;");

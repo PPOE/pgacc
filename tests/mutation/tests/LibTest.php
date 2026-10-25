@@ -58,37 +58,12 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->fail('Expected a PgaccMutationException containing: ' . $expectedMessagePart);
     }
 
-    public function testDropDatabaseUsesForceFromPostgresql13()
+    public function testDropDatabaseUsesForce()
     {
         $this->assertSame(
             array('DROP DATABASE IF EXISTS accounting WITH (FORCE)'),
-            pgacc_mutation_drop_database_sql('accounting', '130000')
+            pgacc_mutation_drop_database_sql('accounting')
         );
-        $this->assertSame(
-            array('DROP DATABASE IF EXISTS accounting WITH (FORCE)'),
-            pgacc_mutation_drop_database_sql('accounting', '180001')
-        );
-    }
-
-    public function testDropDatabaseTerminatesBackendsBeforePostgresql13()
-    {
-        $expected = array(
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'accounting' AND pid <> pg_backend_pid()",
-            'DROP DATABASE IF EXISTS accounting',
-        );
-        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '129999'));
-        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '90200'));
-    }
-
-    public function testDropDatabaseUsesProcpidBeforePostgresql92()
-    {
-        $expected = array(
-            "SELECT pg_terminate_backend(procpid) FROM pg_stat_activity WHERE datname = 'accounting' AND procpid <> pg_backend_pid()",
-            'DROP DATABASE IF EXISTS accounting',
-        );
-        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '80420'));
-        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', '90199'));
-        $this->assertSame($expected, pgacc_mutation_drop_database_sql('accounting', 0));
     }
 
     public function testValidTargetGetsDefaults()
@@ -655,46 +630,18 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->assertSame($settings, pgacc_mutation_server_ini());
     }
 
-    public function testFixtureFilesDependOnTheServerVersion()
-    {
-        $this->assertSame(array(
-            'tests/fixtures/pgcrypto.sql',
-            'tests/fixtures/schema.sql',
-            'tests/fixtures/data.sql',
-            'tests/database-characterization.sql',
-        ), pgacc_mutation_fixture_files('180001'));
-        $this->assertSame(pgacc_mutation_fixture_files('180001'), pgacc_mutation_fixture_files('90100'));
-        $this->assertSame(array(
-            'tests/fixtures/schema.sql',
-            'tests/fixtures/data.sql',
-            'tests/database-characterization.sql',
-        ), pgacc_mutation_fixture_files('90099'));
-        $this->assertSame(pgacc_mutation_fixture_files('90099'), pgacc_mutation_fixture_files('90000'));
-        $this->assertSame(array(
-            'tests/fixtures/schema.sql',
-            'tests/fixtures/data.sql',
-            'tests/fixtures/plpgsql-create.sql',
-            'tests/database-characterization.sql',
-            'tests/fixtures/plpgsql-drop.sql',
-        ), pgacc_mutation_fixture_files('80420'));
-        $this->assertSame(pgacc_mutation_fixture_files('80420'), pgacc_mutation_fixture_files('89999'));
-    }
-
     public function testFixturesMatchTheDatabaseSmokeTest()
     {
-        // The same files in the same order, and the same version thresholds.
+        // The same files in the same order.
         $script = file_get_contents(self::root() . '/tests/database-smoke.sh');
         preg_match_all('/--file=(\S+)/', $script, $files);
         $this->assertSame(array(
             'tests/fixtures/pgcrypto.sql',
             'tests/fixtures/schema.sql',
             'tests/fixtures/data.sql',
-            'tests/fixtures/plpgsql-create.sql',
             'tests/database-characterization.sql',
-            'tests/fixtures/plpgsql-drop.sql',
         ), $files[1]);
-        $this->assertSame(1, preg_match('/-ge 90100 \]; then\n(?:  #.*\n)*  set -- "\$@" --file=tests\/fixtures\/pgcrypto\.sql\n/', $script));
-        $this->assertSame(2, preg_match_all('/-lt 90000 \]; then\n(?:  #.*\n)*  set -- "\$@" --file=tests\/fixtures\/plpgsql-(create|drop)\.sql\n/', $script));
+        $this->assertSame(pgacc_mutation_fixture_files(), $files[1]);
         foreach ($files[1] as $file) {
             $this->assertFileExists(self::root() . '/' . $file);
         }

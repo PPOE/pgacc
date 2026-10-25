@@ -17,42 +17,22 @@ function pgacc_mutation_server_ini()
     return array('output_buffering=4096', 'auto_prepend_file=%APP%/tests/runtime/diagnostics-prepend.php');
 }
 
-// Same files, order and version conditions as tests/database-smoke.sh:
-// pgcrypto as an extension from 9.1; on servers before 9.0 (PGACC_TEST_PG=8.4)
-// plpgsql only around the characterization.
-function pgacc_mutation_fixture_files($serverVersionNum)
+// Same files and order as tests/database-smoke.sh.
+function pgacc_mutation_fixture_files()
 {
-    $files = array();
-    if ((int) $serverVersionNum >= 90100) {
-        $files[] = 'tests/fixtures/pgcrypto.sql';
-    }
-    $files[] = 'tests/fixtures/schema.sql';
-    $files[] = 'tests/fixtures/data.sql';
-    if ((int) $serverVersionNum < 90000) {
-        $files[] = 'tests/fixtures/plpgsql-create.sql';
-    }
-    $files[] = 'tests/database-characterization.sql';
-    if ((int) $serverVersionNum < 90000) {
-        $files[] = 'tests/fixtures/plpgsql-drop.sql';
-    }
-    return $files;
+    return array(
+        'tests/fixtures/pgcrypto.sql',
+        'tests/fixtures/schema.sql',
+        'tests/fixtures/data.sql',
+        'tests/database-characterization.sql',
+    );
 }
 
 // Statements that drop database $name even while clients are connected.
-// DROP DATABASE ... WITH (FORCE) needs PostgreSQL 13 (server_version_num
-// 130000); older servers (PGACC_TEST_PG=8.4) first terminate the other
-// backends, which pg_stat_activity names "pid" from 9.2 on and "procpid"
-// before. $name must already be a validated identifier.
-function pgacc_mutation_drop_database_sql($name, $serverVersionNum)
+// $name must already be a validated identifier.
+function pgacc_mutation_drop_database_sql($name)
 {
-    if ((int) $serverVersionNum >= 130000) {
-        return array("DROP DATABASE IF EXISTS $name WITH (FORCE)");
-    }
-    $pid = (int) $serverVersionNum >= 90200 ? 'pid' : 'procpid';
-    return array(
-        "SELECT pg_terminate_backend($pid) FROM pg_stat_activity WHERE datname = '$name' AND $pid <> pg_backend_pid()",
-        "DROP DATABASE IF EXISTS $name",
-    );
+    return array("DROP DATABASE IF EXISTS $name WITH (FORCE)");
 }
 
 class PgaccMutationException extends RuntimeException {}
