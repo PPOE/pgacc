@@ -932,6 +932,74 @@ Other direct `count()` sites were reviewed: the local arrays produced by
 same uninitialized-variable path. No additional obsolete curly-brace offsets
 were found in the tracked application files; PHP 8.5 syntax checks pass.
 
+## Reference re-baseline on PHP 8.5: audit of the PHP 5 differences
+
+Before the reference was re-recorded on PHP 8.5 / PostgreSQL 18 (step (d) of
+"PHP 8.5-only migration"), `sh tests/reference/run.sh compare 8.5` on master
+a9d0ffe against `tests/reference/php5/` gave 767 files: 346 identical, 351
+accepted, 0 unaccepted, 70 informational (`diagnostics/`). Every accepted
+difference, per `RD-*` entry of the former `tests/reference/allowlist.php`
+(files = recorded files the entry accepted lines in; lines = accepted
+`-`/`+` lines, for the transform the CRLF lines it rewrote). Classes: **(a)**
+intended fix or behaviour change, the 8.5 output is correct; **(b)**
+environment difference (PHP 8 semantics, 64-bit, PostgreSQL 18), the 8.5
+output is the new truth; **(c)** suspicious, the 8.5 output looks like a bug
+(listed below as follow-ups, not fixed by the re-baseline). All 18 entries
+were removed with the re-baseline; the PHP 8.5 output, including the class (c)
+lines, is now the pinned behaviour.
+
+| Entry | Files | Lines | Class | Reason |
+|---|---:|---:|---|---|
+| `RD-FORMAT-CRLF-TO-LF` | 294 | 16787 | a | The formatting pull request converted the CRLF sources to LF; pages, SQL text, `block_start()`/`block_end()` and the CSV's final newline are LF now. |
+| `RD-GETUSERS-TRANSACTION-IMPORT` | 9 | 36 | a | Intended fix: `getusers()` refreshes `ppmembers` in one transaction (`BEGIN`/`COMMIT`). |
+| `RD-GETUSERS-TRANSACTION-MB` | 1 | 4 | a | As above, for the member-fee page. |
+| `RD-CHARSET-DEFAULT` | 228 | 456 | b | PHP 5.6+ `default_charset=UTF-8` adds `; charset=UTF-8`; the pages declare UTF-8 themselves. |
+| `RD-INT-32BIT` | 7 | 216 | b | 64-bit integers (production was 32-bit): corpus values at or above 2^31 are ints, no saturation or wrap. Only out-of-range input changes (see "32-bit production integers"). |
+| `RD-INTVAL-EXPONENT-DATES` | 1 | 16 | b | `"1e3" + 1` is 1001 on PHP 7.1+ (2 on PHP 5); `date_condition()` input only from tests (`index.php` passes `intval()` years). |
+| `RD-HEX-NUMERIC-STRING` | 1 | 4 | b | `"0x1A"` is not numeric since PHP 7.0 (0.00 instead of 0.26). |
+| `RD-SORT-ORDER` | 1 | 12 | b | PHP 8 stable `sort()` and string-number comparison order ties and mixed values differently. |
+| `RD-PHP8-STRING-NUMBER-COMPARE` | 1 | 370 | b | PHP 8 string-number comparison (`0 == "abc"` is false). |
+| `RD-PHP8-STRING-NUMBER-SEARCH` | 1 | 68 | b | Same rule in `in_array()`/`array_search()`; trailing whitespace is numeric. |
+| `RD-PHP8-STRING-NUMBER-GETSORT` | 1 | 10 | b | `getoppsort()` with an integer `$_GET[sort]`, reachable only from tests (request values are strings). |
+| `RD-PHP8-KONTO2LO-WHITESPACE` | 1 | 2 | b | `"50110117300 "` now maps to organization 2 (PHP 8 numeric strings may end in whitespace); trimming stays a follow-up in "Found by the PHP 5 reference". |
+| `RD-PHP8-ARRAY-ARG-HEX` | 1 | 4 | b | `TypeError` for an array argument; `hex2ascii()` only gets checked hex strings, `ascii2hex()` the request URI. |
+| `RD-PHP8-ARRAY-ARG-RIGHTS` | 1 | 2 | b | `TypeError` for an array argument; `rights2orgasql()` only gets the stored rights string. |
+| `RD-INTVAL-EXPONENT-VALUES` | 1 | 16 | c | `"1e3"` → 1000 is the PHP 7.1+ reading, but the import amount `1e3,2` (`import.php:118`) becomes `PHP_INT_MAX` cents. |
+| `RD-PHP8-NONNUMERIC-ARITHMETIC` | 1 | 50 | c | An empty or non-numeric amount (`new.php:46`) and the `sprintf('%1.2f', .../100)` money idiom throw `TypeError` (HTTP 500) where PHP 5 used 0. |
+| `RD-PHP84-ROUND` | 1 | 6 | c | PHP 8.4 `round()`: an entered amount of 1,005 EUR is stored as 100 instead of 101 cents (`new.php:46`). |
+| `RD-PHP8-ARRAY-ARG-GET` | 2 | 42 | c | An array request parameter (`?filter_id[]=1`, POST `amount0[]`) makes `getfilter()`/`get_param()` throw `TypeError` (HTTP 500) instead of ignoring it. |
+
+Counts per class (distinct files): (a) 3 entries, 304 files (294 by the
+transform); (b) 11 entries, 238 files; (c) 4 entries, 3 files
+(`helpers/idioms-values.txt`, `helpers/get_param.txt`,
+`helpers/getfilter.txt`). Most files carry several entries (every page has
+`RD-CHARSET-DEFAULT` and the transform), so the classes overlap; 351 files in
+all.
+
+Informational `diagnostics/` differences (70 files, not gated by the
+comparison; `tests/known-diagnostics.php` gates the lane): undefined-variable
+notices of `tinyreport.php`, `vreport.php`, `wk.php`, `new.php` and the `/g`
+regex warning of `import.php` are gone (fixed, a); `closed.php` undefined
+keys are `KF-CLOSED-MISSING-COLUMNS`; the helper corpus shows PHP 8 wording
+and deprecations (`ord('')`, array offset on int, `hexdec()` invalid
+characters; b). One is new and suspicious (c): `index.php:98`
+`explode(",", $line['hide'])` warns `E_DEPRECATED` (null to a string
+parameter) on every request of a logged-in user whose `users.hide` is NULL
+(47 occurrences in 14 requests of the reference user without rights).
+
+Class (c) follow-ups (owner decisions, not fixed here):
+
+- [ ] `import.php:118`: validate amounts before `intval()`; `1e3,2` imports
+  `PHP_INT_MAX` cents (`RD-INTVAL-EXPONENT-VALUES`).
+- [ ] `new.php:46` and the money formatting: an empty or non-numeric amount
+  is a `TypeError` (HTTP 500) (`RD-PHP8-NONNUMERIC-ARITHMETIC`).
+- [ ] `new.php:46`: PHP 8.4 `round()` stores 1,005 EUR as 100 cents; decide
+  the intended rounding (`RD-PHP84-ROUND`).
+- [ ] `getfilter()`/`get_param()`: array request parameters give HTTP 500
+  (`RD-PHP8-ARRAY-ARG-GET`).
+- [ ] `index.php:98`: `explode()` of a NULL `users.hide` is deprecated on
+  PHP 8.1+ (informational diagnostics only).
+
 ## Found by the PHP 5 reference
 
 Pinned as current behaviour in `tests/reference/php5/` (recorded on the
