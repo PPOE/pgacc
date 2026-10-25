@@ -32,6 +32,11 @@
   --color-motd: #ffdcaa;
   --color-motd-border: #f3bd75;
 
+  /* Booking progress bar: unbearbeitet, bearbeitet, abgeschlossen. */
+  --color-progress-open: #cfcac4;
+  --color-progress-edited: #e9a91c;
+  --color-progress-closed: #4b9a5d;
+
   /* Content panels (.use_terms): pale yellow, with zebra rows. */
   --color-panel: #fffbd6;
   --color-panel-border: #efdc6a;
@@ -230,34 +235,46 @@
   }
 
   /* The booking progress per year in the notice box (percent_of_bookings()):
-     a compact table that scrolls inside the box in narrow windows. */
+     as wide as the box, columns in workflow order (unbearbeitet, bearbeitet,
+     abgeschlossen) and a decorative stacked bar per year whose segment widths
+     are the percentages (inline styles). The header swatches are the legend.
+     Narrow windows: each percentage goes below its count, the bar below the
+     row, and the header words break at their soft hyphens. */
   .motd .progress {
     @apply mt-2 overflow-x-auto;
 
     & table {
-      @apply w-auto;
+      @apply w-full;
     }
 
     & caption {
       @apply pb-1 text-left font-semibold;
     }
 
+    & tr {
+      @apply max-sm:grid max-sm:grid-cols-[2.75rem_repeat(4,minmax(0,1fr))];
+    }
+
     & th,
     & td {
-      @apply py-0.5 pr-3 pl-2 whitespace-nowrap;
+      @apply px-1 py-0.5 align-middle sm:pr-3 sm:pl-2;
+    }
+
+    & td {
+      @apply whitespace-nowrap;
     }
 
     & thead th {
-      @apply border-b border-motd-border text-right;
+      @apply border-b border-motd-border text-right align-bottom sm:whitespace-nowrap;
     }
 
     & thead th:first-child,
     & tbody th {
-      @apply pl-0 text-left;
+      @apply w-[1%] pl-0 text-left;
     }
 
     & tbody th {
-      @apply font-semibold tabular-nums;
+      @apply font-semibold tabular-nums max-sm:self-start;
     }
 
     & tr:nth-child(even) {
@@ -269,7 +286,41 @@
     }
 
     & .percent {
-      @apply inline-block min-w-[8ch] text-right text-muted;
+      @apply block text-right text-muted sm:inline-block sm:min-w-[8ch];
+    }
+
+    /* Legend swatches before the column names. */
+    & thead span {
+      @apply mr-1 inline-block size-2.5 rounded-sm;
+    }
+
+    & .open {
+      @apply bg-progress-open;
+    }
+
+    & .edited {
+      @apply bg-progress-edited;
+    }
+
+    & .closed {
+      @apply bg-progress-closed;
+    }
+
+    & th.bar {
+      @apply max-sm:hidden;
+    }
+
+    & td.bar {
+      @apply w-[30%] pr-0 max-sm:col-span-full max-sm:w-auto max-sm:pt-0 max-sm:pb-1.5 max-sm:pl-0;
+
+      /* Segments without padding or borders: a 0% segment is not drawn. */
+      & > span {
+        @apply flex h-2.5 w-full min-w-24 overflow-hidden rounded-full bg-white/60 shadow-inner;
+      }
+
+      & > span > span {
+        @apply h-full shrink-0;
+      }
     }
   }
 

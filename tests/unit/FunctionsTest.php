@@ -698,14 +698,22 @@ final class FunctionsTest extends FunctionsTestCase
         $text = percent_of_bookings();
         self::assertStringStartsWith(
             '<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption>'
-            . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungszeilen</th><th scope="col">abgeschlossen</th>'
-            . '<th scope="col">bearbeitet</th><th scope="col">unbearbeitet</th></tr></thead><tbody><tr>',
+            . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungs&shy;zeilen</th>'
+            . '<th scope="col"><span class="open" aria-hidden="true"></span>unbe&shy;arbeitet</th>'
+            . '<th scope="col"><span class="edited" aria-hidden="true"></span>bear&shy;beitet</th>'
+            . '<th scope="col"><span class="closed" aria-hidden="true"></span>abge&shy;schlossen</th>'
+            . '<th class="bar" aria-hidden="true"></th></tr></thead><tbody><tr>',
             $text,
         );
         self::assertStringEndsWith('</tr></tbody></table></div>', $text);
+        // Workflow order: unbearbeitet, bearbeitet, abgeschlossen; the bar
+        // repeats the rounded percentages as segment widths.
         self::assertStringContainsString(
-            '<tr><th scope="row">2024</th><td>7</td><td>4 <span class="percent">(57.14 %)</span></td>'
-            . '<td>2 <span class="percent">(28.57 %)</span></td><td>1 <span class="percent">(14.29 %)</span></td></tr>',
+            '<tr><th scope="row">2024</th><td>7</td><td>1 <span class="percent">(14.29 %)</span></td>'
+            . '<td>2 <span class="percent">(28.57 %)</span></td><td>4 <span class="percent">(57.14 %)</span></td>'
+            . '<td class="bar"><span aria-hidden="true" title="2024: 14.29 % unbearbeitet, 28.57 % bearbeitet, 57.14 % abgeschlossen">'
+            . '<span class="open" style="width: 14.29%"></span><span class="edited" style="width: 28.57%"></span>'
+            . '<span class="closed" style="width: 57.14%"></span></span></td></tr>',
             $text,
         );
         self::assertStringNotContainsString('>2023<', $text);

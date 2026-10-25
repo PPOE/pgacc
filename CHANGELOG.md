@@ -8,8 +8,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - The notice box at the top of every page shows the booking progress per year
-  (bookings, closed, in progress, not yet processed, with percentages) as a
-  table instead of one sentence per year. Same values and rounding.
+  as a full-width table instead of one sentence per year: booking lines, then
+  unbearbeitet, bearbeitet and abgeschlossen (workflow order) with
+  percentages, and a stacked bar per year in the same order and colours as
+  the legend swatches in the column headers. Same values and rounding.
 - Logged-in users see the donor lists without the arithmetic check.
 - The virtual-account chart uses Chart.js; jQuery and Flot are removed.
 - The Impressum links to the party's legal notice and to pgacc's LICENSE,
