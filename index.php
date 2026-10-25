@@ -260,8 +260,6 @@ if ($page == "all") {
     $rights = checklogin('rights');
     if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
         page_new_save($rights);
-    else if (isset($_POST["ack"]))
-        page_new_ack($rights);
     else page_new($rights);
 } else if ($page == "transactions") {
     page_transactions();

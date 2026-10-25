@@ -1690,15 +1690,14 @@ $titleRow = database_row(
 assert_database_field($titleRow, 'name', 'Dr. Synthetisch Bernd', 'member voucher with a title');
 assert_database_field($titleRow, 'member_id', '9002', 'member voucher with a title');
 
-// "ack" on the creation form calls page_new_ack(), which is defined nowhere
-// (known failure, tests/COMPATIBILITY_PLAN.md): a fatal error, nothing saved.
+// "ack" on the creation form (which offers no such button; approvals are
+// made on the edit page) shows the form again: nothing is saved.
 $newAckForm = voucher_form('Synthetic creation with ack', '-1.00', 0);
 unset($newAckForm['speichern']);
 $newAckForm['ack'] = '1';
-$newAck = with_expected_diagnostics('KF-NEW-ACK-UNDEFINED-FUNCTION', array(array('index.php', 'page_new_ack()')), function () use ($newAckForm, $adminCookies) {
-    return http_request('/index.php?action=new', 'POST', $newAckForm, $adminCookies);
-});
+$newAck = http_request('/index.php?action=new', 'POST', $newAckForm, $adminCookies);
 assert_status($newAck, 200, 'ack on the creation form');
+assert_contains($newAck['body'], '<h1>Buchung erfassen</h1>', 'ack on the creation form');
 assert_not_contains($newAck['body'], 'Buchung erfasst', 'ack on the creation form');
 assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic creation with ack'), 0, 'ack on the creation form');
 
