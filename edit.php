@@ -240,7 +240,7 @@ function page_edit_save($rights)
     }
     pg_free_result($result);
 
-    $voucher_warnings = array();
+    $voucher_warnings = [];
     for ($i = 0; $i < $parts; $i++) {
         page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings);
     }
@@ -347,12 +347,12 @@ function page_edit($rights)
     }
     // Values that the revision corrected (warn= of its redirect): fixed notes,
     // only for the known codes.
-    $warn_notes = array(
+    $warn_notes = [
         'date' => 'Gespeichert, aber: kein Datum angegeben – das Datum wurde auf 1800-01-01 gesetzt.',
         'refund' => 'Gespeichert, aber: eine Kostenrückerstattung ist nur bei einer Ausgabe möglich – die Kostenrückerstattung wurde entfernt.',
         'purpose' => 'Gespeichert, aber: eine Zweckwidmung ist nur bei einer Spende möglich – die Zweckwidmung wurde entfernt.',
-    );
-    $warn_codes = array();
+    ];
+    $warn_codes = [];
     if (isset($_GET["warn"]) && is_string($_GET["warn"]))
         $warn_codes = explode(',', $_GET["warn"]);
     foreach ($warn_notes as $code => $note) {
@@ -362,7 +362,7 @@ function page_edit($rights)
     $rightssql = rights2orgasql($rights);
     $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " $rightssql ORDER BY id ASC;";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    $vouchers = array();
+    $vouchers = [];
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $vouchers[] = $line;
     }

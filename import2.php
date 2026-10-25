@@ -18,9 +18,9 @@ function page_import2_form()
 
 function page_import2_process($rights)
 {
-    $mimetypes_whitelist = array(
+    $mimetypes_whitelist = [
         'application/pdf'
-    );
+    ];
 
     block_start();
     for ($i = 0; isset($_FILES['upload']['name']) && $i < count($_FILES['upload']['name']); $i++) {
@@ -48,7 +48,7 @@ function page_import2_process($rights)
             $config = new \Smalot\PdfParser\Config();
             $config->setDecodeMemoryLimit(64 * 1024 * 1024);
             $config->setRetainImageContent(false);
-            $parser = new \Smalot\PdfParser\Parser(array(), $config);
+            $parser = new \Smalot\PdfParser\Parser([], $config);
             try {
                 $pdf = $parser->parseContent($contents);
                 $text = $pdf->getText();
@@ -57,7 +57,7 @@ function page_import2_process($rights)
                 continue;
             }
             // pdfparser 2.x writes a tab for a wide gap within a line (0.9 a space).
-            $text = str_replace(array(' ', "\t"), '', $text);
+            $text = str_replace([' ', "\t"], '', $text);
 
             $result = preg_match("@NeuerKontostandzuIhrenGunsten@", $text, $matches);
             if ($result > 0) {

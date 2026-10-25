@@ -31,7 +31,7 @@ function page_import($rights)
     getusers();
     block_start();
     echo "<table>\n";
-    $csv_mimetypes = array(
+    $csv_mimetypes = [
         'text/csv',
         'text/plain',
         'application/csv',
@@ -43,7 +43,7 @@ function page_import($rights)
         'application/octet-stream',
         'application/txt',
         'application/x-csv'
-    );
+    ];
 
     for ($i = 0; isset($_FILES['uploadcsv']['name']) && $i < count($_FILES['uploadcsv']['name']); $i++) {
         if (strlen($_FILES['uploadcsv']['name'][$i]) <= 0) {
@@ -66,17 +66,17 @@ function page_import($rights)
             echo "<h2>Importiere " . html_escape($_FILES['uploadcsv']['name'][$i]) . "</h2>\n";
             $voucher_number = 0;
             $lineno = 0;
-            $skipped = array();
+            $skipped = [];
             while (($data = fgetcsv($handle, 0, ";", '"', "\\")) !== FALSE) {
                 $lineno++;
-                $voucher2 = array();
+                $voucher2 = [];
                 $dovoucher2 = false;
                 $csvline = implode(";", $data);
                 $convert = false;
                 if (mb_detect_encoding($csvline, 'UTF-8', true) === false)
                     $convert = true;
                 $rawcsvline = $csvline;
-                $csvline = pg_escape_string($dbconn, str_replace(array('|',' ',"\n","\t","\r"), array('','','','',''), convif($convert, $csvline)));
+                $csvline = pg_escape_string($dbconn, str_replace(['|',' ',"\n","\t","\r"], ['','','','',''], convif($convert, $csvline)));
                 if ($csvline == 'Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile2;Ersterfassungsreferenz;AuftraggeberKontonr./IBAN;AuftraggeberBLZ/BIC;Partnername;PartnerKontonr./IBAN;PartnerBLZ/BIC')
                     $csvformat = 'Sparkasse';
                 if ($csvline == 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,')
@@ -126,16 +126,16 @@ function page_import($rights)
                     }
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[1])));
                     $voucher['date'] = format_date($data[2]);
-                    $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[4]));
+                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[4]));
                     $voucher['gegenkonto'] = '';
                     $voucher['name'] = '';
                 } elseif ($csvformat == 'Handkassa') {
-                    if (intval(str_replace(array('.', ','), array('',''), $data[1])) == 0)
+                    if (intval(str_replace(['.', ','], ['',''], $data[1])) == 0)
                         continue;
                     $voucher['date'] = format_date($data[0]);
                     if (strpos($data[1], ".") !== false || strpos($data[1], ",") !== false)
-                        $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[1]));
-                    else $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[1])) * 100;
+                        $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[1]));
+                    else $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[1])) * 100;
                     $voucher['konto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[2])));
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[3])));
                     $voucher['commentgf'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[4])));
@@ -153,18 +153,18 @@ function page_import($rights)
                     $voucher['city'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                     $voucher['plz'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[12])));
                 } elseif ($csvformat == 'Sparkasse') {
-                    if (intval(str_replace(array('.', ','), array('',''), $data[2])) == 0)
+                    if (intval(str_replace(['.', ','], ['',''], $data[2])) == 0)
                         continue;
                     $voucher['lo'] = 6;
                     $voucher['konto'] = '20815 6659403';
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[5] . "; " . $data[6] . "; " . $data[7])));
                     $voucher['date'] = format_date($data[4]);
-                    $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[2]));
+                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[2]));
                     $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[14] . " " . $data[15])));
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                 } elseif ($csvformat == 'Paypal') {
                     $data = str_getcsv($data[0], ",", '"', "\\");
-                    if (intval(str_replace(array('.', ','), array('',''), $data[7])) == 0)
+                    if (intval(str_replace(['.', ','], ['',''], $data[7])) == 0)
                         continue;
                     $voucher['lo'] = 10;
                     $voucher['konto'] = 'spende@piratenpartei.at';
@@ -177,14 +177,14 @@ function page_import($rights)
                     $cmt .= convif($convert, $data[3]);
                     $voucher['comment'] = pg_escape_string($dbconn, $cmt);
                     $voucher['date'] = format_date($data[0]);
-                    $voucher['amount'] = intval(str_replace(array('.', ','), array('',''), $data[7]));
+                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[7]));
                     $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, ($data[10] == 'spende@piratenpartei.at') ? $data[11] : $data[10])));
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[3])));
                     $voucher2['lo'] = 10;
                     $voucher2['konto'] = 'spende@piratenpartei.at';
                     $voucher2['comment'] = pg_escape_string($dbconn, $cmt);
                     $voucher2['date'] = format_date($data[0]);
-                    $voucher2['amount'] = intval(str_replace(array('.', ','), array('',''), $data[8]));
+                    $voucher2['amount'] = intval(str_replace(['.', ','], ['',''], $data[8]));
                     $voucher2['gegenkonto'] = "";
                     $voucher2['name'] = 'Paypal';
                     $voucher2['person_type'] = 1;
@@ -262,10 +262,10 @@ function page_import($rights)
                 }
                 if ($voucher['mitgliedsnummer'] == 0 && strlen($voucher['name']) > 0) {
                     $n = $voucher['name'];
-                    $n2 = trim(str_replace(array('Mag.','DI (FH)','iur.','Dipl.-Ing.','Dr.','Ing.'), array('','','','','',''), $n));
+                    $n2 = trim(str_replace(['Mag.','DI (FH)','iur.','Dipl.-Ing.','Dr.','Ing.'], ['','','','','',''], $n));
                     $nt = explode(" ", $n, 2);
                     $nt2 = explode(" ", $n2, 2);
-                    $queries = array();
+                    $queries = [];
                     $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n');";
                     if (count($nt) == 2)
                         $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt[1]} {$nt[0]}');";

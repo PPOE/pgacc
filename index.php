@@ -8,7 +8,7 @@ $realtype_req = "";//" AND realtype = id ";
 global $user_id;
 $user_id = 0;
 global $user_prefs_hide;
-$user_prefs_hide = array();
+$user_prefs_hide = [];
 // The form token of the session that checklogin() accepted (csrf_field()).
 global $csrf_token;
 $csrf_token = false;
@@ -119,7 +119,7 @@ function checklogin($get = 'name', $redir = true)
 
 $page = "index";
 if (isset($_GET["action"])) {
-    if (in_array($_GET["action"], array("new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport")))
+    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
         $page = $_GET["action"];
     else $page = "report";
 
@@ -134,7 +134,7 @@ if (isset($_GET["print_empty"])) {
 // Before any output (the CSV byte order mark or acc_header()): protected
 // pages send visitors who are not logged in the login redirect (checklogin()
 // then returns nothing), and the member search sends its redirect.
-if (in_array($page, array("all","mb","open","merge","edit","new","closed","deleted","recover","accounts","import","import2")) && checklogin('id') === null) {
+if (in_array($page, ["all","mb","open","merge","edit","new","closed","deleted","recover","accounts","import","import2"]) && checklogin('id') === null) {
     pg_close($dbconn);
     return;
 }
@@ -142,7 +142,7 @@ if (in_array($page, array("all","mb","open","merge","edit","new","closed","delet
 // public captcha forms must carry the form token of its session
 // (csrf_field()), checked before anything is written. Merge, recovery, the
 // column preferences and logout write only on POST.
-$csrf_exempt = in_array($page, array("login","donations","kdonations"));
+$csrf_exempt = in_array($page, ["login","donations","kdonations"]);
 if (request_is_post() && !$csrf_exempt) {
     checklogin('id', false);
     if (!csrf_request_valid()) {
@@ -162,7 +162,7 @@ if ($page == "search") {
 
 global $make_csv;
 $make_csv = false;
-if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"], array("search","all","open","transactions","spendings","closed","deleted"))) {
+if (isset($_GET["format"]) && $_GET["format"] == 'csv' && in_array($_GET["action"], ["search","all","open","transactions","spendings","closed","deleted"])) {
     header('Content-Encoding: UTF-8');
     header('Content-type: text/csv; charset=UTF-8');
     header("Content-Disposition: attachment; filename=$page.csv");
@@ -187,7 +187,7 @@ if (isset($_POST["hide"]) && !$csrf_exempt) {
         $user_prefs_hide[$col] = 1;
     elseif ($col < 0)
         $user_prefs_hide[-$col] = 0;
-    $cols_array = array();
+    $cols_array = [];
     foreach ($user_prefs_hide as $hide_col => $state) {
         if (intval($hide_col) > 0 && $state == 1) {
             $cols_array[] = $hide_col;

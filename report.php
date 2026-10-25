@@ -394,7 +394,7 @@ Die Piratenpartei Österreichs hält keine Stimmrechte an Unternehmen.
 <h1><a name="anlagen">Anlagen</a></h1>
 ';
     block_start();
-    $ptypes = array();
+    $ptypes = [];
     $query = "SELECT * FROM person_type WHERE public";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {

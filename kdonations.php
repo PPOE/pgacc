@@ -22,7 +22,7 @@ function kdonations_page_listing_line($line)
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo tag("td", listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'), array('Spenden'), $line2["name"])));
+        echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
     }
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
@@ -31,7 +31,7 @@ function kdonations_page_listing_line($line)
         echo tag("td", listing_text($line2["name"]));
     }
     pg_free_result($result2);
-    echo tag("td", preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'), array(''), preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'), array(" <i>Kontodaten</i> "), listing_text($line["comment"]))));
+    echo tag("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));
     echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
     echo tag("td", listing_text($line["name"]));
     if ($make_csv)

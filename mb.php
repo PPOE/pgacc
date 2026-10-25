@@ -11,7 +11,7 @@ function page_mb($rights)
     getusers();
     $query = "SELECT id,paid FROM ppmembers WHERE paid = 1;";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    $ids = array();
+    $ids = [];
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $ids[$line['id']] = $line['paid'];
     }
@@ -23,7 +23,7 @@ function page_mb($rights)
     echo "<h2>MB Zahlungen nach LO</h2><table><tr><td>Teilorganisation</td><td>Anzahl</td><td>Summe</td><td>Durchschnitt</td></tr>";
     $i = 0;
     $count = 0;
-    $rows = array();
+    $rows = [];
     $keine = null;
     $errcount = 0;
     $erramount = 0;
