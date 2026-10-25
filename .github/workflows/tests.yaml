@@ -98,6 +98,8 @@ jobs:
         run: sh tests/static-analysis.sh
       - name: Check the formatting (PER-CS 3.0, whitespace rules only)
         run: sh scripts/format.sh --check --ci
+      - name: Self-test of the AST-equivalence check (PGACC_SYNTAX_ONLY gates)
+        run: sh tests/coverage/ast-equivalence.sh --self-test
 
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness
@@ -129,6 +131,10 @@ jobs:
           # Fail if a changed executable line is uncovered. Empty on
           # scheduled and manual runs (full report, no gate).
           PGACC_COVERAGE_BASE: ${{ steps.base.outputs.base }}
+          # Short-array pull request only (remove after its merge, with the
+          # PGACC_SYNTAX_ONLY handling): files whose syntax tree is unchanged
+          # (tests/coverage/ast-equivalence.sh) are not gated.
+          PGACC_SYNTAX_ONLY: ${{ github.event_name == 'pull_request' && '1' || '' }}
         run: sh tests/run.sh 8.5
 
       - name: Publish coverage summary
@@ -184,6 +190,11 @@ jobs:
         # changed line (tests/mutation/ci.sh, run.sh --changed-since). Adding
         # the label compares with the pull request's base.
         if: needs.plan.outputs.full != 'true'
+        env:
+          # Short-array pull request only (remove after its merge, with the
+          # PGACC_SYNTAX_ONLY handling): files whose syntax tree is unchanged
+          # (tests/coverage/ast-equivalence.sh) are not gated.
+          PGACC_SYNTAX_ONLY: ${{ github.event_name == 'pull_request' && '1' || '' }}
         run: sh tests/mutation/ci.sh 8.5 '--changed-since=${{ steps.base.outputs.base }}'
 
       - name: Mutation tests, all targets

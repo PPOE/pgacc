@@ -88,7 +88,18 @@ for option; do
   case "$option" in
     --changed-since=*)
       merge_base=$(git merge-base "${option#--changed-since=}" HEAD)
-      git diff --no-color --no-ext-diff --unified=0 "$merge_base" >"$host_dir/changed.diff"
+      # PGACC_SYNTAX_ONLY=1 (CI of the short-array pull request only): files
+      # whose syntax tree is unchanged select nothing, as for the coverage
+      # gate (tests/coverage/changed-lines.sh); if that check cannot run,
+      # nothing is left out.
+      excludes=
+      if [ "${PGACC_SYNTAX_ONLY:-}" = 1 ] \
+        && ! excludes=$(sh tests/coverage/ast-equivalence.sh --exclude-pathspecs "$merge_base"); then
+        echo "warning: AST-equivalence check unavailable: every changed line selects" >&2
+        excludes=
+      fi
+      # shellcheck disable=SC2086 # $excludes: one plain pathspec per line
+      git diff --no-color --no-ext-diff --unified=0 "$merge_base" -- ':(top)' $excludes >"$host_dir/changed.diff"
       git ls-files --others --exclude-standard | while IFS= read -r file; do
         git diff --no-color --no-ext-diff --unified=0 --no-index /dev/null "$file" || true
       done >>"$host_dir/changed.diff"

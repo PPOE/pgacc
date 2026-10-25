@@ -9,6 +9,9 @@
 #       one verdict per modified PHP file; exit 1 if any differs
 #   sh tests/coverage/ast-equivalence.sh --list-equivalent <base>
 #       only the equivalent paths, relative to the repository root
+#   sh tests/coverage/ast-equivalence.sh --exclude-pathspecs <base>
+#       the same, as ":(top,exclude,literal)<path>" Git pathspecs (for the
+#       changed-line gates while PGACC_SYNTAX_ONLY=1, see changed-lines.sh)
 #   sh tests/coverage/ast-equivalence.sh --self-test
 #       ast-equivalence-test.php and ast-equivalence-test.sh
 #
@@ -136,9 +139,9 @@ if [ "${1:-}" = --self-test ]; then
 fi
 
 case "${1:-}" in
-  --check|--list-equivalent) mode=$1 ;;
+  --check|--list-equivalent|--exclude-pathspecs) mode=$1 ;;
   *)
-    echo "Usage: sh tests/coverage/ast-equivalence.sh --check|--list-equivalent <base> | --self-test" >&2
+    echo "Usage: sh tests/coverage/ast-equivalence.sh --check|--list-equivalent|--exclude-pathspecs <base> | --self-test" >&2
     exit 2
     ;;
 esac
@@ -207,5 +210,8 @@ case "$mode" in
     ;;
   --list-equivalent)
     sed -n 's/: equivalent$//p' "$work/verdicts" || exit 2
+    ;;
+  --exclude-pathspecs)
+    sed -n 's/^\(.*\): equivalent$/:(top,exclude,literal)\1/p' "$work/verdicts" || exit 2
     ;;
 esac

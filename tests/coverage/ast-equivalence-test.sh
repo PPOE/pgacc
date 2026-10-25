@@ -68,12 +68,38 @@ if [ "$status" = 1 ] && has "$verdicts" 'arrays.php: equivalent' \
 fi
 check '--check: string, inline HTML, operator, order and __LINE__ changes fail; moves, deletions, additions are not equivalent' $r
 
+excludes=$(sh "$coverage_dir/ast-equivalence.sh" --exclude-pathspecs HEAD)
+r=0
+[ "$excludes" = "$(printf ':(top,exclude,literal)arrays.php\n:(top,exclude,literal)sub/dir/nested.php')" ] || r=1
+check '--exclude-pathspecs: one exclude pathspec per equivalent file' $r
+
+ranges=$(cd sub && sh "$coverage_dir/changed-lines.sh" HEAD 2>/dev/null)
+r=0
+for line in arrays.php:2-3 sub/dir/nested.php:2-3 string.php:2-4 renamed.php:1-7 untracked.php:1-7; do
+  has "$ranges" "$line" || r=1
+done
+check 'changed-lines.sh without PGACC_SYNTAX_ONLY: every changed line is gated' $r
+ranges=$(cd sub && PGACC_SYNTAX_ONLY=1 sh "$coverage_dir/changed-lines.sh" HEAD 2>/dev/null)
+r=0
+for line in string.php:2-4 html.php:2-3 html.php:6-6 line.php:2-3 renamed.php:1-7 added.php:1-7 untracked.php:1-7; do
+  has "$ranges" "$line" || r=1
+done
+if printf '%s\n' "$ranges" | grep -q '^arrays.php:\|^sub/dir/nested.php:'; then
+  r=1
+fi
+check 'changed-lines.sh with PGACC_SYNTAX_ONLY=1: AST-equivalent files are not gated, all others are' $r
+
 printf '<?php\n$a = [;\n' >string.php
 status=0
 sh "$coverage_dir/ast-equivalence.sh" --list-equivalent HEAD >/dev/null 2>&1 || status=$?
 r=1
 [ "$status" != 2 ] || r=0
 check 'a parse error is exit 2' $r
+ranges=$(PGACC_SYNTAX_ONLY=1 sh "$coverage_dir/changed-lines.sh" HEAD 2>/dev/null)
+r=0
+has "$ranges" arrays.php:2-3 || r=1
+check 'changed-lines.sh with PGACC_SYNTAX_ONLY=1: if the check fails, every file is gated' $r
+
 status=0
 sh "$coverage_dir/ast-equivalence.sh" --check no-such-revision >/dev/null 2>&1 || status=$?
 r=1
