@@ -13,6 +13,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   shows the pgacc version but only the major versions of PHP and PostgreSQL,
   and lists the third-party software (Composer packages, Chart.js, Silk icons)
   with its licenses, left-aligned.
+- New stylesheet, built with Tailwind CSS from `css/app.css`
+  (`scripts/build-css.sh`; the built `style.css` is committed, a release needs
+  no build step). Same page HTML, colours and density, with a modernized look:
+  system fonts, consistent spacing, rounded panels and buttons with subtle
+  shadows, zebra and hover rows in the tables, visible keyboard focus, clearer
+  form fields, and a layout that works in narrow windows (wide tables scroll
+  inside their panel). The Impressum lists Tailwind CSS (MIT). Requires a
+  current browser: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+; older
+  browsers show the pages unstyled.
 
 ### Removed
 

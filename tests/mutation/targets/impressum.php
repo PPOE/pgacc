@@ -59,7 +59,7 @@ return [
             'id' => 'bundled-rows-dropped',
             'search' => "array_merge(impressum_composer_packages(__DIR__ . '/composer.lock'), IMPRESSUM_BUNDLED)",
             'replace' => "impressum_composer_packages(__DIR__ . '/composer.lock')",
-            'rationale' => 'Chart.js and the Silk icons (credit required by CC BY 2.5) are missing.',
+            'rationale' => 'Chart.js, Tailwind CSS and the Silk icons (credit required by CC BY 2.5) are missing.',
         ],
         [
             'id' => 'third-party-version-shown',

@@ -4,10 +4,11 @@
  * Issue #1: amounts with two decimals, also whole euros, and tabular digits
  * in the right-aligned table cells. report.php Anlage A printed the donation
  * sum unformatted and its two fixed columns as "0&nbsp;€"; style.css gives
- * the td rule tabular-nums. Tested with tests/http-smoke.php (2024 report,
- * stylesheet read from the mutated copy). The vreport.php chart tooltip
- * (.toFixed(2)) is client-side JavaScript that no test executes. See
- * tests/mutation/README.md for the format.
+ * the td rule tabular-nums (the built stylesheet is mutated: it is what the
+ * application serves; its source is css/app.css). Tested with
+ * tests/http-smoke.php (2024 report, stylesheet read from the mutated copy).
+ * The vreport.php chart tooltip (.toFixed(2)) is client-side JavaScript that
+ * no test executes. See tests/mutation/README.md for the format.
  */
 return [
     'description' => 'two-decimal amounts in report.php Anlage A, tabular digits in style.css (HTTP report)',
@@ -44,15 +45,15 @@ return [
         [
             'id' => 'td-tabular-nums-removed',
             'file' => 'style.css',
-            'search' => "  font-variant-numeric: tabular-nums;\n",
+            'search' => "    font-variant-numeric: tabular-nums;\n",
             'replace' => "\n",
             'rationale' => 'Proportional digits: amounts no longer line up below each other.',
         ],
         [
             'id' => 'td-left-aligned',
             'file' => 'style.css',
-            'search' => "  text-align: right;\n  font-variant-numeric: tabular-nums;",
-            'replace' => "  text-align: left;\n  font-variant-numeric: tabular-nums;",
+            'search' => "    text-align: right;\n    font-variant-numeric: tabular-nums;",
+            'replace' => "    text-align: left;\n    font-variant-numeric: tabular-nums;",
             'rationale' => 'Left-aligned amount cells: digits of different lengths do not line up.',
         ],
     ],

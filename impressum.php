@@ -6,9 +6,11 @@
 // "Releases").
 const PGACC_VERSION = '2.0.0';
 
-// Third-party software shipped outside Composer (js/README.md, icons/).
+// Third-party software shipped outside Composer (js/README.md, icons/, and
+// Tailwind CSS in style.css, built from css/app.css).
 const IMPRESSUM_BUNDLED = [
     ['Chart.js', 'https://www.chartjs.org', 'MIT', 'https://spdx.org/licenses/MIT.html'],
+    ['Tailwind CSS', 'https://tailwindcss.com', 'MIT', 'https://spdx.org/licenses/MIT.html'],
     ['Silk Icons von Mark James', 'http://www.famfamfam.com/lab/icons/silk/', 'CC BY 2.5', 'https://creativecommons.org/licenses/by/2.5/'],
 ];
 
