@@ -1270,6 +1270,10 @@ differences above are only visible for out-of-range input.
   `page_import()`, `mb.php` `page_mb()`) and when a member voucher is saved
   (`new.php`). Moving the refresh off GET (an explicit action, or a cache
   with an age) is a separate owner decision.
+- [ ] Deferred (owner decision): the arithmetic check on the public donor pages
+  (`donations.php`, `kdonations.php`) is no real bot protection, since its
+  answer can be derived from the page (hidden field + 37). Logged-in users
+  skip it. Decide later between real protection and removing the check.
 
 ## Dependencies
 

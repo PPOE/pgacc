@@ -5,6 +5,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Logged-in users see the donor lists without the arithmetic check.
+
 ### Fixed
 
 - Logging in without a login target no longer ends on a blank page (empty

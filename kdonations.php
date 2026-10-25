@@ -111,8 +111,8 @@ function page_kdonations()
 {
   echo "<h1>Sachspendenliste der Piratenpartei Österreichs</h1>\n";
 
-  if (isset($_POST['captcha_input']) && isset($_POST['captcha']) &&
-      intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37) {
+  if (checklogin('id', false) > 0 || (isset($_POST['captcha_input']) && isset($_POST['captcha']) &&
+      intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37)) {
     // display table
     kdonations_page_table();
   } else {
