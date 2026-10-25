@@ -274,6 +274,8 @@ function amount_cents($value, $decimal, $thousands, $two_decimals)
     if (!is_string($value))
         return null;
     $value = trim($value, " \t\r\n");
+    $parts = null;
+    $group = '';
     foreach (str_split($decimal) as $separator) {
         $group = str_replace($separator, '', $thousands);
         $euros = $group === '' ? '\d+' : '\d{1,3}(?:[' . preg_quote($group, '/') . ']\d{3})+|\d+';
