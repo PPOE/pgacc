@@ -316,9 +316,16 @@ return array(
         array(
             'id' => 'import-blank-lines-reported',
             'file' => 'import.php',
-            'search' => "                if (\$csvformat != 'BAWAG' && trim(\$csvline, ';,') === '')\n                    continue;",
+            'search' => "                if (trim(\$csvline, ';,') === '')\n                    continue;",
             'replace' => "                if (false)\n                    continue;",
             'rationale' => 'Blank lines after a header are skipped silently, as before.',
+        ),
+        array(
+            'id' => 'import-bawag-blank-lines-refused',
+            'file' => 'import.php',
+            'search' => "                if (trim(\$csvline, ';,') === '')\n                    continue;",
+            'replace' => "                if (\$csvformat != 'BAWAG' && trim(\$csvline, ';,') === '')\n                    continue;",
+            'rationale' => 'A blank line in a BAWAG file (no header) is skipped instead of stopping the import.',
         ),
         array(
             'id' => 'import-handkassa-whole-euros-refused',

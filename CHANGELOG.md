@@ -56,6 +56,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The donations page and the report no longer build invalid SQL for years
   outside 1 to 9999 and match nothing for them; years are written with four
   digits. The donations page treats a year after 9999 like one before 2012.
+- A BAWAG export with an empty line (for example at the end of the file) is
+  imported completely; the empty line is skipped instead of stopping the
+  import as an invalid line.
 
 ## [2.0.0] - 2026-10-25
 

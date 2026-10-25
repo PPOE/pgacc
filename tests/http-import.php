@@ -223,6 +223,35 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
     fail_test('BAWAG voucher ID import: expected one voucher after importing the same line twice');
 }
 
+// A synthetic BAWAG export shaped like a real one: no header, CRLF line ends,
+// "|" line breaks, padded text, backslashes, card payments and transfers, and
+// an empty line at the end. Every line is imported and the empty line is
+// skipped (before, it stopped the import as an invalid line).
+$bawagExport = "AT606000050110117300;Bezahlung Karte                              MC/000001001|POS          1234  K001 10.03. 09:15|SYNTHETIC SHOP GMBH\\\\WIEN\\1;12.03.2024;10.03.2024;-18,40;EUR\r\n"
+    . "AT606000050110117300;Synthetic Strom Kd.Nr. 1000001 Anl.Nr. 2000002Synthetic Mitglied Mus|terweg 9 1010 Wien|OG/000001002|BAWAATWWXXX AT611904300234573201 Synthetic Energie GmbH;13.03.2024;13.03.2024;-55,00;EUR\r\n"
+    . "AT606000050110117300;Synthetic Spende März 2024|IG/000001003|BAWAATWWXXX AT611904300234573201|Synthetic Spenderin;14.03.2024;14.03.2024;+30,50;EUR\r\n"
+    . "AT606000050110117300;Synthetic Festnetz Rechnung 100000000003 vom 01.03.2024 - D|etails unter example.invalid|OG/000001004|BAWAATWWXXX AT611904300234573201 Synthetic Telekom GmbH;15.03.2024;15.03.2024;-24,99;EUR\r\n"
+    . "\r\n";
+$exportImport = import_csv('bawag-export.csv', $bawagExport, $adminCookies);
+assert_contains($exportImport['body'], 'Datei 1 (bawag-export.csv) wurde erfolgreich importiert', 'BAWAG export');
+assert_not_contains($exportImport['body'], 'Ungültige Buchungszeile', 'BAWAG export');
+$exportRows = @pg_query($database, "SELECT amount, date::date AS date, comment FROM vouchers WHERE comment LIKE '%/00000100_%' ORDER BY id");
+if ($exportRows === false) {
+    fail_test('BAWAG export query failed: ' . pg_last_error($database));
+}
+$exportFound = array();
+while (($row = pg_fetch_array($exportRows, null, PGSQL_ASSOC)) !== false) {
+    $exportFound[] = $row['amount'] . ' ' . $row['date'];
+    if (strpos($row['comment'], 'SYNTHETIC SHOP') !== false
+        && $row['comment'] !== "Bezahlung Karte                              MC/000001001\nPOS          1234  K001 10.03. 09:15\nSYNTHETIC SHOP GMBH\\\\WIEN\\1") {
+        fail_test('BAWAG export: card payment text stored as ' . var_export($row['comment'], true));
+    }
+}
+pg_free_result($exportRows);
+if ($exportFound !== array('-1840 2024-03-12', '-5500 2024-03-13', '3050 2024-03-14', '-2499 2024-03-15')) {
+    fail_test('BAWAG export: imported ' . var_export($exportFound, true));
+}
+
 // Amounts of every format are parsed exactly (amount_cents()), each in its
 // own style: BAWAG "+1.234,56", Sparkasse and Paypal "1.234,56" or "1,234.56"
 // (the last separator is the decimal one; exactly two decimals), Handkassa
