@@ -1092,10 +1092,10 @@ function login_random_bytes($length, $random = 'random_bytes')
 {
     try {
         $bytes = $random($length);
-    } catch (Exception) {
+    } catch (Throwable) {
         return false;
     }
-    return strlen($bytes) === $length ? $bytes : false;
+    return is_string($bytes) && strlen($bytes) === $length ? $bytes : false;
 }
 
 // The session key, or false without a valid $key: the same key and check

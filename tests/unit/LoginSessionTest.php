@@ -23,6 +23,16 @@ function login_test_short_random_bytes($length)
     return str_repeat('u', $length - 1);
 }
 
+function login_test_erroring_random_bytes($length)
+{
+    throw new Error('broken random source');
+}
+
+function login_test_array_random_bytes($length)
+{
+    return array_fill(0, $length, 'r');
+}
+
 final class LoginSessionTest extends FunctionsTestCase
 {
     public const TEST_KEY = 'synthetic-test-only-encryption-key';
@@ -71,6 +81,8 @@ final class LoginSessionTest extends FunctionsTestCase
     {
         self::assertFalse(login_random_bytes(4, 'login_test_throwing_random_bytes'));
         self::assertFalse(login_random_bytes(4, 'login_test_short_random_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_erroring_random_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_array_random_bytes'));
     }
 
     public function testSessionKeyIsDerivedFromAValidKey()
