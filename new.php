@@ -3,7 +3,7 @@
 function get_param($part, $name, $default, $regex)
 {
     $value = $default;
-    if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+    if (is_string($_POST[$name . $part] ?? null) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
         $value = $_POST[$name . $part];
     return $value;
 }

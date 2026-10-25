@@ -120,6 +120,26 @@ final class FunctionsTest extends FunctionsTestCase
                 array('filter_id' => '1 OR 1=1', 'filter_date' => 'yesterday', 'filter_name' => 'x%'),
                 ''
             ),
+            'array values are ignored' => array(
+                array(
+                    'filter_id' => array('1'),
+                    'filter_bid' => array('1'),
+                    'filter_date' => array('1'),
+                    'filter_type' => array('1'),
+                    'filter_lo' => array('1'),
+                    'filter_member_id' => array('1'),
+                    'filter_gk' => array('1'),
+                    'filter_amount' => array('1'),
+                    'filter_k' => array('1'),
+                    'filter_vk' => array('1'),
+                    'filter_text' => array('1'),
+                    'filter_comment' => array('1'),
+                    'filter_ack' => array('1'),
+                    'filter_ack_old' => array('1'),
+                    'filter_name' => array('1'),
+                ),
+                ''
+            ),
         );
     }
 

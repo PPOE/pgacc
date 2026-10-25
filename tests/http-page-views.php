@@ -229,6 +229,17 @@ $suffixed = page_view('/index.php?year=2024-1', array(), 'anonymous')['body'];
 assert_contains($suffixed, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'report of 2024-1');
 assert_not_contains($suffixed, 'Abfrage fehlgeschlagen', 'report of 2024-1');
 
+// Array filter values ("filter_id[]") are ignored by getfilter() like other
+// invalid filter values: the unfiltered listing (CSV; the HTML listing
+// reflects the filters in its links, an open follow-up in the plan).
+$arrayFilters = '';
+foreach (array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_amount',
+    'filter_k', 'filter_vk', 'filter_text', 'filter_comment', 'filter_ack', 'filter_ack_old', 'filter_name') as $filter) {
+    $arrayFilters .= '&' . $filter . '%5B%5D=1';
+}
+$arrayListing = page_view('/index.php?action=all&format=csv' . $arrayFilters, $admin, 'root,bgf')['body'];
+assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter values');
+
 // Requests without X-Forwarded-Proto: https are redirected to https.
 $plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
     'http' => array('header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10),

@@ -1690,6 +1690,23 @@ $titleRow = database_row(
 assert_database_field($titleRow, 'name', 'Dr. Synthetisch Bernd', 'member voucher with a title');
 assert_database_field($titleRow, 'member_id', '9002', 'member voucher with a title');
 
+// Array values ("bid0[]", "street0[]") are invalid input like other
+// malformed values: the defaults are saved.
+$arrayForm = voucher_form('Synthetic voucher with array values', '-1.70', 0);
+$arrayForm['bid0'] = array('1');
+$arrayForm['street0'] = array('Array Street');
+$arrayVoucher = http_request('/index.php?action=new', 'POST', $arrayForm, $adminCookies);
+assert_status($arrayVoucher, 200, 'voucher with array values');
+assert_contains($arrayVoucher['body'], 'Buchung erfasst', 'voucher with array values');
+$arrayRow = database_row(
+    $database,
+    'SELECT street, city FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher with array values'),
+    'voucher with array values'
+);
+assert_database_field($arrayRow, 'street', '', 'voucher with array values');
+assert_database_field($arrayRow, 'city', 'Test City', 'voucher with array values');
+
 // "ack" on the creation form (which offers no such button; approvals are
 // made on the edit page) shows the form again: nothing is saved.
 $newAckForm = voucher_form('Synthetic creation with ack', '-1.00', 0);
