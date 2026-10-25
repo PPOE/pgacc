@@ -233,6 +233,9 @@ $storedCases = [
         null, null, 'legacy ciphertext under the new name'],
     [9114, 4711, 990010, ['v2.aes' => substr_replace(receipt_v2_encrypt($testKey, 990010, $pdf), 'X', 40, 1)],
         null, null, 'modified v2 receipt'],
+    // No stored file at all: refused like an undecryptable receipt, without a
+    // warning or an empty JPEG.
+    [9120, 4711, 990014, [], null, null, 'receipt without a stored file'],
 ];
 foreach ($storedCases as $case) {
     list($id, $voucherId, $fileNumber, $files, $body, $type, $label) = $case;

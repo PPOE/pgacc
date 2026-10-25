@@ -38,6 +38,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- A receipt download whose stored file is missing or unreadable answers with
+  the existing error ("FEHLER: Der Beleg konnte nicht entschlüsselt werden.",
+  HTTP 500) instead of an empty JPEG and PHP warnings.
 - Logging in without a login target no longer ends on a blank page (empty
   redirect).
 - The import pages (`?action=import`, `?action=import2`) show the upload form

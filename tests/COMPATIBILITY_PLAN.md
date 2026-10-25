@@ -1278,10 +1278,13 @@ differences above are only visible for out-of-range input.
     failure is refused the same way (it used to be ignored).
   - Download (`file.php`): `<n>.v2.aes` if it exists: MAC checked, then
     decrypted. If that fails (a wrong key, a file copied from another number
-    or a modified file) and `<n>.aes` still exists (before
+    or a modified file) and a readable `<n>.aes` still exists (before
     `--delete-legacy`), the legacy file is sent as before and logged;
     without it the response is a 500 ("FEHLER: Der Beleg konnte nicht
-    entschlüsselt werden."). The log lines name the file only, never the key
+    entschlüsselt werden."). The same 500 (no log line) when the voucher
+    has a file number but neither file exists or `<n>.aes` is unreadable;
+    that used to send an empty `image/jpeg` with PHP warnings
+    (`tests/http-receipts.php`, mutation target `receipt-crypto`). The log lines name the file only, never the key
     or its fingerprint. v2 responses: Content-Type from the magic bytes
     (PDF, JPEG, otherwise `application/octet-stream` with `Content-Disposition:
     attachment; filename="<n>.bin"`), `X-Content-Type-Options: nosniff`
