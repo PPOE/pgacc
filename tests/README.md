@@ -527,6 +527,25 @@ PHP_CodeSniffer has no data flow; the missing-upload `count()` crashes in
 `import.php`/`import2.php` appear only at PHPStan level 9; neither reports PHP
 8.5's implicit PostgreSQL connection deprecation. The HTTP tests cover those.
 
+### Formatting
+
+```bash
+sh scripts/format.sh [files...]          # format the tree (or the given files)
+sh scripts/format.sh --check [files...]  # dry run with diff
+```
+
+PER Coding Style 3.0, whitespace rules only (`.php-cs-fixer.dist.php`):
+indentation (4 spaces), brace placement, spacing, blank lines, trailing
+whitespace and LF line endings. PHP-CS-Fixer 3.95.27 is pinned in
+`tests/style/composer.lock` and runs in its own image (`tests/style/Dockerfile`,
+pinned `php:8.5-cli`, no network). Token-changing rules of the set (array
+syntax, `elseif`, visibility, closing tags, imports, ...) are left out; the
+config lists them. Inline HTML, strings and heredocs are never touched; after
+formatting existing code, prove that with
+`sh tests/coverage/token-equivalence.sh --check <base>`. Not formatted:
+`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`,
+`tests/static-analysis/canaries/`, `vendor/`.
+
 ## Open test work
 
 Findings and the fix list are in [COMPATIBILITY_PLAN.md](COMPATIBILITY_PLAN.md).
