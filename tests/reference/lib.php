@@ -575,18 +575,14 @@ function ref_allowlist_problems($entries)
     $problems = array();
     $ids = array();
     foreach ($entries as $index => $entry) {
-        // A 'transform' entry rewrites the reference instead of accepting lines.
-        $fields = array('id', 'php', 'files', isset($entry['transform']) ? 'transform' : 'lines', 'reason', 'category');
+        $fields = array('id', 'php', 'files', 'lines', 'reason', 'category');
+        foreach (array_diff(array_keys($entry), $fields) as $field) {
+            $problems[] = "entry $index: unknown field $field";
+        }
         foreach ($fields as $field) {
             if (!isset($entry[$field]) || $entry[$field] === '' || $entry[$field] === array()) {
                 $problems[] = "entry $index: missing $field";
             }
-        }
-        if (isset($entry['transform']) && isset($entry['lines'])) {
-            $problems[] = "entry $index: transform and lines exclude each other";
-        }
-        if (isset($entry['transform']) && $entry['transform'] !== 'crlf-to-lf') {
-            $problems[] = "entry $index: transform must be 'crlf-to-lf'";
         }
         if (isset($entry['id'])) {
             if (isset($ids[$entry['id']])) {
@@ -596,9 +592,6 @@ function ref_allowlist_problems($entries)
         }
         if (isset($entry['php']) && !is_array($entry['php'])) {
             $problems[] = "entry $index: php must be a list of versions";
-        }
-        if (array_key_exists('pg', $entry) && (!is_array($entry['pg']) || count($entry['pg']) === 0)) {
-            $problems[] = "entry $index: pg must be a non-empty list of PostgreSQL versions";
         }
         if (isset($entry['lines']) && is_string($entry['lines']) && @preg_match($entry['lines'], '') === false) {
             $problems[] = "entry $index: invalid lines pattern";
@@ -624,7 +617,7 @@ function ref_classify_changes($php, $file, $changedLines, $entries)
     foreach ($changedLines as $line) {
         $matched = false;
         foreach ($entries as $entry) {
-            if (!isset($entry['lines']) || !in_array($php, $entry['php'], true) || !ref_files_match($entry['files'], $file)) {
+            if (!in_array($php, $entry['php'], true) || !ref_files_match($entry['files'], $file)) {
                 continue;
             }
             if (preg_match($entry['lines'], $line) === 1) {
@@ -640,32 +633,6 @@ function ref_classify_changes($php, $file, $changedLines, $entries)
     return array($used, $unmatched);
 }
 
-/*
- * Applies the 'transform' entries for this PHP version whose "files" glob
- * (or list of globs) matches $file to the reference text, before it is
- * compared. Adds each entry that changed the text to $used (with the number
- * of converted line endings, raw or exported). The only transform,
- * 'crlf-to-lf', is ref_crlf_to_lf(). It never touches the lane's recording,
- * so a CRLF the lane still sends remains a difference.
- */
-function ref_transform_reference($php, $file, $text, $entries, &$used)
-{
-    foreach ($entries as $entry) {
-        if (!isset($entry['transform']) || !in_array($php, $entry['php'], true) || !ref_files_match($entry['files'], $file)) {
-            continue;
-        }
-        $converted = ref_crlf_to_lf($text, $file);
-        if ($converted === $text) {
-            continue;
-        }
-        $count = substr_count($text, "\r\n") + substr_count($text, '\r\n')
-            - substr_count($converted, "\r\n") - substr_count($converted, '\r\n');
-        $text = $converted;
-        $used[$entry['id']] = isset($used[$entry['id']]) ? $used[$entry['id']] + $count : $count;
-    }
-    return $text;
-}
-
 // Whether $file matches the fnmatch() glob $files, or one glob of the list.
 function ref_files_match($files, $file)
 {
@@ -675,67 +642,6 @@ function ref_files_match($files, $file)
         }
     }
     return false;
-}
-
-/*
- * CRLF -> LF in the reference text of $file:
- * - an HTTP recording (http/): only a text body, never a binary one. A
- *   text/html body is converted throughout; any other text body (CSV
- *   downloads) only in its last two bytes (the CRLF that index.php's closing
- *   inline HTML appended). The single "--- body (N bytes) ---" line gets the
- *   new body length (the body runs to the end of the file);
- * - any other recording: throughout, also inside exported strings
- *   (ref_export(): string(N) "...\r\n..." becomes string(N - 1) "...\n...").
- */
-function ref_crlf_to_lf($text, $file)
-{
-    if (strpos($file, 'http/') !== 0) {
-        $converted = preg_replace_callback('/string\((\d+)\) "((?:[^"\\\\]|\\\\.)*)"/', 'ref_crlf_to_lf_export', $text);
-        return str_replace("\r\n", "\n", $converted);
-    }
-    if (preg_match_all('/^--- body \((\d+) bytes\) ---\n/m', $text, $matches, PREG_OFFSET_CAPTURE) !== 1) {
-        return $text;
-    }
-    $start = $matches[0][0][1] + strlen($matches[0][0][0]);
-    $head = substr($text, 0, $matches[0][0][1]);
-    $body = substr($text, $start);
-    if (preg_match('/^header: Content-type: text\/html\b/mi', $head) === 1) {
-        $body = str_replace("\r\n", "\n", $body);
-    } elseif (substr($body, -2) === "\r\n") {
-        $body = substr($body, 0, -2) . "\n";
-    } else {
-        return $text;
-    }
-    return $head . '--- body (' . strlen($body) . " bytes) ---\n" . $body;
-}
-
-function ref_crlf_to_lf_export($match)
-{
-    $units = preg_split('/(\\\\.)/', $match[2], -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-    $content = '';
-    $removed = 0;
-    foreach ($units as $index => $unit) {
-        if ($unit === '\\r' && isset($units[$index + 1]) && $units[$index + 1] === '\\n') {
-            $removed++;
-            continue;
-        }
-        $content .= $unit;
-    }
-    return 'string(' . ($match[1] - $removed) . ') "' . $content . '"';
-}
-
-// The entries that apply on PostgreSQL $pg (PGACC_TEST_PG): those without a
-// 'pg' key, and those that list $pg. Entries for other servers are neither
-// used nor stale.
-function ref_entries_for_pg($entries, $pg)
-{
-    $selected = array();
-    foreach ($entries as $entry) {
-        if (!isset($entry['pg']) || in_array($pg, $entry['pg'], true)) {
-            $selected[] = $entry;
-        }
-    }
-    return $selected;
 }
 
 // Per category ('accepted', 'todo'): the used entry IDs and their accepted

@@ -2,8 +2,8 @@ name: Tests
 
 # CI cost policy (owner decision; tests/README.md, "Continuous integration"):
 # - every push: the only lane, PHP 8.5 / PostgreSQL 18 (with coverage and
-#   the changed-line gate), static analysis and the PHP 5 reference
-#   comparison on 8.5;
+#   the changed-line gate), static analysis and the reference comparison
+#   on 8.5;
 # - pull requests labelled `mutation`: additionally mutation testing of the
 #   changed lines only (tests/mutation/run.sh --changed-since);
 # - weekly, manual runs and pull requests labelled `full-ci`: additionally

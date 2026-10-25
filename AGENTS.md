@@ -131,4 +131,4 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `tests/run.sh`, `compose.test.yaml`, `compose.coverage.yaml`, `tests/php-runtime.Dockerfile` | Harness entry point, Compose files, PHP 8.5 image |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
-| `tests/reference/` | PHP 5 golden master `php5/` (recorded on PHP 5.3 x PG 8.4 before `php5-last`; historical), `run.sh compare 8.5`, reviewed `allowlist.php` (`accepted`/`todo`, optional `pg`) |
+| `tests/reference/` | Golden master `php85/` (recorded on PHP 8.5 x PG 18, diagnostics included), `run.sh record` / `run.sh compare 8.5`, `allowlist.php` (empty; only for real nondeterminism) |
