@@ -1,5 +1,6 @@
 #!/bin/sh
-# Git-level tests of tests/coverage/token-equivalence.sh, in a throw-away
+# Git-level tests of tests/coverage/token-equivalence.sh (and of
+# tests/coverage/changed-lines.sh from a subdirectory), in a throw-away
 # repository. Run by sh tests/coverage/token-equivalence.sh
 # --self-test.
 set -eu
@@ -69,6 +70,13 @@ if [ "$status" = 1 ] && has "$verdicts" 'whitespace.php: equivalent' \
   r=0
 fi
 check '--check: real, inline HTML and newline changes fail; moves, deletions, additions are not checked' $r
+
+ranges=$(cd sub && sh "$coverage_dir/changed-lines.sh" HEAD 2>/dev/null)
+r=0
+for line in code.php:3-3 html.php:7-7 whitespace.php:3-3 sub/dir/nested.php:3-3 untracked.php:1-8; do
+  has "$ranges" "$line" || r=1
+done
+check 'changed-lines.sh from a subdirectory: root-relative ranges, whitespace-only changes gated' $r
 
 status=0
 sh "$coverage_dir/token-equivalence.sh" --check no-such-revision >/dev/null 2>&1 || status=$?

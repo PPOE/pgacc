@@ -4,7 +4,8 @@
 #
 # Usage: sh tests/coverage/changed-lines.sh <base> [<pathspec>...]
 #   <base>      commit to compare against (merge base is used), e.g. origin/main
-#   <pathspec>  defaults to '*.php' (without .php-cs-fixer.dist.php)
+#   <pathspec>  relative to the repository root; defaults to '*.php'
+#               (without .php-cs-fixer.dist.php)
 #
 # Compares the merge base with the working tree, so uncommitted changes count.
 # Untracked files matching the pathspec count as entirely new. Pure deletions
@@ -24,6 +25,8 @@ if [ $# -eq 0 ]; then
   set -- '*.php' ':(exclude).php-cs-fixer.dist.php'
 fi
 
+# Paths and pathspecs are relative to the repository root, from any directory.
+cd "$(git rev-parse --show-toplevel)"
 merge_base=$(git merge-base "$base" HEAD)
 
 git diff --no-color --no-ext-diff --unified=0 --diff-filter=AMR "$merge_base" -- "$@" |
