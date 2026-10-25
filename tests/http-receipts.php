@@ -268,11 +268,9 @@ if ($merged['body'] !== receipt_decrypt('4743', '', receipt_encrypt('4742', '', 
 }
 
 // Bank-statement PDF import (import2.php): matched by reference and date.
-// The locked smalot/pdfparser v0.9.23 declares a class named Object, which is
-// a fatal error from PHP 7.2 on, so the import only works on PHP 5.6 for now
-// (separate dependency issue; see tests/COMPATIBILITY_PLAN.md).
-if (PHP_VERSION_ID < 70200) {
-    $stream = "BT /F1 12 Tf 72 712 Td (Buchung AB/123456789 vom 15.09.2024) Tj ET";
+// A one-page PDF statement with the content stream $stream.
+function pdf_statement($stream)
+{
     $objects = array(
         '<< /Type /Catalog /Pages 2 0 R >>',
         '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
@@ -291,24 +289,53 @@ if (PHP_VERSION_ID < 70200) {
     foreach ($offsets as $offset) {
         $statement .= sprintf("%010d 00000 n \n", $offset);
     }
-    $statement .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
-
-    $import = http_request(
-        '/index.php?action=import2',
-        'POST',
-        array(),
-        $adminCookies,
-        null,
-        array('upload[]' => array('name' => 'statement.pdf', 'type' => 'application/pdf', 'content' => $statement))
-    );
-    assert_status($import, 200, 'PDF import');
-    assert_contains($import['body'], 'Eine ID (AB/123456789) gefunden.', 'PDF import');
-    assert_contains($import['body'], 'Ein Datum (2024-09-15) gefunden.', 'PDF import');
-    assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4712&bid=9103">4712</a>', 'PDF import');
-    $fileNumber = receipt_file_number($database, 9103);
-    assert_stored_receipt($fileNumber, $testKey, $statement, 'PDF import');
-    assert_receipt_download($adminCookies, 9103, $statement, 'application/pdf', $fileNumber, 'imported PDF download', true);
+    return $statement . "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
 }
+
+$statement = pdf_statement('BT /F1 12 Tf 72 712 Td (Buchung AB/123456789 vom 15.09.2024) Tj ET');
+
+$import = http_request(
+    '/index.php?action=import2',
+    'POST',
+    array(),
+    $adminCookies,
+    null,
+    array('upload[]' => array('name' => 'statement.pdf', 'type' => 'application/pdf', 'content' => $statement))
+);
+assert_status($import, 200, 'PDF import');
+assert_contains($import['body'], 'Eine ID (AB/123456789) gefunden.', 'PDF import');
+assert_contains($import['body'], 'Ein Datum (2024-09-15) gefunden.', 'PDF import');
+assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4712&bid=9103">4712</a>', 'PDF import');
+$fileNumber = receipt_file_number($database, 9103);
+assert_stored_receipt($fileNumber, $testKey, $statement, 'PDF import');
+assert_receipt_download($adminCookies, 9103, $statement, 'application/pdf', $fileNumber, 'imported PDF download', true);
+
+// Several files in one import: pdfparser 2.x writes a tab (0.9 a space) for
+// a wide gap within a line, which must not hide the cover-page text or split
+// an ID; a file that is no readable PDF is reported and the next one is
+// still imported.
+insert_receipt_voucher($database, 9119, 4744, 'Synthetic bank import CD/987654321');
+$cover = pdf_statement('BT /F1 12 Tf 72 712 Td (Neuer Kontostand) Tj 300 0 Td (zu Ihren Gunsten) Tj ET');
+$split = pdf_statement('BT /F1 12 Tf 72 712 Td (Buchung CD/) Tj 300 0 Td (987654321 vom 15.09.2024) Tj ET');
+$import = http_request(
+    '/index.php?action=import2',
+    'POST',
+    array(),
+    $adminCookies,
+    null,
+    array(
+        'upload[0]' => array('name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => $cover),
+        'upload[1]' => array('name' => 'corrupt.pdf', 'type' => 'application/pdf', 'content' => "%PDF-1.4\nno objects, no xref\n"),
+        'upload[2]' => array('name' => 'split.pdf', 'type' => 'application/pdf', 'content' => $split),
+    )
+);
+assert_status($import, 200, 'PDF import of several files');
+assert_contains($import['body'], 'Datei 1 (cover.pdf):<br />Ist ein Übersichtsdeckblatt.<br />Keine Jahreszahl gefunden.<br />'
+    . 'Datei 2 (corrupt.pdf):<br />Konnte nicht als PDF gelesen werden und wurde daher nicht importiert.<br />'
+    . 'Datei 3 (split.pdf):<br />Eine ID (CD/987654321) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />', 'PDF import of several files');
+assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4744&bid=9119">4744</a>', 'PDF import of several files');
+$fileNumber = receipt_file_number($database, 9119);
+assert_stored_receipt($fileNumber, $testKey, $split, 'PDF import of several files');
 
 // The receipt key migration is a command-line script; the web server must
 // not run it.

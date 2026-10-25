@@ -287,6 +287,15 @@ return array(
         array('id' => 'import-refusal-ignored', 'file' => 'import2.php',
             'search' => "gespeichert werden.<br />\";\r\n    return;\r\n", 'replace' => "gespeichert werden.<br />\";\r\n    true;\r\n",
             'rationale' => 'A refused import changes nothing.'),
+        array('id' => 'import-tab-kept', 'file' => 'import2.php',
+            'search' => "\$text = str_replace(array(' ', \"\\t\"), '', \$text);", 'replace' => "\$text = str_replace(' ', '', \$text);",
+            'rationale' => 'pdfparser 2.x writes a tab for a wide gap; it must not hide the cover-page text or split an ID.'),
+        array('id' => 'import-parse-error-uncaught', 'file' => 'import2.php',
+            'search' => '} catch (\\Throwable $e) {', 'replace' => '} catch (\\TypeError $e) {',
+            'rationale' => 'A file that is no readable PDF is reported; the import goes on with the next file.'),
+        array('id' => 'import-parse-error-not-skipped', 'file' => 'import2.php',
+            'search' => "daher nicht importiert.<br />\";\r\n        continue;\r\n", 'replace' => "daher nicht importiert.<br />\";\r\n        true;\r\n",
+            'rationale' => 'An unreadable file is skipped, not matched with an undefined text.'),
 
         // Receipt key migration.
         array('id' => 'migration-web-reachable', 'file' => 'migrate-receipt-key.php',

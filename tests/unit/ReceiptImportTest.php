@@ -4,9 +4,9 @@
  * decrypted with the configured key and the file number), and the refusal of
  * the PDF import and of the receipt upload (new.php) without a valid key.
  * page_import2_match_voucher() and page_new_file() are called directly: the
- * import's HTTP route also needs smalot/pdfparser, whose locked version does
- * not load on PHP 7.2+ (tests/http-receipts.php covers it on PHP 5.6), and a
- * stored upload ends the request (relocate()), so only its refusal runs here.
+ * import's HTTP route (with smalot/pdfparser) is covered by
+ * tests/http-receipts.php, and a stored upload ends the request (relocate()),
+ * so only its refusal runs here.
  * Database changes are rolled back; files go to a temporary directory.
  *
  * Must stay compatible with PHP 5.6 (PHPUnit 5.7).

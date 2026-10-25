@@ -150,9 +150,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   redirects must be an empty 302 to the voucher's edit page with the exact
   hint; visitors get only the login redirect and change nothing. `synthetic-unit-one`,
   `synthetic-unit-two` and `synthetic-no-rights` cover the organization scope.
-- `http-receipts.php`: receipt upload, PDF import (skipped: the locked
-  `smalot/pdfparser` does not load on PHP 7.2+; it ran on the former PHP 5
-  lanes), download of `<n>.v2.aes`
+- `http-receipts.php`: receipt upload, PDF import (`smalot/pdfparser` 2.x),
+  download of `<n>.v2.aes`
   and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
   migration script's 404 and the `mbapi.php` export. It reads and writes the
   server's `files/` through a volume shared with the client.
@@ -241,9 +240,7 @@ included on PHP 8.5 (deprecated at compile time).
 `compose.coverage.yaml` sets `XDEBUG_MODE=coverage`). `tests/application-tests.sh`
 runs the HTTP, PHPUnit and write-workflow groups even if one fails, and fails
 if any group failed. Assertions are not relaxed for PHP 8. The lane passes and
-the CI job is blocking. The PDF import is still skipped (locked
-`smalot/pdfparser` 0.9.23; see `COMPATIBILITY_PLAN.md`, "PHP 8.5-only
-migration", step b).
+the CI job is blocking.
 
 ### Mutation testing
 

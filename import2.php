@@ -51,10 +51,19 @@ function page_import2_process($rights)
       $contents = fread($handle, filesize($_FILES['upload']['tmp_name'][$i]));
       fclose($handle);
 
-      $parser = new \Smalot\PdfParser\Parser();
-      $pdf = $parser->parseContent($contents);
-      $text = $pdf->getText();
-      $text = str_replace(' ', '', $text);
+      $config = new \Smalot\PdfParser\Config();
+      $config->setDecodeMemoryLimit(64 * 1024 * 1024);
+      $config->setRetainImageContent(false);
+      $parser = new \Smalot\PdfParser\Parser(array(), $config);
+      try {
+        $pdf = $parser->parseContent($contents);
+        $text = $pdf->getText();
+      } catch (\Throwable $e) {
+        echo "Konnte nicht als PDF gelesen werden und wurde daher nicht importiert.<br />";
+        continue;
+      }
+      // pdfparser 2.x writes a tab for a wide gap within a line (0.9 a space).
+      $text = str_replace(array(' ', "\t"), '', $text);
 
       $result = preg_match("@NeuerKontostandzuIhrenGunsten@", $text, $matches);
       if ($result > 0) {

@@ -3,6 +3,19 @@
 All notable changes to pgacc are documented in this file. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- The PDF receipt import works on PHP 8.5: `smalot/pdfparser` 2.13.1
+  replaces 0.9.23 and TCPDF 6.2.6. A file that cannot be read as a PDF is
+  reported and skipped; the other files of the upload are still imported.
+
+### Upgrade notes
+
+- The server's PHP needs the `iconv` and `zlib` extensions (see
+  UPGRADING.md).
+
 ## [1.0.0] - 2026-10-25 (php5-last)
 
 First tagged release, also tagged `php5-last`: the last release that supports

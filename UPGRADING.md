@@ -4,6 +4,17 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
+## Upgrade to the next release (unreleased)
+
+Before deploying it on the new server (PHP 8.5, PostgreSQL 18):
+
+1. Check the PHP extensions. In the unpacked release directory run
+   `composer check-platform-reqs --no-dev` with the server's PHP (Composer
+   is needed only for this check, not to install). It must report `ext-iconv`
+   and `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5
+   as present. Without Composer, `php -m` must list `iconv`, `zlib` and
+   `pgsql`.
+
 ## Upgrade to 1.0.0
 
 1. Back up the database, `files/` and `constants.php` (its `$key`) to
