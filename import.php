@@ -266,8 +266,8 @@ function page_import($rights)
                         }
                     }
                 }
-                if (strpos($voucher['comment'], 'MB') !== false ||
-                    strpos($voucher['comment'], 'Mitgliedsbeitrag') !== false) {
+                if (str_contains($voucher['comment'], 'MB') ||
+                    str_contains($voucher['comment'], 'Mitgliedsbeitrag')) {
                     $voucher['type'] = 1;
                     $voucher['member'] = 'true';
                     $voucher['person_type'] = 2;

@@ -43,7 +43,7 @@ function download_file($rights)
             error_log("pgacc: receipt $file.v2.aes could not be decrypted; sent the legacy $file.aes");
         $path = receipt_legacy_path($directory, $file);
         $data = receipt_decrypt($vid, '', file_get_contents($path));
-        $type = substr($data, 0, 4) == '%PDF' ? 'application/pdf' : 'image/jpeg';
+        $type = str_starts_with($data, '%PDF') ? 'application/pdf' : 'image/jpeg';
         $length = filesize($path);
     }
     if ($v2)

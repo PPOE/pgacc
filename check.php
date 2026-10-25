@@ -19,7 +19,7 @@ $max = intval($_GET['max']);
 
 $like = '%/00000%';
 $format = '/%09d';
-if (strpos($kto, "Handkassa") !== false) {
+if (str_contains($kto, "Handkassa")) {
     $like = '%Nr.%.%';
     $format = 'Nr.%d.';
 }

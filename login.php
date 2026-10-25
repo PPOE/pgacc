@@ -12,9 +12,9 @@ function login_redirect()
         }
         return false;
     }
-    $submit = isset($_POST['submit']) ? $_POST['submit'] : '';
-    $name = isset($_POST['name']) ? $_POST['name'] : '';
-    $pass = isset($_POST['pass']) ? $_POST['pass'] : '';
+    $submit = $_POST['submit'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $pass = $_POST['pass'] ?? '';
     if ($submit == "Anmeldung") {
         return login($name, $pass) > 0;
     }

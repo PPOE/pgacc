@@ -102,7 +102,7 @@ function receipt_migration_options($arguments)
         } elseif (preg_match('/^--(limit|max-size)=([1-9][0-9]*)$/', $argument, $match)) {
             $options[$match[1]] = intval($match[2]);
         } elseif (preg_match('/^--(files|constants)=(.+)$/', $argument, $match)) {
-            $options[$match[1]] = substr($match[2], 0, 1) === '/' ? $match[2] : getcwd() . '/' . $match[2];
+            $options[$match[1]] = str_starts_with($match[2], '/') ? $match[2] : getcwd() . '/' . $match[2];
         } elseif (preg_match('/^--(database|sync)=(.+)$/', $argument, $match)) {
             $options[$match[1]] = $match[2];
         } else {
@@ -120,7 +120,7 @@ function receipt_migration_key($constants)
     chdir(__DIR__);
     @include $constants;
     chdir($workingDirectory);
-    return isset($key) ? $key : null;
+    return $key ?? null;
 }
 
 // File numbers of the legacy receipt files, ascending, and the other *.aes
@@ -131,7 +131,7 @@ function receipt_migration_numbers($directory, $names)
     $numbers = [];
     $others = [];
     foreach ($names as $name) {
-        if (!is_file("$directory/$name") || substr($name, -4) !== '.aes' || substr($name, -7) === '.v2.aes') {
+        if (!is_file("$directory/$name") || !str_ends_with($name, '.aes') || str_ends_with($name, '.v2.aes')) {
             continue;
         }
         $number = substr($name, 0, -4);
@@ -155,10 +155,10 @@ function receipt_migration_is_complete($plain)
     if (strlen($plain) % 32 !== 0 || strlen($plain) - strlen($data) >= 32) {
         return false;
     }
-    if (substr($data, 0, 4) === '%PDF') {
-        return strpos(substr($data, -1024), '%%EOF') !== false;
+    if (str_starts_with($data, '%PDF')) {
+        return str_contains(substr($data, -1024), '%%EOF');
     }
-    return substr($data, 0, 3) === "\xFF\xD8\xFF" && substr($data, -2) === "\xFF\xD9";
+    return str_starts_with($data, "\xFF\xD8\xFF") && str_ends_with($data, "\xFF\xD9");
 }
 
 /*

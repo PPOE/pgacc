@@ -52,7 +52,7 @@ function page_import2_process($rights)
             try {
                 $pdf = $parser->parseContent($contents);
                 $text = $pdf->getText();
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 echo "Konnte nicht als PDF gelesen werden und wurde daher nicht importiert.<br />";
                 continue;
             }

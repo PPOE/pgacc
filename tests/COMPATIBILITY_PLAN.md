@@ -1595,6 +1595,17 @@ Recommendation (owner decision):
     a standalone review tool, like the token-equivalence check. A future
     syntax-only step opts in only by owner decision (`tests/README.md`,
     "Coverage").
+  - [x] Step 2, PHP 8 functions and operators without a behaviour change
+    (branch `refactor/rector-php8-neutral`), with the pinned Rector rules
+    listed in `tests/rector/rector.php`: `str_contains()`,
+    `str_starts_with()`, `str_ends_with()`, `??`, `??=` (parameters), `catch`
+    without an unused variable, unused extra arguments removed, `trim(...)`.
+    Each replacement is defined as the old expression for every input; the
+    strict gates and the reference comparison apply. Mutation targets were
+    rewritten to the new spellings (same mutants). Left out because they
+    change behaviour: `switch` -> `match` (strict comparison),
+    `mt_rand()` -> `random_int()`, `ord()` of a `substr()` result (warns on an
+    empty string), added return types.
   - [ ] Later steps change the syntax tree (`elseif`, visibility, closing tags,
     imports, ...) and run with the strict gates.
 

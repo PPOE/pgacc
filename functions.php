@@ -27,7 +27,7 @@ function csv_download_link($i = -1)
     global $make_csv;
     if ($make_csv)
         return;
-    $link = $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'], '?') === false ? "?" : "&") . "format=csv";
+    $link = $_SERVER['REQUEST_URI'] . (!str_contains($_SERVER['REQUEST_URI'], '?') ? "?" : "&") . "format=csv";
     echo "<br style=\"clear: both;\" /><center>";
     if ($i >= 0)
         echo "$i Umsätze gefunden<br /><br />";
@@ -95,7 +95,7 @@ function tag($tag, $text)
 {
     global $make_csv;
     if ($make_csv) {
-        $text = str_replace(["\r\n", "\n", "\r"], [' / ', ' / ', ' / '], $text === null ? '' : $text);
+        $text = str_replace(["\r\n", "\n", "\r"], [' / ', ' / ', ' / '], $text ?? '');
         // A tab would split the tab-separated cell.
         if ($tag == 'td')
             $text = str_replace(["\t"], [' '], $text);
@@ -176,7 +176,7 @@ function acc_header($dbconn, $page = "index", $year = 2015)
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.' . percent_of_bookings($dbconn) . '</div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.' . percent_of_bookings() . '</div>
 ';
     $rights = checklogin('rights', false);
     echo '
@@ -192,7 +192,7 @@ function acc_header($dbconn, $page = "index", $year = 2015)
 <a href="vreport"' . ($page == "vreport" ? ' class="selected"' : '') . '>Virt. Konten</a>
 ';/*<a href="index.php?action=statistics"'.($page == "statistics"?' class="selected"':'').'>Statistiken</a>
 ';*/
-    if (strlen($rights === null ? '' : $rights) > 0) {
+    if (strlen($rights ?? '') > 0) {
         echo '<br />';
         if (write_rights($rights) !== false) {
             echo '<a href="index.php?action=new"' . ($page == "new" ? ' class="selected"' : '') . '>Erfassen</a>';
@@ -243,9 +243,9 @@ function acc_footer()
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
 ';
-    if (strlen($rights === null ? '' : $rights) == 0)
+    if (strlen($rights ?? '') == 0)
         echo '<a href="index.php?action=login">Login</a>';
-    if (strlen($rights === null ? '' : $rights) != 0)
+    if (strlen($rights ?? '') != 0)
         echo '<form class="inline" action="index.php?action=logout" method="post">' . csrf_field() . '<button class="link" type="submit">Logout</button></form>';
     echo '      </div>
     </div>
@@ -312,7 +312,7 @@ function has_right($rights, $right)
 // The comma-separated rights, without surrounding whitespace.
 function rights_tokens($rights)
 {
-    return array_map('trim', explode(",", $rights === null ? '' : $rights));
+    return array_map(trim(...), explode(",", $rights ?? ''));
 }
 // Whether the rights may use this organization for a voucher: any for the
 // exact bgf right, otherwise only the numeric organizations of the rights,
@@ -657,7 +657,7 @@ function receipt_decrypt($id, $key, $data)
 // At least 16 characters and not the CHANGE-ME placeholder of the README.
 function receipt_key_is_valid($key)
 {
-    return is_string($key) && strlen($key) >= 16 && strpos($key, 'CHANGE-ME') === false;
+    return is_string($key) && strlen($key) >= 16 && !str_contains($key, 'CHANGE-ME');
 }
 
 // The configured key, or '' without a valid one (receipts then fail closed).
@@ -688,9 +688,9 @@ function receipt_legacy_path($directory, $number)
 // PDF and JPEG by their magic bytes; anything else is sent as a download.
 function receipt_content_type($plain)
 {
-    if (substr($plain, 0, 4) === '%PDF')
+    if (str_starts_with($plain, '%PDF'))
         return 'application/pdf';
-    if (substr($plain, 0, 3) === "\xFF\xD8\xFF")
+    if (str_starts_with($plain, "\xFF\xD8\xFF"))
         return 'image/jpeg';
     return 'application/octet-stream';
 }
@@ -771,8 +771,7 @@ function receipt_equals_fallback($known, $given)
  */
 function receipt_v2_encrypt($key, $number, $data, $iv = null)
 {
-    if ($iv === null)
-        $iv = \phpseclib\Crypt\Random::string(16);
+    $iv ??= \phpseclib\Crypt\Random::string(16);
     [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $ciphertext = receipt_v2_cipher($encryptionKey, $iv)->encrypt($data);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
@@ -785,7 +784,7 @@ function receipt_v2_encrypt($key, $number, $data, $iv = null)
 // so a wrong key, another file number or a modified file is rejected.
 function receipt_v2_decrypt($key, $number, $file)
 {
-    if (!is_string($file) || strlen($file) < 68 || substr($file, 0, 4) !== 'PGR2')
+    if (!is_string($file) || strlen($file) < 68 || !str_starts_with($file, 'PGR2'))
         return false;
     [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $ciphertext = substr($file, 20, -32);
@@ -802,8 +801,7 @@ function receipt_v2_decrypt($key, $number, $file)
 // read that returns nothing before the end, or a failed write, returns false.
 function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
 {
-    if ($iv === null)
-        $iv = \phpseclib\Crypt\Random::string(16);
+    $iv ??= \phpseclib\Crypt\Random::string(16);
     [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $cipher = receipt_v2_stream_cipher($encryptionKey, $iv);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
@@ -912,7 +910,7 @@ function receipt_v2_open_with($key, $number, $path)
     hash_update($mac, $header);
     for ($remaining = $length; $remaining > 0; $remaining -= 65536)
         hash_update($mac, (string) fread($in, min(65536, $remaining)));
-    $valid = $length >= 16 && substr($header, 0, 4) === 'PGR2'
+    $valid = $length >= 16 && str_starts_with($header, 'PGR2')
       && receipt_equals(hash_final($mac, true), (string) fread($in, 32));
     $iv = substr($header, 4, 16);
     $tail = '';
@@ -1047,7 +1045,7 @@ function login_random_bytes($length, $random = 'random_bytes', $openssl = 'opens
             $bytes = $random($length);
             if (strlen($bytes) == $length)
                 return $bytes;
-        } catch (Exception $exception) {
+        } catch (Exception) {
             // No random source: try the next one.
         }
     }
@@ -1096,7 +1094,7 @@ function login_start_session($connection, $id, $bytes = null)
         error_log('pgacc: login refused: no valid session key ($key in constants.php)');
         return false;
     }
-    $nonce = login_nonce($bytes === null ? login_random_bytes(4) : $bytes);
+    $nonce = login_nonce($bytes ?? login_random_bytes(4));
     if ($nonce === false) {
         error_log('pgacc: login refused: no secure random source');
         return false;
