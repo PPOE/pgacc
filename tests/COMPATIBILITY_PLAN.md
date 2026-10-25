@@ -1024,9 +1024,13 @@ integer size. Any other value is null.
 - [x] `import.php:118`: validate amounts before `intval()`: `1e3` imports
   1000 cents (PHP 5: 1), `1e1000` 0 and `1e3,2` `PHP_INT_MAX` cents
   (`RD-INTVAL-EXPONENT-VALUES`). Fixed for every import format, each in its
-  own style (fixtures): BAWAG and Sparkasse `+1.234,56`, Paypal `1,234.56`
-  (both exactly two decimals), Handkassa whole euros or up to two decimals
-  after `,` or `.`, without thousands separators. Before, the Handkassa
+  own style: BAWAG `+1.234,56` (fixture); Sparkasse and Paypal in either
+  convention, `1.234,56` or `1,234.56`, the last separator being the decimal
+  one (the old code accepted both, and German Paypal exports use a decimal
+  comma while the fixture uses a point); all three with exactly two decimals;
+  Handkassa whole euros or up to two decimals after `,` or `.`, without
+  thousands separators (`1.234` would be ambiguous; such lines are reported,
+  not skipped silently). Before, the Handkassa
   format read `12,5` as 125 cents. An invalid amount (including a Paypal
   fee) makes the line invalid: it is reported ("Ungültige Buchungszeile …,
   Zeile N") and skipped. A zero amount still skips a Handkassa, Sparkasse

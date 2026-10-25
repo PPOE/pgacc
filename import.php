@@ -158,7 +158,7 @@ function page_import($rights)
                     $voucher['city'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                     $voucher['plz'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[12])));
                 } elseif ($csvformat == 'Sparkasse') {
-                    $voucher['amount'] = amount_cents($data[2], ',', '.', true);
+                    $voucher['amount'] = amount_cents($data[2], ',.', ',.', true);
                     if ($voucher['amount'] === 0)
                         continue;
                     $voucher['lo'] = 6;
@@ -169,7 +169,7 @@ function page_import($rights)
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                 } elseif ($csvformat == 'Paypal') {
                     $data = str_getcsv($data[0], ",", '"', "\\");
-                    $voucher['amount'] = amount_cents($data[7], '.', ',', true);
+                    $voucher['amount'] = amount_cents($data[7], ',.', ',.', true);
                     if ($voucher['amount'] === 0)
                         continue;
                     $voucher['lo'] = 10;
@@ -189,7 +189,7 @@ function page_import($rights)
                     $voucher2['konto'] = 'spende@piratenpartei.at';
                     $voucher2['comment'] = pg_escape_string($dbconn, $cmt);
                     $voucher2['date'] = format_date($data[0]);
-                    $voucher2['amount'] = amount_cents($data[8], '.', ',', true);
+                    $voucher2['amount'] = amount_cents($data[8], ',.', ',.', true);
                     $voucher2['gegenkonto'] = "";
                     $voucher2['name'] = 'Paypal';
                     $voucher2['person_type'] = 1;

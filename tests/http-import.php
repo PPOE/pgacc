@@ -224,9 +224,9 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
 }
 
 // Amounts of every format are parsed exactly (amount_cents()), each in its
-// own style: BAWAG and Sparkasse "+1.234,56", Paypal "1,234.56" (both with
-// exactly two decimals), Handkassa whole euros or up to two decimals after ","
-// or ".". An exponent, another style or an out-of-range amount makes the line
+// own style: BAWAG "+1.234,56", Sparkasse and Paypal "1.234,56" or "1,234.56"
+// (the last separator is the decimal one; all with exactly two decimals),
+// Handkassa whole euros or up to two decimals after "," or ".". An exponent, another style or an out-of-range amount makes the line
 // invalid: reported with its number and skipped. A zero amount skips a
 // Handkassa, Sparkasse or Paypal line silently, as before (expected rows:
 // none); a BAWAG line with zero is imported. Each case: the amount (Paypal:
@@ -301,7 +301,9 @@ import_amount_cases($database, $adminCookies, 'sparkasse-amounts.csv', "Bezeichn
         array('0,00', array()),
         array('1e3', null),
         array('99,9', null),
-        array('12.34', null),
+        array('12.34', array('1234')),
+        array('1,234.56', array('123456')),
+        array('1.234.56', null),
     ), function ($index, $amount) {
         return "Synthetic;16.05.2024;$amount;EUR;16.05.2024;Synthetic Sparkasse amount $index;Zusatz;Auftraggeber;;;;;;Synthetic Partner;AT00 0000;SYNTATWW\r\n";
     }, function ($index) {
@@ -310,6 +312,10 @@ import_amount_cases($database, $adminCookies, 'sparkasse-amounts.csv', "Bezeichn
 import_amount_cases($database, $adminCookies, 'paypal-amounts.csv', $paypalLines[0] . "\n", array(
     array(array('25.00', '-0.78'), array('2500', '-78')),
     array(array('"1,234.56"', '0.00'), array('123456', '0')),
+    array(array('"25,00"', '"-0,78"'), array('2500', '-78')),
+    array(array('"-1.234,56"', '"0,00"'), array('-123456', '0')),
+    array(array('"25,0"', '0.00'), null),
+    array(array('"1.234.56"', '0.00'), null),
     array(array('0.00', '0.00'), array()),
     array(array('1e3', '0.00'), null),
     array(array('25', '0.00'), null),

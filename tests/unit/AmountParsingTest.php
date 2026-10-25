@@ -2,7 +2,8 @@
 
 /*
  * amount_cents() (functions.php): exact amount parsing of the voucher form
- * and of every bank import format, limited to the integer column
+ * and of every bank import format (Paypal and Sparkasse in either separator
+ * convention), limited to the integer column
  * vouchers.amount; and the year range of donations.php date_condition().
  */
 
@@ -14,7 +15,7 @@ final class AmountParsingTest extends FunctionsTestCase
     // exactly two decimals.
     const VOUCHER = array(',.', '', false);      // new.php get_voucher(), Handkassa import
     const BAWAG = array(',', '.', true);         // BAWAG and Sparkasse imports
-    const PAYPAL = array('.', ',', true);        // Paypal import
+    const BOTH = array(',.', ',.', true);        // Paypal and Sparkasse imports: either convention
 
     public static function amounts()
     {
@@ -90,13 +91,27 @@ final class AmountParsingTest extends FunctionsTestCase
             'bawag: text' => array(self::BAWAG, 'abc', null),
             'bawag: double sign' => array(self::BAWAG, '+-5,00', null),
             'bawag: surrounding space' => array(self::BAWAG, ' 5,00 ', 500),
-            'paypal: positive' => array(self::PAYPAL, '25.00', 2500),
-            'paypal: zero' => array(self::PAYPAL, '0.00', 0),
-            'paypal: negative' => array(self::PAYPAL, '-0.78', -78),
-            'paypal: thousands' => array(self::PAYPAL, '1,234.56', 123456),
-            'paypal: mixed groups' => array(self::PAYPAL, '1,234.567,89', null),
-            'paypal: comma decimals' => array(self::PAYPAL, '25,00', null),
-            'paypal: whole number' => array(self::PAYPAL, '25', null),
+            'both: dot decimals' => array(self::BOTH, '25.00', 2500),
+            'both: comma decimals' => array(self::BOTH, '25,00', 2500),
+            'both: zero' => array(self::BOTH, '0.00', 0),
+            'both: zero, comma' => array(self::BOTH, '+0,00', 0),
+            'both: negative' => array(self::BOTH, '-0.78', -78),
+            'both: negative, comma' => array(self::BOTH, '-0,78', -78),
+            'both: comma thousands' => array(self::BOTH, '1,234.56', 123456),
+            'both: dot thousands' => array(self::BOTH, '-1.234,56', -123456),
+            'both: millions, dots' => array(self::BOTH, '1.000.000,00', 100000000),
+            'both: millions, commas' => array(self::BOTH, '1,000,000.00', 100000000),
+            'both: largest' => array(self::BOTH, '21,474,836.47', 2147483647),
+            'both: above the column' => array(self::BOTH, '21.474.836,48', null),
+            'both: same separator twice' => array(self::BOTH, '1.234.56', null),
+            'both: same separator twice, comma' => array(self::BOTH, '1,234,56', null),
+            'both: mixed groups' => array(self::BOTH, '1,234.567,89', null),
+            'both: mixed thousands' => array(self::BOTH, '1.234,567.89', null),
+            'both: short group' => array(self::BOTH, '1.23,45', null),
+            'both: one decimal' => array(self::BOTH, '25,0', null),
+            'both: three decimals' => array(self::BOTH, '25.000', null),
+            'both: whole number' => array(self::BOTH, '25', null),
+            'both: exponent' => array(self::BOTH, '1e3', null),
         );
     }
 

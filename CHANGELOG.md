@@ -48,7 +48,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   applies to new vouchers and revisions, and to every part of a voucher.
 - Bank import (BAWAG, Sparkasse, Paypal, Handkassa): an amount with an
   exponent, in another format or out of range is reported as an invalid line
-  and skipped, instead of being imported with a wrong value. Handkassa amounts
+  and skipped, instead of being imported with a wrong value. Paypal and
+  Sparkasse amounts are accepted with a decimal comma or a decimal point. Handkassa amounts
   with one decimal (12,5) are imported as 12.50 instead of 1.25.
 - The donations page and the report no longer build invalid SQL for years
   outside 1 to 9999 and match nothing for them; years are written with four
