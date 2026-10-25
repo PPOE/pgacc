@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Application code ends the request with die('message') on database and
  * input errors. Under PHPUnit that would end the whole run with exit status

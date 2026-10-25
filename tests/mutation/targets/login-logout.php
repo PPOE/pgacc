@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Login and logout handling: login() in index.php (password check, session
  * cookies, redirect target), the session check of checklogin(), the logout
@@ -17,16 +18,16 @@ $pageLogin = array('start' => 'function page_login()', 'end' => '<h1>Login erfor
 
 // The early-answer blocks of index.php and the start of the page, used to
 // move one block back after acc_header() (the ordering before the fix).
-$logoutBlock = "if (\$page == \"logout\" && request_is_post())\n{\n"
-    . "  // Ends the session on the server too: its cookies stop working even if\n"
-    . "  // a copy was kept. Wrong or missing cookies end nothing.\n"
-    . "  \$logoutId = checklogin('id', false);\n  if (\$logoutId > 0)\n"
-    . "    pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
-    . "  header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n"
-    . "  header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n  header(\"Location: index.php\");\n"
-    . "  pg_close(\$dbconn);\n  return;\n}\n";
-$loginRedirectBlock = "if (\$page == \"login\" && login_redirect())\n{\n  pg_close(\$dbconn);\n  return;\n}\n";
-$pageStart = "\n\$year = date('Y');\n\nif (!\$make_csv)\n  acc_header(\$dbconn,\$page,\$year);\n";
+$logoutBlock = "if (\$page == \"logout\" && request_is_post()) {\n"
+    . "    // Ends the session on the server too: its cookies stop working even if\n"
+    . "    // a copy was kept. Wrong or missing cookies end nothing.\n"
+    . "    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0)\n"
+    . "        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n"
+    . "    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n"
+    . "    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n"
+    . "    pg_close(\$dbconn);\n    return;\n}\n";
+$loginRedirectBlock = "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n";
+$pageStart = "\n\$year = date('Y');\n\nif (!\$make_csv)\n    acc_header(\$dbconn, \$page, \$year);\n";
 
 return array(
     'description' => 'Login and logout: index.php login(), early logout/login blocks, login.php, '
@@ -156,15 +157,15 @@ return array(
         array(
             'id' => 'login-default-redirect-removed',
             'region' => $login,
-            'search' => "      else\n        header(\"Location: index.php\");",
-            'replace' => "      else\n        true;",
+            'search' => "            else header(\"Location: index.php\");",
+            'replace' => "            else true;",
             'rationale' => 'A successful login redirects (302) to index.php.',
         ),
         array(
             'id' => 'login-default-redirect-target-changed',
             'region' => $login,
-            'search' => "      else\n        header(\"Location: index.php\");",
-            'replace' => "      else\n        header(\"Location: index.php?action=all\");",
+            'search' => "            else header(\"Location: index.php\");",
+            'replace' => "            else header(\"Location: index.php?action=all\");",
             'rationale' => 'A successful login without target redirects to index.php itself.',
         ),
         array(
@@ -194,8 +195,8 @@ return array(
         array(
             'id' => 'checklogin-token-not-checked',
             'region' => $checklogin,
-            'search' => "      if (!\$tokenMatches || !\$line || strval(\$line['cookie']) === '')\n        continue;",
-            'replace' => "      if (false)\n        continue;",
+            'search' => "            if (!\$tokenMatches || !\$line || strval(\$line['cookie']) === '')\n                continue;",
+            'replace' => "            if (false)\n                continue;",
             'rationale' => 'Fail-open: any pp_pgacc_login value would authenticate as the pp_pgacc_id user.',
         ),
         array(
@@ -349,8 +350,8 @@ return array(
         array(
             'id' => 'logout-continues',
             'region' => $logout,
-            'search' => "  pg_close(\$dbconn);\n  return;",
-            'replace' => "  true;\n  true;",
+            'search' => "    pg_close(\$dbconn);\n    return;",
+            'replace' => "    true;\n  true;",
             'rationale' => 'Logout ends the request: the redirect body stays empty instead of rendering the default page.',
         ),
         array(
@@ -365,8 +366,8 @@ return array(
         array(
             'id' => 'login-continues',
             'region' => $loginBlock,
-            'search' => "  pg_close(\$dbconn);\n  return;",
-            'replace' => "  pg_close(\$dbconn);\n  true;",
+            'search' => "    pg_close(\$dbconn);\n    return;",
+            'replace' => "    pg_close(\$dbconn);\n    true;",
             'rationale' => 'A completed login redirect ends the request (empty body, no page on a closed connection).',
         ),
         array(
@@ -382,7 +383,7 @@ return array(
             'id' => 'logged-in-guard-removed',
             'file' => 'login.php',
             'region' => $loginRedirect,
-            'search' => "if (checklogin('id',false) > 0)",
+            'search' => "if (checklogin('id', false) > 0)",
             'replace' => 'if (false)',
             'rationale' => 'An already logged-in user is redirected to the posted target; posted credentials are '
                 . 'not used for a new login.',
@@ -423,8 +424,8 @@ return array(
             'id' => 'logged-in-target-continues',
             'file' => 'login.php',
             'region' => $loginRedirect,
-            'search' => "      return true;",
-            'replace' => "      return false;",
+            'search' => "            return true;",
+            'replace' => "            return false;",
             'rationale' => 'The target redirect of a logged-in user ends the request (empty body).',
         ),
         array(
@@ -457,7 +458,7 @@ return array(
             'id' => 'page-login-guard-removed',
             'file' => 'login.php',
             'region' => $pageLogin,
-            'search' => "if (checklogin('id',false) > 0)",
+            'search' => "if (checklogin('id', false) > 0)",
             'replace' => 'if (false)',
             'rationale' => 'An already logged-in user sees the success message, not the login form.',
         ),
@@ -490,8 +491,8 @@ return array(
         array(
             'id' => 'page-new-buchung-default-restored',
             'file' => 'new.php',
-            'search' => 'function page_new_buchung($part, $part_to_remove,$rights,$add)',
-            'replace' => 'function page_new_buchung($part = 0, $part_to_remove,$rights,$add)',
+            'search' => 'function page_new_buchung($part, $part_to_remove, $rights, $add)',
+            'replace' => 'function page_new_buchung($part = 0, $part_to_remove, $rights, $add)',
             'rationale' => 'The optional-before-required default is deprecated since PHP 8.0 and reported '
                 . 'on every request that compiles new.php.',
         ),

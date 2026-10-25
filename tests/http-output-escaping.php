@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Output encoding of database and request values in the HTML pages, and
  * formula neutralization in the CSV export (html_escape(), listing_text()
@@ -243,8 +244,11 @@ $savedForm = page('/index.php?action=new', $admin, 'POST', array('parts' => '1',
     'dir0' => 'in', 'in_type0' => '90', 'lo0' => '90', 'amount0' => '1,00', 'name0' => $entered, 'comment0' => $entered,
     'commentgf0' => $entered, 'street0' => $entered, 'plz0' => $entered, 'city0' => $entered));
 assert_contains($savedForm, '<h1>Buchung erfasst', 'saved voucher');
-$stored = pg_fetch_assoc(escaping_query($database, 'SELECT name, comment, commentgf, street, plz, city FROM vouchers WHERE NOT deleted AND date = $1 AND orga = 90 AND amount = 100',
-    array('2024-07-06')));
+$stored = pg_fetch_assoc(escaping_query(
+    $database,
+    'SELECT name, comment, commentgf, street, plz, city FROM vouchers WHERE NOT deleted AND date = $1 AND orga = 90 AND amount = 100',
+    array('2024-07-06')
+));
 if ($stored === false || count(array_unique(array_values($stored))) !== 1 || $stored['name'] !== $entered) {
     fail_test('saved voucher: ' . var_export($stored, true));
 }

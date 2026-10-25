@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Output encoding of the two listing sinks that no page calls today
  * (kdonations_page_listing_line(), disabled for legal reasons, and the 'wk'
@@ -40,8 +41,10 @@ final class UnusedOutputTest extends FunctionsTestCase
     public function testKdonationsListingLineKeepsCsvRaw()
     {
         $GLOBALS['make_csv'] = true;
-        self::assertSame("2024-01-02\t<s>type</s> & \"Ö\"\t<s>lo</s> 'x'\t<s>comment</s>  <i>Kontodaten</i> \t12,34€\t<s>donor</s> & Ö\t\n",
-            $this->withSyntheticRows(array($this, 'kdonationsLine')));
+        self::assertSame(
+            "2024-01-02\t<s>type</s> & \"Ö\"\t<s>lo</s> 'x'\t<s>comment</s>  <i>Kontodaten</i> \t12,34€\t<s>donor</s> & Ö\t\n",
+            $this->withSyntheticRows(array($this, 'kdonationsLine'))
+        );
     }
 
     public function campaignReport()

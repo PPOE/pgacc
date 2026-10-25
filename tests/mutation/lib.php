@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Core logic of the target-driven mutation runner (tests/mutation/runner.php):
  * target validation, exact-match mutation application, outcome
@@ -54,9 +55,7 @@ function pgacc_mutation_drop_database_sql($name, $serverVersionNum)
     );
 }
 
-class PgaccMutationException extends RuntimeException
-{
-}
+class PgaccMutationException extends RuntimeException {}
 
 function pgacc_mutation_fail($message)
 {
@@ -509,8 +508,14 @@ function pgacc_mutation_format_summary($target, $phpVersion, $results, $summary)
     $lines = array();
     $lines[] = sprintf('Mutation target %s on PHP %s: %d mutant(s)', $target, $phpVersion, $summary['total']);
     foreach ($results as $result) {
-        $line = sprintf('  %-17s %-40s %s:%d  %.1fs', strtoupper($result['status']), $result['id'],
-            $result['file'], $result['line'], $result['seconds']);
+        $line = sprintf(
+            '  %-17s %-40s %s:%d  %.1fs',
+            strtoupper($result['status']),
+            $result['id'],
+            $result['file'],
+            $result['line'],
+            $result['seconds']
+        );
         if (isset($result['note']) && $result['note'] !== null) {
             $line .= '  (' . $result['note'] . ')';
         }
@@ -519,8 +524,13 @@ function pgacc_mutation_format_summary($target, $phpVersion, $results, $summary)
     $counts = $summary['counts'];
     $lines[] = sprintf(
         'Detected %d (killed %d, timeout %d); survived %d; accepted equivalent %d; invalid %d; stale equivalent %d; score %s',
-        $summary['detected'], $counts['killed'], $counts['timeout'], $counts['survived'],
-        $counts['equivalent'], $counts['invalid'], $counts['stale-equivalent'],
+        $summary['detected'],
+        $counts['killed'],
+        $counts['timeout'],
+        $counts['survived'],
+        $counts['equivalent'],
+        $counts['invalid'],
+        $counts['stale-equivalent'],
         $summary['score'] === null ? 'n/a' : $summary['score'] . '%'
     );
     $lines[] = $summary['exit_code'] === 0

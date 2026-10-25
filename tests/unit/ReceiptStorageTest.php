@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Receipt storage helpers in functions.php: key validation and fingerprint,
  * the file names (legacy files/<n>.aes, files/<n>.v2.aes), the v2 format
@@ -99,8 +100,11 @@ final class ReceiptStorageTest extends FunctionsTestCase
         if (isset($vector['file'])) {
             self::assertSame($vector['file'], bin2hex($file), $label);
         } else {
-            self::assertSame(array($vector['file_length'], $vector['file_sha256']),
-                array(strlen($file), hash('sha256', $file)), $label);
+            self::assertSame(
+                array($vector['file_length'], $vector['file_sha256']),
+                array(strlen($file), hash('sha256', $file)),
+                $label
+            );
         }
     }
 
@@ -223,12 +227,16 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $ikm = str_repeat("\x0b", 22);
         $prk = receipt_hkdf_extract(hex2bin('000102030405060708090a0b0c'), $ikm);
         self::assertSame('077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5', bin2hex($prk));
-        self::assertSame('3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865',
-            bin2hex(receipt_hkdf_expand($prk, hex2bin('f0f1f2f3f4f5f6f7f8f9'), 42)));
+        self::assertSame(
+            '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865',
+            bin2hex(receipt_hkdf_expand($prk, hex2bin('f0f1f2f3f4f5f6f7f8f9'), 42))
+        );
         $prk = receipt_hkdf_extract('', $ikm);
         self::assertSame('19ef24a32c717b167f33a91d6f648bdf96596776afdb6377ac434c1c293ccb04', bin2hex($prk));
-        self::assertSame('8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8',
-            bin2hex(receipt_hkdf_expand($prk, '', 42)));
+        self::assertSame(
+            '8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8',
+            bin2hex(receipt_hkdf_expand($prk, '', 42))
+        );
         self::assertSame(1, strlen(receipt_hkdf_expand($prk, '', 1)));
         self::assertSame(100, strlen(receipt_hkdf_expand($prk, 'x', 100)));
     }

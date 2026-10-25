@@ -1,4 +1,5 @@
 <?php
+
 /*
  * page_report() in report.php: the $prevcond initialization that replaced
  * the undefined variable passed to unit_report() (KD-REPORT-PREVCOND).
@@ -11,7 +12,7 @@
 return array(
     'description' => 'report.php page_report() $prevcond initialization (HTTP report)',
     'file' => 'report.php',
-    'region' => array('start' => 'function page_report(', 'end' => '$cond = date_condition($year,1);'),
+    'region' => array('start' => 'function page_report(', 'end' => '$cond = date_condition($year, 1);'),
     'tests' => array(
         array('type' => 'http', 'script' => 'tests/http-smoke.php'),
     ),

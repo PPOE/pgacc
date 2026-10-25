@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Shared setup of the receipt key migration tests (ReceiptMigrationTest,
  * ReceiptMigrationCommandTest): synthetic legacy receipts in a temporary

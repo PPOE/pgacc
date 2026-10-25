@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Fails if any executable line in the given ranges is not covered.
  *

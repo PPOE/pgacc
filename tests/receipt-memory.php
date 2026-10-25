@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Stores and sends a synthetic 20 MB receipt with the receipt v2 helpers
  * (receipt_store(), receipt_v2_open(), receipt_v2_send()) and checks that

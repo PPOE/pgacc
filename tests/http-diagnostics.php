@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Collects the PHP diagnostics that tests/runtime/diagnostics-prepend.php
  * records on the test servers and fails the test script on any diagnostic

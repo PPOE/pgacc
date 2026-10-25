@@ -1,4 +1,5 @@
 <?php
+
 /*
  * The receipt file that the PDF import (import2.php) writes (files/<n>.v2.aes,
  * decrypted with the configured key and the file number), and the refusal of

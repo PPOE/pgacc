@@ -1,4 +1,5 @@
 <?php
+
 /*
  * The receipt key migration (migrate-receipt-key.php): legacy files/<n>.aes
  * re-encrypted as files/<n>.v2.aes in two phases, on synthetic files in a
@@ -24,6 +25,10 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
                 self::assertSame(T_OPEN_TAG, $token[0]);
                 continue;
             }
+            // The blank line after "<?php" (PER-CS).
+            if ($index === 1 && is_array($token) && $token[0] === T_WHITESPACE) {
+                continue;
+            }
             $code .= is_array($token) ? $token[1] : $token;
             if (strlen($code) > 300) {
                 break;
@@ -47,15 +52,20 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         }
         $this->put('901.aes', $this->legacyPdf());
         $before = $this->files();
-        $process = proc_open('php-cgi -q ' . escapeshellarg(dirname(dirname(__DIR__)) . '/migrate-receipt-key.php')
+        $process = proc_open(
+            'php-cgi -q ' . escapeshellarg(dirname(dirname(__DIR__)) . '/migrate-receipt-key.php')
             . ' --files=' . escapeshellarg($this->directory . '/files'),
-            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes);
+            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes
+        );
         $output = stream_get_contents($pipes[1]);
         $errors = stream_get_contents($pipes[2]);
         fclose($pipes[1]);
         fclose($pipes[2]);
-        self::assertSame(array(1, '', "migrate-receipt-key.php must be run with the php command-line binary.\n"),
-            array(proc_close($process), $output, $errors));
+        self::assertSame(
+            array(1, '', "migrate-receipt-key.php must be run with the php command-line binary.\n"),
+            array(proc_close($process), $output, $errors)
+        );
         self::assertSame($before, $this->files());
     }
 
@@ -251,8 +261,10 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             . self::summary(array(0, 0, 1, 0, 0, 0)),
             $output
         );
-        self::assertSame(array('.migrate-receipt-key.lock', '901.v2.aes', '902.v2.aes', '908.aes', '908.v2.aes'),
-            array_keys($this->files()));
+        self::assertSame(
+            array('.migrate-receipt-key.lock', '901.v2.aes', '902.v2.aes', '908.aes', '908.v2.aes'),
+            array_keys($this->files())
+        );
     }
 
     public function testExistingV2FilesAreVerified()

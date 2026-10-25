@@ -1,4 +1,5 @@
 <?php
+
 if (PHP_SAPI !== 'cli') {
     // A web request gets a 404; php-cgi run from a shell gets a message.
     isset($_SERVER['REQUEST_METHOD']) ? header('HTTP/1.0 404 Not Found') : fwrite(fopen('php://stderr', 'w'), "migrate-receipt-key.php must be run with the php command-line binary.\n");
@@ -174,8 +175,11 @@ function receipt_migration_legacy($connection, $options, $number)
         return array('skipped', "not migrated: $size bytes, above --max-size={$options['max-size']}");
     }
     $legacy = (string) @file_get_contents($path);
-    $result = @pg_query_params($connection,
-        'SELECT DISTINCT voucher_id FROM vouchers WHERE file = $1 ORDER BY voucher_id', array($number));
+    $result = @pg_query_params(
+        $connection,
+        'SELECT DISTINCT voucher_id FROM vouchers WHERE file = $1 ORDER BY voucher_id',
+        array($number)
+    );
     if ($result === false) {
         return array('failed', 'database query failed: ' . pg_last_error($connection));
     }

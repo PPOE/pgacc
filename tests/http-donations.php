@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Public donation list (?action=donations, donations.php page_donations()).
  *

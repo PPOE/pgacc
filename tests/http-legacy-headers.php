@@ -1,4 +1,5 @@
 <?php
+
 /*
  * PHP 5.6-8.3 fallback for reading HTTP response headers. Only included when
  * http_get_last_response_headers() is unavailable: PHP 8.5 deprecates the

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Test-only diagnostics recorder, loaded with auto_prepend_file by the test
  * servers. It records every PHP diagnostic raised while serving a request to

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Merges PHPUnit coverage with the per-request coverage written by
  * tests/coverage/prepend.php, prints a per-file summary, and writes Clover,

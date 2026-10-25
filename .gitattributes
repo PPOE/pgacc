@@ -1,8 +1,21 @@
 # Paths left out of `git archive` (scripts/release.sh) and of GitHub's
 # automatic source archives. Only development files are listed here: every
 # top-level *.php page, css, js/, icons/, .htaccess, table-schema.txt, the
-# READMEs, CHANGELOG.md and composer.json/composer.lock stay in. No line-ending
-# attributes: several files are CRLF and must stay byte-exact.
+# READMEs, CHANGELOG.md and composer.json/composer.lock stay in.
+
+# Line endings: every text file of ours is LF, in the repository and in checkouts
+# (the formatting pull request converted the former CRLF files). Recorded and
+# fixture bytes stay exactly as they are: the import CSV fixtures are CRLF on
+# purpose, and the PHP 5 recordings hold the CRLF output of the former CRLF
+# sources (tests/reference/allowlist.php, RD-FORMAT-CRLF-TO-LF).
+* text=auto eol=lf
+/tests/fixtures/** -text
+/tests/reference/fixtures/** -text
+/tests/reference/php5/** -text
+# Third-party files stay exactly as shipped (icons/readme.* are CRLF).
+/icons/** -text
+/js/** -text
+/jquery.fileupload.js -text
 
 # Test harness, CI and tooling.
 /tests/** export-ignore
@@ -14,6 +27,8 @@
 /.dockerignore export-ignore
 /.gitignore export-ignore
 /.gitattributes export-ignore
+/.git-blame-ignore-revs export-ignore
+/.php-cs-fixer.dist.php export-ignore
 
 # Ad-hoc voucher-number check without login; production's web server denies it.
 /check.php export-ignore

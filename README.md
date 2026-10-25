@@ -92,6 +92,15 @@ sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 8.5      # Infection
 ```
 
+PHP files follow PER Coding Style 3.0, whitespace rules only
+(`.php-cs-fixer.dist.php`, `sh scripts/format.sh`). The whitespace-only
+formatting commit is listed in `.git-blame-ignore-revs`; let `git blame`
+skip it with:
+
+```sh
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 Change workflow and verification order: [AGENTS.md](AGENTS.md).
 Details: [tests/README.md](tests/README.md),
 [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md),

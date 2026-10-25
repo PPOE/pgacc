@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Read-only bgf ("Rbgf", accounts.php): write_rights() and the checks of the
  * write actions (voucher creation, receipt upload, revision, approval,
@@ -12,7 +13,7 @@
  * which tests must never contact. See tests/mutation/README.md for the
  * format.
  */
-$check = "if (\$rights === false)\n{\n  echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Keine Zugriffsrechte.";
+$check = "if (\$rights === false) {\n        echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Keine Zugriffsrechte.";
 $scoped = '$rights = write_rights($rights);';
 $unscoped = '$rights = write_rights($rights) === false ? false : $rights;';
 $mutations = array();
@@ -65,30 +66,30 @@ $mutations[] = array(
 $mutations[] = array(
     'id' => 'write-rights-keeps-read-only',
     'file' => 'functions.php',
-    'search' => "    if (\$right !== 'Rbgf' && \$right !== '')",
-    'replace' => "    if (\$right !== '')",
+    'search' => "        if (\$right !== 'Rbgf' && \$right !== '')",
+    'replace' => "        if (\$right !== '')",
     'rationale' => 'Rbgf does not count as a write right.',
 );
 $mutations[] = array(
     'id' => 'write-rights-ignores-read-only',
     'file' => 'functions.php',
-    'search' => "  if (!in_array('Rbgf', \$tokens, true))\n    return \$rights;",
-    'replace' => "  if (true)\n    return \$rights;",
+    'search' => "    if (!in_array('Rbgf', \$tokens, true))\n        return \$rights;",
+    'replace' => "    if (true)\n        return \$rights;",
     'rationale' => 'Fail-open: Rbgf counts as a write right.',
 );
 $mutations[] = array(
     'id' => 'write-rights-empty-not-refused',
     'file' => 'functions.php',
-    'search' => "  if (count(\$rights_w) == 0)\n    return false;",
-    'replace' => "  if (count(\$rights_w) == 0)\n    return '';",
+    'search' => "    if (count(\$rights_w) == 0)\n        return false;",
+    'replace' => "    if (count(\$rights_w) == 0)\n        return '';",
     'rationale' => 'Fail-open: without other rights read-only bgf would write as a user without '
         . 'rights (voucher creation in organization 10).',
 );
 $mutations[] = array(
     'id' => 'menu-write-links-for-read-only',
     'file' => 'functions.php',
-    'search' => "  if (write_rights(\$rights) !== false)\n  {",
-    'replace' => "  if (true)\n  {",
+    'search' => "        if (write_rights(\$rights) !== false) {",
+    'replace' => "        if (true) {",
     'rationale' => 'The menu offers no write pages to read-only bgf.',
 );
 $mutations[] = array(

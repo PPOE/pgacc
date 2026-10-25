@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Request values used in SQL: the voucher ID of the edit actions (approval,
  * approval reset, revision, receipt upload) accepts digits
@@ -104,16 +105,16 @@ foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval(
 $mutations[] = array(
     'id' => 'member-name-unescaped',
     'file' => 'new.php',
-    'search' => "    \$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);",
-    'replace' => "    \$voucher['name'] = \$line['name'];",
+    'search' => "                \$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);",
+    'replace' => "                \$voucher['name'] = \$line['name'];",
     'rationale' => 'Removed escape: a member name from the membership list is inserted as SQL.',
 );
 
 $mutations[] = array(
     'id' => 'member-id-raw',
     'file' => 'getusers.php',
-    'search' => '  $id = intval($values[1]);',
-    'replace' => '  $id = $values[1];',
+    'search' => '        $id = intval($values[1]);',
+    'replace' => '        $id = $values[1];',
     'rationale' => 'A member id from the membership system is inserted as a number, not as SQL.',
 );
 

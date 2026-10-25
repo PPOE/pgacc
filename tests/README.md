@@ -220,7 +220,7 @@ files) and `ShortOpenTagTest.php`. Tests that pass null capture
 every diagnostic with their own error handler, because PHPUnit 9 only prints
 deprecations. The suite also passes in random order, as Infection runs it.
 
-`functions.php:74` is unreachable: the regular expression on line 73 (`^*...`)
+`functions.php:71` is unreachable: the regular expression on line 70 (`^*...`)
 is malformed and cannot match; a test records that behaviour. PHPUnit 9 and Xdebug are test tools, not
 production dependencies.
 
@@ -464,7 +464,13 @@ the recording byte for byte.
 `compare.php` fails on every difference unless a reviewed entry in
 `tests/reference/allowlist.php` (ID, PHP versions, optional `pg`, file glob,
 line pattern, reason, category) accepts it; unused entries fail as stale.
-`accepted` is an expected environment difference (`default_charset`, cookie
+One entry, `RD-FORMAT-CRLF-TO-LF`, is a `transform` instead of a line
+pattern: the formatting pull request converted the CRLF source files to LF,
+which changed their HTML and SQL newlines, so the reference is read with CRLF
+as LF before the comparison: text/html bodies throughout, CSV downloads only
+in their final CRLF (appended by `index.php`), SQL text and the HTML helper
+output, never binary bodies or `db/` dumps, with the lengths recomputed. The
+lane's recording is not changed. `accepted` is an expected environment difference (`default_charset`, cookie
 `Max-Age`/expiry format, 32- vs 64-bit integers); `todo` is a defect to fix
 later (PDF import on 7.2+, PHP 8 TypeErrors, exponent and hex numeric
 strings). `todo` entries come first so they take precedence over the broad
@@ -526,6 +532,25 @@ Each tool has blind spots: PHPStan's 8.5 parser rejects `$ascii{$i}` as a parse 
 PHP_CodeSniffer has no data flow; the missing-upload `count()` crashes in
 `import.php`/`import2.php` appear only at PHPStan level 9; neither reports PHP
 8.5's implicit PostgreSQL connection deprecation. The HTTP tests cover those.
+
+### Formatting
+
+```bash
+sh scripts/format.sh [files...]          # format the tree (or the given files)
+sh scripts/format.sh --check [files...]  # dry run with diff
+```
+
+PER Coding Style 3.0, whitespace rules only (`.php-cs-fixer.dist.php`):
+indentation (4 spaces), brace placement, spacing, blank lines, trailing
+whitespace and LF line endings. PHP-CS-Fixer 3.95.27 is pinned in
+`tests/style/composer.lock` and runs in its own image (`tests/style/Dockerfile`,
+pinned `php:8.5-cli`, no network). Token-changing rules of the set (array
+syntax, `elseif`, visibility, closing tags, imports, ...) are left out; the
+config lists them. Inline HTML, strings and heredocs are never touched; after
+formatting existing code, prove that with
+`sh tests/coverage/token-equivalence.sh --check <base>`. Not formatted:
+`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`,
+`tests/static-analysis/canaries/`, `vendor/`.
 
 ## Open test work
 

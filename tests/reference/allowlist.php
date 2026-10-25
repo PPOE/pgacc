@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Reviewed differences from the PHP 5 reference (tests/reference/php5/) that
  * the comparison accepts. Every other difference fails tests/reference/run.sh
@@ -13,10 +14,18 @@
  *   'pg'     => optional list of PostgreSQL servers (PGACC_TEST_PG) it applies
  *               to, e.g. array('18'); without it, the entry applies on every
  *               server. The reference is recorded on PHP 5.3 / PostgreSQL 8.4.
- *   'files'  => fnmatch() glob of recorded files, e.g. 'http/import-*.txt'
+ *   'files'  => fnmatch() glob of recorded files, e.g. 'http/import-*.txt',
+ *               or a list of globs
  *   'lines'  => regular expression that every accepted changed line must
  *               match; the line includes its leading "-" (only in the
  *               reference) or "+" (only in the lane's recording)
+ *   'transform' => instead of 'lines': 'crlf-to-lf' reads the matching
+ *               reference files with CRLF as LF before they are compared
+ *               (ref_crlf_to_lf(): HTTP text/html bodies throughout, other
+ *               text bodies only their final CRLF, binary bodies never; other
+ *               recordings throughout, exported strings included; lengths
+ *               recomputed). The lane's recording is not changed. Used while
+ *               it converts at least one file.
  *   'reason' => why the difference is intended, with the plan/PR reference
  *   'category' => 'accepted': an expected environment difference (php.ini,
  *               SAPI, PHP version formats, 32- vs 64-bit integers, PostgreSQL
@@ -41,6 +50,22 @@ return array(
         'lines' => '/^(-header: Content-type: text\/html|\+header: Content-type: text\/html; charset=UTF-8)$/',
         'reason' => 'Production (PHP 5.3, stock squeeze php.ini) has no default_charset and sends text/html '
             . 'without a charset; PHP 5.6+ default to default_charset=UTF-8. The pages declare UTF-8 themselves.',
+        'category' => 'accepted',
+    ),
+
+    array(
+        'id' => 'RD-FORMAT-CRLF-TO-LF',
+        'php' => array('8.5'),
+        // The pages, the SQL text and the HTML helper output of the converted
+        // files; never db/ dumps or binary bodies.
+        'files' => array('http/*.txt', 'sql/*.sql', 'helpers/misc.txt'),
+        'transform' => 'crlf-to-lf',
+        'reason' => 'HTML newlines CRLF -> LF from the formatting pull request: closed.php, edit.php, '
+            . 'functions.php, import.php, import2.php, index.php, kdonations.php and new.php were CRLF files, '
+            . 'so their multi-line strings and inline HTML sent CRLF (page HTML, SQL text, block_start()/'
+            . 'block_end() output, and the CRLF that index.php appends after a CSV download). They are LF '
+            . 'now (.gitattributes). The reference (PHP 5, cannot be re-recorded) is read with those CRLF '
+            . 'as LF and the lengths recomputed; any other difference, or a CRLF the lane still sends, still fails.',
         'category' => 'accepted',
     ),
 

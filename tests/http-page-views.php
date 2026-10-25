@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Plain page views: every page of the index.php dispatch and every link of the
  * public and the logged-in menu, plus the year and account links those pages
@@ -11,7 +12,7 @@ require __DIR__ . '/http-test-helpers.php';
 
 // The pages index.php dispatches on ?action= (its in_array() list).
 $index = file_get_contents(__DIR__ . '/../index.php');
-if (preg_match('/if \(in_array\(\$_GET\["action"\],array\(([^)]*)\)\)\)/', $index, $match) !== 1
+if (preg_match('/if \(in_array\(\$_GET\["action"\],\s*array\(([^)]*)\)\)\)/', $index, $match) !== 1
     || preg_match_all('/"([a-z0-9]+)"/', $match[1], $actions) < 20) {
     fail_test('index.php: the ?action= dispatch list was not found');
 }

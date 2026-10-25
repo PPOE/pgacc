@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Ledger listing (closed.php page_listing_header()/page_listing_line(), used
  * by action=all) with hidden columns from the users.hide preference.
@@ -65,13 +66,13 @@ function header_cells($body, $label)
 }
 
 // The 18 filter-row segments between "</td><td>" separators. The row is
-// echoed from CRLF source lines of closed.php.
+// echoed from multi-line string literals of closed.php.
 function filter_cells($body, $label)
 {
     $row = listing_part(
         $body,
-        '<form action="index.php" method="GET"> <tr>' . "\r\n<td>",
-        "\r\n</td>\r\n</tr></form>",
+        '<form action="index.php" method="GET"> <tr>' . "\n<td>",
+        "\n</td>\n</tr></form>",
         "$label filter row"
     );
     $cells = explode('</td><td>', $row);

@@ -5,6 +5,7 @@
 # Usage: sh tests/coverage/changed-lines.sh <base> [<pathspec>...]
 #   <base>      commit to compare against (merge base is used), e.g. origin/main
 #   <pathspec>  relative to the repository root; defaults to '*.php'
+#               (without .php-cs-fixer.dist.php)
 #
 # Compares the merge base with the working tree, so uncommitted changes count.
 # Untracked files matching the pathspec count as entirely new. Pure deletions
@@ -24,7 +25,9 @@ fi
 base=$1
 shift
 if [ $# -eq 0 ]; then
-  set -- '*.php'
+  # The formatter configuration is tooling, not application code (it is
+  # export-ignored, see .gitattributes).
+  set -- '*.php' ':(exclude).php-cs-fixer.dist.php'
 fi
 
 script_dir=$(cd "$(dirname "$0")" && pwd -P)

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Form tokens (CSRF). Every POST request except the login form and the public
  * captcha forms must carry the form token of its session (csrf_field(),
@@ -192,7 +193,7 @@ if (strpos($getMerge['body'], 'FEHLER: Buchungen nur über die Schaltfläche') =
 // The forms that write carry the form token of the session.
 $field = '<input type="hidden" name="csrf_token" value="' . $adminToken . '" />';
 $forms = array(
-    'voucher form' => array('/index.php?action=edit&id=4901', 'action="index.php?action=edit" method="post">' . "\r\n" . $field),
+    'voucher form' => array('/index.php?action=edit&id=4901', 'action="index.php?action=edit" method="post">' . "\n" . $field),
     'merge form' => array('/index.php?action=edit&id=4901', '<form id="mergeform" action="index.php?action=merge" method="post" style="display: none">'
         . $field . '<input type="hidden" name="bid1" value="4901" />'),
     'recovery form' => array('/index.php?action=recover&id=4905&bid=9305', '<form action="index.php?action=recover&amp;id=4905&amp;bid=9305" method="post">'

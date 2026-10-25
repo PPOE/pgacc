@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Redirects answered before any output: the login redirect that index.php
  * sends visitors who are not logged in before the CSV byte order mark or
@@ -21,22 +22,22 @@ $csrfBlock = "// Form tokens (CSRF): every POST request except the login form an
     . "// public captcha forms must carry the form token of its session\n"
     . "// (csrf_field()), checked before anything is written. Merge, recovery, the\n"
     . "// column preferences and logout write only on POST.\n"
-    . "\$csrf_exempt = in_array(\$page,array(\"login\",\"donations\",\"kdonations\"));\n"
-    . "if (request_is_post() && !\$csrf_exempt)\n{\n  checklogin('id', false);\n  if (!csrf_request_valid())\n  {\n"
-    . "    acc_header(\$dbconn,\$page,date('Y'));\n"
-    . "    echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';\n"
-    . "    acc_footer();\n    pg_close(\$dbconn);\n    return;\n  }\n}\n";
+    . "\$csrf_exempt = in_array(\$page, array(\"login\",\"donations\",\"kdonations\"));\n"
+    . "if (request_is_post() && !\$csrf_exempt) {\n    checklogin('id', false);\n    if (!csrf_request_valid()) {\n"
+    . "        acc_header(\$dbconn, \$page, date('Y'));\n"
+    . "        echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';\n"
+    . "        acc_footer();\n        pg_close(\$dbconn);\n        return;\n    }\n}\n";
 // The early blocks and the CSV block that follows them, used to move the
 // early blocks back after the byte order mark.
-$earlyBlocks = "if (in_array(\$page,$protectedList) && checklogin('id') === null)\n{\n  pg_close(\$dbconn);\n"
-    . "  return;\n}\n" . $csrfBlock . "if (\$page == \"search\")\n{\n  \$rights = checklogin('rights',false);\n"
-    . "  page_search(\$rights);\n  pg_close(\$dbconn);\n  return;\n}\n";
+$earlyBlocks = "if (in_array(\$page, $protectedList) && checklogin('id') === null) {\n    pg_close(\$dbconn);\n"
+    . "    return;\n}\n" . $csrfBlock . "if (\$page == \"search\") {\n    \$rights = checklogin('rights', false);\n"
+    . "    page_search(\$rights);\n    pg_close(\$dbconn);\n    return;\n}\n";
 $csvBlock = "global \$make_csv;\n\$make_csv = false;\n"
-    . "if (isset(\$_GET[\"format\"]) && \$_GET[\"format\"] == 'csv' && in_array(\$_GET[\"action\"],array(\"search\","
-    . "\"all\",\"open\",\"transactions\",\"spendings\",\"closed\",\"deleted\")))\n{\n"
-    . "  header('Content-Encoding: UTF-8');\n  header('Content-type: text/csv; charset=UTF-8');\n"
-    . "  header(\"Content-Disposition: attachment; filename=\$page.csv\");\n"
-    . "  echo \"\\xEF\\xBB\\xBF\"; // UTF-8 BOM\n  \$make_csv = true;\n}\n";
+    . "if (isset(\$_GET[\"format\"]) && \$_GET[\"format\"] == 'csv' && in_array(\$_GET[\"action\"], array(\"search\","
+    . "\"all\",\"open\",\"transactions\",\"spendings\",\"closed\",\"deleted\"))) {\n"
+    . "    header('Content-Encoding: UTF-8');\n    header('Content-type: text/csv; charset=UTF-8');\n"
+    . "    header(\"Content-Disposition: attachment; filename=\$page.csv\");\n"
+    . "    echo \"\\xEF\\xBB\\xBF\"; // UTF-8 BOM\n    \$make_csv = true;\n}\n";
 
 $mutations = array(
     array(
@@ -57,8 +58,8 @@ $mutations = array(
     array(
         'id' => 'login-redirect-continues',
         'region' => $early,
-        'search' => "  pg_close(\$dbconn);\n  return;\n}\n// Form tokens (CSRF)",
-        'replace' => "  pg_close(\$dbconn);\n  true;\n}\n// Form tokens (CSRF)",
+        'search' => "    pg_close(\$dbconn);\n    return;\n}\n// Form tokens (CSRF)",
+        'replace' => "    pg_close(\$dbconn);\n    true;\n}\n// Form tokens (CSRF)",
         'rationale' => 'The login redirect ends the request: an empty body, no page code on a closed connection.',
     ),
     array(
@@ -78,14 +79,14 @@ $mutations = array(
     array(
         'id' => 'search-continues',
         'region' => $search,
-        'search' => "  pg_close(\$dbconn);\n  return;",
-        'replace' => "  pg_close(\$dbconn);\n  true;",
+        'search' => "    pg_close(\$dbconn);\n    return;",
+        'replace' => "    pg_close(\$dbconn);\n    true;",
         'rationale' => 'The search redirect ends the request (empty body).',
     ),
     array(
         'id' => 'search-requires-login',
         'region' => $search,
-        'search' => "checklogin('rights',false)",
+        'search' => "checklogin('rights', false)",
         'replace' => "checklogin('rights')",
         'rationale' => 'Visitors who are not logged in get the search redirect, as before the fix.',
         'equivalent' => array(
@@ -103,8 +104,8 @@ $mutations = array(
     ),
     array(
         'id' => 'edit-merge-buffer-removed',
-        'search' => "if (\$page == \"edit\" || \$page == \"merge\")\n  ob_start();",
-        'replace' => "if (\$page == \"edit\" || \$page == \"merge\")\n  true;",
+        'search' => "if (\$page == \"edit\" || \$page == \"merge\")\n    ob_start();",
+        'replace' => "if (\$page == \"edit\" || \$page == \"merge\")\n    true;",
         'rationale' => 'Without the buffer the redirects of relocate() follow the page output and fail '
             . 'without output buffering ("headers already sent").',
     ),
@@ -124,24 +125,24 @@ $mutations = array(
         'id' => 'relocate-page-kept',
         'file' => 'edit.php',
         'region' => $relocate,
-        'search' => '  ob_end_clean();',
-        'replace' => '  true;',
+        'search' => '    ob_end_clean();',
+        'replace' => '    true;',
         'rationale' => 'The buffered page is discarded: write redirects have an empty body.',
     ),
     array(
         'id' => 'relocate-continues',
         'file' => 'edit.php',
         'region' => $relocate,
-        'search' => '  exit;',
-        'replace' => '  true;',
+        'search' => '    exit;',
+        'replace' => '    true;',
         'rationale' => 'relocate() ends the request; otherwise the footer queries the closed connection.',
     ),
     array(
         'id' => 'relocate-redirect-removed',
         'file' => 'edit.php',
         'region' => $relocate,
-        'search' => '  header("Location: " . $loc);',
-        'replace' => '  true;',
+        'search' => '    header("Location: " . $loc);',
+        'replace' => '    true;',
         'rationale' => 'Write actions answer with a 302 to the voucher.',
     ),
     array(
@@ -189,29 +190,29 @@ $mutations = array(
     array(
         'id' => 'save-warning-date-missing',
         'file' => 'new.php',
-        'search' => "  \$warnings[] = 'date';",
-        'replace' => '  true;',
+        'search' => "        \$warnings[] = 'date';",
+        'replace' => '    true;',
         'rationale' => 'A missing date is reported for the redirect.',
     ),
     array(
         'id' => 'save-warning-refund-missing',
         'file' => 'new.php',
-        'search' => "  \$warnings[] = 'refund';",
-        'replace' => '  true;',
+        'search' => "        \$warnings[] = 'refund';",
+        'replace' => '    true;',
         'rationale' => 'A cleared refund flag is reported for the redirect.',
     ),
     array(
         'id' => 'save-warning-purpose-missing',
         'file' => 'new.php',
-        'search' => "    \$warnings[] = 'purpose';",
-        'replace' => '    true;',
+        'search' => "            \$warnings[] = 'purpose';",
+        'replace' => '            true;',
         'rationale' => 'A cleared purpose flag is reported for the redirect.',
     ),
     array(
         'id' => 'save-warning-purpose-beleg',
         'file' => 'new.php',
-        'search' => "  if (\$voucher['dir'] != 'bel')",
-        'replace' => '  if (true)',
+        'search' => "        if (\$voucher['dir'] != 'bel')",
+        'replace' => '        if (true)',
         'rationale' => 'A Beleg part clears the purpose it copied from a donation without a warning.',
     ),
     array(

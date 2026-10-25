@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Reference runs only (tests/reference/compose.yaml): tags the request's
  * PostgreSQL connection with application_name "ref:<X-Pgacc-Test-Request>"

@@ -1377,28 +1377,25 @@ Recommendation (owner decision):
   the PHPUnit-tested helpers (PHP 7.4/8.5); the target-driven runner covers
   HTTP-tested code, security-relevant mutations and PHP 5.6. See the
   [mutation README](mutation/README.md).
-- [ ] Add coding-standard checks with PHP_CodeSniffer, which is already pinned
-  in the static-analysis container for PHPCompatibility. PHP_CodeSniffer is
-  the usual choice for long-lived legacy PHP code: WordPress (WordPress Coding
-  Standards, PHPCompatibilityWP) and MediaWiki (mediawiki-codesniffer) both use
-  it. Prefer it over PHP-CS-Fixer while PHP 5.6 is supported, because several
-  PHP-CS-Fixer rules introduce newer syntax. Target the neutral
-  [PER Coding Style](https://www.php-fig.org/per/coding-style/), not a
-  project-specific style. Stages:
-  1. Add `.editorconfig` (line endings, indentation, final newline; the files
-     currently mix CRLF and LF) and correctness-oriented sniffs that report
-     without reformatting, with a reviewed baseline like the PHPStan one.
-  2. "Format on touch": enforce PER style only on changed lines in CI, by
-     filtering the `phpcs` report through `tests/coverage/changed-lines.sh`.
-  3. Later (after the PHP 8 migration, with higher coverage, possibly after
-     dropping PHP 5.6): one formatting-only commit for the whole codebase,
-     proven behavior-neutral by comparing compiled opcodes before and after,
-     listed in `.git-blame-ignore-revs`, with the line-based diagnostics
-     baseline and mutation targets regenerated. PHP-CS-Fixer becomes an
-     option at that point.
-  Do not reformat the whole codebase before then: it would rewrite nearly every
-  line, break `git blame`, and shift the line numbers that the diagnostics
-  baseline and mutation targets depend on.
+- [x] Coding standard: PER Coding Style 3.0, whitespace rules only, applied once
+  to the whole codebase by the formatting pull request (PHP-CS-Fixer 3.95.27,
+  `.php-cs-fixer.dist.php`, `sh scripts/format.sh`; the earlier plan preferred
+  PHP_CodeSniffer only while PHP 5.6 was supported). Proven behaviour-neutral
+  by `tests/coverage/token-equivalence.php` (same token stream; inline HTML,
+  strings and heredocs byte for byte) and the PHP 5 reference comparison. The
+  former CRLF files are LF (`.gitattributes`); their HTML and SQL newlines
+  changed from CRLF to LF (allowlist `RD-FORMAT-CRLF-TO-LF`). The commit is in
+  `.git-blame-ignore-revs`; mutation targets were rewritten (every mutant
+  token-equivalent to the old one).
+- [ ] Enforce the formatting (separate pull request): a CI check
+  (`sh scripts/format.sh --check`), format-on-edit hooks, and the gates back to
+  strict (token-equivalence as a standalone tool).
+- [ ] Modern syntax (separate change): the token-changing PER-CS 3.0 rules left
+  out of `.php-cs-fixer.dist.php` (`array_syntax`, `elseif`, `modifier_keywords`,
+  `no_closing_tag`, `control_structure_braces`, `operator_linebreak`, imports
+  and ordering, ...), each reviewed with the reference comparison and with the
+  changed-line coverage and mutation gates (no token-equivalence exemption).
+  Then PER-CS 3.1 once PHP-CS-Fixer ships a set for it.
 
 - [ ] `.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
   changelog says short tags are no longer needed (the

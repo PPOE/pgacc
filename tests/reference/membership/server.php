@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Local stand-in for the membership system (lane and reference runs). The
  * compose network alias mitglieder.piratenpartei.at points at this server,

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Contract tests for the mcrypt replacement (Rijndael-256 CBC with zero
  * padding) in functions.php. The expected bytes in

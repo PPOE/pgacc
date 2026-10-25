@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Release check of the locked runtime dependencies on PHP 8.5, run by
  * scripts/release.sh on the built vendor/ (mounted at /app/vendor of a plain
@@ -64,7 +65,8 @@ foreach ($vectors['mbapi'] as $vector) {
 foreach ($vectors['getusers'] as $vector) {
     $params = membership_cipher_params($vector['datakey']);
     $plain = rtrim(rijndael256_cbc($params[0], $params[1])->decrypt(
-        rijndael256_zero_pad(base64_decode($vector['sData']))), "\0");
+        rijndael256_zero_pad(base64_decode($vector['sData']))
+    ), "\0");
     if (bin2hex($plain) !== $vector['decrypted']) {
         pgacc_vendor_check_fail("getusers vector '{$vector['name']}' differs");
     }

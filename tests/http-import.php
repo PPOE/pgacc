@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Bank CSV import (import.php, ?action=import) with the synthetic CSV files of
  * tests/reference/fixtures/import/ and the membership stub of
@@ -78,7 +79,7 @@ $readOnlyTwoCookies = login_user('synthetic-read-only-two', 'read-only-two-passw
 $fixture = file_get_contents(__DIR__ . '/reference/fixtures/import/handkassa.csv');
 $imported = import_csv('handkassa.csv', $fixture, $adminCookies);
 // The import form on the result page carries the form token of the session.
-assert_contains($imported['body'], 'method="POST">' . "\r\n" . '<input type="hidden" name="csrf_token" value="'
+assert_contains($imported['body'], 'method="POST">' . "\n" . '<input type="hidden" name="csrf_token" value="'
     . session_csrf_token($adminCookies) . '" />', 'import form');
 assert_status($imported, 200, 'handkassa fixture');
 assert_contains($imported['body'], 'wurde erfolgreich importiert', 'handkassa fixture');
