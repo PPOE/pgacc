@@ -229,8 +229,6 @@ if (!$make_csv)
 
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
     $year = intval($_GET["year"]);
-} else if (isset($_GET["year"]) && preg_match('/^\d\d\d\d-\d$/', $_GET["year"]) == 1) {
-    $year = $_GET["year"];
 }
 
 if ($page == "all") {

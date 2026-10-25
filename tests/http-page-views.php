@@ -223,18 +223,11 @@ foreach (array('anonymous', 'root,bgf') as $label) {
     assert_contains($transfer, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', "transfer action ($label)");
 }
 
-// A year with a suffix ("2024-1", accepted by index.php) is passed to the
-// report as a string (known failure): the arithmetic on it warns on PHP 8,
-// and the first query fails on the date '2024-1-01-01', which ends the page.
-$suffixed = with_expected_diagnostics('KF-REPORT-YEAR-SUFFIX', array(
-    array('report.php', 'A non-numeric value'),
-    array('report.php', 'invalid input syntax for type timestamp'),
-), function () {
-    return http_request('/index.php?year=2024-1');
-});
-assert_status($suffixed, 200, 'report of 2024-1');
-assert_contains($suffixed['body'], '<h1>Rechenschaftsbericht der Piratenpartei Österreichs 2024-1</h1>', 'report of 2024-1');
-assert_contains($suffixed['body'], 'Abfrage fehlgeschlagen: ERROR:  invalid input syntax for type timestamp: "2024-1-01-01"', 'report of 2024-1');
+// A year that is not four digits (here with a suffix, "2024-1") is invalid
+// input: the report of the current year, like a missing year.
+$suffixed = page_view('/index.php?year=2024-1', array(), 'anonymous')['body'];
+assert_contains($suffixed, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'report of 2024-1');
+assert_not_contains($suffixed, 'Abfrage fehlgeschlagen', 'report of 2024-1');
 
 // Requests without X-Forwarded-Proto: https are redirected to https.
 $plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
