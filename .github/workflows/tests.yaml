@@ -37,9 +37,8 @@ jobs:
       full: ${{ steps.plan.outputs.full }}
       base: ${{ steps.plan.outputs.base }}
       mutation: ${{ steps.plan.outputs.mutation }}
-      lanes: ${{ steps.plan.outputs.lanes }}
     steps:
-      - name: Choose the lanes and the comparison base
+      - name: Choose the run mode and the comparison base
         id: plan
         env:
           EVENT: ${{ github.event_name }}
@@ -48,7 +47,6 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          lanes='{"php":"8.5","pg":"18","project":"pgacc-test-php85","compose_files":"-f compose.test.yaml -f compose.coverage.yaml"}'
           mutation=false
           case "$EVENT" in
             push)
@@ -87,7 +85,6 @@ jobs:
             echo "base=$base"
             if [ "$full" = true ]; then mutation=true; fi
             echo "mutation=$mutation"
-            echo "lanes=[$lanes]"
           } >>"$GITHUB_OUTPUT"
 
   static-analysis:
@@ -103,15 +100,10 @@ jobs:
         run: sh scripts/format.sh --check --ci
 
   docker-harness:
-    name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness
+    name: PHP 8.5 / PostgreSQL 18 characterization harness
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        # PHP 8.5 / PostgreSQL 18, the only lane (plan job).
-        include: ${{ fromJSON(needs.plan.outputs.lanes) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -137,7 +129,7 @@ jobs:
           # Fail if a changed executable line is uncovered. Empty on
           # scheduled and manual runs (full report, no gate).
           PGACC_COVERAGE_BASE: ${{ steps.base.outputs.base }}
-        run: sh tests/run.sh '${{ matrix.php }}'
+        run: sh tests/run.sh 8.5
 
       - name: Publish coverage summary
         if: always()
@@ -156,21 +148,17 @@ jobs:
 
       - name: Clean up containers
         if: always()
-        run: docker compose --project-name '${{ matrix.project }}' ${{ matrix.compose_files }} down --volumes --remove-orphans
+        run: docker compose --project-name pgacc-test-php85 -f compose.test.yaml -f compose.coverage.yaml down --volumes --remove-orphans
 
   mutation-runner:
     # Target-driven mutation testing (tests/mutation/ci.sh), blocking when it
     # runs: pull requests labelled `mutation` (changed lines only) or
     # `full-ci`, weekly and manual runs (every target). Skipped otherwise.
-    name: Mutation tests (PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }})
+    name: Mutation tests (PHP 8.5 / PostgreSQL 18)
     needs: plan
     if: needs.plan.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.plan.outputs.lanes) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -196,17 +184,17 @@ jobs:
         # changed line (tests/mutation/ci.sh, run.sh --changed-since). Adding
         # the label compares with the pull request's base.
         if: needs.plan.outputs.full != 'true'
-        run: sh tests/mutation/ci.sh '${{ matrix.php }}' '--changed-since=${{ steps.base.outputs.base }}'
+        run: sh tests/mutation/ci.sh 8.5 '--changed-since=${{ steps.base.outputs.base }}'
 
       - name: Mutation tests, all targets
         if: needs.plan.outputs.full == 'true'
-        run: sh tests/mutation/ci.sh '${{ matrix.php }}'
+        run: sh tests/mutation/ci.sh 8.5
 
       - name: Upload mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: mutation-php${{ matrix.php }}-pg${{ matrix.pg }}
+          name: mutation-php8.5-pg18
           path: build/mutation
           if-no-files-found: warn
 
@@ -220,24 +208,20 @@ jobs:
     # as the historical reference: PHP 8.5 / PostgreSQL 18 must match it except
     # for reviewed tests/reference/allowlist.php entries (accepted/todo).
     # Failures stay visible: not continue-on-error.
-    name: PHP 5 reference comparison (PHP ${{ matrix.php }})
+    name: PHP 5 reference comparison (PHP 8.5)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['8.5']
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Compare with the PHP 5 reference
-        run: sh tests/reference/run.sh compare '${{ matrix.php }}'
+        run: sh tests/reference/run.sh compare 8.5
 
       - name: Publish comparison summary
         if: always()
         run: |
-          report="build/reference/php$(echo '${{ matrix.php }}' | tr -d .)/report.txt"
+          report=build/reference/php85/report.txt
           if [ -f "$report" ]; then
             { echo '```'; head -n 80 "$report"; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
           fi
@@ -246,14 +230,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: reference-php${{ matrix.php }}
+          name: reference-php8.5
           path: build/reference
           if-no-files-found: warn
 
   mutation:
     # Full runs only. Report only: Infection results are not a required gate
     # yet. See tests/mutation/README.md for the baseline and threshold plan.
-    name: Infection mutation report (${{ matrix.target }}, PHP ${{ matrix.php }}, non-blocking)
+    name: Infection mutation report (${{ matrix.target }}, PHP 8.5, non-blocking)
     needs: plan
     if: needs.plan.outputs.full == 'true'
     runs-on: ubuntu-latest
@@ -262,7 +246,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.5']
         # functions: functions.php through the class wrapper; shim: the wrapper itself.
         target: [functions, shim]
     steps:
@@ -272,12 +255,12 @@ jobs:
       - name: Run Infection
         env:
           PGACC_INFECTION_TARGET: ${{ matrix.target }}
-        run: sh tests/mutation/infection.sh '${{ matrix.php }}'
+        run: sh tests/mutation/infection.sh 8.5
 
       - name: Upload mutation reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: infection-${{ matrix.target }}-php${{ matrix.php }}
+          name: infection-${{ matrix.target }}-php8.5
           path: tests/mutation/results/
           if-no-files-found: ignore
