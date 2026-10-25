@@ -99,8 +99,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Run static analysis against the reviewed baselines
         run: sh tests/static-analysis.sh
-      - name: Self-test of the token-equivalence check (changed-line gates)
-        run: sh tests/coverage/token-equivalence.sh --self-test
+      - name: Check the formatting (PER-CS 3.0, whitespace rules only)
+        run: sh scripts/format.sh --check --ci
 
   docker-harness:
     name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness
@@ -134,11 +134,6 @@ jobs:
 
       - name: Run application checks
         env:
-          # One-time, for the formatting pull request and its merge: the
-          # former CRLF files now emit LF (tests/coverage/token-equivalence.sh,
-          # --allow-crlf-to-lf). Removed by the pull request that enforces
-          # the formatting.
-          PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF: '1'
           # Fail if a changed executable line is uncovered. Empty on
           # scheduled and manual runs (full report, no gate).
           PGACC_COVERAGE_BASE: ${{ steps.base.outputs.base }}
@@ -197,9 +192,6 @@ jobs:
           echo "base=$BASE" >>"$GITHUB_OUTPUT"
 
       - name: Mutation tests of the changed lines
-        env:
-          # One-time, see "Run application checks".
-          PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF: '1'
         # `mutation` label: only mutations whose search region overlaps a
         # changed line (tests/mutation/ci.sh, run.sh --changed-since). Adding
         # the label compares with the pull request's base.

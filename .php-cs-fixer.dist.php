@@ -2,8 +2,9 @@
 
 /*
  * Coding style: PER Coding Style 3.0 (https://www.php-fig.org/per/coding-style/),
- * WHITESPACE RULES ONLY. Applied with scripts/format.sh (--check: dry run
- * with diff) and PHP-CS-Fixer 3.95.27 (tests/style/composer.lock).
+ * WHITESPACE RULES ONLY. Applied with scripts/format.sh and PHP-CS-Fixer
+ * 3.95.27 (tests/style/composer.lock); CI runs scripts/format.sh --check
+ * (dry run with diff). The cache is passed by format.sh (build/php-cs-fixer/).
  * PHP-CS-Fixer 3.95.27 has no PER-CS 3.1 set yet; 3.0 (@PER-CS3x0) is the
  * newest it ships.
  *
@@ -50,7 +51,6 @@ return (new PhpCsFixer\Config())
     ->setRiskyAllowed(false)
     ->setIndent('    ')
     ->setLineEnding("\n")
-    ->setUsingCache(false)
     ->setFinder($finder)
     ->setRules([
         // Indentation.
