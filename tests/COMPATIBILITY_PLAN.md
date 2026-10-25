@@ -1395,12 +1395,27 @@ Recommendation (owner decision):
   a standalone review tool.
 - [ ] Optional: a Codex hook like the Claude Code one (project-level Codex hooks
   need trust, and Codex is used read-only here, so none is configured).
-- [ ] Modern syntax (separate change): the token-changing PER-CS 3.0 rules left
-  out of `.php-cs-fixer.dist.php` (`array_syntax`, `elseif`, `modifier_keywords`,
-  `no_closing_tag`, `control_structure_braces`, `operator_linebreak`, imports
-  and ordering, ...), each reviewed with the reference comparison and with the
-  changed-line coverage and mutation gates (no token-equivalence exemption).
-  Then PER-CS 3.1 once PHP-CS-Fixer ships a set for it.
+- [ ] Modern syntax, code only (no behaviour change), in small pull requests:
+  the token-changing PER-CS 3.0 rules left out of `.php-cs-fixer.dist.php`
+  (`array_syntax`, `elseif`, `modifier_keywords`, `no_closing_tag`,
+  `control_structure_braces`, `operator_linebreak`, imports and ordering,
+  ...), each reviewed with the reference comparison and with the changed-line
+  coverage and mutation gates. Then PER-CS 3.1 once PHP-CS-Fixer ships a set
+  for it.
+  - [x] Step 1, short arrays (branch `syntax/short-arrays`): `array()` -> `[]`
+    and `list()` -> `[]` in the application pages with the pinned Rector
+    (`tests/rector/`, only `LongArrayToShortArrayRector` and
+    `ListToArrayDestructRector`), then `sh scripts/format.sh`. Every changed
+    file is proven AST-equivalent (`tests/coverage/ast-equivalence.sh`); the
+    reference comparison shows no new difference. Only rules with an
+    identical syntax tree may use the AST exemption of the gates
+    (`PGACC_SYNTAX_ONLY=1`, set by CI for that pull request only).
+  - [ ] After step 1 is merged: remove `PGACC_SYNTAX_ONLY` (CI, its handling in
+    `tests/coverage/changed-lines.sh` and `tests/mutation/run.sh`, the
+    `--exclude-pathspecs` mode and the CI self-test step); the AST check stays
+    a standalone review tool, like the token-equivalence check.
+  - [ ] Later steps change the syntax tree (`elseif`, visibility, closing tags,
+    imports, ...) and run with the strict gates.
 
 - [ ] `.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
   changelog says short tags are no longer needed (the

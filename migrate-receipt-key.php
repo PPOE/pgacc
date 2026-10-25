@@ -68,7 +68,7 @@ function receipt_migration_usage()
 function receipt_migration_bytes($value)
 {
     $value = trim($value);
-    $units = array('k' => 1024, 'm' => 1048576, 'g' => 1073741824);
+    $units = ['k' => 1024, 'm' => 1048576, 'g' => 1073741824];
     $unit = strtolower(substr($value, -1));
     if (isset($units[$unit])) {
         return intval(substr($value, 0, -1)) * $units[$unit];
@@ -86,7 +86,7 @@ function receipt_migration_default_max_size()
 // Options from the arguments (without the script name), or false.
 function receipt_migration_options($arguments)
 {
-    $options = array(
+    $options = [
         'dry-run' => false,
         'delete-legacy' => false,
         'limit' => 0,
@@ -95,7 +95,7 @@ function receipt_migration_options($arguments)
         'constants' => 'constants.php',
         'database' => 'dbname=accounting',
         'sync' => 'sync',
-    );
+    ];
     foreach ($arguments as $argument) {
         if ($argument === '--dry-run' || $argument === '--delete-legacy') {
             $options[substr($argument, 2)] = true;
@@ -128,8 +128,8 @@ function receipt_migration_key($constants)
 // and fits PostgreSQL's integer (and a 32-bit PHP integer).
 function receipt_migration_numbers($directory, $names)
 {
-    $numbers = array();
-    $others = array();
+    $numbers = [];
+    $others = [];
     foreach ($names as $name) {
         if (!is_file("$directory/$name") || substr($name, -4) !== '.aes' || substr($name, -7) === '.v2.aes') {
             continue;
@@ -143,7 +143,7 @@ function receipt_migration_numbers($directory, $names)
     }
     sort($numbers, SORT_NUMERIC);
     sort($others, SORT_STRING);
-    return array($numbers, $others);
+    return [$numbers, $others];
 }
 
 // A decrypted legacy receipt (whole 32-byte blocks, less than one block of
@@ -172,16 +172,16 @@ function receipt_migration_legacy($connection, $options, $number)
     $path = receipt_legacy_path($options['files'], $number);
     $size = filesize($path);
     if ($options['max-size'] > 0 && $size > $options['max-size']) {
-        return array('skipped', "not migrated: $size bytes, above --max-size={$options['max-size']}");
+        return ['skipped', "not migrated: $size bytes, above --max-size={$options['max-size']}"];
     }
     $legacy = (string) @file_get_contents($path);
     $result = @pg_query_params(
         $connection,
         'SELECT DISTINCT voucher_id FROM vouchers WHERE file = $1 ORDER BY voucher_id',
-        array($number)
+        [$number]
     );
     if ($result === false) {
-        return array('failed', 'database query failed: ' . pg_last_error($connection));
+        return ['failed', 'database query failed: ' . pg_last_error($connection)];
     }
     $ids = pg_fetch_all_columns($result, 0);
     pg_free_result($result);
@@ -192,10 +192,10 @@ function receipt_migration_legacy($connection, $options, $number)
         }
         $plain = receipt_decrypt($id, '', $legacy);
         if (receipt_migration_is_complete($plain)) {
-            return array('ok', $id, $plain);
+            return ['ok', $id, $plain];
         }
     }
-    return array('skipped', 'not migrated: no voucher with this file decrypts it to a complete PDF or JPEG');
+    return ['skipped', 'not migrated: no voucher with this file decrypts it to a complete PDF or JPEG'];
 }
 
 // One legacy file: array(status, message); status is a summary counter.
@@ -204,17 +204,17 @@ function receipt_migration_file($connection, $options, $key, $number)
     $v2Path = receipt_v2_path($options['files'], $number);
     $hasV2 = is_file($v2Path);
     if ($options['delete-legacy'] && !$hasV2) {
-        return array('pending', "not migrated yet; $number.aes kept");
+        return ['pending', "not migrated yet; $number.aes kept"];
     }
     // An existing <n>.v2.aes is checked the way a download reads it.
     $invalidV2 = !$options['delete-legacy'] && $hasV2 && !receipt_v2_verify_with($key, $number, $v2Path);
     if (!$options['delete-legacy'] && $hasV2 && !$invalidV2) {
-        return array('present', "already migrated; $number.aes kept until --delete-legacy");
+        return ['present', "already migrated; $number.aes kept until --delete-legacy"];
     }
     $legacy = receipt_migration_legacy($connection, $options, $number);
     if ($legacy[0] !== 'ok' && $invalidV2) {
-        return array('failed', "$number.v2.aes does not verify, and $number.aes cannot replace it ("
-            . preg_replace('/^not migrated: /', '', $legacy[1]) . '); both kept');
+        return ['failed', "$number.v2.aes does not verify, and $number.aes cannot replace it ("
+            . preg_replace('/^not migrated: /', '', $legacy[1]) . '); both kept'];
     }
     if ($legacy[0] !== 'ok') {
         return $legacy;
@@ -225,37 +225,37 @@ function receipt_migration_file($connection, $options, $key, $number)
 
     if ($options['delete-legacy']) {
         if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) {
-            return array('failed', "$number.v2.aes does not decrypt to the content of $number.aes with this key; both kept");
+            return ['failed', "$number.v2.aes does not decrypt to the content of $number.aes with this key; both kept"];
         }
         if ($options['dry-run']) {
-            return array('deleted', "verified; would delete $number.aes");
+            return ['deleted', "verified; would delete $number.aes"];
         }
         // One statement: deleting cannot be made to fail in the tests (root).
-        return @unlink(receipt_legacy_path($options['files'], $number)) ? array('deleted', "verified; deleted $number.aes") : array('failed', "verified, but $number.aes could not be deleted");
+        return @unlink(receipt_legacy_path($options['files'], $number)) ? ['deleted', "verified; deleted $number.aes"] : ['failed', "verified, but $number.aes could not be deleted"];
     }
 
     if ($options['dry-run']) {
-        return array('migrated', $recreate === '' ? "would migrate (voucher $id)" : $recreate . "would re-create it (voucher $id)");
+        return ['migrated', $recreate === '' ? "would migrate (voucher $id)" : $recreate . "would re-create it (voucher $id)"];
     }
     if (!receipt_write_file($v2Path, receipt_v2_encrypt($key, $number, $plain))) {
-        return array('failed', "$number.v2.aes could not be written; $number.aes kept");
+        return ['failed', "$number.v2.aes could not be written; $number.aes kept"];
     }
     // Read back. One statement: a written file cannot be made to differ in the
     // tests. The file is this run's own, so it may be removed.
-    if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) return @unlink($v2Path) ? array('failed', "$number.v2.aes did not verify and was removed; $number.aes kept") : array('failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept");
-    return array('migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy");
+    if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) return @unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"];
+    return ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy"];
 }
 
 // Migrates the listed files; returns the exit status.
 function receipt_migration_run($connection, $options, $key, $names, $out)
 {
-    $counts = array('migrated' => 0, 'present' => 0, 'deleted' => 0, 'pending' => 0, 'skipped' => 0, 'failed' => 0);
+    $counts = ['migrated' => 0, 'present' => 0, 'deleted' => 0, 'pending' => 0, 'skipped' => 0, 'failed' => 0];
     $changed = 0;
     if ($options['delete-legacy']) {
         fwrite($out, "*** --delete-legacy: only after `sync` and after checking several migrated receipts in the browser. "
             . "Deleted legacy files can only be restored from the backup. ***\n");
     }
-    list($numbers, $others) = receipt_migration_numbers($options['files'], $names);
+    [$numbers, $others] = receipt_migration_numbers($options['files'], $names);
     foreach ($others as $name) {
         $counts['skipped']++;
         fwrite($out, "$name: not migrated: not a file number\n");
@@ -265,7 +265,7 @@ function receipt_migration_run($connection, $options, $key, $names, $out)
             fwrite($out, "Stopped after --limit={$options['limit']}; run again for the remaining files.\n");
             break;
         }
-        list($status, $message) = receipt_migration_file($connection, $options, $key, $number);
+        [$status, $message] = receipt_migration_file($connection, $options, $key, $number);
         $counts[$status]++;
         if ($status === 'migrated' || $status === 'deleted') {
             $changed++;

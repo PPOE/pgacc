@@ -488,7 +488,7 @@ return array(
         ),
         array(
             'id' => 'edit-page-rows-uninitialized',
-            'search' => "\$vouchers = array();\n    while (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n        \$vouchers[] = \$line;",
+            'search' => "\$vouchers = [];\n    while (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n        \$vouchers[] = \$line;",
             'replace' => "\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n        \$vouchers[] = \$line;",
             'rationale' => 'A voucher without rows raises no undefined-variable diagnostics.',
         ),

@@ -23,10 +23,10 @@ function v_graph($konto, $date_begin, $date_end)
     $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount) / 100.0, (SELECT SUM(amount) / 100.0 FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     //$array = pg_fetch_all($result);
-    $array = array();
+    $array = [];
     $min = 0;
     while ($line = pg_fetch_array($result)) {
-        $array[] = array($line['timestamp'], $line['runningtotal']);
+        $array[] = [$line['timestamp'], $line['runningtotal']];
         $min = $line['runningtotal'] < $min ? $line['runningtotal'] : $min;
     }
     echo '<script>var values = ' . json_encode($array) . ';</script>' . "\n";
@@ -177,7 +177,7 @@ function page_vreport($rights)
     echo "<ul>";
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         $k = $line2['vaccount'] === null ? '' : $line2['vaccount'];
-        if ($rights == '' && is_numeric(str_replace(array(" ","AT"), array("",""), $k))) {
+        if ($rights == '' && is_numeric(str_replace([" ","AT"], ["",""], $k))) {
             $k = substr($line2['vaccount'], -3, 3);
         }
         echo "<li><a href=\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\">Konto '" . html_escape($k) . "'</a></li>";

@@ -66,9 +66,9 @@ function getfilter()
     if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/', $_GET['filter_amount']) == 1)
         $filter .= " AND amount " . $_GET['filter_amount'] . "00";
     else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
-        $filter .= " AND amount " . str_replace(array(".",","), array("",""), $_GET['filter_amount']);
+        $filter .= " AND amount " . str_replace([".",","], ["",""], $_GET['filter_amount']);
     else if (isset($_GET['filter_amount']) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
-        $filter .= " AND amount = " . str_replace(array(".",","), array("",""), $_GET['filter_amount']);
+        $filter .= " AND amount = " . str_replace([".",","], ["",""], $_GET['filter_amount']);
     if (isset($_GET['filter_k']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_k']) == 1)
         $filter .= " AND account LIKE '" . $_GET['filter_k'] . "%'";
     if (isset($_GET['filter_vk']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_vk']) == 1)
@@ -95,12 +95,12 @@ function tag($tag, $text)
 {
     global $make_csv;
     if ($make_csv) {
-        $text = str_replace(array("\r\n", "\n", "\r"), array(' / ', ' / ', ' / '), $text === null ? '' : $text);
+        $text = str_replace(["\r\n", "\n", "\r"], [' / ', ' / ', ' / '], $text === null ? '' : $text);
         // A tab would split the tab-separated cell.
         if ($tag == 'td')
-            $text = str_replace(array("\t"), array(' '), $text);
+            $text = str_replace(["\t"], [' '], $text);
         if (preg_match('/^-?\d+(\.\d+)?€$/', $text) == 1) {
-            $text = str_replace(array("."), array(","), $text);
+            $text = str_replace(["."], [","], $text);
         }
         // A cell that a spreadsheet would read as a formula or a quoted field (not
         // a number), also after leading whitespace, starts with a single quote.
@@ -306,7 +306,7 @@ function write_rights($rights)
     $tokens = rights_tokens($rights);
     if (!in_array('Rbgf', $tokens, true))
         return $rights;
-    $rights_w = array();
+    $rights_w = [];
     foreach ($tokens as $right) {
         if ($right !== 'Rbgf' && $right !== '')
             $rights_w[] = $right;
@@ -319,7 +319,7 @@ function rights2orgasql($rights)
 {
     $rights_r = rights_tokens($rights);
     if (!in_array('bgf', $rights_r) && !in_array('Rbgf', $rights_r)) {
-        $rights2 = array();
+        $rights2 = [];
         foreach ($rights_r as $right) {
             if (preg_match('/^\d+$/', $right) == 1)
                 $rights2[] = "'" . $right . "'";
@@ -523,7 +523,7 @@ function eyes()
  */
 function whitelist($array, $whitelist)
 {
-    $new_array = array();
+    $new_array = [];
     foreach ($array as $key => $value) {
         if (isset($whitelist[$key]))
             $new_array[$key] = $value;
@@ -595,18 +595,18 @@ function rijndael256_decrypt($key, $data, $iv)
  */
 function receipt_cipher_params($id, $key)
 {
-    return array(md5($id . $key . $id), md5($key . $id));
+    return [md5($id . $key . $id), md5($key . $id)];
 }
 
 function receipt_encrypt($id, $key, $data)
 {
-    list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+    [$cipherKey, $iv] = receipt_cipher_params($id, $key);
     return rijndael256_encrypt($cipherKey, $data, $iv);
 }
 
 function receipt_decrypt($id, $key, $data)
 {
-    list($cipherKey, $iv) = receipt_cipher_params($id, $key);
+    [$cipherKey, $iv] = receipt_cipher_params($id, $key);
     return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
@@ -689,10 +689,10 @@ function receipt_hkdf_expand($prk, $info, $length)
 function receipt_v2_keys($key, $number)
 {
     $prk = receipt_hkdf_extract('', $key);
-    return array(
+    return [
         receipt_hkdf_expand($prk, 'pgacc-receipt-v2|enc|' . $number, 32),
         receipt_hkdf_expand($prk, 'pgacc-receipt-v2|mac|' . $number, 32),
-    );
+    ];
 }
 
 function receipt_v2_cipher($encryptionKey, $iv)
@@ -739,7 +739,7 @@ function receipt_v2_encrypt($key, $number, $data, $iv = null)
 {
     if ($iv === null)
         $iv = \phpseclib\Crypt\Random::string(16);
-    list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+    [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $ciphertext = receipt_v2_cipher($encryptionKey, $iv)->encrypt($data);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, 'PGR2' . $iv);
@@ -753,7 +753,7 @@ function receipt_v2_decrypt($key, $number, $file)
 {
     if (!is_string($file) || strlen($file) < 68 || substr($file, 0, 4) !== 'PGR2')
         return false;
-    list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+    [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $ciphertext = substr($file, 20, -32);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, substr($file, 0, 20));
@@ -770,7 +770,7 @@ function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
 {
     if ($iv === null)
         $iv = \phpseclib\Crypt\Random::string(16);
-    list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+    [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $cipher = receipt_v2_stream_cipher($encryptionKey, $iv);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, 'PGR2' . $iv);
@@ -873,7 +873,7 @@ function receipt_v2_open_with($key, $number, $path)
     $stat = fstat($in);
     $length = $stat['size'] - 52;
     $header = (string) fread($in, 20);
-    list($encryptionKey, $macKey) = receipt_v2_keys($key, $number);
+    [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, $header);
     for ($remaining = $length; $remaining > 0; $remaining -= 65536)
@@ -899,8 +899,8 @@ function receipt_v2_open_with($key, $number, $path)
         fclose($in);
         return false;
     }
-    return array('handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
-        'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat));
+    return ['handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
+        'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat)];
 }
 
 // Size and change times of an open file. Receipts are only replaced by rename,
@@ -908,7 +908,7 @@ function receipt_v2_open_with($key, $number, $path)
 // edits within a second go unnoticed (known limitation, COMPATIBILITY_PLAN).
 function receipt_v2_identity($stat)
 {
-    return array($stat['size'], $stat['mtime'], $stat['ctime']);
+    return [$stat['size'], $stat['mtime'], $stat['ctime']];
 }
 
 /*
@@ -944,7 +944,7 @@ function receipt_v2_read_with($key, $number, $path)
     $receipt = receipt_v2_open_with($key, $number, $path);
     if ($receipt === false)
         return false;
-    $chunks = array();
+    $chunks = [];
     $complete = receipt_v2_decrypt_chunks($receipt, function ($chunk) use (&$chunks) {
         $chunks[] = $chunk;
     });
@@ -979,18 +979,18 @@ function receipt_v2_send($receipt)
 // Membership-system exchange (getusers.php, mbapi.php): key and IV.
 function membership_cipher_params($datakey)
 {
-    return array(md5($datakey), md5(md5($datakey)));
+    return [md5($datakey), md5(md5($datakey))];
 }
 
 function membership_encrypt($datakey, $data)
 {
-    list($cipherKey, $iv) = membership_cipher_params($datakey);
+    [$cipherKey, $iv] = membership_cipher_params($datakey);
     return rijndael256_encrypt($cipherKey, $data, $iv);
 }
 
 function membership_decrypt($datakey, $data)
 {
-    list($cipherKey, $iv) = membership_cipher_params($datakey);
+    [$cipherKey, $iv] = membership_cipher_params($datakey);
     return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 

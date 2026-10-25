@@ -1,0 +1,16 @@
+{
+  "name": "ppoe/pgacc-ast-tools",
+  "description": "Pinned PHP-Parser for the AST-equivalence check (tests/coverage/ast-equivalence.sh); not an application dependency.",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.5",
+    "nikic/php-parser": "5.9.0"
+  },
+  "config": {
+    "platform": {
+      "php": "8.5.0"
+    },
+    "sort-packages": true
+  }
+}

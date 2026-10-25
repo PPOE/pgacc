@@ -92,7 +92,7 @@ function page_tinyreport($rights)
         echo "<ul>";
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             $k = $line2['account'];
-            if ($rights == '' && is_numeric(str_replace(array(" ","AT"), array("",""), $k))) {
+            if ($rights == '' && is_numeric(str_replace([" ","AT"], ["",""], $k))) {
                 $k = substr($line2['account'], -3, 3);
             }
             echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? '' : $k)) . "\">Konto '" . html_escape($k) . "'</a></li>";

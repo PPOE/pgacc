@@ -100,7 +100,7 @@ function base64_decode (data) {
         $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE " . eyes() . " $donation_condition " . date_condition($year) . " GROUP BY name;";
         $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         $count = 0;
-        $donations = array();
+        $donations = [];
         while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
             if ($line['sum'] <= 10000) {
                 continue;
@@ -114,8 +114,8 @@ function base64_decode (data) {
         pg_free_result($result);
 
         if ($count > 0) {
-            $sort_sum = array();
-            $sort_name = array();
+            $sort_sum = [];
+            $sort_name = [];
             foreach ($donations as $d) {
                 $sort_sum[] = $d['sum'];
                 $sort_name[] = $d['name'];

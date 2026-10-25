@@ -20,19 +20,19 @@ return array(
     'mutations' => array(
         array(
             'id' => 'donations-initialization-removed',
-            'search' => "\$donations = array();\n",
+            'search' => "\$donations = [];\n",
             'replace' => "true;\n",
             'rationale' => 'The pre-fix state: foreach over an undefined $donations (TypeError in array_multisort() on PHP 8).',
         ),
         array(
             'id' => 'sort-sum-initialization-removed',
-            'search' => '$sort_sum = array();',
+            'search' => '$sort_sum = [];',
             'replace' => 'true;',
             'rationale' => 'array_multisort() receives null as its first array.',
         ),
         array(
             'id' => 'sort-name-initialization-removed',
-            'search' => '$sort_name = array();',
+            'search' => '$sort_name = [];',
             'replace' => 'true;',
             'rationale' => 'array_multisort() receives null as its third argument.',
         ),

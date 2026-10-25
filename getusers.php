@@ -28,7 +28,7 @@ function getUsers()
     // followed (a 3xx is an error), so the list never comes from another host or
     // over plain HTTP. ignore_errors: an HTTP error status is checked here
     // instead of raising a warning.
-    $context = stream_context_create(array('http' => array('ignore_errors' => true, 'follow_location' => 0, 'timeout' => 20)));
+    $context = stream_context_create(['http' => ['ignore_errors' => true, 'follow_location' => 0, 'timeout' => 20]]);
     http_clear_last_response_headers();
     error_clear_last();
     $sData = @file_get_contents("https://mitglieder.piratenpartei.at/adm_api/adm_names.php", false, $context);
@@ -95,13 +95,13 @@ function getUsers()
     // Inside a caller's transaction (the unit tests) a savepoint, so that the
     // caller's transaction is neither committed nor ended.
     $nested = pg_transaction_status($dbconn) != PGSQL_TRANSACTION_IDLE;
-    $queries = array(
+    $queries = [
         $nested ? 'SAVEPOINT getusers;' : 'BEGIN;',
         'DROP TABLE IF EXISTS ppmembers;',
         'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer);',
         $query,
         $nested ? 'RELEASE SAVEPOINT getusers;' : 'COMMIT;',
-    );
+    ];
     // An error before the transaction or savepoint exists (such as an aborted
     // caller's transaction) has nothing to roll back.
     $started = false;

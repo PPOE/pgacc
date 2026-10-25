@@ -14,7 +14,7 @@ $relocate = array('start' => 'function relocate($loc)', 'end' => 'function page_
 
 $protectedPages = array('all', 'mb', 'open', 'merge', 'edit', 'new', 'closed', 'deleted', 'recover', 'accounts',
     'import', 'import2');
-$protectedList = 'array("' . implode('","', $protectedPages) . '")';
+$protectedList = '["' . implode('","', $protectedPages) . '"]';
 
 // The form token check of index.php (between the login check and the
 // member search).
@@ -22,7 +22,7 @@ $csrfBlock = "// Form tokens (CSRF): every POST request except the login form an
     . "// public captcha forms must carry the form token of its session\n"
     . "// (csrf_field()), checked before anything is written. Merge, recovery, the\n"
     . "// column preferences and logout write only on POST.\n"
-    . "\$csrf_exempt = in_array(\$page, array(\"login\",\"donations\",\"kdonations\"));\n"
+    . "\$csrf_exempt = in_array(\$page, [\"login\",\"donations\",\"kdonations\"]);\n"
     . "if (request_is_post() && !\$csrf_exempt) {\n    checklogin('id', false);\n    if (!csrf_request_valid()) {\n"
     . "        acc_header(\$dbconn, \$page, date('Y'));\n"
     . "        echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Ungültiges Formular-Token. Bitte die Seite neu laden.</div><br /><br /><br />';\n"
@@ -33,8 +33,8 @@ $earlyBlocks = "if (in_array(\$page, $protectedList) && checklogin('id') === nul
     . "    return;\n}\n" . $csrfBlock . "if (\$page == \"search\") {\n    \$rights = checklogin('rights', false);\n"
     . "    page_search(\$rights);\n    pg_close(\$dbconn);\n    return;\n}\n";
 $csvBlock = "global \$make_csv;\n\$make_csv = false;\n"
-    . "if (isset(\$_GET[\"format\"]) && \$_GET[\"format\"] == 'csv' && in_array(\$_GET[\"action\"], array(\"search\","
-    . "\"all\",\"open\",\"transactions\",\"spendings\",\"closed\",\"deleted\"))) {\n"
+    . "if (isset(\$_GET[\"format\"]) && \$_GET[\"format\"] == 'csv' && in_array(\$_GET[\"action\"], [\"search\","
+    . "\"all\",\"open\",\"transactions\",\"spendings\",\"closed\",\"deleted\"])) {\n"
     . "    header('Content-Encoding: UTF-8');\n    header('Content-type: text/csv; charset=UTF-8');\n"
     . "    header(\"Content-Disposition: attachment; filename=\$page.csv\");\n"
     . "    echo \"\\xEF\\xBB\\xBF\"; // UTF-8 BOM\n    \$make_csv = true;\n}\n";
@@ -241,7 +241,7 @@ foreach (array_diff($protectedPages, array('import')) as $page) {
         'id' => 'unprotected-' . $page,
         'region' => $early,
         'search' => $protectedList,
-        'replace' => 'array("' . implode('","', $remaining) . '")',
+        'replace' => '["' . implode('","', $remaining) . '"]',
         'rationale' => "A visitor who is not logged in gets only the login redirect for ?action=$page.",
     );
 }

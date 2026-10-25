@@ -26,7 +26,7 @@ function spendings_page_listing_line($line)
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo tag("td", listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'), array('Spenden'), $line2["name"])));
+        echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
     }
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
