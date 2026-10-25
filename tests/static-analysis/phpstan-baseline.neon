@@ -7,12 +7,6 @@ parameters:
 			path: ../../functions.php
 
 		-
-			message: '#^Variable \$file_number might not be defined\.$#'
-			identifier: variable.undefined
-			count: 3
-			path: ../../import2.php
-
-		-
 			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
 			identifier: whitespace.fileEnd
 			count: 1
@@ -23,15 +17,3 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: ../../mbapi.php
-
-		-
-			message: '#^Variable \$file_number might not be defined\.$#'
-			identifier: variable.undefined
-			count: 3
-			path: ../../new.php
-
-		-
-			message: '#^Variable \$voucher_number might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: ../../new.php
