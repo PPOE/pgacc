@@ -1200,13 +1200,6 @@ $callSites = array(
         'rationale' => 'Unescaped output: html_escape() removed around $k.',
     ),
     array(
-        'id' => 'wk-html-escape-line-name',
-        'file' => 'wk.php',
-        'search' => '                    echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
-        'replace' => '                    echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
-        'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
-    ),
-    array(
         'id' => 'wk-html-escape-line-name-2',
         'file' => 'wk.php',
         'search' => '                    echo "<tr><td><a href=\\"index.php?action=kdonations&type={$line[\'id\']}&from=$from&to=$to&unit=$unit\\">" . html_escape($line[\'name\']) . "</a></td><td>";',

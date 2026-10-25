@@ -1,44 +1,8 @@
 <?php
 
-function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $to = '0', $from = '0', $variant = '')
+function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $to = '0', $from = '0')
 {
     global $dbconn,$print_empty;
-    if ($variant == 'wk') {
-        echo '
-<table>
-';
-        $query = "SELECT id,name FROM type WHERE income = -1 AND realtype = id ORDER BY used DESC,id ASC";
-        $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-        while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-            if ($unit == -1)
-                $unit_s = "";
-            else $unit_s = " AND orga = " . $unit;
-            $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} " . $cond;
-            $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-            while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-                if (intval($line2['sum']) != 0 || $print_empty) {
-                    echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-                    echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
-                }
-            }
-            pg_free_result($result2);
-        }
-        pg_free_result($result);
-        echo "<tr><td><b>Summe</b></td><td>";
-        if ($unit == -1)
-            $unit_s = "";
-        else $unit_s = " AND orga = " . $unit;
-        $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = -1) " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-        while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
-        }
-        pg_free_result($result2);
-        echo '
-</table>
-';
-        return;
-    }
     echo '
 <table><tr><td>
 <h3>Einnahmen *</h3>
