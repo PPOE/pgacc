@@ -233,8 +233,16 @@ assert_contains($impressum, '<td class=""><a href="https://github.com/PPOE/pgacc
 if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR__ . '/../impressum.php'), $releaseVersion) !== 1) {
     fail_test('impressum.php: PGACC_VERSION was not found');
 }
+// The version format of the release tooling (scripts/release.sh,
+// .github/workflows/release.yml), prereleases included.
+$releaseVersionPattern = '/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/D';
+foreach (array('2.0.0' => 1, '2.1.0-rc.1' => 1, '2.0' => 0, '2.0.0 (Debian)' => 0) as $sample => $matches) {
+    if (preg_match($releaseVersionPattern, $sample) !== $matches) {
+        fail_test("release version pattern: wrong result for $sample");
+    }
+}
 $expectedVersions = array(
-    'pgacc' => array('/^\d+\.\d+\.\d+$/D', $releaseVersion[1]),
+    'pgacc' => array($releaseVersionPattern, $releaseVersion[1]),
     'PHP' => array('/^\d+$/D', (string) PHP_MAJOR_VERSION),
     'PostgreSQL' => array('/^\d+$/D', '18'),
 );
