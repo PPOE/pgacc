@@ -37,8 +37,6 @@
  *   separately (diagnostics/, informational) from the diagnostics recorder.
  * - Floats in the helper golden master are exported with a fixed "%.17G"
  *   format, so var_export()'s precision change in PHP 7.1 is not reported.
- *
- * Must stay compatible with PHP 5.3 (helpers.php runs on the PHP 5.3 lane).
  */
 
 define('REF_FIXED_NOW', '2026-06-15 10:00:00');

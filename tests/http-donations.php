@@ -15,8 +15,6 @@
  * 2025 has a donation below the 100 EUR threshold; years before 2012 show
  * 2013 without a captcha. Logged-in users (a valid session per checklogin())
  * see both lists without the captcha; a forged session cookie does not.
- *
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 

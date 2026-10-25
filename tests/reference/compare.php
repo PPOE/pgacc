@@ -16,7 +16,6 @@
  *
  * Writes <report dir>/report.txt and one <report dir>/diffs/<file>.diff per
  * differing file. Exit status 1 on any unaccepted difference.
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/lib.php';
 

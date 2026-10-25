@@ -8,8 +8,6 @@
  * processing would not.
  *
  *   php -d memory_limit=40M tests/receipt-memory.php <empty directory>
- *
- * Runs on PHP 5.3 and newer.
  */
 require dirname(__DIR__) . '/vendor/autoload.php';
 require dirname(__DIR__) . '/functions.php';

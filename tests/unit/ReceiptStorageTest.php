@@ -5,11 +5,8 @@
  * the file names (legacy files/<n>.aes, files/<n>.v2.aes), the v2 format
  * (contract vectors from the openssl extension in
  * tests/fixtures/receipt-v2/vectors.json), atomic writes, storing new
- * receipts and reading <n>.v2.aes files.
- *
- * Also runs on PHP 5.3 (PHPUnit 4.8): no PHP 5.4+ syntax or functions
- * (hex2bin() comes from tests/php53/bootstrap.php there). The 20 MB memory
- * check runs tests/receipt-memory.php in its own process.
+ * receipts and reading <n>.v2.aes files. The 20 MB memory check runs
+ * tests/receipt-memory.php in its own process.
  */
 
 require_once __DIR__ . '/ShortReadStream.php';
@@ -243,9 +240,6 @@ final class ReceiptStorageTest extends FunctionsTestCase
 
     public function testHkdfMatchesHashHkdf()
     {
-        if (!function_exists('hash_hkdf')) {
-            self::markTestSkipped('hash_hkdf() needs PHP 7.1.2');
-        }
         foreach (array(1, 31, 32, 33, 64, 100) as $length) {
             foreach (array('', 'pgacc-receipt-v2|enc|42') as $info) {
                 foreach (array('', 'salt') as $salt) {
@@ -286,7 +280,6 @@ final class ReceiptStorageTest extends FunctionsTestCase
         file_put_contents($path, $file);
         $receipt = receipt_v2_open_with($vector['key'], $vector['number'], $path);
         self::assertSame(strlen($plain), $receipt['length']);
-        // (string): substr() of an empty string is false on PHP 5.3.
         self::assertSame((string) substr($plain, 0, 16), $receipt['head']);
         ob_start();
         receipt_v2_send($receipt);

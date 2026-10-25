@@ -16,7 +16,6 @@
  * lanes without mcrypt diverge as late as possible.
  *
  * Usage: php tests/reference/scenario.php <output directory>
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/lib.php';
 

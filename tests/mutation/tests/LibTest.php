@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Unit tests of tests/mutation/lib.php on PHPUnit 9.6 (PHP 7.4 and 8.5).
+ * Unit tests of tests/mutation/lib.php.
  * Run with: sh tests/mutation/run.sh <lane> --self-test
  */
 

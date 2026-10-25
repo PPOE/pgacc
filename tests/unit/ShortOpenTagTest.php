@@ -4,8 +4,6 @@
  * With short_open_tag disabled, a file that starts with "<?" is plain text:
  * including it prints its source and defines nothing. Checked in a separate
  * process for the page files that only define functions.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 
 final class ShortOpenTagTest extends FunctionsTestCase

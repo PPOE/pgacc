@@ -7,9 +7,6 @@
  * with the test connection string, so pg_connect() returns the test's link
  * and sees its rolled-back voucher rows. The script as a command:
  * ReceiptMigrationCommandTest.
- *
- * Runs on PHP 5.3 (PHPUnit 4.8) too: no PHP 5.4+ syntax or functions, no
- * finally.
  */
 
 require_once __DIR__ . '/ReceiptMigrationTestCase.php';
@@ -45,7 +42,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
     public function testRefusesOtherServerApisFromAShell()
     {
         // php-cgi run from a shell (no web request): a message and status 1,
-        // nothing migrated. Only images with php-cgi (the PHP 5.3 lane) run it.
+        // nothing migrated. Skipped where php-cgi is not installed.
         exec('command -v php-cgi', $found, $missing);
         if ($missing !== 0) {
             self::markTestSkipped('php-cgi is not installed');

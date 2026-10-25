@@ -5,8 +5,6 @@
  * matched against the member list (getusers(), here a synthetic list served
  * by the membership stub over verified HTTPS, MembershipStub, so no
  * membership system is contacted). The import runs inside a transaction that is rolled back.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 
 require_once dirname(dirname(__DIR__)) . '/getusers.php';

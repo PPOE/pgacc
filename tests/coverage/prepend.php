@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Test-only auto_prepend_file for the PHP 7.4 coverage lane.
+ * Test-only auto_prepend_file for the coverage run.
  *
  * The application server (php -S) loads this file before every PHP request
  * when compose.coverage.yaml is active. It starts Xdebug line+branch coverage

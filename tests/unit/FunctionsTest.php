@@ -451,8 +451,6 @@ final class FunctionsTest extends FunctionsTestCase
             return true;
         });
         ob_start();
-        // No "finally": the PHP 5.3 lane runs these tests (PHPUnit 4.8).
-        // Throwable (PHP 7+) is only resolved when something is thrown.
         try {
             $return = call_user_func($callback);
             $output = ob_get_contents();
@@ -735,8 +733,8 @@ final class FunctionsTest extends FunctionsTestCase
             throw $exception;
         }
         // pg_connect() returned the shared default link; keep it open for
-        // helpers in later tests, whatever the execution order. No "finally"
-        // (PHP 5.3 lane), so both exits roll back explicitly.
+        // helpers in later tests, whatever the execution order. Both exits
+        // roll back explicitly.
         pg_query($connection, 'ROLLBACK');
     }
 }

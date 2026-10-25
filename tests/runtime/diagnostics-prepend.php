@@ -4,15 +4,12 @@
  * Test-only diagnostics recorder, loaded with auto_prepend_file by the test
  * servers. It records every PHP diagnostic raised while serving a request to
  * a JSON-lines log that the HTTP tests inspect, including diagnostics that the
- * runtime's default error_reporting hides (PHP 5.6/7.4 exclude notices and
- * deprecations) and ones silenced with "@".
+ * runtime's default error_reporting hides and ones silenced with "@".
  *
  * It does not change application behaviour: the handler returns false, so
  * PHP's standard handler still runs with the runtime's own error_reporting,
  * display_errors and output buffering. Only functions with a test-specific
  * prefix are defined; no global variables are left behind.
- *
- * Must stay compatible with PHP 5.3 (the PHP 5.3 lane runs it under PHP-CGI).
  */
 
 function pgacc_test_diagnostics_log_path()

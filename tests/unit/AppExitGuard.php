@@ -5,8 +5,6 @@
  * input errors. Under PHPUnit that would end the whole run with exit status
  * 0, so a test that calls such code wraps the call in enter()/leave(): if the
  * process ends in between, the shutdown function makes it exit with status 1.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 final class AppExitGuard
 {

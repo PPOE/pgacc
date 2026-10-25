@@ -4,9 +4,6 @@
  * Shared setup of the receipt key migration tests (ReceiptMigrationTest,
  * ReceiptMigrationCommandTest): synthetic legacy receipts in a temporary
  * directory and synthetic voucher rows, rolled back after each test.
- *
- * Runs on PHP 5.3 (PHPUnit 4.8) too: no PHP 5.4+ syntax or functions, no
- * finally (hex2bin() comes from tests/php53/bootstrap.php there).
  */
 
 require_once dirname(dirname(__DIR__)) . '/migrate-receipt-key.php';

@@ -5,8 +5,6 @@
  * return at most ShortReadStream::$limit bytes. With $stall set, reads return
  * nothing without ever reaching the end of the file. Used by
  * tests/unit/ReceiptStorageTest.php for short and failed reads.
- *
- * Runs on PHP 5.3 (PHPUnit 4.8) too.
  */
 final class ShortReadStream
 {

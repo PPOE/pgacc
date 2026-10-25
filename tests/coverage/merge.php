@@ -5,7 +5,7 @@
  * tests/coverage/prepend.php, prints a per-file summary, and writes Clover,
  * HTML, and serialized (php-code-coverage) reports.
  *
- * Usage (inside the PHP 7.4 test container, XDEBUG_MODE=coverage):
+ * Usage (inside the test container, XDEBUG_MODE=coverage):
  *   php tests/coverage/merge.php <coverage-dir> <output-dir>
  *
  * PGACC_COVERAGE_BRANCHES=0 selects line-only data (it must match the mode

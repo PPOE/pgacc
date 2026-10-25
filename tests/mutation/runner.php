@@ -27,7 +27,7 @@
  * with none selected it exits 0 without running the baseline.
  *
  * Exit status: 0 pass, 1 unaccepted survivors / invalid / stale equivalents,
- * 2 definition, setup, or baseline failure. Runs on the PHP 7.4 and 8.5 lanes.
+ * 2 definition, setup, or baseline failure.
  */
 
 require __DIR__ . '/lib.php';

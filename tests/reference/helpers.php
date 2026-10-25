@@ -14,8 +14,6 @@
  * "THROWS <class>". No database, no network.
  *
  * Usage: php tests/reference/helpers.php <output directory>
- * Must stay compatible with PHP 5.6 (catch (Throwable) parses there and
- * simply never matches).
  */
 require __DIR__ . '/lib.php';
 

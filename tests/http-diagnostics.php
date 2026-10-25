@@ -9,8 +9,6 @@
  * that request's diagnostics to PGACC_TEST_DIAGNOSTICS_DIR/<id>.jsonl on a
  * volume shared with the test container. Displayed diagnostics in the
  * response body are also detected as a cross-check.
- *
- * Must stay compatible with PHP 5.6.
  */
 
 $GLOBALS['pgacc_test_diagnostics'] = array();

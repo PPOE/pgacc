@@ -18,8 +18,7 @@
  * RuntimeException. The repository is never modified.
  *
  * It is itself a class so that Infection can mutate it
- * (tests/unit/InfectionShimTest.php, `infection.sh 7.4 shim`). Keep it
- * PHP 5.6-compatible: the normal suite runs its tests on every lane.
+ * (tests/unit/InfectionShimTest.php, `infection.sh 8.5 shim`).
  */
 final class PgaccInfectionShim
 {

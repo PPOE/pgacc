@@ -1,7 +1,7 @@
 #!/bin/sh
 # Static analysis of the tracked top-level application PHP files with pinned
-# PHPCompatibility (PHP_CodeSniffer) and PHPStan, in a dedicated modern-PHP
-# image that is separate from the legacy runtime images. The analysis itself
+# PHPCompatibility (PHP_CodeSniffer) and PHPStan, in a dedicated image that
+# is separate from the application runtime image. The analysis itself
 # runs without network access, on a read-only mount of the repository.
 #
 #   sh tests/static-analysis.sh                     check against the baselines

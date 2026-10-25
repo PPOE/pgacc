@@ -5,9 +5,7 @@
  * target validation, exact-match mutation application, outcome
  * classification, result summaries, and a process runner with timeouts.
  *
- * Covered by tests/mutation/tests/LibTest.php. Runs on the PHP 7.4 and 8.5
- * lanes; written without scalar type declarations or "??" like the
- * application code.
+ * Covered by tests/mutation/tests/LibTest.php.
  */
 
 // Must match the application service command in compose.test.yaml

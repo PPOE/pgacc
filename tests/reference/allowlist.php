@@ -37,8 +37,6 @@
  * A changed line is accepted by the first entry that matches it. An entry that
  * accepts nothing in a comparison on one of its PHP versions is stale and
  * fails the comparison too: remove it, or re-record the reference.
- *
- * Must stay compatible with PHP 5.6.
  */
 
 return array(

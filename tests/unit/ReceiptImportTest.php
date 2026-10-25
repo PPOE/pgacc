@@ -9,8 +9,6 @@
  * tests/http-receipts.php, and a stored upload ends the request (relocate()),
  * so only its refusal runs here.
  * Database changes are rolled back; files go to a temporary directory.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 
 require_once dirname(dirname(__DIR__)) . '/import2.php';
