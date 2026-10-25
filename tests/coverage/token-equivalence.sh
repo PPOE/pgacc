@@ -1,24 +1,23 @@
 #!/bin/sh
 # Token-equivalence check of the PHP files changed since a Git base
 # (tests/coverage/token-equivalence.php), in the repository of the current
-# directory.
+# directory. A standalone review tool: it proves that a diff (such as a
+# reformat) changes only whitespace. No gate uses it; the changed-line
+# coverage gate and the mutation selection count every changed line.
 #
 #   sh tests/coverage/token-equivalence.sh [--allow-crlf-to-lf] --check <base>
 #       one verdict per modified PHP file; exit 1 if any differs
 #   sh tests/coverage/token-equivalence.sh [--allow-crlf-to-lf] --list-equivalent <base>
 #       only the equivalent paths, relative to the repository root
-#   sh tests/coverage/token-equivalence.sh [--allow-crlf-to-lf] --exclude-pathspecs <base>
-#       the same as ":(top,exclude,literal)<path>" pathspecs, for the
-#       changed-line gates (changed-lines.sh, tests/mutation/changed-diff.sh)
 #   sh tests/coverage/token-equivalence.sh --self-test
 #       token-equivalence-test.php and token-equivalence-test.sh
 #
 # Compares the merge base of <base> and HEAD with the working tree. Only
 # files modified in place can be equivalent: added, deleted, renamed or
 # copied files (a move changes __DIR__, __FILE__, include paths and URLs) and
-# files with names other than [A-Za-z0-9_./-] are never listed. Exit 2 when
-# the check cannot run (no merge base, no PHP 8.5 runtime, any setup error):
-# callers then gate every changed file.
+# files with names other than [A-Za-z0-9_./-] are never listed (--check
+# reports the latter as not proven). Exit 2 when the check cannot run (no
+# merge base, no PHP 8.5 runtime, any setup error).
 #
 # Each file is tokenized twice, with short_open_tag=0 and =1 (the
 # application enables short tags in .htaccess), and must be equivalent in
@@ -27,11 +26,10 @@
 # otherwise the pinned php:8.5-cli image (docker run, no network, read-only
 # mounts, no capabilities, no-new-privileges where the Docker host allows it).
 #
-# --allow-crlf-to-lf (also set by PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF=1): a
-# CRLF in a string or inline HTML of the old file may be an LF in the new one.
-# Used once, by the CI runs of the formatting pull request that converted
-# the CRLF files (.github/workflows/tests.yaml); remove it from there after
-# that merge. Without it any newline change in output is a token change.
+# --allow-crlf-to-lf: a CRLF in a string or inline HTML of the old file may be
+# an LF in the new one. Only for line-ending conversions such as the one of
+# the formatting pull request; without it any newline change in output is a
+# token change.
 set -eu
 
 image=php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
@@ -109,9 +107,6 @@ run_php() {
 }
 
 allow=
-if [ "${PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF:-}" = 1 ]; then
-  allow=--allow-crlf-to-lf
-fi
 if [ "${1:-}" = --allow-crlf-to-lf ]; then
   allow=--allow-crlf-to-lf
   shift
@@ -128,9 +123,9 @@ if [ "${1:-}" = --self-test ]; then
 fi
 
 case "${1:-}" in
-  --check|--list-equivalent|--exclude-pathspecs) mode=$1 ;;
+  --check|--list-equivalent) mode=$1 ;;
   *)
-    echo "Usage: sh tests/coverage/token-equivalence.sh [--allow-crlf-to-lf] --check|--list-equivalent|--exclude-pathspecs <base> | --self-test" >&2
+    echo "Usage: sh tests/coverage/token-equivalence.sh [--allow-crlf-to-lf] --check|--list-equivalent <base> | --self-test" >&2
     exit 2
     ;;
 esac
@@ -195,9 +190,5 @@ case "$mode" in
     ;;
   --list-equivalent)
     sed -n 's/: equivalent\( (CRLF -> LF in output tokens)\)\{0,1\}$//p' "$work/verdicts" || exit 2
-    ;;
-  --exclude-pathspecs)
-    sed -n 's/^\(.*\): equivalent\( (CRLF -> LF in output tokens)\)\{0,1\}$/:(top,exclude,literal)\1/p' \
-      "$work/verdicts" || exit 2
     ;;
 esac

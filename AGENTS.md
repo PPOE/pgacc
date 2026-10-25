@@ -78,8 +78,9 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 ## File conventions
 
 - PHP files follow PER Coding Style 3.0, whitespace rules only (`.php-cs-fixer.dist.php`; 4-space indentation,
-  PER brace placement and spacing). Format changed PHP files with `sh scripts/format.sh <files>`. Never change
-  inline HTML or string contents to satisfy the formatter.
+  PER brace placement and spacing). A hook formats edited PHP files (`.claude/settings.json`,
+  `scripts/claude-format-hook.sh`); run `sh scripts/format.sh` manually otherwise. CI fails on unformatted code
+  (`sh scripts/format.sh --check --ci`). Never change inline HTML or string contents to satisfy the formatter.
 - Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the PHP 5 recordings
   and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`, `icons/`,
   `js/`, `jquery.fileupload.js`) are byte-exact (`-text`): never convert them.

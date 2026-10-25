@@ -1387,9 +1387,13 @@ Recommendation (owner decision):
   changed from CRLF to LF (allowlist `RD-FORMAT-CRLF-TO-LF`). The commit is in
   `.git-blame-ignore-revs`; mutation targets were rewritten (every mutant
   token-equivalent to the old one).
-- [ ] Enforce the formatting (separate pull request): a CI check
-  (`sh scripts/format.sh --check`), format-on-edit hooks, and the gates back to
-  strict (token-equivalence as a standalone tool).
+- [x] Enforce the formatting: CI runs `sh scripts/format.sh --check --ci`; a
+  Claude Code hook formats edited PHP files; `.githooks/pre-commit` (opt-in)
+  checks staged blobs. The changed-line gates are strict again (no
+  token-equivalence exemption); `tests/coverage/token-equivalence.sh` stays as
+  a standalone review tool.
+- [ ] Optional: a Codex hook like the Claude Code one (project-level Codex hooks
+  need trust, and Codex is used read-only here, so none is configured).
 - [ ] Modern syntax (separate change): the token-changing PER-CS 3.0 rules left
   out of `.php-cs-fixer.dist.php` (`array_syntax`, `elseif`, `modifier_keywords`,
   `no_closing_tag`, `control_structure_braces`, `operator_linebreak`, imports

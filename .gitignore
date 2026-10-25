@@ -2,3 +2,4 @@ constants.php
 vendor/
 build/
 tests/mutation/results/
+.php-cs-fixer.cache

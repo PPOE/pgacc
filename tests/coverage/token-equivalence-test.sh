@@ -1,12 +1,11 @@
 #!/bin/sh
-# Git-level tests of tests/coverage/token-equivalence.sh and of its callers
-# (tests/coverage/changed-lines.sh, tests/mutation/changed-diff.sh), in a
-# throw-away repository. Run by sh tests/coverage/token-equivalence.sh
+# Git-level tests of tests/coverage/token-equivalence.sh (and of
+# tests/coverage/changed-lines.sh from a subdirectory), in a throw-away
+# repository. Run by sh tests/coverage/token-equivalence.sh
 # --self-test.
 set -eu
 
 coverage_dir=$(cd "$(dirname "$0")" && pwd -P)
-mutation_dir=$(cd "$coverage_dir/../mutation" && pwd -P)
 repo=$(mktemp -d)
 trap 'rm -rf "$repo"' EXIT
 failures=0
@@ -55,10 +54,10 @@ r=0
 has "$equivalent" crlf.php || r=1
 check 'CRLF -> LF in inline HTML is equivalent only with --allow-crlf-to-lf' $r
 
-excludes=$(cd sub && sh "$coverage_dir/token-equivalence.sh" --exclude-pathspecs HEAD 2>/dev/null)
+equivalent=$(cd sub && sh "$coverage_dir/token-equivalence.sh" --list-equivalent HEAD 2>/dev/null)
 r=0
-[ "$excludes" = "$(printf ':(top,exclude,literal)sub/dir/nested.php\n:(top,exclude,literal)whitespace.php')" ] || r=1
-check '--exclude-pathspecs from a subdirectory: top-level literal pathspecs' $r
+[ "$equivalent" = "$(printf 'sub/dir/nested.php\nwhitespace.php')" ] || r=1
+check '--list-equivalent from a subdirectory: root-relative paths' $r
 
 status=0
 verdicts=$(sh "$coverage_dir/token-equivalence.sh" --check HEAD 2>/dev/null) || status=$?
@@ -74,23 +73,10 @@ check '--check: real, inline HTML and newline changes fail; moves, deletions, ad
 
 ranges=$(cd sub && sh "$coverage_dir/changed-lines.sh" HEAD 2>/dev/null)
 r=0
-for line in code.php:3-3 html.php:7-7 untracked.php:1-8; do
+for line in code.php:3-3 html.php:7-7 whitespace.php:3-3 sub/dir/nested.php:3-3 untracked.php:1-8; do
   has "$ranges" "$line" || r=1
 done
-# Renamed or copied files keep Git's rename detection: their changed lines.
-for file in renamed.php added.php; do
-  printf '%s\n' "$ranges" | grep -q "^$file:" || r=1
-done
-case "$ranges" in *whitespace.php*|*nested.php*|*same.php*|*deleted.php*) r=1 ;; esac
-check 'changed-lines.sh (from a subdirectory): renamed, added and untracked files gated, whitespace-only not' $r
-
-diff=$(cd sub && sh "$mutation_dir/changed-diff.sh" HEAD 2>/dev/null)
-r=0
-for file in code.php html.php renamed.php added.php untracked.php; do
-  printf '%s\n' "$diff" | grep -q "^+++ b/$file\$" || r=1
-done
-case "$diff" in *"b/whitespace.php"*|*"b/sub/dir/nested.php"*) r=1 ;; esac
-check 'changed-diff.sh (run.sh --changed-since): the same selection' $r
+check 'changed-lines.sh from a subdirectory: root-relative ranges, whitespace-only changes gated' $r
 
 status=0
 sh "$coverage_dir/token-equivalence.sh" --check no-such-revision >/dev/null 2>&1 || status=$?
