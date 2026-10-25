@@ -18,8 +18,6 @@ function login($user, $pass)
     $user = pg_escape_string($dbconn, $user);
     $pass = pg_escape_string($dbconn, $pass);
     $data = pg_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'") or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    if (!$data)
-        return 0;
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC)) {
         // Fails closed without a valid $key, a CSPRNG or a stored session
         // (functions.php): the login form is shown again.

@@ -25,12 +25,6 @@ parameters:
 			path: ../../functions.php
 
 		-
-			message: '#^Loose comparison using \=\= between ''Paypal'' and ''Paypal'' will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 1
-			path: ../../import.php
-
-		-
 			message: '#^Variable \$file_number might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
@@ -45,12 +39,6 @@ parameters:
 		-
 			message: '#^Function page_kdonations invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
-			count: 1
-			path: ../../index.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
 			count: 1
 			path: ../../index.php
 
