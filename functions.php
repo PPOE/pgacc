@@ -572,11 +572,28 @@ function percent_of_bookings()
             $ap = round($a * 100 / (1.0 * $c), 2);
             $d = $c - $b - $a;
             $dp = round($d * 100 / (1.0 * $c), 2);
-            $text .= "<br /><i>$currentYear: $c Buchungszeilen, $a ($ap %) abgeschlossen, $b ($bp %) bearbeitet, $d ($dp %) unbearbeitet.</i>";
+            $text .= '<tr><th scope="row">' . html_escape($currentYear) . '</th><td>' . html_escape($c) . '</td>'
+                . '<td>' . html_escape($d) . ' <span class="percent">(' . html_escape("$dp %") . ')</span></td>'
+                . '<td>' . html_escape($b) . ' <span class="percent">(' . html_escape("$bp %") . ')</span></td>'
+                . '<td>' . html_escape($a) . ' <span class="percent">(' . html_escape("$ap %") . ')</span></td>'
+                . '<td class="bar"><span aria-hidden="true" title="'
+                . html_escape("$currentYear: $dp % unbearbeitet, $bp % bearbeitet, $ap % abgeschlossen") . '">'
+                . '<span class="open" style="width: ' . html_escape("$dp%") . '"></span>'
+                . '<span class="edited" style="width: ' . html_escape("$bp%") . '"></span>'
+                . '<span class="closed" style="width: ' . html_escape("$ap%") . '"></span></span></td></tr>';
         }
         pg_free_result($result);
     }
-    return $text;
+    if ($text === "") {
+        return "";
+    }
+    return '<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption>'
+        . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungs&shy;zeilen</th>'
+        . '<th scope="col"><span class="open" aria-hidden="true"></span>unbe&shy;arbeitet</th>'
+        . '<th scope="col"><span class="edited" aria-hidden="true"></span>bear&shy;beitet</th>'
+        . '<th scope="col"><span class="closed" aria-hidden="true"></span>abge&shy;schlossen</th>'
+        . '<th class="bar" aria-hidden="true"></th></tr></thead>'
+        . '<tbody>' . $text . '</tbody></table></div>';
 }
 
 function eyes()

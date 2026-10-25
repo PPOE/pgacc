@@ -21,6 +21,11 @@
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-ordinal: initial;
+      --tw-slashed-zero: initial;
+      --tw-numeric-figure: initial;
+      --tw-numeric-spacing: initial;
+      --tw-numeric-fraction: initial;
       --tw-gradient-position: initial;
       --tw-gradient-from: #0000;
       --tw-gradient-via: #0000;
@@ -70,6 +75,7 @@
     --leading-tight: 1.25;
     --leading-snug: 1.375;
     --leading-normal: 1.5;
+    --radius-sm: .25rem;
     --radius-md: .375rem;
     --radius-lg: .5rem;
     --default-transition-duration: .15s;
@@ -83,6 +89,9 @@
     --color-accent-dark: #6a2e6f;
     --color-motd: #ffdcaa;
     --color-motd-border: #f3bd75;
+    --color-progress-open: #cfcac4;
+    --color-progress-edited: #e9a91c;
+    --color-progress-closed: #4b9a5d;
     --color-panel: #fffbd6;
     --color-panel-border: #efdc6a;
     --color-zebra: #fff4b8;
@@ -645,6 +654,179 @@
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
 
+  .motd .progress {
+    margin-top: calc(var(--spacing) * 2);
+    overflow-x: auto;
+  }
+
+  .motd .progress table {
+    width: 100%;
+  }
+
+  .motd .progress caption {
+    padding-bottom: var(--spacing);
+    text-align: left;
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  @media not all and (min-width: 40rem) {
+    .motd .progress tr {
+      grid-template-columns: 2.75rem repeat(4, minmax(0, 1fr));
+      display: grid;
+    }
+  }
+
+  .motd .progress th, .motd .progress td {
+    padding-inline: var(--spacing);
+    padding-block: calc(var(--spacing) * .5);
+    vertical-align: middle;
+  }
+
+  @media (min-width: 40rem) {
+    .motd .progress th, .motd .progress td {
+      padding-right: calc(var(--spacing) * 3);
+      padding-left: calc(var(--spacing) * 2);
+    }
+  }
+
+  .motd .progress td {
+    white-space: nowrap;
+  }
+
+  .motd .progress thead th {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+    border-color: var(--color-motd-border);
+    text-align: right;
+    vertical-align: bottom;
+  }
+
+  @media (min-width: 40rem) {
+    .motd .progress thead th {
+      white-space: nowrap;
+    }
+  }
+
+  .motd .progress thead th:first-child, .motd .progress tbody th {
+    text-align: left;
+    width: 1%;
+    padding-left: 0;
+  }
+
+  .motd .progress tbody th {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    --tw-numeric-spacing: tabular-nums;
+    font-variant-numeric: var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, );
+  }
+
+  @media not all and (min-width: 40rem) {
+    .motd .progress tbody th {
+      align-self: flex-start;
+    }
+  }
+
+  .motd .progress tr:nth-child(2n) {
+    background-color: #ffffff59;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .motd .progress tr:nth-child(2n) {
+      background-color: color-mix(in oklab, var(--color-white) 35%, transparent);
+    }
+  }
+
+  .motd .progress tr:not(:has(tr)):hover {
+    background-color: #fff9;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .motd .progress tr:not(:has(tr)):hover {
+      background-color: color-mix(in oklab, var(--color-white) 60%, transparent);
+    }
+  }
+
+  .motd .progress .percent {
+    text-align: right;
+    color: var(--color-muted);
+    display: block;
+  }
+
+  @media (min-width: 40rem) {
+    .motd .progress .percent {
+      min-width: 8ch;
+      display: inline-block;
+    }
+  }
+
+  .motd .progress thead span {
+    margin-right: var(--spacing);
+    width: calc(var(--spacing) * 2.5);
+    height: calc(var(--spacing) * 2.5);
+    border-radius: var(--radius-sm);
+    display: inline-block;
+  }
+
+  .motd .progress .open {
+    background-color: var(--color-progress-open);
+  }
+
+  .motd .progress .edited {
+    background-color: var(--color-progress-edited);
+  }
+
+  .motd .progress .closed {
+    background-color: var(--color-progress-closed);
+  }
+
+  @media not all and (min-width: 40rem) {
+    .motd .progress th.bar {
+      display: none;
+    }
+  }
+
+  .motd .progress td.bar {
+    width: 30%;
+    padding-right: 0;
+  }
+
+  @media not all and (min-width: 40rem) {
+    .motd .progress td.bar {
+      width: auto;
+      padding-top: 0;
+      padding-bottom: calc(var(--spacing) * 1.5);
+      grid-column: 1 / -1;
+      padding-left: 0;
+    }
+  }
+
+  .motd .progress td.bar > span {
+    height: calc(var(--spacing) * 2.5);
+    width: 100%;
+    min-width: calc(var(--spacing) * 24);
+    background-color: #fff9;
+    border-radius: 3.40282e38px;
+    display: flex;
+    overflow: hidden;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .motd .progress td.bar > span {
+      background-color: color-mix(in oklab, var(--color-white) 60%, transparent);
+    }
+  }
+
+  .motd .progress td.bar > span {
+    --tw-shadow: inset 0 2px 4px 0 var(--tw-shadow-color, #0000000d);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+
+  .motd .progress td.bar > span > span {
+    flex-shrink: 0;
+    height: 100%;
+  }
+
   .use_terms {
     border-radius: var(--radius-lg);
     border-style: var(--tw-border-style);
@@ -1002,6 +1184,31 @@
   syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
+}
+
+@property --tw-ordinal {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-slashed-zero {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-figure {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-spacing {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-fraction {
+  syntax: "*";
+  inherits: false
 }
 
 @property --tw-gradient-position {

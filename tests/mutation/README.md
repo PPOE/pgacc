@@ -395,6 +395,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `amount-parsing` | `amount_cents()` in `functions.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
+| `booking-progress` | `percent_of_bookings()` in `functions.php`: column order, the bar's segment widths, `aria-hidden`, no table without bookings | PHPUnit `testPercentOfBookings*` |
 
 Accepted equivalents (reasons in the target files):
 
