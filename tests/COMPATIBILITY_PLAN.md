@@ -63,8 +63,15 @@ Next steps, in order:
   `symfony/polyfill-mbstring` v1.43.0; TCPDF 6.2.6 left the lock), so that
   the PDF bank-statement import (`import2.php`) works on PHP 8.5: v0.9.23
   declared a class `Object` (fatal since 7.2) and its TCPDF did not parse on
-  PHP 8 (curly-brace offsets). `import2.php` is unchanged (same
-  `parseContent()`/`getText()` API). The PDF import in
+  PHP 8 (curly-brace offsets). Same `parseContent()`/`getText()` API.
+  `import2.php` changes: 2.x writes a tab where 0.9 wrote a space for a wide
+  gap within a line, so tabs are stripped with the spaces (same matching
+  text as 0.9; newlines are kept as before); the parser gets a 64 MiB
+  decode limit per stream and drops image data. **Behaviour change** (review
+  finding on PR #24): a file the parser cannot read (no `startxref`,
+  encrypted, broken) was an uncaught exception (HTTP 500, later files not
+  processed); it is now reported per file ("Konnte nicht als PDF gelesen
+  werden ...") and the next file is imported. The PDF import in
   `tests/http-receipts.php` runs again, `tests/release-vendor-check.php`
   parses a synthetic statement, and the `RD-PDFPARSER-PHP72-*` reference
   entries are removed: on 8.5 the import2 pages, the imported receipt's
@@ -1268,26 +1275,13 @@ through 8.5 is v0.11 (warnings from 7.3); the oldest without warnings up to
 
 Recommendation (owner decision):
 
-- [ ] While PHP 5.6 is supported, pin `smalot/pdfparser` to `v0.16.2`
-  exactly (not `*`): it has no dependencies (drops TCPDF and its advisories),
-  requires only `>=5.6`, parses on 5.6-8.5, and leaves only the 8.4+
-  implicit-nullable deprecations on the import request. v0.17-v0.19 would
-  also work but need `symfony/polyfill-mbstring` held at v1.19.0, because
-  `composer.json`'s `platform.php` 7.4.33 otherwise resolves a polyfill that
-  breaks every page on 5.6. The abandoned `tecnick.com/tcpdf` leaves the
-  lock with it. First add an HTTP test for `import2.php` with synthetic PDF
-  uploads (cover page, one ID, several IDs) and compare the extracted text
-  of v0.9.23 on PHP 5.6 with the new version: only the synthetic PDFs above
-  were compared.
 - [x] After dropping PHP 5.6 and 7.0: move to `^2.13` (clean on 7.4-8.5).
-  Done after `php5-last`: `^2`, locked v2.13.1 ("PHP 8.5-only migration",
-  step b).
-- [ ] Until then, any `composer update` without a package name upgrades
-  pdfparser to 2.x with a polyfill for PHP 7.2+: the PHP 5.6 image then fails
-  `composer check-platform-reqs`, and without that check every page would
-  fail at autoload. Add packages with
-  `composer require <name>` / `composer update <name>` only; check the 5.6
-  lane (`composer check-platform-reqs --no-dev`) after every lock change.
+  Done after `php5-last`: `^2.13.1`, locked v2.13.1 ("PHP 8.5-only
+  migration", step b).
+- [ ] Owner decision: license notice. pdfparser 2.x is LGPL-3.0 (0.9.23 was
+  GPL-3.0), and LGPL-3.0 refers to the GPL-3.0 text. The repository has no
+  license file (README, "License"). Decide whether the release archive
+  needs the GPL/LGPL texts or a third-party notice for `vendor/`.
 
 ## Tooling to catch these earlier
 

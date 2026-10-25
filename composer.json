@@ -1,6 +1,6 @@
 {
   "require": {
-    "smalot/pdfparser": "^2",
+    "smalot/pdfparser": "^2.13.1",
     "phpseclib/phpseclib": "2.0.55"
   },
   "require-dev": {
