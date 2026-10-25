@@ -17,7 +17,7 @@ function login($user, $pass)
     global $dbconn;
     $user = pg_escape_string($dbconn, $user);
     $pass = pg_escape_string($dbconn, $pass);
-    $data = pg_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'") or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $data = db_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'");
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC)) {
         // Fails closed without a valid $key, a CSPRNG or a stored session
         // (functions.php): the login form is shown again.
@@ -202,8 +202,7 @@ if (isset($_POST["hide"]) && !$csrf_exempt) {
         }
     }
     $cols = implode(',', $cols_array);
-    $data = pg_query($dbconn, "UPDATE users SET hide = '$cols' WHERE id = $id") or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    pg_free_result($data);
+    db_exec($dbconn, "UPDATE users SET hide = '$cols' WHERE id = $id");
 }
 
 // relocate() (edit.php) answers edit and merge requests with a redirect
