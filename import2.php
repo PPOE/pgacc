@@ -161,7 +161,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
         $query .= "AND account LIKE '%" . $account . "%'";
     }
     $query .= ";";
-    $result = db_query($dbconn, $query, 'Abfrage (' . $query . ') fehlgeschlagen: ');
+    $result = db_query($dbconn, $query, show_sql: true);
     $lineCount = 0;
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $voucher = $line;

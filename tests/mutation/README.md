@@ -380,7 +380,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `rights2orgasql` | `rights2orgasql()` in `functions.php` | PHPUnit `testRights2orgasql` |
 | `null-arguments` | null guards in `tag()`, `acc_header()`, `acc_footer()`, `rights2orgasql()` | PHPUnit |
 | `login-session` | `login_random_bytes()` and its call in `login_start_session()` in `functions.php` (fail closed without random bytes) | `LoginSessionTest` |
-| `db-helpers` | `db_query()`, `db_exec()` and `db_next_value()` in `src/db.php`: the die message on failure, the result, the affected rows, the sequence value | `DbHelpersTest` |
+| `db-helpers` | `db_query()`, `db_exec()`, `db_next_value()`, `db_fail()` and `db_caller()` in `src/db.php`: the die message on failure (with the statement only with `show_sql`), the logged caller, the result, the affected rows, the sequence value and its missing row | `DbHelpersTest` |
 | `login-logout` | `login()` and the early logout/login blocks in `index.php`, `login.php`, the `page_new_buchung()` signature | `http-login.php` |
 | `redirects` | login check and member search redirect in `index.php`, `ob_start()` for edit/merge, `relocate()` in `edit.php` and its callers, `search.php` | `http-redirects.php`, `write-workflows.php` |
 | `rights-checks` | organization scope and rights checks of voucher creation, revision, approval, approval reset, merge, the role checks and new users; the removed finalization (`finalization-write-restored`) | `write-workflows.php` |

@@ -12,6 +12,16 @@ Safari 16.4+ or Firefox 128+. Older browsers still work but show the pages
 unstyled. The stylesheet is part of the release archive; nothing needs to be
 built on the server.
 
+## Web server: deny `src/`
+
+From the release after 2.0.0 the archive has a `src/` directory with library
+files (first `src/db.php`, the database helpers). Deny web access to `/src/`
+like `/vendor/` and `/tests/`. On Apache the shipped `src/.htaccess` does
+this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
+add `src` to the directory list of the rule below. A request would print
+nothing (the files only define functions), but the code is not meant to be
+served.
+
 ## Upgrade to 2.0.0
 
 2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for
@@ -32,7 +42,7 @@ PHP 5.3 and PostgreSQL 8.4.
    Keep `files/` and `constants.php` (with its `$key` and `$datakey`)
    unchanged.
 5. Deploy the release archive and keep the web-server rules of the 1.0.0
-   steps (deny `files/`, `vendor/`, `tests/`, `constants.php`,
+   steps (deny `files/`, `vendor/`, `tests/`, `src/` (see above), `constants.php`,
    `migrate-receipt-key.php`, `check.php`, `composer.*`; no directory
    listing; HTTPS).
 6. Check: log in, open a voucher with a receipt, download it, open the
@@ -65,7 +75,7 @@ PHP 5.3 and PostgreSQL 8.4.
    tar xzf pgacc-<version>.tar.gz
    ```
 
-5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`,
+5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`, `/src/` (from the release after 2.0.0),
    `constants.php`, `migrate-receipt-key.php`, `check.php` and
    `composer.json`/`composer.lock`, and to disable directory listings.
    `migrate-receipt-key.php` and `check.php` run only on the command line
@@ -74,7 +84,7 @@ PHP 5.3 and PostgreSQL 8.4.
    (adjust the prefix if pgacc is not at the document root):
 
    ```
-   $HTTP["url"] =~ "^/(files|vendor|tests)(/|$)|^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$" {
+   $HTTP["url"] =~ "^/(files|vendor|tests|src)(/|$)|^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$" {
      url.access-deny = ( "" )
    }
    dir-listing.activate = "disable"

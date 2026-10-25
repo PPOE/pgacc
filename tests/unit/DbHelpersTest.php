@@ -44,16 +44,24 @@ final class DbHelpersTest extends FunctionsTestCase
         self::assertSame('42', db_next_value($GLOBALS['dbconn'], 'db_helpers_sequence'));
     }
 
+    public function testDbCallerIsTheFirstFrameOutsideSrcDb()
+    {
+        $line = __LINE__ + 1;
+        self::assertSame('tests/unit/DbHelpersTest.php:' . $line, db_caller());
+    }
+
     public static function failureProvider()
     {
         $missing = 'SELECT * FROM db_helpers_missing';
 
         return [
             'db_query' => ["db_query(\$c, '$missing');", $missing, 'Abfrage fehlgeschlagen: '],
-            'db_query with a message' => ["db_query(\$c, '$missing', 'Abfrage (x) fehlgeschlagen: ');", $missing, 'Abfrage (x) fehlgeschlagen: '],
+            'db_query with the statement' => ["db_query(\$c, '$missing', show_sql: true);", $missing, "Abfrage ($missing) fehlgeschlagen: "],
             'db_exec' => ["db_exec(\$c, '$missing');", $missing, 'Abfrage fehlgeschlagen: '],
-            'db_exec with a message' => ["db_exec(\$c, '$missing', 'Abfrage (y) fehlgeschlagen: ');", $missing, 'Abfrage (y) fehlgeschlagen: '],
+            'db_exec with the statement' => ["db_exec(\$c, '$missing', true);", $missing, "Abfrage ($missing) fehlgeschlagen: "],
             'db_next_value' => ["db_next_value(\$c, 'db_helpers_missing');", "SELECT nextval('db_helpers_missing') AS num;", 'Abfrage fehlgeschlagen: '],
+            // No row (the statement ends early): no PostgreSQL error.
+            'db_next_value without a row' => ["db_next_value(\$c, \"voucher_number') WHERE false --\");", null, 'Abfrage fehlgeschlagen: '],
         ];
     }
 
@@ -61,17 +69,26 @@ final class DbHelpersTest extends FunctionsTestCase
     public function testFailureEndsTheRequestWithTheMessage($call, $sql, $message)
     {
         // The error text as PostgreSQL reports it for the same statement.
-        self::assertFalse(@pg_query($GLOBALS['dbconn'], $sql));
-        $expected = $message . pg_last_error($GLOBALS['dbconn']);
+        $expected = $message;
+        if ($sql !== null) {
+            self::assertFalse(@pg_query($GLOBALS['dbconn'], $sql));
+            $expected .= pg_last_error($GLOBALS['dbconn']);
+        }
 
         $root = dirname(dirname(__DIR__));
+        $log = tempnam(sys_get_temp_dir(), 'pgacc-db-log');
         $code = 'require ' . var_export($root . '/tests/db-helpers.php', true) . ';'
             . ' require ' . var_export($root . '/src/db.php', true) . ';'
             . ' $c = pg_connect(pgacc_test_connection_string());'
             . ' ' . $call . ' echo "not ended";';
-        $command = escapeshellarg(PHP_BINARY) . ' -d display_errors=0 -d log_errors=0 -r ' . escapeshellarg($code);
+        $command = escapeshellarg(PHP_BINARY) . ' -d display_errors=0 -d log_errors=0 -d error_log=' . escapeshellarg($log)
+            . ' -r ' . escapeshellarg($code);
         $output = shell_exec($command . '; printf "\n%d" "$?"');
+        $logged = file_get_contents($log);
+        unlink($log);
 
         self::assertSame($expected . "\n0", $output);
+        // The page that called the helper (here the command-line code).
+        self::assertMatchesRegularExpression('/^\[[^\]]+\] pgacc: query failed, called from Command line code:1\n$/', $logged);
     }
 }

@@ -326,11 +326,11 @@ function page_import($rights)
                 //print_r($voucher);
 
                 $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
-                db_exec($dbconn, $query, 'Abfrage (' . $query . ') fehlgeschlagen: ');
+                db_exec($dbconn, $query, show_sql: true);
 
                 if ($dovoucher2) {
                     $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher2['date']}', {$voucher2['type']},{$voucher2['lo']},{$voucher2['member']},{$voucher2['mitgliedsnummer']},'{$voucher2['gegenkonto']}','{$voucher2['name']}','{$voucher2['street']}','{$voucher2['plz']}','{$voucher2['city']}',{$voucher2['amount']},'{$voucher2['konto']}','{$voucher2['comment']}',{$voucher2['purpose']},{$voucher2['receipt']})";
-                    db_exec($dbconn, $query, 'Abfrage (' . $query . ') fehlgeschlagen: ');
+                    db_exec($dbconn, $query, show_sql: true);
                 }
 
                 $query = "INSERT INTO import (line) VALUES ('{$csvline}');";
