@@ -336,6 +336,101 @@ assert_contains($import['body'], 'done: <a href="index.php?action=edit&id=4744&b
 $fileNumber = receipt_file_number($database, 9119);
 assert_stored_receipt($fileNumber, $testKey, $split, 'PDF import of several files');
 
+// Files that are not imported: an empty file field, an upload error (here
+// the posted MAX_FILE_SIZE), a file below 10 bytes, a statement without an
+// ID, without a date or with more than two dates. Each one is reported and
+// the next file is still checked.
+function import2_request($cookies, $files, $form = array())
+{
+    $response = http_request('/index.php?action=import2', 'POST', $form, $cookies, null, $files);
+    assert_status($response, 200, 'PDF import');
+    return $response;
+}
+
+function import2_text_pdf($lines)
+{
+    $stream = 'BT /F1 12 Tf 72 712 Td';
+    foreach ($lines as $index => $line) {
+        $stream .= ($index === 0 ? '' : ' 0 -14 Td') . ' (' . $line . ') Tj';
+    }
+    return pdf_statement($stream . ' ET');
+}
+
+$rejected = import2_request($adminCookies, array(
+    'upload[0]' => array('name' => '', 'type' => 'application/pdf', 'content' => ''),
+    'upload[1]' => array('name' => 'tiny.pdf', 'type' => 'application/pdf', 'content' => '%PDF-1'),
+    'upload[2]' => array('name' => 'noid.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Synthetic Bank Information', 'Keine Buchung'))),
+    'upload[3]' => array('name' => 'nodate.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung GH/123456789', 'ohne Datum'))),
+    'upload[4]' => array('name' => 'dates.pdf', 'type' => 'application/pdf',
+        'content' => import2_text_pdf(array('Beleg GH/123456789', 'von 01.01.2024', 'bis 02.01.2024', 'am 03.01.2024'))),
+));
+assert_contains($rejected['body'], 'Datei 1 ():<br />Datei 2 (tiny.pdf):<br />Iist zu klein und konnte daher nicht importiert werden.<br />'
+    . 'Datei 3 (noid.pdf):<br />Keine IDs gefunden.<br />'
+    . 'Datei 4 (nodate.pdf):<br />Eine ID (GH/123456789) gefunden.<br />Kein Datum gefunden.<br />'
+    . 'Datei 5 (dates.pdf):<br />Eine ID (GH/123456789) gefunden.<br />Zuviele Daten gefunden gefunden.<br />', 'PDF import of rejected files');
+$tooLarge = import2_request(
+    $adminCookies,
+    array('upload[]' => array('name' => 'large.pdf', 'type' => 'application/pdf', 'content' => $statement)),
+    array('MAX_FILE_SIZE' => '20')
+);
+// PHP reports an upload error with an empty type, refused as a file format
+// (the upload error message itself: tests/unit/ReceiptImportTest.php).
+assert_contains($tooLarge['body'], 'Datei 1 (large.pdf):<br />Hat ein ungültiges Dateiformat () und konnte daher nicht importiert werden.<br />', 'PDF import over MAX_FILE_SIZE');
+
+// A matching voucher is required exactly once, without a receipt.
+insert_receipt_voucher($database, 9130, 4760, 'Synthetic bank import twice JK/111111111');
+insert_receipt_voucher($database, 9131, 4761, 'Synthetic bank import twice JK/111111111 again');
+insert_receipt_voucher($database, 9132, 4762, 'Synthetic bank import with a receipt JK/222222222');
+receipts_query($database, 'UPDATE vouchers SET file = 77 WHERE id = 9132', array(), 'receipt of voucher 9132');
+$matches = import2_request($adminCookies, array(
+    'upload[0]' => array('name' => 'twice.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/111111111 vom 15.09.2024'))),
+    'upload[1]' => array('name' => 'attached.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/222222222 vom 15.09.2024'))),
+    'upload[2]' => array('name' => 'unknown.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/333333333 vom 15.09.2024'))),
+));
+assert_contains($matches['body'], 'Datei 1 (twice.pdf):<br />Eine ID (JK/111111111) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Zuviele Buchungen gefunden.<br />'
+    . 'Datei 2 (attached.pdf):<br />Eine ID (JK/222222222) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Has file attached.<br />'
+    . 'Datei 3 (unknown.pdf):<br />Eine ID (JK/333333333) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Keine Buchung gefunden.<br />', 'PDF import matches');
+$unchanged = receipts_query($database, 'SELECT id, file FROM vouchers WHERE id IN (9130, 9131, 9132) ORDER BY id', array(), 'vouchers after the PDF import matches');
+if ($unchanged !== array(array('id' => '9130', 'file' => '0'), array('id' => '9131', 'file' => '0'), array('id' => '9132', 'file' => '77'))) {
+    fail_test('PDF import matches changed receipts: ' . var_export($unchanged, true));
+}
+
+// Several IDs and statement cover pages are matched by date and ID (interest,
+// "ZinsenHABEN") and by date and IBAN (account fees, "Entgelt für
+// Kontoführung" or "... Buchungsposten und Belege"). A file with several IDs
+// and no year, a cover page without IBAN, and one without such lines are
+// reported.
+receipts_query(
+    $database,
+    "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, committed,
+                           date, person_type, file, save_user, vaccount)
+     VALUES (9133, 4763, 28, 2, false, -50, 'AT606000050110117300', 'Zinsen LM/444444444', true,
+             timestamp '2024-03-31 00:00:00', 1, 0, 1, ''),
+            (9134, 4764, 28, 2, false, -700, 'AT606000050110117300', 'Entgelt für Kontoführung', true,
+             timestamp '2024-06-30 00:00:00', 1, 0, 1, '')",
+    array(),
+    'cover page vouchers'
+);
+$covers = import2_request($adminCookies, array(
+    'upload[0]' => array('name' => 'ids.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchungen NP/555555555 und NP/666666666'))),
+    'upload[1]' => array('name' => 'ids-year.pdf', 'type' => 'application/pdf',
+        'content' => import2_text_pdf(array('Buchungen NP/555555555 und NP/666666666', 'Auszug vom 15.09.2024'))),
+    'upload[2]' => array('name' => 'cover-empty.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array(
+        'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'))),
+    'upload[3]' => array('name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array(
+        'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
+        '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'))),
+));
+assert_contains($covers['body'], 'Datei 1 (ids.pdf):<br />Mehrere IDs gefunden.<br />Keine Jahreszahl gefunden.<br />'
+    . 'Datei 2 (ids-year.pdf):<br />Mehrere IDs gefunden.<br />Kein IBAN gefunden.<br />'
+    . 'Datei 3 (cover-empty.pdf):<br />Ist ein Übersichtsdeckblatt.<br />Keine IDs and Daten gefunden für Spezialfälle.<br />Keine IDs and Daten gefunden für Spezialfälle.<br />'
+    . 'Datei 4 (cover.pdf):<br />Ist ein Übersichtsdeckblatt.<br />'
+    . 'done: <a href="index.php?action=edit&id=4763&bid=9133">4763</a><br />'
+    . 'done: <a href="index.php?action=edit&id=4764&bid=9134">4764</a><br />Keine Buchung gefunden.<br />', 'PDF import of cover pages');
+assert_stored_receipt(receipt_file_number($database, 9133), $testKey, import2_text_pdf(array(
+    'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
+    '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00')), 'PDF import of a cover page');
+
 // The receipt key migration is a command-line script; the web server must
 // not run it.
 $migration = http_request('/migrate-receipt-key.php');
