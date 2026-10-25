@@ -185,7 +185,7 @@ pg_free_result($result);
 $prev_date_r = explode(".",$prev);
 $prev_alternative = $prev;
 $query2 = "SELECT COUNT(*) AS c FROM balance WHERE date = '{$prev_date_r[2]}-{$prev_date_r[1]}-{$prev_date_r[0]}'";
-$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_prev_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 if ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   if (intval($line2['c']) > 0)
   {
@@ -194,7 +194,7 @@ if ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   else
   {
   $query2 = "SELECT date FROM balance ORDER BY date DESC LIMIT 1";
-  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_prev_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   if ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     $prev_date_r = explode(" ",$line2['date']);
     $prev_date_r = $prev_date_r[0];

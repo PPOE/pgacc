@@ -109,12 +109,6 @@ parameters:
 			path: ../../new.php
 
 		-
-			message: '#^Function pg_prev_error not found\.$#'
-			identifier: function.notFound
-			count: 2
-			path: ../../report.php
-
-		-
 			message: '#^Variable \$unit might not be defined\.$#'
 			identifier: variable.undefined
 			count: 8
