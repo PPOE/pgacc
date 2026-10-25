@@ -33,10 +33,7 @@ function page_recover($rights)
         echo "<h1>Buchung Nr. $id / Buchungszeile Nr. $bid wiederhergestellt!</h1>";
 
         $query = "UPDATE vouchers SET deleted = false WHERE voucher_id = $id AND id = $bid;";
-        $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-        while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        }
-        pg_free_result($result);
+        db_exec($dbconn, $query);
     } else {
         echo '
 <div class="wiki motd">BEACHTE: Das Wiederherstellen von Buchungen bzw. Buchungszeilen kann dazu führen dass Buchungen bzw. Buchungszeilen doppelt im System sind! Benutze diese Funktion nur wenn du dir ganz sicher bist dass deine Buchung überschrieben wurde und daher diese alte Buchung wiederherstellen möchtest!</div>
