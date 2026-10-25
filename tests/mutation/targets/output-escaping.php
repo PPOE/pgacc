@@ -1269,6 +1269,13 @@ $callSites = array(
         'rationale' => 'An account link without an account must not raise the PHP 8.1+ rawurlencode() null deprecation.',
     ),
     array(
+        'id' => 'vreport-vaccount-null-guard-removed',
+        'file' => 'vreport.php',
+        'search' => '$k = $line2[\'vaccount\'] === null ? \'\' : $line2[\'vaccount\'];',
+        'replace' => '$k = $line2[\'vaccount\'];',
+        'rationale' => 'A line without a virtual account must not raise the PHP 8.1+ str_replace()/rawurlencode() null deprecations.',
+    ),
+    array(
         'id' => 'transactions-account-null-guard-removed',
         'file' => 'transactions.php',
         'search' => '),$line["account"] === null ? \'\' : $line["account"])));',

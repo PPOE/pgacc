@@ -344,11 +344,12 @@ assert_contains($wk, '<a href="index.php?action=spendings&type=92&from=2012-09-2
 assert_contains($wk, "<br /><h2><a name=\"nrw{$lo}2013\" href=\"#$lo\">$lo</a></h2>\n", 'wk unit heading');
 assert_contains($wk, '<h3><a name="Piratenpartei ' . escaped('oo') . '">Piratenpartei ' . escaped('oo') . "</a></h3>\n", 'wk suborganization heading');
 
-// A line without an account (account NULL): the transaction listing and the
-// tinyreport account list show it empty (PHP 8.1+ null-argument guards).
+// A line without an account and virtual account (both NULL): the transaction
+// listing and the tinyreport and vreport account lists show it empty (PHP 8.1+
+// null-argument guards).
 insert_voucher($database, $voucherColumns, array(9040, 9040, 90, 90, 'false', null, '', 'Escaping no account',
     '', '', '', 100, null, 'Escaping no account', 'false', 'false',
-    'false', '2024-07-09', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'false', '', null, null));
+    'false', '2024-07-09', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'false', null, null, null));
 
 $transactions = page('/index.php?action=transactions');
 assert_contains($transactions, "<td>2024-07-09</td>\n<td>" . escaped('type-in') . "</td>\n<td>$lo</td>\n<td></td>\n<td>1.00€</td>\n", 'transactions row without account');
@@ -369,6 +370,7 @@ $vreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('vr
 assert_contains($vreport, '<li><a href="vreport?konto=' . rawurlencode(payload('vaccount')) . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
 assert_contains($vreport, "<li><a href=\"vreport?konto=TEST-%C3%84%C3%96%C3%9C\">Konto 'TEST-ÄÖÜ'</a></li>", 'vreport account with umlauts');
 assert_contains($vreport, "<li><a href=\"vreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'vreport account with URL characters');
+assert_contains($vreport, "<li><a href=\"vreport?konto=\">Konto ''</a></li>", 'vreport line without virtual account');
 foreach (array('vaccount', 'type-in', 'type-out') as $field) {
     assert_escaped($vreport, $field, 'vreport');
 }
