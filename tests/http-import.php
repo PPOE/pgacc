@@ -20,7 +20,7 @@ if ($database === false) {
 
 function import_count($database, $comment)
 {
-    $result = @pg_query_params($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment LIKE $1', array($comment));
+    $result = @pg_query_params($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment LIKE $1', [$comment]);
     if ($result === false) {
         fail_test('count query failed: ' . pg_last_error($database));
     }
@@ -31,7 +31,7 @@ function import_count($database, $comment)
 
 function import_orga($database, $comment)
 {
-    $result = @pg_query_params($database, 'SELECT orga, date FROM vouchers WHERE comment LIKE $1', array($comment));
+    $result = @pg_query_params($database, 'SELECT orga, date FROM vouchers WHERE comment LIKE $1', [$comment]);
     if ($result === false || pg_num_rows($result) !== 1) {
         fail_test("expected one imported voucher for $comment");
     }
@@ -50,10 +50,10 @@ function import_request($name, $content, $cookies)
     return http_request(
         '/index.php?action=import',
         'POST',
-        array('MAX_FILE_SIZE' => '1000000'),
+        ['MAX_FILE_SIZE' => '1000000'],
         $cookies,
         null,
-        array('uploadcsv[]' => array('name' => $name, 'type' => 'text/csv', 'content' => $content))
+        ['uploadcsv[]' => ['name' => $name, 'type' => 'text/csv', 'content' => $content]],
     );
 }
 
@@ -111,7 +111,7 @@ assert_contains($unknownImport['body'], 'Ungültige Buchungszeile in Datei 1 (ba
 assert_not_contains($unknownImport['body'], 'wurde erfolgreich importiert', 'BAWAG unknown account');
 
 // Dates must be dates (format_date() passes other text through).
-$badDates = array("15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag', '2024-13-45', '9999-99-99', '31.02.2024', '2023-02-29');
+$badDates = ["15.02.2024' x", 'x 2024-02-15', '2024-02-15 x', 'Montag', '2024-13-45', '9999-99-99', '31.02.2024', '2023-02-29'];
 foreach ($badDates as $index => $date) {
     $comment = "Synthetic import with a bad date $index";
     $response = import_csv('bad-date.csv', $handkassaHeader . handkassa_line($date, $comment, '2'), $adminCookies);
@@ -142,20 +142,20 @@ $mixedImport = call_user_func(function () use ($mixed, $second, $unitOneCookies)
     return http_request(
         '/index.php?action=import',
         'POST',
-        array('MAX_FILE_SIZE' => '1000000'),
+        ['MAX_FILE_SIZE' => '1000000'],
         $unitOneCookies,
         null,
-        array(
-            'uploadcsv[0]' => array('name' => 'mixed.csv', 'type' => 'text/csv', 'content' => $mixed),
-            'uploadcsv[1]' => array('name' => 'second.csv', 'type' => 'text/csv', 'content' => $second),
-        )
+        [
+            'uploadcsv[0]' => ['name' => 'mixed.csv', 'type' => 'text/csv', 'content' => $mixed],
+            'uploadcsv[1]' => ['name' => 'second.csv', 'type' => 'text/csv', 'content' => $second],
+        ],
     );
 });
 assert_contains($mixedImport['body'], 'Ungültige Buchungszeile in Datei 1 (mixed.csv), Zeile 3', 'mixed import');
 assert_contains($mixedImport['body'], 'Ungültige Buchungszeile in Datei 1 (mixed.csv), Zeile 4', 'mixed import');
 assert_contains($mixedImport['body'], 'Datei 1 (mixed.csv): 2 Buchungszeilen übersprungen (Zeilen 3, 4)', 'mixed import');
 assert_contains($mixedImport['body'], 'Datei 2 (second.csv) wurde erfolgreich importiert', 'mixed import');
-foreach (array('before a skipped line' => 1, 'of a foreign line' => 0, 'with an impossible date' => 0, 'after skipped lines' => 1, 'from a second file' => 1) as $label => $expected) {
+foreach (['before a skipped line' => 1, 'of a foreign line' => 0, 'with an impossible date' => 0, 'after skipped lines' => 1, 'from a second file' => 1] as $label => $expected) {
     if (import_count($database, "Synthetic import $label") !== $expected) {
         fail_test("mixed import: line $label imported " . import_count($database, "Synthetic import $label") . " times, expected $expected");
     }
@@ -173,21 +173,21 @@ $memberRow = import_orga($database, 'Synthetic member line Synthetica');
 if (import_count($database, 'Synthetic line after the member line') !== 1) {
     fail_test('the line after the member line was not imported');
 }
-$memberName = @pg_query_params($database, 'SELECT name, member_id FROM vouchers WHERE comment = $1', array('Synthetic member line Synthetica'));
+$memberName = @pg_query_params($database, 'SELECT name, member_id FROM vouchers WHERE comment = $1', ['Synthetic member line Synthetica']);
 $memberFields = pg_fetch_assoc($memberName);
 if ($memberFields['name'] !== 'Synthetica' || $memberFields['member_id'] !== '9035') {
     fail_test('member line: ' . var_export($memberFields, true));
 }
 
 // The organization of every line must be one the user may use.
-$orgCases = array(
-    'own organization' => array($unitOneCookies, '1', true),
-    'foreign organization' => array($unitOneCookies, '2', false),
-    'default organization 10' => array($unitOneCookies, '0', false),
-    'organization of Rbgf,2' => array($readOnlyTwoCookies, '2', true),
-    'foreign organization of Rbgf,2' => array($readOnlyTwoCookies, '1', false),
-    'admin, any organization' => array($adminCookies, '7', true),
-);
+$orgCases = [
+    'own organization' => [$unitOneCookies, '1', true],
+    'foreign organization' => [$unitOneCookies, '2', false],
+    'default organization 10' => [$unitOneCookies, '0', false],
+    'organization of Rbgf,2' => [$readOnlyTwoCookies, '2', true],
+    'foreign organization of Rbgf,2' => [$readOnlyTwoCookies, '1', false],
+    'admin, any organization' => [$adminCookies, '7', true],
+];
 foreach ($orgCases as $label => $case) {
     $comment = "Synthetic import, $label";
     $response = import_csv('org.csv', $handkassaHeader . handkassa_line('01.04.2024', $comment, $case[1]), $case[0]);
@@ -239,7 +239,7 @@ $exportRows = @pg_query($database, "SELECT amount, date::date AS date, comment F
 if ($exportRows === false) {
     fail_test('BAWAG export query failed: ' . pg_last_error($database));
 }
-$exportFound = array();
+$exportFound = [];
 while (($row = pg_fetch_array($exportRows, null, PGSQL_ASSOC)) !== false) {
     $exportFound[] = $row['amount'] . ' ' . $row['date'];
     if (strpos($row['comment'], 'SYNTHETIC SHOP') !== false
@@ -248,7 +248,7 @@ while (($row = pg_fetch_array($exportRows, null, PGSQL_ASSOC)) !== false) {
     }
 }
 pg_free_result($exportRows);
-if ($exportFound !== array('-1840 2024-03-12', '-5500 2024-03-13', '3050 2024-03-14', '-2499 2024-03-15')) {
+if ($exportFound !== ['-1840 2024-03-12', '-5500 2024-03-13', '3050 2024-03-14', '-2499 2024-03-15']) {
     fail_test('BAWAG export: imported ' . var_export($exportFound, true));
 }
 
@@ -265,7 +265,7 @@ function import_amount_cases($database, $cookies, $name, $header, $cases, $line,
 {
     $content = $header;
     $lineno = $header === '' ? 0 : 1;
-    $skipped = array();
+    $skipped = [];
     foreach ($cases as $index => $case) {
         $lineno++;
         $content .= $line($index, $case[0]);
@@ -281,79 +281,79 @@ function import_amount_cases($database, $cookies, $name, $header, $cases, $line,
     }
     assert_contains($response['body'], "Datei 1 ($name): " . count($skipped) . ' Buchungszeilen übersprungen (Zeilen ' . implode(', ', $skipped) . ')', $name);
     foreach ($cases as $index => $case) {
-        $result = @pg_query_params($database, 'SELECT amount FROM vouchers WHERE comment LIKE $1 ORDER BY id', array($like($index)));
+        $result = @pg_query_params($database, 'SELECT amount FROM vouchers WHERE comment LIKE $1 ORDER BY id', [$like($index)]);
         $rows = pg_fetch_all_columns($result, 0);
-        if ($rows !== ($case[1] === null ? array() : $case[1])) {
+        if ($rows !== ($case[1] === null ? [] : $case[1])) {
             fail_test("$name amount " . var_export($case[0], true) . ': imported ' . var_export($rows, true));
         }
     }
 }
-import_amount_cases($database, $adminCookies, 'bawag-amounts.csv', '', array(
-    array('+5,00', array('500')),
-    array('+0,00', array('0')),
-    array('-1.234,56', array('-123456')),
-    array('+21.474.836,47', array('2147483647')),
-    array('1e3', null),
-    array('1e3,2', null),
-    array('1e1000', null),
-    array('9223372036854775808', null),
-    array('+21.474.836,48', null),
-    array('+5,5', null),
-    array('25.00', null),
-    array('1.234.56', null),
-), function ($index, $amount) {
+import_amount_cases($database, $adminCookies, 'bawag-amounts.csv', '', [
+    ['+5,00', ['500']],
+    ['+0,00', ['0']],
+    ['-1.234,56', ['-123456']],
+    ['+21.474.836,47', ['2147483647']],
+    ['1e3', null],
+    ['1e3,2', null],
+    ['1e1000', null],
+    ['9223372036854775808', null],
+    ['+21.474.836,48', null],
+    ['+5,5', null],
+    ['25.00', null],
+    ['1.234.56', null],
+], function ($index, $amount) {
     return "AT606000050110117300;Synthetic BAWAG amount $index|BAWAATWW AT611904300234573201 Synthetic Spender;07.04.2024;07.04.2024;$amount;EUR\n";
 }, function ($index) {
     return "Synthetic BAWAG amount $index\n%";
 });
-import_amount_cases($database, $adminCookies, 'handkassa-amounts.csv', $handkassaHeader, array(
-    array('12,50', array('1250')),
-    array('7', array('700')),
-    array('12,5', array('1250')),
-    array('-3.5', array('-350')),
-    array('-3.10', array('-310')),
-    array(' 3,00 ', array('300')),
-    array('0', array()),
-    array('1e3', null),
-    array('abc', null),
-    array('', null),
-    array('1,005', null),
-    array('1.234,56', array('123456')),
-    array('1,234.56', array('123456')),
-    array('1.234', null),
-), function ($index, $amount) {
+import_amount_cases($database, $adminCookies, 'handkassa-amounts.csv', $handkassaHeader, [
+    ['12,50', ['1250']],
+    ['7', ['700']],
+    ['12,5', ['1250']],
+    ['-3.5', ['-350']],
+    ['-3.10', ['-310']],
+    [' 3,00 ', ['300']],
+    ['0', []],
+    ['1e3', null],
+    ['abc', null],
+    ['', null],
+    ['1,005', null],
+    ['1.234,56', ['123456']],
+    ['1,234.56', ['123456']],
+    ['1.234', null],
+], function ($index, $amount) {
     return "08.04.2024;$amount;Handkassa;Synthetic Handkassa amount $index;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n";
 }, function ($index) {
     return "Synthetic Handkassa amount $index";
 });
 import_amount_cases($database, $adminCookies, 'sparkasse-amounts.csv', "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"
     . "Kundendaten/Zahlungsreferenz;Umsatzzeile 2;Ersterfassungsreferenz;Auftraggeber Kontonr./IBAN;"
-    . "Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC\r\n", array(
-        array('+99,99', array('9999')),
-        array('-1.234,56', array('-123456')),
-        array('0,00', array()),
-        array('1e3', null),
-        array('99,9', null),
-        array('12.34', array('1234')),
-        array('1,234.56', array('123456')),
-        array('1.234.56', null),
-    ), function ($index, $amount) {
+    . "Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC\r\n", [
+        ['+99,99', ['9999']],
+        ['-1.234,56', ['-123456']],
+        ['0,00', []],
+        ['1e3', null],
+        ['99,9', null],
+        ['12.34', ['1234']],
+        ['1,234.56', ['123456']],
+        ['1.234.56', null],
+    ], function ($index, $amount) {
         return "Synthetic;16.05.2024;$amount;EUR;16.05.2024;Synthetic Sparkasse amount $index;Zusatz;Auftraggeber;;;;;;Synthetic Partner;AT00 0000;SYNTATWW\r\n";
     }, function ($index) {
         return "Synthetic Sparkasse amount $index; %";
     });
-import_amount_cases($database, $adminCookies, 'paypal-amounts.csv', $paypalLines[0] . "\n", array(
-    array(array('25.00', '-0.78'), array('2500', '-78')),
-    array(array('"1,234.56"', '0.00'), array('123456', '0')),
-    array(array('"25,00"', '"-0,78"'), array('2500', '-78')),
-    array(array('"-1.234,56"', '"0,00"'), array('-123456', '0')),
-    array(array('"25,0"', '0.00'), null),
-    array(array('"1.234.56"', '0.00'), null),
-    array(array('0.00', '0.00'), array()),
-    array(array('1e3', '0.00'), null),
-    array(array('25', '0.00'), null),
-    array(array('25.00', 'x'), null),
-), function ($index, $amount) {
+import_amount_cases($database, $adminCookies, 'paypal-amounts.csv', $paypalLines[0] . "\n", [
+    [['25.00', '-0.78'], ['2500', '-78']],
+    [['"1,234.56"', '0.00'], ['123456', '0']],
+    [['"25,00"', '"-0,78"'], ['2500', '-78']],
+    [['"-1.234,56"', '"0,00"'], ['-123456', '0']],
+    [['"25,0"', '0.00'], null],
+    [['"1.234.56"', '0.00'], null],
+    [['0.00', '0.00'], []],
+    [['1e3', '0.00'], null],
+    [['25', '0.00'], null],
+    [['25.00', 'x'], null],
+], function ($index, $amount) {
     return "17.03.2024,10:00:00,CET,Synthetic PayPal Donor,Spende,Abgeschlossen,EUR,{$amount[0]},{$amount[1]},24.22,donor@example.invalid,spende@piratenpartei.at,SYNTH000000010$index,,,Synthetic Paypal amount $index,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,\n";
 }, function ($index) {
     return "Synthetic Paypal amount $index; %";
@@ -394,11 +394,11 @@ function member_rows($database)
     }
     $rows = pg_fetch_all($result);
     pg_free_result($result);
-    return $rows === false ? array() : $rows;
+    return $rows === false ? [] : $rows;
 }
 
 membership_stub_mode('ok');
-$memberPage = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
+$memberPage = http_request('/index.php?action=mb', 'GET', [], $adminCookies);
 assert_status($memberPage, 200, 'member-fee page');
 assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
 // A bank import matches a line's name against the list it just fetched (the
@@ -408,20 +408,20 @@ membership_stub_mode('flow');
 $flowImport = import_csv('flow.csv', $handkassaHeader
     . "07.04.2024;7,00;Handkassa;Synthetic flow member line;;;Nein;Nein;Jürgen Größe-Weiß;0;1;;;\r\n", $adminCookies);
 assert_contains($flowImport['body'], 'wurde erfolgreich importiert', 'import with the flow list');
-$flowRow = @pg_query_params($database, 'SELECT name, member_id, type FROM vouchers WHERE comment = $1', array('Synthetic flow member line'));
+$flowRow = @pg_query_params($database, 'SELECT name, member_id, type FROM vouchers WHERE comment = $1', ['Synthetic flow member line']);
 $flowFields = $flowRow === false ? false : pg_fetch_all($flowRow);
-if ($flowFields !== array(array('name' => 'Jürgen Größe-Weiß', 'member_id' => '9111', 'type' => '1'))) {
+if ($flowFields !== [['name' => 'Jürgen Größe-Weiß', 'member_id' => '9111', 'type' => '1']]) {
     fail_test('member line with the flow list: ' . var_export($flowFields, true));
 }
 membership_stub_mode('ok');
-foreach (array('DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',
-    "INSERT INTO ppmembers VALUES (8801, 'Synthetic Kept Member', 1, 1), (8802, 'Synthetic Kept Other', 10, 0)") as $query) {
+foreach (['DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',
+    "INSERT INTO ppmembers VALUES (8801, 'Synthetic Kept Member', 1, 1), (8802, 'Synthetic Kept Other', 10, 0)"] as $query) {
     if (@pg_query($database, $query) === false) {
         fail_test('planting ppmembers failed: ' . pg_last_error($database));
     }
 }
 $members = member_rows($database);
-$failures = array(
+$failures = [
     'short' => 'Daten von Mitgliederverwaltung zu kurz!',
     'garbage' => 'Daten von Mitgliederverwaltung ungültig!',
     'empty' => 'Daten von Mitgliederverwaltung ungültig!',
@@ -436,12 +436,12 @@ $failures = array(
     // (logged by getusers(), hidden from the page by "@") are expected.
     'selfsigned' => 'Mitgliederliste konnte nicht abgerufen werden!',
     'wrongname' => 'Mitgliederliste konnte nicht abgerufen werden!',
-);
+];
 foreach ($failures as $mode => $message) {
     membership_stub_mode($mode);
     $requests = function () use ($mode, $message, $adminCookies, $database, $members) {
-        foreach (array('mb', 'import') as $action) {
-            $failed = http_request("/index.php?action=$action", 'GET', array(), $adminCookies);
+        foreach (['mb', 'import'] as $action) {
+            $failed = http_request("/index.php?action=$action", 'GET', [], $adminCookies);
             assert_contains($failed['body'], $message, "$action with a $mode member list");
             if (member_rows($database) !== $members) {
                 fail_test("$action with a $mode member list changed ppmembers: " . var_export(array_slice(member_rows($database), 0, 2), true));
@@ -449,7 +449,7 @@ foreach ($failures as $mode => $message) {
         }
     };
     if ($mode === 'selfsigned' || $mode === 'wrongname') {
-        with_expected_diagnostics("refused $mode certificate", array(array('getusers.php', 'file_get_contents(')), $requests);
+        with_expected_diagnostics("refused $mode certificate", [['getusers.php', 'file_get_contents(']], $requests);
     } else {
         $requests();
     }
@@ -464,13 +464,13 @@ foreach ($failures as $mode => $message) {
 membership_stub_mode('ok');
 // An SQL error in the refresh (here: ppmembers is a view, which DROP TABLE
 // refuses) rolls the transaction back.
-foreach (array('DROP TABLE ppmembers', "CREATE VIEW ppmembers AS SELECT 8803 AS id, 'Synthetic View Member'::text AS name, 1 AS lo, 1 AS paid") as $query) {
+foreach (['DROP TABLE ppmembers', "CREATE VIEW ppmembers AS SELECT 8803 AS id, 'Synthetic View Member'::text AS name, 1 AS lo, 1 AS paid"] as $query) {
     if (@pg_query($database, $query) === false) {
         fail_test('planting the ppmembers view failed: ' . pg_last_error($database));
     }
 }
 $members = member_rows($database);
-$failed = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
+$failed = http_request('/index.php?action=mb', 'GET', [], $adminCookies);
 assert_contains($failed['body'], 'Abfrage fehlgeschlagen: ', 'mb with a ppmembers view');
 if (member_rows($database) !== $members) {
     fail_test('mb with a ppmembers view changed it');
@@ -503,14 +503,14 @@ $importLines = import_single_value($database, 'SELECT line FROM import');
 $latin9 = http_request(
     '/index.php?action=import',
     'POST',
-    array('MAX_FILE_SIZE' => '1000000'),
+    ['MAX_FILE_SIZE' => '1000000'],
     $adminCookies,
     null,
-    array(
-        'uploadcsv[0]' => array('name' => '', 'type' => 'text/csv', 'content' => ''),
-        'uploadcsv[1]' => array('name' => 'bawag-latin9.csv', 'type' => 'application/vnd.ms-excel',
-            'content' => file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-latin9.csv')),
-    )
+    [
+        'uploadcsv[0]' => ['name' => '', 'type' => 'text/csv', 'content' => ''],
+        'uploadcsv[1]' => ['name' => 'bawag-latin9.csv', 'type' => 'application/vnd.ms-excel',
+            'content' => file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-latin9.csv')],
+    ],
 );
 assert_status($latin9, 200, 'BAWAG ISO-8859-15 fixture');
 assert_contains($latin9['body'], "<table>\n<h2>Importiere bawag-latin9.csv</h2>\n", 'BAWAG ISO-8859-15 fixture');
@@ -523,14 +523,14 @@ assert_not_contains($bawagFixture['body'], 'Ungültige Buchungszeile', 'BAWAG fi
 $bawagName = import_csv('bawag-name.csv', "AT606000050110117300;Synthetic transfer|Synthetic Sender a Zahlung;14.01.2024;14.01.2024;+6,00;EUR\n", $adminCookies);
 assert_contains($bawagName['body'], 'Datei 1 (bawag-name.csv) wurde erfolgreich importiert', 'BAWAG name before the contra account');
 $importedRows = 'FROM vouchers WHERE xmin::text::bigint > $1';
-$imported = @pg_query_params($database, "SELECT orga, type, member, contra_account, name, amount $importedRows ORDER BY id, comment", array($importStart));
-$summary = array();
-foreach ($imported === false ? array() : pg_fetch_all($imported) as $row) {
-    $summary[] = implode('|', array($row['orga'], $row['type'], $row['member'], $row['contra_account'], $row['name'], $row['amount']));
+$imported = @pg_query_params($database, "SELECT orga, type, member, contra_account, name, amount $importedRows ORDER BY id, comment", [$importStart]);
+$summary = [];
+foreach ($imported === false ? [] : pg_fetch_all($imported) as $row) {
+    $summary[] = implode('|', [$row['orga'], $row['type'], $row['member'], $row['contra_account'], $row['name'], $row['amount']]);
 }
 // The two lines of the ISO-8859-15 file come first; bawag.csv repeats them
 // at its end, and they are skipped there (import.line).
-$expected = array(
+$expected = [
     '6|8|f|BAWAATWW AT666666666666666666|Jörg Österreicher|1234',
     '6|28|t|BAWAATWW AT777777777777777777|Zoë Synthetisch|-500',
     '2|8|f|BAWAATWW AT611904300234573201|Synthetic Spender|5000',
@@ -545,13 +545,13 @@ $expected = array(
     '9|1|t||Synthetica|300',
     '2|14|f|||400',
     '2|8|f|a Zahlung|Synthetic Sender|600',
-);
+];
 if ($summary !== $expected) {
     fail_test('BAWAG fixture rows: ' . var_export($summary, true));
 }
-$cleanup = array(array("DELETE $importedRows", array($importStart)));
+$cleanup = [["DELETE $importedRows", [$importStart]]];
 foreach (array_diff(import_single_value($database, 'SELECT line FROM import'), $importLines) as $line) {
-    $cleanup[] = array('DELETE FROM import WHERE line = $1', array($line));
+    $cleanup[] = ['DELETE FROM import WHERE line = $1', [$line]];
 }
 foreach ($cleanup as $query) {
     if (@pg_query_params($database, $query[0], $query[1]) === false) {

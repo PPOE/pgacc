@@ -18,32 +18,32 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         $receipt = "%PDF synthetic command-line receipt\n%%EOF\n";
         $this->put('42.aes', receipt_encrypt('1003', '', $receipt));
         $command = function ($arguments) use ($script) {
-            $descriptors = array(1 => array('pipe', 'w'), 2 => array('pipe', 'w'));
+            $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
             $process = proc_open(
                 escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' ' . $arguments,
                 $descriptors,
-                $pipes
+                $pipes,
             );
             $output = stream_get_contents($pipes[1]);
             $errors = stream_get_contents($pipes[2]);
             fclose($pipes[1]);
             fclose($pipes[2]);
-            return array(proc_close($process), $output, $errors);
+            return [proc_close($process), $output, $errors];
         };
         $fingerprint = self::fingerprint(self::TEST_KEY);
 
         self::assertSame(
-            array(2, '', "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"),
-            $command('--files=' . escapeshellarg($this->directory . '/missing'))
+            [2, '', "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"],
+            $command('--files=' . escapeshellarg($this->directory . '/missing')),
         );
 
-        self::assertSame(array(0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy\n"
+        self::assertSame([0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy\n"
             . "1 migrated, 0 already migrated, 0 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
-            . "key fingerprint $fingerprint\n", ''), $command('--files=' . escapeshellarg($files)));
-        self::assertSame(array(0, self::deleteReminder() . "42.aes: verified; deleted 42.aes\n"
+            . "key fingerprint $fingerprint\n", ''], $command('--files=' . escapeshellarg($files)));
+        self::assertSame([0, self::deleteReminder() . "42.aes: verified; deleted 42.aes\n"
             . "0 migrated, 0 already migrated, 1 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
-            . "key fingerprint $fingerprint\n", ''), $command('--delete-legacy --files=' . escapeshellarg($files)));
-        self::assertSame(array('.migrate-receipt-key.lock', '42.v2.aes'), array_keys($this->files()));
+            . "key fingerprint $fingerprint\n", ''], $command('--delete-legacy --files=' . escapeshellarg($files)));
+        self::assertSame(['.migrate-receipt-key.lock', '42.v2.aes'], array_keys($this->files()));
         self::assertSame(rijndael256_zero_pad($receipt), $this->v2Plain('42'));
     }
 
@@ -68,8 +68,8 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         $process = proc_open(
             escapeshellarg(PHP_BINARY) . ' -d memory_limit=16M '
             . escapeshellarg(dirname(dirname(__DIR__)) . '/migrate-receipt-key.php') . ' --dry-run --files=' . escapeshellarg($files),
-            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
-            $pipes
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
         );
         $output = stream_get_contents($pipes[1]);
         $errors = stream_get_contents($pipes[2]);

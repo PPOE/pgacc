@@ -56,7 +56,9 @@ if (PHP_SAPI !== 'cli') {
 
 require_once __DIR__ . '/vendor/autoload.php';
 // PHPUnit and Infection have already loaded functions.php (or a copy of it).
-if (!function_exists('receipt_encrypt')) require_once __DIR__ . '/functions.php';
+if (!function_exists('receipt_encrypt')) {
+    require_once __DIR__ . '/functions.php';
+}
 
 function receipt_migration_usage()
 {
@@ -178,7 +180,7 @@ function receipt_migration_legacy($connection, $options, $number)
     $result = @pg_query_params(
         $connection,
         'SELECT DISTINCT voucher_id FROM vouchers WHERE file = $1 ORDER BY voucher_id',
-        [$number]
+        [$number],
     );
     if ($result === false) {
         return ['failed', 'database query failed: ' . pg_last_error($connection)];
@@ -242,8 +244,7 @@ function receipt_migration_file($connection, $options, $key, $number)
     }
     // Read back. One statement: a written file cannot be made to differ in the
     // tests. The file is this run's own, so it may be removed.
-    if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) return @unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"];
-    return ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy"];
+    return receipt_v2_read_with($key, $number, $v2Path) !== $plain ? (@unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"]) : ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy"];
 }
 
 // Migrates the listed files; returns the exit status.
@@ -334,4 +335,6 @@ function receipt_migration_main($arguments, $out, $err)
     return $status;
 }
 
-if (isset($_SERVER['argv'][0]) && realpath($_SERVER['argv'][0]) === __FILE__) exit(receipt_migration_main(array_slice($_SERVER['argv'], 1), STDOUT, STDERR));
+if (isset($_SERVER['argv'][0]) && realpath($_SERVER['argv'][0]) === __FILE__) {
+    exit(receipt_migration_main(array_slice($_SERVER['argv'], 1), STDOUT, STDERR));
+}

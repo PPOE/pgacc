@@ -11,6 +11,6 @@ function pgacc_test_connection_string()
         getenv('PGPORT'),
         getenv('PGDATABASE'),
         getenv('PGUSER'),
-        getenv('PGPASSWORD')
+        getenv('PGPASSWORD'),
     );
 }

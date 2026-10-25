@@ -4,8 +4,9 @@ function page_mb($rights)
 {
     global $dbconn;
     $rightssql = rights2orgasql($rights);
-    if (!has_right($rights, 'bgf') && !has_right($rights, 'Rbgf'))
+    if (!has_right($rights, 'bgf') && !has_right($rights, 'Rbgf')) {
         return;
+    }
     $year = date('Y');
     $previousYear = $year - 1;
     getusers();
@@ -32,9 +33,11 @@ function page_mb($rights)
         if ($line['name'] == '') {
             $errcount += $line['count'];
             $erramount += $line['amount'];
-        } else if ($line['name'] == 'Keine')
+        } elseif ($line['name'] == 'Keine') {
             $keine = $line;
-        else $rows[] = $line;
+        } else {
+            $rows[] = $line;
+        }
     }
     if ($keine !== null) {
         $keine['count'] += $errcount;
@@ -122,4 +125,3 @@ function page_mb($rights)
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     pg_free_result($result);
 }
-?>

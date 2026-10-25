@@ -35,7 +35,7 @@ function receipts_query($database, $query, $parameters, $label)
     }
     $rows = pg_fetch_all($result);
     pg_free_result($result);
-    return $rows === false ? array() : $rows;
+    return $rows === false ? [] : $rows;
 }
 
 function insert_receipt_voucher($database, $id, $voucherId, $comment)
@@ -46,14 +46,14 @@ function insert_receipt_voucher($database, $id, $voucherId, $comment)
                                date, person_type, file, save_user, vaccount)
          VALUES ($1, $2, 20, 2, false, -1000, 'TEST-ACCOUNT-2', $3, true,
                  timestamp '2024-09-15 00:00:00', 1, 0, 1, 'TEST-VIRTUAL-2')",
-        array($id, $voucherId, $comment),
-        "voucher $id"
+        [$id, $voucherId, $comment],
+        "voucher $id",
     );
 }
 
 function receipt_file_number($database, $id)
 {
-    $rows = receipts_query($database, 'SELECT file FROM vouchers WHERE id = $1', array($id), "file of voucher $id");
+    $rows = receipts_query($database, 'SELECT file FROM vouchers WHERE id = $1', [$id], "file of voucher $id");
     if (count($rows) !== 1 || intval($rows[0]['file']) <= 0) {
         fail_test("voucher $id has no receipt file after the upload");
     }
@@ -67,12 +67,12 @@ function receipt_file_number($database, $id)
 // and send other types as an attachment; legacy responses are unchanged.
 function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber, $label, $v2)
 {
-    $response = http_request('/index.php?action=file&id=' . $id, 'GET', array(), $cookies);
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies);
     assert_status($response, 200, $label);
     if ($response['body'] !== $body) {
         fail_test("$label returned " . strlen($response['body']) . ' bytes that differ from the receipt');
     }
-    $headers = array(
+    $headers = [
         'Content-Type' => $contentType,
         'Content-Length' => strval(strlen($body)),
         'Content-Transfer-Encoding' => 'binary',
@@ -80,7 +80,7 @@ function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber
         'Content-Disposition' => $contentType === 'application/pdf' ? "inline; filename=\"$fileNumber.pdf\""
             : ($contentType === 'application/octet-stream' ? "attachment; filename=\"$fileNumber.bin\"" : null),
         'X-Content-Type-Options' => $v2 ? 'nosniff' : null,
-    );
+    ];
     foreach ($headers as $name => $expected) {
         $actual = response_header($response, $name);
         if ($actual !== $expected) {
@@ -91,7 +91,7 @@ function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber
 
 function assert_undecryptable_download($cookies, $id, $label)
 {
-    $response = http_request('/index.php?action=file&id=' . $id, 'GET', array(), $cookies);
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies);
     assert_status($response, 500, $label);
     if (response_header($response, 'Content-Type') !== 'text/plain; charset=UTF-8'
         || $response['body'] !== 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.') {
@@ -112,7 +112,7 @@ function receipt_files_directory()
 
 function stored_receipt_files($fileNumber)
 {
-    $names = array();
+    $names = [];
     foreach (scandir(receipt_files_directory()) as $name) {
         if (strpos($name, "$fileNumber.") === 0) {
             $names[] = $name;
@@ -126,7 +126,7 @@ function stored_receipt_files($fileNumber)
 function assert_stored_receipt($fileNumber, $key, $plain, $label)
 {
     $names = stored_receipt_files($fileNumber);
-    if ($names !== array("$fileNumber.v2.aes")) {
+    if ($names !== ["$fileNumber.v2.aes"]) {
         fail_test("$label stored " . var_export($names, true) . ", expected $fileNumber.v2.aes only");
     }
     $stored = file_get_contents(receipt_files_directory() . "/$fileNumber.v2.aes");
@@ -138,12 +138,12 @@ function assert_stored_receipt($fileNumber, $key, $plain, $label)
 function merge_vouchers($cookies, $target, $source)
 {
     // The merge form of the edit page posts bid1=<this voucher>, bid2=<other>.
-    $response = http_request('/index.php?action=merge', 'POST', array('bid1' => $target, 'bid2' => $source), $cookies);
+    $response = http_request('/index.php?action=merge', 'POST', ['bid1' => $target, 'bid2' => $source], $cookies);
     assert_no_problems(redirect_problems($response, "index.php?action=edit&id=$target&hint=6"), "merge of $source into $target");
 }
 
 $vectors = json_decode(file_get_contents(__DIR__ . '/fixtures/mcrypt/vectors.json'), true);
-$receiptVectors = array();
+$receiptVectors = [];
 foreach ($vectors['receipts'] as $vector) {
     $receiptVectors[$vector['name']] = $vector;
 }
@@ -167,24 +167,24 @@ function upload_receipt($database, $cookies, $id, $voucherId, $name, $type, $con
     $response = http_request(
         '/index.php?action=edit&id=' . $voucherId,
         'POST',
-        array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => strval($id)),
+        ['fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'parts' => '1', 'bid0' => strval($id)],
         $cookies,
         null,
-        array('file0' => array('name' => $name, 'type' => $type, 'content' => $content))
+        ['file0' => ['name' => $name, 'type' => $type, 'content' => $content]],
     );
     // relocate() discards the confirmation page and redirects to the voucher.
     assert_no_problems(
         redirect_problems($response, "index.php?action=edit&id=$voucherId&bid=$id&hint=1"),
-        "$name upload"
+        "$name upload",
     );
     return receipt_file_number($database, $id);
 }
 
 // Receipt upload on the voucher edit page (new.php page_new_file()).
-$uploads = array(
-    array(9101, 4711, 'receipt.pdf', 'application/pdf', $pdf),
-    array(9102, 815, 'receipt.jpg', 'image/jpeg', $jpeg),
-);
+$uploads = [
+    [9101, 4711, 'receipt.pdf', 'application/pdf', $pdf],
+    [9102, 815, 'receipt.jpg', 'image/jpeg', $jpeg],
+];
 foreach ($uploads as $upload) {
     list($id, $voucherId, $name, $type, $content) = $upload;
     $fileNumber = upload_receipt($database, $adminCookies, $id, $voucherId, $name, $type, $content);
@@ -200,45 +200,45 @@ assert_receipt_download($adminCookies, 9109, $pdf, 'application/pdf', $fileNumbe
 
 // Stored receipts with synthetic file numbers above the sequence.
 $filesDirectory = receipt_files_directory();
-$storedCases = array(
+$storedCases = [
     // The legacy format alone: unchanged, zero-padded body.
-    array(9104, 4711, 990001, array('aes' => hex2bin($receiptVectors['pdf document']['cipher'])),
-        rijndael256_zero_pad($pdf), 'application/pdf', 'legacy receipt download'),
-    array(9111, 815, 990006, array('aes' => hex2bin($receiptVectors['jpeg image']['cipher'])),
-        rijndael256_zero_pad(hex2bin($receiptVectors['jpeg image']['plain'])), 'image/jpeg', 'legacy JPEG download'),
+    [9104, 4711, 990001, ['aes' => hex2bin($receiptVectors['pdf document']['cipher'])],
+        rijndael256_zero_pad($pdf), 'application/pdf', 'legacy receipt download'],
+    [9111, 815, 990006, ['aes' => hex2bin($receiptVectors['jpeg image']['cipher'])],
+        rijndael256_zero_pad(hex2bin($receiptVectors['jpeg image']['plain'])), 'image/jpeg', 'legacy JPEG download'],
     // Both formats: <n>.v2.aes wins; Content-Length is its plain text size.
-    array(9105, 4711, 990002, array('aes' => hex2bin($receiptVectors['pdf 33 bytes']['cipher']),
-        'v2.aes' => receipt_v2_encrypt($testKey, 990002, $pdf)), $pdf, 'application/pdf', 'download with both formats'),
-    array(9106, 815, 990003, array('aes' => hex2bin($receiptVectors['jpeg image']['cipher']),
-        'v2.aes' => receipt_v2_encrypt($testKey, 990003, $jpeg)), $jpeg, 'image/jpeg', 'JPEG download with both formats'),
+    [9105, 4711, 990002, ['aes' => hex2bin($receiptVectors['pdf 33 bytes']['cipher']),
+        'v2.aes' => receipt_v2_encrypt($testKey, 990002, $pdf)], $pdf, 'application/pdf', 'download with both formats'],
+    [9106, 815, 990003, ['aes' => hex2bin($receiptVectors['jpeg image']['cipher']),
+        'v2.aes' => receipt_v2_encrypt($testKey, 990003, $jpeg)], $jpeg, 'image/jpeg', 'JPEG download with both formats'],
     // Another type is sent as a download, not refused.
-    array(9107, 4711, 990004, array('v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)),
-        $png, 'application/octet-stream', 'v2 receipt of another type'),
+    [9107, 4711, 990004, ['v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)],
+        $png, 'application/octet-stream', 'v2 receipt of another type'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
     // before, and logged.
-    array(9117, 4711, 990012, array('aes' => hex2bin($receiptVectors['pdf document']['cipher']),
-        'v2.aes' => receipt_v2_encrypt($otherKey, 990012, $pdf)), rijndael256_zero_pad($pdf), 'application/pdf',
-        'legacy receipt after a v2 key mismatch', 'legacy'),
-    array(9118, 815, 990013, array('aes' => hex2bin($receiptVectors['jpeg image']['cipher']),
-        'v2.aes' => 'not a v2 file'), rijndael256_zero_pad(hex2bin($receiptVectors['jpeg image']['plain'])), 'image/jpeg',
-        'legacy JPEG after an unreadable v2 file', 'legacy'),
+    [9117, 4711, 990012, ['aes' => hex2bin($receiptVectors['pdf document']['cipher']),
+        'v2.aes' => receipt_v2_encrypt($otherKey, 990012, $pdf)], rijndael256_zero_pad($pdf), 'application/pdf',
+        'legacy receipt after a v2 key mismatch', 'legacy'],
+    [9118, 815, 990013, ['aes' => hex2bin($receiptVectors['jpeg image']['cipher']),
+        'v2.aes' => 'not a v2 file'], rijndael256_zero_pad(hex2bin($receiptVectors['jpeg image']['plain'])), 'image/jpeg',
+        'legacy JPEG after an unreadable v2 file', 'legacy'],
     // Errors without a legacy file: another key, a file copied from another
     // number, a legacy file under the new name (no fallback), a modified file.
-    array(9108, 4711, 990005, array('v2.aes' => receipt_v2_encrypt($otherKey, 990005, $pdf)),
-        null, null, 'v2 receipt with another key'),
-    array(9112, 4711, 990007, array('v2.aes' => receipt_v2_encrypt($testKey, 990008, $pdf)),
-        null, null, 'v2 receipt of another file number'),
-    array(9113, 4711, 990009, array('v2.aes' => hex2bin($receiptVectors['pdf document']['cipher'])),
-        null, null, 'legacy ciphertext under the new name'),
-    array(9114, 4711, 990010, array('v2.aes' => substr_replace(receipt_v2_encrypt($testKey, 990010, $pdf), 'X', 40, 1)),
-        null, null, 'modified v2 receipt'),
-);
+    [9108, 4711, 990005, ['v2.aes' => receipt_v2_encrypt($otherKey, 990005, $pdf)],
+        null, null, 'v2 receipt with another key'],
+    [9112, 4711, 990007, ['v2.aes' => receipt_v2_encrypt($testKey, 990008, $pdf)],
+        null, null, 'v2 receipt of another file number'],
+    [9113, 4711, 990009, ['v2.aes' => hex2bin($receiptVectors['pdf document']['cipher'])],
+        null, null, 'legacy ciphertext under the new name'],
+    [9114, 4711, 990010, ['v2.aes' => substr_replace(receipt_v2_encrypt($testKey, 990010, $pdf), 'X', 40, 1)],
+        null, null, 'modified v2 receipt'],
+];
 foreach ($storedCases as $case) {
     list($id, $voucherId, $fileNumber, $files, $body, $type, $label) = $case;
     $legacyServed = isset($case[7]);
     insert_receipt_voucher($database, $id, $voucherId, "Synthetic stored receipt $fileNumber");
-    receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', array($fileNumber, $id), "file of voucher $id");
+    receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', [$fileNumber, $id], "file of voucher $id");
     foreach ($files as $suffix => $bytes) {
         file_put_contents("$filesDirectory/$fileNumber.$suffix", $bytes);
     }
@@ -254,11 +254,11 @@ foreach ($storedCases as $case) {
 // download decrypts it with the new ID and sends unreadable bytes.
 insert_receipt_voucher($database, 9115, 4742, 'Synthetic legacy receipt before a merge');
 insert_receipt_voucher($database, 9116, 4743, 'Synthetic legacy merge target');
-receipts_query($database, 'UPDATE vouchers SET file = 990011 WHERE id = 9115', array(), 'file of voucher 9115');
+receipts_query($database, 'UPDATE vouchers SET file = 990011 WHERE id = 9115', [], 'file of voucher 9115');
 file_put_contents("$filesDirectory/990011.aes", receipt_encrypt('4742', '', $pdf));
 assert_receipt_download($adminCookies, 9115, rijndael256_zero_pad($pdf), 'application/pdf', 990011, 'legacy receipt before a merge', false);
 merge_vouchers($adminCookies, 4743, 4742);
-$merged = http_request('/index.php?action=file&id=9115', 'GET', array(), $adminCookies);
+$merged = http_request('/index.php?action=file&id=9115', 'GET', [], $adminCookies);
 assert_status($merged, 200, 'legacy receipt after a merge');
 if ($merged['body'] !== receipt_decrypt('4743', '', receipt_encrypt('4742', '', $pdf))
     || response_header($merged, 'Content-Type') !== 'image/jpeg') {
@@ -270,15 +270,15 @@ if ($merged['body'] !== receipt_decrypt('4743', '', receipt_encrypt('4742', '', 
 // A one-page PDF statement with the content stream $stream.
 function pdf_statement($stream)
 {
-    $objects = array(
+    $objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
         '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
         '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
         '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . "\nendstream",
         '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    );
+    ];
     $statement = "%PDF-1.4\n";
-    $offsets = array();
+    $offsets = [];
     foreach ($objects as $index => $object) {
         $offsets[] = strlen($statement);
         $statement .= ($index + 1) . " 0 obj\n" . $object . "\nendobj\n";
@@ -296,10 +296,10 @@ $statement = pdf_statement('BT /F1 12 Tf 72 712 Td (Buchung AB/123456789 vom 15.
 $import = http_request(
     '/index.php?action=import2',
     'POST',
-    array(),
+    [],
     $adminCookies,
     null,
-    array('upload[]' => array('name' => 'statement.pdf', 'type' => 'application/pdf', 'content' => $statement))
+    ['upload[]' => ['name' => 'statement.pdf', 'type' => 'application/pdf', 'content' => $statement]],
 );
 assert_status($import, 200, 'PDF import');
 assert_contains($import['body'], 'Eine ID (AB/123456789) gefunden.', 'PDF import');
@@ -319,14 +319,14 @@ $split = pdf_statement('BT /F1 12 Tf 72 712 Td (Buchung CD/) Tj 300 0 Td (987654
 $import = http_request(
     '/index.php?action=import2',
     'POST',
-    array(),
+    [],
     $adminCookies,
     null,
-    array(
-        'upload[0]' => array('name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => $cover),
-        'upload[1]' => array('name' => 'corrupt.pdf', 'type' => 'application/pdf', 'content' => "%PDF-1.4\nno objects, no xref\n"),
-        'upload[2]' => array('name' => 'split.pdf', 'type' => 'application/pdf', 'content' => $split),
-    )
+    [
+        'upload[0]' => ['name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => $cover],
+        'upload[1]' => ['name' => 'corrupt.pdf', 'type' => 'application/pdf', 'content' => "%PDF-1.4\nno objects, no xref\n"],
+        'upload[2]' => ['name' => 'split.pdf', 'type' => 'application/pdf', 'content' => $split],
+    ],
 );
 assert_status($import, 200, 'PDF import of several files');
 assert_contains($import['body'], 'Datei 1 (cover.pdf):<br />Ist ein Übersichtsdeckblatt.<br />Keine Jahreszahl gefunden.<br />'
@@ -340,7 +340,7 @@ assert_stored_receipt($fileNumber, $testKey, $split, 'PDF import of several file
 // the posted MAX_FILE_SIZE), a file below 10 bytes, a statement without an
 // ID, without a date or with more than two dates. Each one is reported and
 // the next file is still checked.
-function import2_request($cookies, $files, $form = array())
+function import2_request($cookies, $files, $form = [])
 {
     $response = http_request('/index.php?action=import2', 'POST', $form, $cookies, null, $files);
     assert_status($response, 200, 'PDF import');
@@ -356,22 +356,22 @@ function import2_text_pdf($lines)
     return pdf_statement($stream . ' ET');
 }
 
-$rejected = import2_request($adminCookies, array(
-    'upload[0]' => array('name' => '', 'type' => 'application/pdf', 'content' => ''),
-    'upload[1]' => array('name' => 'tiny.pdf', 'type' => 'application/pdf', 'content' => '%PDF-1'),
-    'upload[2]' => array('name' => 'noid.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Synthetic Bank Information', 'Keine Buchung'))),
-    'upload[3]' => array('name' => 'nodate.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung GH/123456789', 'ohne Datum'))),
-    'upload[4]' => array('name' => 'dates.pdf', 'type' => 'application/pdf',
-        'content' => import2_text_pdf(array('Beleg GH/123456789', 'von 01.01.2024', 'bis 02.01.2024', 'am 03.01.2024'))),
-));
+$rejected = import2_request($adminCookies, [
+    'upload[0]' => ['name' => '', 'type' => 'application/pdf', 'content' => ''],
+    'upload[1]' => ['name' => 'tiny.pdf', 'type' => 'application/pdf', 'content' => '%PDF-1'],
+    'upload[2]' => ['name' => 'noid.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Synthetic Bank Information', 'Keine Buchung'])],
+    'upload[3]' => ['name' => 'nodate.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Buchung GH/123456789', 'ohne Datum'])],
+    'upload[4]' => ['name' => 'dates.pdf', 'type' => 'application/pdf',
+        'content' => import2_text_pdf(['Beleg GH/123456789', 'von 01.01.2024', 'bis 02.01.2024', 'am 03.01.2024'])],
+]);
 assert_contains($rejected['body'], 'Datei 1 ():<br />Datei 2 (tiny.pdf):<br />Iist zu klein und konnte daher nicht importiert werden.<br />'
     . 'Datei 3 (noid.pdf):<br />Keine IDs gefunden.<br />'
     . 'Datei 4 (nodate.pdf):<br />Eine ID (GH/123456789) gefunden.<br />Kein Datum gefunden.<br />'
     . 'Datei 5 (dates.pdf):<br />Eine ID (GH/123456789) gefunden.<br />Zuviele Daten gefunden gefunden.<br />', 'PDF import of rejected files');
 $tooLarge = import2_request(
     $adminCookies,
-    array('upload[]' => array('name' => 'large.pdf', 'type' => 'application/pdf', 'content' => $statement)),
-    array('MAX_FILE_SIZE' => '20')
+    ['upload[]' => ['name' => 'large.pdf', 'type' => 'application/pdf', 'content' => $statement]],
+    ['MAX_FILE_SIZE' => '20'],
 );
 // PHP reports an upload error with an empty type, refused as a file format
 // (the upload error message itself: tests/unit/ReceiptImportTest.php).
@@ -381,17 +381,17 @@ assert_contains($tooLarge['body'], 'Datei 1 (large.pdf):<br />Hat ein ungültige
 insert_receipt_voucher($database, 9130, 4760, 'Synthetic bank import twice JK/111111111');
 insert_receipt_voucher($database, 9131, 4761, 'Synthetic bank import twice JK/111111111 again');
 insert_receipt_voucher($database, 9132, 4762, 'Synthetic bank import with a receipt JK/222222222');
-receipts_query($database, 'UPDATE vouchers SET file = 77 WHERE id = 9132', array(), 'receipt of voucher 9132');
-$matches = import2_request($adminCookies, array(
-    'upload[0]' => array('name' => 'twice.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/111111111 vom 15.09.2024'))),
-    'upload[1]' => array('name' => 'attached.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/222222222 vom 15.09.2024'))),
-    'upload[2]' => array('name' => 'unknown.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchung JK/333333333 vom 15.09.2024'))),
-));
+receipts_query($database, 'UPDATE vouchers SET file = 77 WHERE id = 9132', [], 'receipt of voucher 9132');
+$matches = import2_request($adminCookies, [
+    'upload[0]' => ['name' => 'twice.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Buchung JK/111111111 vom 15.09.2024'])],
+    'upload[1]' => ['name' => 'attached.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Buchung JK/222222222 vom 15.09.2024'])],
+    'upload[2]' => ['name' => 'unknown.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Buchung JK/333333333 vom 15.09.2024'])],
+]);
 assert_contains($matches['body'], 'Datei 1 (twice.pdf):<br />Eine ID (JK/111111111) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Zuviele Buchungen gefunden.<br />'
     . 'Datei 2 (attached.pdf):<br />Eine ID (JK/222222222) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Has file attached.<br />'
     . 'Datei 3 (unknown.pdf):<br />Eine ID (JK/333333333) gefunden.<br />Ein Datum (2024-09-15) gefunden.<br />Keine Buchung gefunden.<br />', 'PDF import matches');
-$unchanged = receipts_query($database, 'SELECT id, file FROM vouchers WHERE id IN (9130, 9131, 9132) ORDER BY id', array(), 'vouchers after the PDF import matches');
-if ($unchanged !== array(array('id' => '9130', 'file' => '0'), array('id' => '9131', 'file' => '0'), array('id' => '9132', 'file' => '77'))) {
+$unchanged = receipts_query($database, 'SELECT id, file FROM vouchers WHERE id IN (9130, 9131, 9132) ORDER BY id', [], 'vouchers after the PDF import matches');
+if ($unchanged !== [['id' => '9130', 'file' => '0'], ['id' => '9131', 'file' => '0'], ['id' => '9132', 'file' => '77']]) {
     fail_test('PDF import matches changed receipts: ' . var_export($unchanged, true));
 }
 
@@ -408,28 +408,28 @@ receipts_query(
              timestamp '2024-03-31 00:00:00', 1, 0, 1, ''),
             (9134, 4764, 28, 2, false, -700, 'AT606000050110117300', 'Entgelt für Kontoführung', true,
              timestamp '2024-06-30 00:00:00', 1, 0, 1, '')",
-    array(),
-    'cover page vouchers'
+    [],
+    'cover page vouchers',
 );
-$covers = import2_request($adminCookies, array(
-    'upload[0]' => array('name' => 'ids.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array('Buchungen NP/555555555 und NP/666666666'))),
-    'upload[1]' => array('name' => 'ids-year.pdf', 'type' => 'application/pdf',
-        'content' => import2_text_pdf(array('Buchungen NP/555555555 und NP/666666666', 'Auszug vom 15.09.2024'))),
-    'upload[2]' => array('name' => 'cover-empty.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array(
-        'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'))),
-    'upload[3]' => array('name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(array(
+$covers = import2_request($adminCookies, [
+    'upload[0]' => ['name' => 'ids.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf(['Buchungen NP/555555555 und NP/666666666'])],
+    'upload[1]' => ['name' => 'ids-year.pdf', 'type' => 'application/pdf',
+        'content' => import2_text_pdf(['Buchungen NP/555555555 und NP/666666666', 'Auszug vom 15.09.2024'])],
+    'upload[2]' => ['name' => 'cover-empty.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf([
+        'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'])],
+    'upload[3]' => ['name' => 'cover.pdf', 'type' => 'application/pdf', 'content' => import2_text_pdf([
         'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
-        '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'))),
-));
+        '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00'])],
+]);
 assert_contains($covers['body'], 'Datei 1 (ids.pdf):<br />Mehrere IDs gefunden.<br />Keine Jahreszahl gefunden.<br />'
     . 'Datei 2 (ids-year.pdf):<br />Mehrere IDs gefunden.<br />Kein IBAN gefunden.<br />'
     . 'Datei 3 (cover-empty.pdf):<br />Ist ein Übersichtsdeckblatt.<br />Keine IDs and Daten gefunden für Spezialfälle.<br />Keine IDs and Daten gefunden für Spezialfälle.<br />'
     . 'Datei 4 (cover.pdf):<br />Ist ein Übersichtsdeckblatt.<br />'
     . 'done: <a href="index.php?action=edit&id=4763&bid=9133">4763</a><br />'
     . 'done: <a href="index.php?action=edit&id=4764&bid=9134">4764</a><br />Keine Buchung gefunden.<br />', 'PDF import of cover pages');
-assert_stored_receipt(receipt_file_number($database, 9133), $testKey, import2_text_pdf(array(
+assert_stored_receipt(receipt_file_number($database, 9133), $testKey, import2_text_pdf([
     'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
-    '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00')), 'PDF import of a cover page');
+    '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00']), 'PDF import of a cover page');
 
 // The receipt key migration is a command-line script; the web server must
 // not run it.
@@ -442,22 +442,22 @@ if ($migration['body'] !== '') {
 // Membership export (mbapi.php): members whose acknowledged membership fees
 // since October of the previous year reach 20.00, as "<SHA-1>\n<base64>".
 $year = date('Y');
-$fees = array(
-    array(990001, 2500, "$year-01-02", 'reviewer-a', false),
-    array(990002, 1000, "$year-01-02", 'reviewer-a', false),
-    array(990002, 1000, ($year - 1) . '-10-01', 'reviewer-a', false),
-    array(990003, 1999, "$year-01-02", 'reviewer-a', false),
-    array(990004, 5000, ($year - 1) . '-09-30', 'reviewer-a', false),
-    array(990005, 5000, "$year-01-02", null, false),
-    array(990006, 5000, "$year-01-02", 'reviewer-a', true),
-);
+$fees = [
+    [990001, 2500, "$year-01-02", 'reviewer-a', false],
+    [990002, 1000, "$year-01-02", 'reviewer-a', false],
+    [990002, 1000, ($year - 1) . '-10-01', 'reviewer-a', false],
+    [990003, 1999, "$year-01-02", 'reviewer-a', false],
+    [990004, 5000, ($year - 1) . '-09-30', 'reviewer-a', false],
+    [990005, 5000, "$year-01-02", null, false],
+    [990006, 5000, "$year-01-02", 'reviewer-a', true],
+];
 foreach ($fees as $index => $fee) {
     receipts_query(
         $database,
         "INSERT INTO vouchers (id, voucher_id, type, orga, member, member_id, amount, comment, date, ack1, deleted)
          VALUES ($1, $2, 1, 1, true, $3, $4, 'Synthetic membership fee', $5, $6, $7)",
-        array(9200 + $index, 9200 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'),
-        "membership fee $index"
+        [9200 + $index, 9200 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'],
+        "membership fee $index",
     );
 }
 $export = http_request('/mbapi.php');

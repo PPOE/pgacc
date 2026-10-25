@@ -14,7 +14,7 @@
  * the application is fixed. Never add entries just to make a lane green.
  */
 
-return array(
+return [
     // PHP 8.5 has no entries on purpose: every diagnostic there is reported as
     // a failure. See tests/README.md.
-);
+];

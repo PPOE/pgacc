@@ -50,16 +50,16 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function csvDownloadLinkUriProvider()
     {
-        return array(
-            'no query string' => array('/index.php', '/index.php?format=csv'),
-            'root' => array('/', '/?format=csv'),
-            'empty' => array('', '?format=csv'),
-            'trailing question mark' => array('/index.php?', '/index.php?&amp;format=csv'),
-            'trailing ampersand' => array('/index.php?action=all&', '/index.php?action=all&amp;&amp;format=csv'),
-            'already csv' => array('/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv&amp;format=csv'),
-            'later format wins' => array('/index.php?action=all&format=csv&format=html', '/index.php?action=all&amp;format=csv&amp;format=html&amp;format=csv'),
-            'question mark in a value' => array('/index.php?action=all&filter_text=test?', '/index.php?action=all&amp;filter_text=test?&amp;format=csv'),
-        );
+        return [
+            'no query string' => ['/index.php', '/index.php?format=csv'],
+            'root' => ['/', '/?format=csv'],
+            'empty' => ['', '?format=csv'],
+            'trailing question mark' => ['/index.php?', '/index.php?&amp;format=csv'],
+            'trailing ampersand' => ['/index.php?action=all&', '/index.php?action=all&amp;&amp;format=csv'],
+            'already csv' => ['/index.php?action=all&format=csv', '/index.php?action=all&amp;format=csv&amp;format=csv'],
+            'later format wins' => ['/index.php?action=all&format=csv&format=html', '/index.php?action=all&amp;format=csv&amp;format=html&amp;format=csv'],
+            'question mark in a value' => ['/index.php?action=all&filter_text=test?', '/index.php?action=all&amp;filter_text=test?&amp;format=csv'],
+        ];
     }
 
     /**
@@ -73,79 +73,79 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function filterProvider()
     {
-        return array(
-            'empty' => array(array(), ''),
-            'numeric ids and member flag' => array(
-                array('filter_id' => '12', 'filter_bid' => '34', 'filter_member' => '0', 'filter_member_id' => '56'),
-                ' AND voucher_id = 12 AND id = 34 AND member  AND member_id = 56'
-            ),
-            'date year' => array(array('filter_date' => '2024'), " AND date >= '2024-01-01' AND date <= '2024-12-31' "),
-            'date month' => array(array('filter_date' => '2024-02'), " AND date >= '2024-02-01' AND date < TIMESTAMP '2024-02-01' + INTERVAL '1 month' "),
-            'date day' => array(array('filter_date' => '2024-02-29'), " AND date = '2024-02-29' "),
-            'numeric and text type' => array(
-                array('filter_type' => '8'),
-                ' AND type = 8'
-            ),
-            'type name' => array(array('filter_type' => 'Spende'), " AND lower(type.name) LIKE lower('%Spende%')"),
-            'organization number and name' => array(
-                array('filter_lo' => '4'),
-                " AND orga = 4 AND lower(lo.name) LIKE lower('%4%')"
-            ),
-            'organization name' => array(array('filter_lo' => 'Wien'), " AND lower(lo.name) LIKE lower('%Wien%')"),
-            'contra account' => array(array('filter_gk' => '@bank 1'), " AND contra_account LIKE '@bank 1%'"),
-            'amount operator' => array(array('filter_amount' => '>= 123'), ' AND amount >= 12300'),
-            'amount with decimals' => array(array('filter_amount' => '< -12,50'), ' AND amount < -1250'),
-            'account filters' => array(
-                array('filter_k' => 'AT 1', 'filter_vk' => 'AT 2'),
-                " AND account LIKE 'AT 1%' AND vaccount LIKE 'AT 2%'"
-            ),
-            'comment text and comment gf' => array(
-                array('filter_text' => 'Piraten', 'filter_comment' => 'Geprüft'),
-                " AND lower(comment) LIKE lower('%Piraten%') AND lower(commentgf) LIKE lower('%Geprüft%')"
-            ),
-            'committed and refund and attachment' => array(
-                array('filter_comm' => '1', 'filter_refund' => '1', 'filter_bel' => '1'),
-                ' AND committed  AND refund  AND file != 0 '
-            ),
-            'acknowledgements' => array(
-                array('filter_ack' => 'Peter', 'filter_ack_old' => 'Old'),
-                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
-            ),
-            'old acknowledgements alone' => array(
-                array('filter_ack_old' => 'Old'),
-                " AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') "
-            ),
-            'voucher name' => array(array('filter_name' => 'Anna'), " AND lower(vouchers.name) LIKE lower('%Anna%')"),
-            'invalid values are ignored' => array(
-                array('filter_id' => '1 OR 1=1', 'filter_date' => 'yesterday', 'filter_name' => 'x%'),
-                ''
-            ),
-            'array values are ignored' => array(
-                array(
-                    'filter_id' => array('1'),
-                    'filter_bid' => array('1'),
-                    'filter_date' => array('1'),
-                    'filter_type' => array('1'),
-                    'filter_lo' => array('1'),
-                    'filter_member_id' => array('1'),
-                    'filter_gk' => array('1'),
-                    'filter_amount' => array('1'),
-                    'filter_k' => array('1'),
-                    'filter_vk' => array('1'),
-                    'filter_text' => array('1'),
-                    'filter_comment' => array('1'),
-                    'filter_ack' => array('1'),
-                    'filter_ack_old' => array('1'),
-                    'filter_name' => array('1'),
-                ),
-                ''
-            ),
-        );
+        return [
+            'empty' => [[], ''],
+            'numeric ids and member flag' => [
+                ['filter_id' => '12', 'filter_bid' => '34', 'filter_member' => '0', 'filter_member_id' => '56'],
+                ' AND voucher_id = 12 AND id = 34 AND member  AND member_id = 56',
+            ],
+            'date year' => [['filter_date' => '2024'], " AND date >= '2024-01-01' AND date <= '2024-12-31' "],
+            'date month' => [['filter_date' => '2024-02'], " AND date >= '2024-02-01' AND date < TIMESTAMP '2024-02-01' + INTERVAL '1 month' "],
+            'date day' => [['filter_date' => '2024-02-29'], " AND date = '2024-02-29' "],
+            'numeric and text type' => [
+                ['filter_type' => '8'],
+                ' AND type = 8',
+            ],
+            'type name' => [['filter_type' => 'Spende'], " AND lower(type.name) LIKE lower('%Spende%')"],
+            'organization number and name' => [
+                ['filter_lo' => '4'],
+                " AND orga = 4 AND lower(lo.name) LIKE lower('%4%')",
+            ],
+            'organization name' => [['filter_lo' => 'Wien'], " AND lower(lo.name) LIKE lower('%Wien%')"],
+            'contra account' => [['filter_gk' => '@bank 1'], " AND contra_account LIKE '@bank 1%'"],
+            'amount operator' => [['filter_amount' => '>= 123'], ' AND amount >= 12300'],
+            'amount with decimals' => [['filter_amount' => '< -12,50'], ' AND amount < -1250'],
+            'account filters' => [
+                ['filter_k' => 'AT 1', 'filter_vk' => 'AT 2'],
+                " AND account LIKE 'AT 1%' AND vaccount LIKE 'AT 2%'",
+            ],
+            'comment text and comment gf' => [
+                ['filter_text' => 'Piraten', 'filter_comment' => 'Geprüft'],
+                " AND lower(comment) LIKE lower('%Piraten%') AND lower(commentgf) LIKE lower('%Geprüft%')",
+            ],
+            'committed and refund and attachment' => [
+                ['filter_comm' => '1', 'filter_refund' => '1', 'filter_bel' => '1'],
+                ' AND committed  AND refund  AND file != 0 ',
+            ],
+            'acknowledgements' => [
+                ['filter_ack' => 'Peter', 'filter_ack_old' => 'Old'],
+                " AND (ack1 LIKE '%Peter%' OR ack2 LIKE '%Peter%')  AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') ",
+            ],
+            'old acknowledgements alone' => [
+                ['filter_ack_old' => 'Old'],
+                " AND (ack1_old LIKE '%Old%' OR ack2_old LIKE '%Old%') ",
+            ],
+            'voucher name' => [['filter_name' => 'Anna'], " AND lower(vouchers.name) LIKE lower('%Anna%')"],
+            'invalid values are ignored' => [
+                ['filter_id' => '1 OR 1=1', 'filter_date' => 'yesterday', 'filter_name' => 'x%'],
+                '',
+            ],
+            'array values are ignored' => [
+                [
+                    'filter_id' => ['1'],
+                    'filter_bid' => ['1'],
+                    'filter_date' => ['1'],
+                    'filter_type' => ['1'],
+                    'filter_lo' => ['1'],
+                    'filter_member_id' => ['1'],
+                    'filter_gk' => ['1'],
+                    'filter_amount' => ['1'],
+                    'filter_k' => ['1'],
+                    'filter_vk' => ['1'],
+                    'filter_text' => ['1'],
+                    'filter_comment' => ['1'],
+                    'filter_ack' => ['1'],
+                    'filter_ack_old' => ['1'],
+                    'filter_name' => ['1'],
+                ],
+                '',
+            ],
+        ];
     }
 
     public function testGetfilterSuppressesMalformedLegacyNumericRegex()
     {
-        $_GET = array('filter_amount' => '150');
+        $_GET = ['filter_amount' => '150'];
         self::assertSame('', @getfilter());
     }
 
@@ -163,50 +163,50 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function tagProvider()
     {
-        return array(
-            'row and newline flattening' => array(array('tr', "line 1\nline 2"), "<tr>line 1\nline 2</tr>\n", "line 1 / line 2\n"),
-            'cell and euro decimal' => array(array('td', '12.50€'), "<td>12.50€</td>\n", "12,50€\t"),
-            'other tag' => array(array('th', 'Header'), "<th>Header</th>\n", 'Header'),
-            'negative euro' => array(array('td', '-12.5€'), "<td>-12.5€</td>\n", "-12,5€\t"),
+        return [
+            'row and newline flattening' => [['tr', "line 1\nline 2"], "<tr>line 1\nline 2</tr>\n", "line 1 / line 2\n"],
+            'cell and euro decimal' => [['td', '12.50€'], "<td>12.50€</td>\n", "12,50€\t"],
+            'other tag' => [['th', 'Header'], "<th>Header</th>\n", 'Header'],
+            'negative euro' => [['td', '-12.5€'], "<td>-12.5€</td>\n", "-12,5€\t"],
             // CSV cells that a spreadsheet would read as a formula get a
             // leading single quote; HTML and amounts are unchanged.
-            'formula with =' => array(array('td', '=HYPERLINK("x")'), "<td>=HYPERLINK(\"x\")</td>\n", "'=HYPERLINK(\"x\")\t"),
-            'formula with +' => array(array('td', '+A1'), "<td>+A1</td>\n", "'+A1\t"),
-            'formula with -' => array(array('td', '-2+3'), "<td>-2+3</td>\n", "'-2+3\t"),
-            'formula with @' => array(array('td', '@SUM(A1)'), "<td>@SUM(A1)</td>\n", "'@SUM(A1)\t"),
+            'formula with =' => [['td', '=HYPERLINK("x")'], "<td>=HYPERLINK(\"x\")</td>\n", "'=HYPERLINK(\"x\")\t"],
+            'formula with +' => [['td', '+A1'], "<td>+A1</td>\n", "'+A1\t"],
+            'formula with -' => [['td', '-2+3'], "<td>-2+3</td>\n", "'-2+3\t"],
+            'formula with @' => [['td', '@SUM(A1)'], "<td>@SUM(A1)</td>\n", "'@SUM(A1)\t"],
             // Tabs and line breaks inside a cell would split the
             // tab-separated cell or row.
-            'tab in a cell' => array(array('td', "one\ttwo"), "<td>one\ttwo</td>\n", "one two\t"),
-            'carriage return in a cell' => array(array('td', "one\rtwo"), "<td>one\rtwo</td>\n", "one / two\t"),
-            'carriage return in other tags' => array(array('th', "one\rtwo"), "<th>one\rtwo</th>\n", 'one / two'),
-            'windows line break in a cell' => array(array('td', "one\r\ntwo"), "<td>one\r\ntwo</td>\n", "one / two\t"),
-            'leading tab' => array(array('td', "\t=1"), "<td>\t=1</td>\n", "' =1\t"),
-            'formula after spaces' => array(array('td', '  @SUM(A1)'), "<td>  @SUM(A1)</td>\n", "'  @SUM(A1)\t"),
-            'number after a space' => array(array('td', ' -5'), "<td> -5</td>\n", "' -5\t"),
-            'formula after a vertical tab' => array(array('td', "\x0B=1"), "<td>\x0B=1</td>\n", "'\x0B=1\t"),
-            'formula after a form feed' => array(array('td', "\f@x"), "<td>\f@x</td>\n", "'\f@x\t"),
-            'text after a space' => array(array('td', ' x=1'), "<td> x=1</td>\n", " x=1\t"),
+            'tab in a cell' => [['td', "one\ttwo"], "<td>one\ttwo</td>\n", "one two\t"],
+            'carriage return in a cell' => [['td', "one\rtwo"], "<td>one\rtwo</td>\n", "one / two\t"],
+            'carriage return in other tags' => [['th', "one\rtwo"], "<th>one\rtwo</th>\n", 'one / two'],
+            'windows line break in a cell' => [['td', "one\r\ntwo"], "<td>one\r\ntwo</td>\n", "one / two\t"],
+            'leading tab' => [['td', "\t=1"], "<td>\t=1</td>\n", "' =1\t"],
+            'formula after spaces' => [['td', '  @SUM(A1)'], "<td>  @SUM(A1)</td>\n", "'  @SUM(A1)\t"],
+            'number after a space' => [['td', ' -5'], "<td> -5</td>\n", "' -5\t"],
+            'formula after a vertical tab' => [['td', "\x0B=1"], "<td>\x0B=1</td>\n", "'\x0B=1\t"],
+            'formula after a form feed' => [['td', "\f@x"], "<td>\f@x</td>\n", "'\f@x\t"],
+            'text after a space' => [['td', ' x=1'], "<td> x=1</td>\n", " x=1\t"],
             // A leading double quote would start a quoted field that the
             // spreadsheet unquotes (and evaluates) or merges with the next cells.
-            'leading double quote' => array(array('td', '"=1"'), "<td>\"=1\"</td>\n", "'\"=1\"\t"),
-            'double quote after a space' => array(array('td', ' "x'), "<td> \"x</td>\n", "' \"x\t"),
-            'double quote inside' => array(array('td', 'a"b'), "<td>a\"b</td>\n", "a\"b\t"),
+            'leading double quote' => [['td', '"=1"'], "<td>\"=1\"</td>\n", "'\"=1\"\t"],
+            'double quote after a space' => [['td', ' "x'], "<td> \"x</td>\n", "' \"x\t"],
+            'double quote inside' => [['td', 'a"b'], "<td>a\"b</td>\n", "a\"b\t"],
             // Amounts have a decimal point; other characters are no amount.
-            'formula with euro sign' => array(array('td', '-1+2€'), "<td>-1+2€</td>\n", "'-1+2€\t"),
-            'euro amount without decimals' => array(array('td', '-12€'), "<td>-12€</td>\n", "-12€\t"),
-            'text after an amount' => array(array('td', '-12.50€x'), "<td>-12.50€x</td>\n", "'-12.50€x\t"),
-            'tabs of a row are kept' => array(array('tr', "a\tb\t"), "<tr>a\tb\t</tr>\n", "a\tb\t\n"),
-            'formula character inside' => array(array('td', 'a=b+c-d@e'), "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"),
-            'formula character in other tags' => array(array('tr', '=x'), "<tr>=x</tr>\n", "=x\n"),
-            'negative euro amount is no formula' => array(array('td', '-50.00€'), "<td>-50.00€</td>\n", "-50,00€\t"),
-            'negative number without euro' => array(array('td', '-5'), "<td>-5</td>\n", "-5\t"),
-            'negative decimal without euro' => array(array('td', '-5,25'), "<td>-5,25</td>\n", "-5,25\t"),
-            'negative integer value' => array(array('td', -1000), "<td>-1000</td>\n", "-1000\t"),
-            'number with a formula after it' => array(array('td', "-5\n=1"), "<td>-5\n=1</td>\n", "'-5 / =1\t"),
-            'number with a trailing letter' => array(array('td', '-5x'), "<td>-5x</td>\n", "'-5x\t"),
-            'letter before a number' => array(array('td', '-x5'), "<td>-x5</td>\n", "'-x5\t"),
-            'plus number' => array(array('td', '+5'), "<td>+5</td>\n", "'+5\t"),
-        );
+            'formula with euro sign' => [['td', '-1+2€'], "<td>-1+2€</td>\n", "'-1+2€\t"],
+            'euro amount without decimals' => [['td', '-12€'], "<td>-12€</td>\n", "-12€\t"],
+            'text after an amount' => [['td', '-12.50€x'], "<td>-12.50€x</td>\n", "'-12.50€x\t"],
+            'tabs of a row are kept' => [['tr', "a\tb\t"], "<tr>a\tb\t</tr>\n", "a\tb\t\n"],
+            'formula character inside' => [['td', 'a=b+c-d@e'], "<td>a=b+c-d@e</td>\n", "a=b+c-d@e\t"],
+            'formula character in other tags' => [['tr', '=x'], "<tr>=x</tr>\n", "=x\n"],
+            'negative euro amount is no formula' => [['td', '-50.00€'], "<td>-50.00€</td>\n", "-50,00€\t"],
+            'negative number without euro' => [['td', '-5'], "<td>-5</td>\n", "-5\t"],
+            'negative decimal without euro' => [['td', '-5,25'], "<td>-5,25</td>\n", "-5,25\t"],
+            'negative integer value' => [['td', -1000], "<td>-1000</td>\n", "-1000\t"],
+            'number with a formula after it' => [['td', "-5\n=1"], "<td>-5\n=1</td>\n", "'-5 / =1\t"],
+            'number with a trailing letter' => [['td', '-5x'], "<td>-5x</td>\n", "'-5x\t"],
+            'letter before a number' => [['td', '-x5'], "<td>-x5</td>\n", "'-x5\t"],
+            'plus number' => [['td', '+5'], "<td>+5</td>\n", "'+5\t"],
+        ];
     }
 
     public function testHtmlEscapeEncodesSpecialCharactersOnly()
@@ -248,24 +248,24 @@ final class FunctionsTest extends FunctionsTestCase
         };
         $GLOBALS['make_csv'] = false;
         self::assertSame(
-            array('return' => $expectedHtml, 'output' => '', 'diagnostics' => array()),
-            self::callAndCaptureDiagnostics($render)
+            ['return' => $expectedHtml, 'output' => '', 'diagnostics' => []],
+            self::callAndCaptureDiagnostics($render),
         );
         $GLOBALS['make_csv'] = true;
         self::assertSame(
-            array('return' => $expectedCsv, 'output' => '', 'diagnostics' => array()),
-            self::callAndCaptureDiagnostics($render)
+            ['return' => $expectedCsv, 'output' => '', 'diagnostics' => []],
+            self::callAndCaptureDiagnostics($render),
         );
         self::assertSame($expectedCsv, tag($tagName, ''));
     }
 
     public static function nullTextTagProvider()
     {
-        return array(
-            'cell' => array('td', "<td></td>\n", "\t"),
-            'row' => array('tr', "<tr></tr>\n", "\n"),
-            'other tag' => array('b', "<b></b>\n", ''),
-        );
+        return [
+            'cell' => ['td', "<td></td>\n", "\t"],
+            'row' => ['tr', "<tr></tr>\n", "\n"],
+            'other tag' => ['b', "<b></b>\n", ''],
+        ];
     }
 
     /**
@@ -281,14 +281,14 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function headerPageProvider()
     {
-        return array(
-            'default' => array('index', 'Rechenschaftsbericht - Piratenpartei Österreichs'),
-            'donations' => array('donations', 'Spenden - Piratenpartei Österreichs'),
-            'goods donations' => array('kdonations', 'Sachspenden - Piratenpartei Österreichs'),
-            'spendings' => array('spendings', 'Ausgaben - Piratenpartei Österreichs'),
-            'campaign costs' => array('wk', 'Wahlkampfkosten - Piratenpartei Österreichs'),
-            'transactions' => array('transactions', 'Kontobewegungen - Piratenpartei Österreichs'),
-        );
+        return [
+            'default' => ['index', 'Rechenschaftsbericht - Piratenpartei Österreichs'],
+            'donations' => ['donations', 'Spenden - Piratenpartei Österreichs'],
+            'goods donations' => ['kdonations', 'Sachspenden - Piratenpartei Österreichs'],
+            'spendings' => ['spendings', 'Ausgaben - Piratenpartei Österreichs'],
+            'campaign costs' => ['wk', 'Wahlkampfkosten - Piratenpartei Österreichs'],
+            'transactions' => ['transactions', 'Kontobewegungen - Piratenpartei Österreichs'],
+        ];
     }
 
     public function testAccHeaderHidesAdminLinksWithoutRightsAndShowsDeletedLinkToBgf()
@@ -310,7 +310,7 @@ final class FunctionsTest extends FunctionsTestCase
 
     public function testAccHeaderShowsDeletedLinkForExactRolesOnly()
     {
-        foreach (array('bgf' => true, 'Rbgf' => true, 'root' => true, '2,xbgf,xroot' => false, 'BGF' => false) as $rights => $shown) {
+        foreach (['bgf' => true, 'Rbgf' => true, 'root' => true, '2,xbgf,xroot' => false, 'BGF' => false] as $rights => $shown) {
             $GLOBALS['functions_test_rights'] = $rights;
             ob_start();
             acc_header(null, 'index', 2024);
@@ -333,7 +333,7 @@ final class FunctionsTest extends FunctionsTestCase
         ob_start();
         acc_header(null, 'index', 2024);
         $readOnlyTwoHtml = ob_get_clean();
-        $writeLinks = array('<br /><a href="index.php?action=new">Erfassen</a>', 'action=import"', 'action=import2"');
+        $writeLinks = ['<br /><a href="index.php?action=new">Erfassen</a>', 'action=import"', 'action=import2"'];
         foreach ($writeLinks as $link) {
             self::assertStringContainsString($link, $bgfHtml);
             self::assertStringNotContainsString($link, $readOnlyHtml);
@@ -345,9 +345,9 @@ final class FunctionsTest extends FunctionsTestCase
                 '<a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a>'
                     . '<a href="index.php?action=import2">Belege Import</a>',
                 '',
-                $bgfHtml
+                $bgfHtml,
             ),
-            $readOnlyHtml
+            $readOnlyHtml,
         );
     }
 
@@ -359,36 +359,36 @@ final class FunctionsTest extends FunctionsTestCase
         $result = self::callAndCaptureDiagnostics(function () use ($lo, $rights) {
             return organization_allowed($lo, $rights);
         });
-        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+        self::assertSame(['return' => $expected, 'output' => '', 'diagnostics' => []], $result);
     }
 
     public static function organizationAllowedProvider()
     {
-        return array(
-            'bgf any organization' => array('7', 'bgf', true),
-            'root alone is no organization' => array(7, 'root', false),
-            'root with an organization' => array(3, 'root,3', true),
-            'root with another organization' => array(4, 'root,3', false),
-            'own organization' => array('2', '1,2', true),
-            'own organization as integer' => array(2, '2', true),
-            'foreign organization' => array('3', '1,2', false),
-            'padded organization' => array('01', '1', true),
-            'padded right' => array('3', '03', true),
-            'padded both' => array(3, '1,003', true),
-            'other number' => array('13', '1,3', false),
-            'zero' => array('0', '00', true),
-            'spaced right' => array('2', '1, 2', true),
-            'spaced bgf' => array('7', '2, bgf', true),
-            'spaced root' => array('7', ' root', false),
-            'spaced read-only bgf' => array('7', ' Rbgf', false),
-            'non-numeric organization' => array('2x', '2x', false),
-            'empty token is not organization 0' => array('0', '1,', false),
-            'empty organization' => array('', '0', false),
-            'read-only bgf is not bgf' => array('7', 'Rbgf', false),
-            'substring of root' => array('7', 'xroot', false),
-            'no rights' => array('10', '', false),
-            'null rights' => array('10', null, false),
-        );
+        return [
+            'bgf any organization' => ['7', 'bgf', true],
+            'root alone is no organization' => [7, 'root', false],
+            'root with an organization' => [3, 'root,3', true],
+            'root with another organization' => [4, 'root,3', false],
+            'own organization' => ['2', '1,2', true],
+            'own organization as integer' => [2, '2', true],
+            'foreign organization' => ['3', '1,2', false],
+            'padded organization' => ['01', '1', true],
+            'padded right' => ['3', '03', true],
+            'padded both' => [3, '1,003', true],
+            'other number' => ['13', '1,3', false],
+            'zero' => ['0', '00', true],
+            'spaced right' => ['2', '1, 2', true],
+            'spaced bgf' => ['7', '2, bgf', true],
+            'spaced root' => ['7', ' root', false],
+            'spaced read-only bgf' => ['7', ' Rbgf', false],
+            'non-numeric organization' => ['2x', '2x', false],
+            'empty token is not organization 0' => ['0', '1,', false],
+            'empty organization' => ['', '0', false],
+            'read-only bgf is not bgf' => ['7', 'Rbgf', false],
+            'substring of root' => ['7', 'xroot', false],
+            'no rights' => ['10', '', false],
+            'null rights' => ['10', null, false],
+        ];
     }
 
     /**
@@ -399,26 +399,26 @@ final class FunctionsTest extends FunctionsTestCase
         $result = self::callAndCaptureDiagnostics(function () use ($rights) {
             return write_rights($rights);
         });
-        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+        self::assertSame(['return' => $expected, 'output' => '', 'diagnostics' => []], $result);
     }
 
     public static function writeRightsProvider()
     {
-        return array(
-            'read-only bgf' => array('Rbgf', false),
-            'read-only bgf with empty tokens' => array('Rbgf,', false),
-            'read-only bgf with an organization' => array('Rbgf,2', '2'),
-            'organization before read-only bgf' => array('1,Rbgf,2', '1,2'),
-            'read-only bgf with bgf' => array('bgf,Rbgf', 'bgf'),
-            'bgf unchanged' => array('bgf', 'bgf'),
-            'admin unchanged' => array('root,bgf', 'root,bgf'),
-            'organizations unchanged' => array('1,,2', '1,,2'),
-            'empty rights unchanged' => array('', ''),
-            'null rights unchanged' => array(null, null),
-            'substring is not read-only bgf' => array('xRbgf', 'xRbgf'),
-            'spaced read-only bgf' => array('Rbgf, 2', '2'),
-            'spaced read-only bgf alone' => array(' Rbgf ', false),
-        );
+        return [
+            'read-only bgf' => ['Rbgf', false],
+            'read-only bgf with empty tokens' => ['Rbgf,', false],
+            'read-only bgf with an organization' => ['Rbgf,2', '2'],
+            'organization before read-only bgf' => ['1,Rbgf,2', '1,2'],
+            'read-only bgf with bgf' => ['bgf,Rbgf', 'bgf'],
+            'bgf unchanged' => ['bgf', 'bgf'],
+            'admin unchanged' => ['root,bgf', 'root,bgf'],
+            'organizations unchanged' => ['1,,2', '1,,2'],
+            'empty rights unchanged' => ['', ''],
+            'null rights unchanged' => [null, null],
+            'substring is not read-only bgf' => ['xRbgf', 'xRbgf'],
+            'spaced read-only bgf' => ['Rbgf, 2', '2'],
+            'spaced read-only bgf alone' => [' Rbgf ', false],
+        ];
     }
 
     public function testBlockHelpersSuppressCsvAndRenderHtml()
@@ -465,7 +465,7 @@ final class FunctionsTest extends FunctionsTestCase
      */
     private static function callAndCaptureDiagnostics($callback)
     {
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message, $file, $line) use (&$diagnostics) {
             $diagnostics[] = $type . ' ' . basename($file) . ':' . $line . ' ' . $message;
             return true;
@@ -485,7 +485,7 @@ final class FunctionsTest extends FunctionsTestCase
         }
         ob_end_clean();
         restore_error_handler();
-        return array('return' => $return, 'output' => $output, 'diagnostics' => $diagnostics);
+        return ['return' => $return, 'output' => $output, 'diagnostics' => $diagnostics];
     }
 
     // The real checklogin('rights', false) returns null, not '', for visitors
@@ -511,7 +511,7 @@ final class FunctionsTest extends FunctionsTestCase
     {
         $GLOBALS['functions_test_rights'] = null;
         $footer = self::callAndCaptureDiagnostics('acc_footer');
-        self::assertSame(array(), $footer['diagnostics']);
+        self::assertSame([], $footer['diagnostics']);
         self::assertNull($footer['return']);
         self::assertStringContainsString('<a href="index.php?action=login">Login</a>', $footer['output']);
         self::assertStringNotContainsString('action=logout', $footer['output']);
@@ -530,12 +530,12 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function formatDateProvider()
     {
-        return array(
-            'day month year' => array('1.2.2024', '2024-2-1'),
-            'timestamp' => array('2024-02-03 12:34:56', '2024-02-03'),
-            'null' => array('', ''),
-            'unrecognized' => array('2024/02/03', '2024/02/03'),
-        );
+        return [
+            'day month year' => ['1.2.2024', '2024-2-1'],
+            'timestamp' => ['2024-02-03 12:34:56', '2024-02-03'],
+            'null' => ['', ''],
+            'unrecognized' => ['2024/02/03', '2024/02/03'],
+        ];
     }
 
     /**
@@ -553,41 +553,41 @@ final class FunctionsTest extends FunctionsTestCase
         $result = self::callAndCaptureDiagnostics(function () {
             return rights2orgasql(null);
         });
-        self::assertSame(array('return' => ' AND false ', 'output' => '', 'diagnostics' => array()), $result);
+        self::assertSame(['return' => ' AND false ', 'output' => '', 'diagnostics' => []], $result);
     }
 
     public static function rightsProvider()
     {
-        return array(
-            'bgf' => array('bgf', ''),
-            'capitalized bgf' => array('Rbgf', ''),
-            'organization ids' => array('4,5', " AND orga IN ('4','5') "),
-            'no organization ids' => array('reviewer', ' AND false '),
-            'single organization' => array('4', " AND orga IN ('4') "),
-            'empty rights deny access' => array('', ' AND false '),
-            'empty tokens deny access' => array(',', ' AND false '),
-            'root is not an exemption in this helper' => array('root', ' AND false '),
-            'tokens are trimmed' => array('1, 2', " AND orga IN ('1','2') "),
-            'trimmed bgf' => array('2, bgf', ''),
-            'trimmed read-only bgf' => array(' Rbgf', ''),
-            'root with an organization' => array('root,3', " AND orga IN ('3') "),
-            'mixed role and organization' => array('reviewer,4', " AND orga IN ('4') "),
-            'mixed valid and invalid IDs' => array('reviewer,4,5x,7', " AND orga IN ('4','7') "),
-            'empty tokens do not add organizations' => array('reviewer,,4,', " AND orga IN ('4') "),
-            'bgf token among other rights' => array('reviewer,bgf,4', ''),
-            'Rbgf token among other rights' => array('reviewer,Rbgf,4', ''),
-            'bgf substring does not grant access' => array('notbgf', ' AND false '),
-            'Rbgf substring does not grant access' => array('notRbgf', ' AND false '),
-            'bgf matching is case sensitive' => array('BGF', ' AND false '),
-            'Rbgf matching is case sensitive' => array('rbgf', ' AND false '),
-            'numeric suffix is not an ID' => array('role4', ' AND false '),
-            'numeric prefix is not an ID' => array('4role', ' AND false '),
-            'SQL-like token does not grant access' => array('4 OR 1=1', ' AND false '),
-            'negative ID is rejected' => array('-4', ' AND false '),
-            'decimal ID is rejected' => array('4.5', ' AND false '),
-            'zero ID stays restricted' => array('0', " AND orga IN ('0') "),
-            'leading zero ID stays restricted' => array('04', " AND orga IN ('04') "),
-        );
+        return [
+            'bgf' => ['bgf', ''],
+            'capitalized bgf' => ['Rbgf', ''],
+            'organization ids' => ['4,5', " AND orga IN ('4','5') "],
+            'no organization ids' => ['reviewer', ' AND false '],
+            'single organization' => ['4', " AND orga IN ('4') "],
+            'empty rights deny access' => ['', ' AND false '],
+            'empty tokens deny access' => [',', ' AND false '],
+            'root is not an exemption in this helper' => ['root', ' AND false '],
+            'tokens are trimmed' => ['1, 2', " AND orga IN ('1','2') "],
+            'trimmed bgf' => ['2, bgf', ''],
+            'trimmed read-only bgf' => [' Rbgf', ''],
+            'root with an organization' => ['root,3', " AND orga IN ('3') "],
+            'mixed role and organization' => ['reviewer,4', " AND orga IN ('4') "],
+            'mixed valid and invalid IDs' => ['reviewer,4,5x,7', " AND orga IN ('4','7') "],
+            'empty tokens do not add organizations' => ['reviewer,,4,', " AND orga IN ('4') "],
+            'bgf token among other rights' => ['reviewer,bgf,4', ''],
+            'Rbgf token among other rights' => ['reviewer,Rbgf,4', ''],
+            'bgf substring does not grant access' => ['notbgf', ' AND false '],
+            'Rbgf substring does not grant access' => ['notRbgf', ' AND false '],
+            'bgf matching is case sensitive' => ['BGF', ' AND false '],
+            'Rbgf matching is case sensitive' => ['rbgf', ' AND false '],
+            'numeric suffix is not an ID' => ['role4', ' AND false '],
+            'numeric prefix is not an ID' => ['4role', ' AND false '],
+            'SQL-like token does not grant access' => ['4 OR 1=1', ' AND false '],
+            'negative ID is rejected' => ['-4', ' AND false '],
+            'decimal ID is rejected' => ['4.5', ' AND false '],
+            'zero ID stays restricted' => ['0', " AND orga IN ('0') "],
+            'leading zero ID stays restricted' => ['04', " AND orga IN ('04') "],
+        ];
     }
 
     /**
@@ -598,27 +598,27 @@ final class FunctionsTest extends FunctionsTestCase
         $result = self::callAndCaptureDiagnostics(function () use ($rights, $right) {
             return has_right($rights, $right);
         });
-        self::assertSame(array('return' => $expected, 'output' => '', 'diagnostics' => array()), $result);
+        self::assertSame(['return' => $expected, 'output' => '', 'diagnostics' => []], $result);
     }
 
     public static function hasRightProvider()
     {
-        return array(
-            'bgf' => array('bgf', 'bgf', true),
-            'bgf among other rights' => array('root,bgf', 'bgf', true),
-            'root among other rights' => array('root,bgf', 'root', true),
-            'read-only bgf is not bgf' => array('Rbgf', 'bgf', false),
-            'Rbgf' => array('Rbgf,2', 'Rbgf', true),
-            'substring is not a right' => array('notbgf', 'bgf', false),
-            'case sensitive' => array('BGF', 'bgf', false),
-            'organization id' => array('1,2', '2', true),
-            'numeric comparison is not used' => array('02', '2', false),
-            'tokens are trimmed' => array('bgf, root', 'root', true),
-            'trimmed tokens stay exact' => array(' Rbgf ', 'bgf', false),
-            'trimmed read-only bgf' => array('2, Rbgf', 'Rbgf', true),
-            'empty rights' => array('', 'bgf', false),
-            'null rights' => array(null, 'bgf', false),
-        );
+        return [
+            'bgf' => ['bgf', 'bgf', true],
+            'bgf among other rights' => ['root,bgf', 'bgf', true],
+            'root among other rights' => ['root,bgf', 'root', true],
+            'read-only bgf is not bgf' => ['Rbgf', 'bgf', false],
+            'Rbgf' => ['Rbgf,2', 'Rbgf', true],
+            'substring is not a right' => ['notbgf', 'bgf', false],
+            'case sensitive' => ['BGF', 'bgf', false],
+            'organization id' => ['1,2', '2', true],
+            'numeric comparison is not used' => ['02', '2', false],
+            'tokens are trimmed' => ['bgf, root', 'root', true],
+            'trimmed tokens stay exact' => [' Rbgf ', 'bgf', false],
+            'trimmed read-only bgf' => ['2, Rbgf', 'Rbgf', true],
+            'empty rights' => ['', 'bgf', false],
+            'null rights' => [null, 'bgf', false],
+        ];
     }
 
     /**
@@ -631,12 +631,12 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function accountProvider()
     {
-        return array(
-            array('50110117270', 1), array('50110117300', 2), array('50110117318', 3),
-            array('50110117326', 4), array('50110117350', 5), array('50110117369', 6),
-            array('50110117393', 10), array('10110123642', 9), array('50110110437', 10),
-            array('unknown-account', 'unknown-account'),
-        );
+        return [
+            ['50110117270', 1], ['50110117300', 2], ['50110117318', 3],
+            ['50110117326', 4], ['50110117350', 5], ['50110117369', 6],
+            ['50110117393', 10], ['10110123642', 9], ['50110110437', 10],
+            ['unknown-account', 'unknown-account'],
+        ];
     }
 
     /**
@@ -651,42 +651,42 @@ final class FunctionsTest extends FunctionsTestCase
     public static function sortProvider()
     {
         $default = 'date ASC, voucher_id DESC, vouchers.id ASC';
-        return array(
-            'missing sort' => array('', $default),
-            'unknown sort' => array('unknown', $default),
-            'ida' => array('ida', 'voucher_id ASC, vouchers.id ASC'),
-            'idd' => array('idd', 'voucher_id DESC, vouchers.id ASC'),
-            'bida' => array('bida', 'vouchers.id ASC, voucher_id ASC'),
-            'bidd' => array('bidd', 'vouchers.id DESC, voucher_id ASC'),
-            'dated' => array('dated', 'date DESC, voucher_id DESC, vouchers.id ASC'),
-            'datea' => array('datea', $default),
-            'typea' => array('typea', 'type ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'typed' => array('typed', 'type DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'loa' => array('loa', 'orga ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'lod' => array('lod', 'orga DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'membera' => array('membera', 'member_id ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'memberd' => array('memberd', 'member_id DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'gka' => array('gka', 'contra_account DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'gkd' => array('gkd', 'contra_account ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'ka' => array('ka', 'account ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'kd' => array('kd', 'account DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'ama' => array('ama', 'amount ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'amd' => array('amd', 'amount DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'commenta' => array('commenta', 'commentgf ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'commentd' => array('commentd', 'commentgf DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'texta' => array('texta', 'comment ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'textd' => array('textd', 'comment DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'comma' => array('comma', 'committed DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'commd' => array('commd', 'committed ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'acka' => array('acka', 'ack1 ASC, ack2 ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'ackd' => array('ackd', 'ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'refunda' => array('refunda', 'refund ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'refundd' => array('refundd', 'refund DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'bela' => array('bela', 'file ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'beld' => array('beld', 'file DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'namea' => array('namea', 'name ASC, date ASC, voucher_id DESC, vouchers.id ASC'),
-            'named' => array('named', 'name DESC, date ASC, voucher_id DESC, vouchers.id ASC'),
-        );
+        return [
+            'missing sort' => ['', $default],
+            'unknown sort' => ['unknown', $default],
+            'ida' => ['ida', 'voucher_id ASC, vouchers.id ASC'],
+            'idd' => ['idd', 'voucher_id DESC, vouchers.id ASC'],
+            'bida' => ['bida', 'vouchers.id ASC, voucher_id ASC'],
+            'bidd' => ['bidd', 'vouchers.id DESC, voucher_id ASC'],
+            'dated' => ['dated', 'date DESC, voucher_id DESC, vouchers.id ASC'],
+            'datea' => ['datea', $default],
+            'typea' => ['typea', 'type ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'typed' => ['typed', 'type DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'loa' => ['loa', 'orga ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'lod' => ['lod', 'orga DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'membera' => ['membera', 'member_id ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'memberd' => ['memberd', 'member_id DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'gka' => ['gka', 'contra_account DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'gkd' => ['gkd', 'contra_account ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'ka' => ['ka', 'account ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'kd' => ['kd', 'account DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'ama' => ['ama', 'amount ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'amd' => ['amd', 'amount DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'commenta' => ['commenta', 'commentgf ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'commentd' => ['commentd', 'commentgf DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'texta' => ['texta', 'comment ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'textd' => ['textd', 'comment DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'comma' => ['comma', 'committed DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'commd' => ['commd', 'committed ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'acka' => ['acka', 'ack1 ASC, ack2 ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'ackd' => ['ackd', 'ack1 DESC, ack2 DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'refunda' => ['refunda', 'refund ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'refundd' => ['refundd', 'refund DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'bela' => ['bela', 'file ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'beld' => ['beld', 'file DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'namea' => ['namea', 'name ASC, date ASC, voucher_id DESC, vouchers.id ASC'],
+            'named' => ['named', 'name DESC, date ASC, voucher_id DESC, vouchers.id ASC'],
+        ];
     }
 
     /**
@@ -700,13 +700,13 @@ final class FunctionsTest extends FunctionsTestCase
 
     public static function oppositeSortProvider()
     {
-        return array(
-            'ascending to descending' => array('namea', 'namea', 'named'),
-            'descending to ascending' => array('named', 'named', 'namea'),
-            'different current sort' => array('datea', 'named', 'named'),
-            'missing current sort' => array('', 'namea', 'namea'),
-            'invalid direction' => array('namex', 'namex', 'namex'),
-        );
+        return [
+            'ascending to descending' => ['namea', 'namea', 'named'],
+            'descending to ascending' => ['named', 'named', 'namea'],
+            'different current sort' => ['datea', 'named', 'named'],
+            'missing current sort' => ['', 'namea', 'namea'],
+            'invalid direction' => ['namex', 'namex', 'namex'],
+        ];
     }
 
     public function testGetoppsortOfNullWithAnEmptySortIsDiagnosticFree()
@@ -716,7 +716,7 @@ final class FunctionsTest extends FunctionsTestCase
             return getoppsort(null);
         });
         self::assertNull($result['return']);
-        self::assertSame(array(), $result['diagnostics']);
+        self::assertSame([], $result['diagnostics']);
     }
 
     public function testPercentOfBookingsUsesSyntheticDatabaseRows()
@@ -736,8 +736,8 @@ final class FunctionsTest extends FunctionsTestCase
     public function testWhitelistKeepsOnlyPresentWhitelistedKeys()
     {
         self::assertSame(
-            array('name' => 'Alice', 'zero' => 0),
-            whitelist(array('name' => 'Alice', 'ignored' => 'x', 'zero' => 0), array('name' => true, 'zero' => true))
+            ['name' => 'Alice', 'zero' => 0],
+            whitelist(['name' => 'Alice', 'ignored' => 'x', 'zero' => 0], ['name' => true, 'zero' => true]),
         );
     }
 
@@ -748,12 +748,12 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertNotFalse($connection);
         pg_query($connection, 'BEGIN');
         try {
-            pg_query_params($connection, 'INSERT INTO vouchers (voucher_id, ack1, ack2, deleted) VALUES ($1, $2, $3, false)', array($voucherId, 'reviewer-one', 'reviewer-two'));
+            pg_query_params($connection, 'INSERT INTO vouchers (voucher_id, ack1, ack2, deleted) VALUES ($1, $2, $3, false)', [$voucherId, 'reviewer-one', 'reviewer-two']);
             vouchers_reset_ack($voucherId, '');
-            $result = pg_query_params($connection, 'SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE voucher_id = $1', array($voucherId));
+            $result = pg_query_params($connection, 'SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE voucher_id = $1', [$voucherId]);
             self::assertSame(
-                array('ack1' => null, 'ack2' => null, 'ack1_old' => 'reviewer-one', 'ack2_old' => 'reviewer-two'),
-                pg_fetch_assoc($result)
+                ['ack1' => null, 'ack2' => null, 'ack1_old' => 'reviewer-one', 'ack2_old' => 'reviewer-two'],
+                pg_fetch_assoc($result),
             );
         } catch (Exception $exception) {
             pg_query($connection, 'ROLLBACK');

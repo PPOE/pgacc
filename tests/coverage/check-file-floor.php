@@ -30,10 +30,10 @@ if ($report === false) {
 }
 $exceptions = require __DIR__ . '/file-floor-exceptions.php';
 
-$files = array();
+$files = [];
 foreach ($report->xpath('//file') as $file) {
     $metrics = $file->metrics;
-    $files[basename((string) $file['name'])] = array(intval($metrics['coveredstatements']), intval($metrics['statements']));
+    $files[basename((string) $file['name'])] = [intval($metrics['coveredstatements']), intval($metrics['statements'])];
 }
 if (count($files) === 0) {
     fwrite(STDERR, "The coverage report {$argv[1]} lists no files\n");
@@ -41,7 +41,7 @@ if (count($files) === 0) {
 }
 ksort($files);
 
-$failures = array();
+$failures = [];
 foreach ($exceptions as $name => $exception) {
     if (!isset($files[$name])) {
         $failures[] = "$name: exception for a file that is not in the report";

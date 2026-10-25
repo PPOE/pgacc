@@ -1,7 +1,7 @@
 <?php
 
 $coverage = simplexml_load_file($argv[1]);
-$uncovered = array();
+$uncovered = [];
 $statementCount = 0;
 $coverageFileFound = false;
 
@@ -28,8 +28,16 @@ if (!$coverageFileFound || $statementCount === 0) {
     exit(1);
 }
 
+// The statement after getfilter()'s invalid legacy amount regex never runs
+// (KF-AMOUNT-FILTER-REGEX); found by its text so reformatting cannot move it.
+$known = 0;
+foreach (file(dirname(__DIR__) . '/functions.php') as $index => $sourceLine) {
+    if (str_contains($sourceLine, "preg_match('/^*-?")) {
+        $known = $index + 2;
+    }
+}
 sort($uncovered);
-$unexpectedUncovered = array_values(array_diff($uncovered, array(71)));
+$unexpectedUncovered = array_values(array_diff($uncovered, [$known]));
 if (count($unexpectedUncovered) > 0) {
     fwrite(STDERR, 'Unexpected uncovered functions.php lines: ' . implode(', ', $unexpectedUncovered) . PHP_EOL);
     exit(1);
@@ -37,6 +45,6 @@ if (count($unexpectedUncovered) > 0) {
 
 $covered = $statementCount - count($uncovered);
 printf("functions.php executable-line coverage: %d/%d (%.2f%%)\n", $covered, $statementCount, $covered * 100 / $statementCount);
-if (in_array(71, $uncovered, true)) {
-    echo "Known unreachable statement remains at functions.php:71 (invalid legacy regex in getfilter)\n";
+if (in_array($known, $uncovered, true)) {
+    echo "Known unreachable statement remains at functions.php:$known (invalid legacy regex in getfilter)\n";
 }

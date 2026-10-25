@@ -39,8 +39,8 @@ function out($message)
 
 function parse_options($argv)
 {
-    $options = array('app' => '/app', 'work' => '/tmp/pgacc-mutation', 'only' => null, 'check' => false,
-        'changed-diff' => null);
+    $options = ['app' => '/app', 'work' => '/tmp/pgacc-mutation', 'only' => null, 'check' => false,
+        'changed-diff' => null];
     foreach (array_slice($argv, 1) as $argument) {
         if ($argument === '--check') {
             $options['check'] = true;
@@ -77,7 +77,7 @@ function maintenance_connection()
             getenv('PGHOST'),
             getenv('PGPORT'),
             getenv('PGUSER'),
-            getenv('PGPASSWORD')
+            getenv('PGPASSWORD'),
         ), PGSQL_CONNECT_FORCE_NEW);
         if ($connection !== false) {
             break;
@@ -130,7 +130,7 @@ function create_template($app)
         getenv('PGPORT'),
         $template,
         getenv('PGUSER'),
-        getenv('PGPASSWORD')
+        getenv('PGPASSWORD'),
     ), PGSQL_CONNECT_FORCE_NEW);
     if ($connection === false) {
         pgacc_mutation_fail("cannot connect to $template");
@@ -141,7 +141,7 @@ function create_template($app)
     }
     sql($connection, $sql . "\nCOMMIT;");
     pg_close($connection);
-    return array('connection' => $maintenance, 'template' => $template);
+    return ['connection' => $maintenance, 'template' => $template];
 }
 
 function reset_database($database)
@@ -163,7 +163,7 @@ function create_pristine($app, $work)
     shell('rm -rf ' . escapeshellarg($work));
     shell('mkdir -p ' . escapeshellarg($pristine));
     foreach (scandir($app) as $entry) {
-        if (in_array($entry, array('.', '..', 'vendor', 'files', 'build', '.git'), true)) {
+        if (in_array($entry, ['.', '..', 'vendor', 'files', 'build', '.git'], true)) {
             continue;
         }
         shell('cp -a ' . escapeshellarg($app . '/' . $entry) . ' ' . escapeshellarg($pristine . '/'));
@@ -178,9 +178,9 @@ function phpunit_arguments($copy, $test)
 {
     $runner = getenv('PGACC_MUTATION_PHPUNIT');
     $runner = $runner ? $runner : $copy . '/vendor/bin/phpunit';
-    $arguments = array(PHP_BINARY, $runner, '--no-configuration', '--no-coverage',
-        '--do-not-cache-result', '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php');
-    return array_merge($arguments, array('--filter', $test['filter'], $copy . '/' . $test['file']));
+    $arguments = [PHP_BINARY, $runner, '--no-configuration', '--no-coverage',
+        '--do-not-cache-result', '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php'];
+    return array_merge($arguments, ['--filter', $test['filter'], $copy . '/' . $test['file']]);
 }
 
 function wait_for_port($port, $seconds)
@@ -212,21 +212,21 @@ function run_case($context, $mutation, $mutantSource, $index)
     shell('cp -a ' . escapeshellarg($context['pristine']) . ' ' . escapeshellarg($copy));
     shell('mkdir -p ' . escapeshellarg($copy . '/files'));
     $lintExit = 0;
-    $files = array();
+    $files = [];
     foreach ($target['mutations'] as $definition) {
         $files[$definition['file']] = true;
     }
     if ($mutation !== null) {
         file_put_contents($copy . '/' . $mutation['file'], $mutantSource);
-        $files = array($mutation['file'] => true);
+        $files = [$mutation['file'] => true];
     }
     foreach (array_keys($files) as $file) {
-        $lint = pgacc_mutation_run(array(PHP_BINARY, '-l', $copy . '/' . $file), array(), $copy, $log, 60);
+        $lint = pgacc_mutation_run([PHP_BINARY, '-l', $copy . '/' . $file], [], $copy, $log, 60);
         if ($lint['exit'] !== 0) {
             $lintExit = 1;
         }
     }
-    $runs = array();
+    $runs = [];
     if ($lintExit === 0) {
         if ($context['database'] !== null) {
             reset_database($context['database']);
@@ -234,25 +234,25 @@ function run_case($context, $mutation, $mutantSource, $index)
         $diagnostics = $context['work'] . '/diagnostics-' . $id;
         shell('rm -rf ' . escapeshellarg($diagnostics) . ' && mkdir -p ' . escapeshellarg($diagnostics));
         $port = 18080 + $index;
-        $environment = array(
+        $environment = [
             'PGACC_TEST_DIAGNOSTICS_DIR' => $diagnostics,
             'PGACC_TEST_BASE_URL' => 'http://127.0.0.1:' . $port,
             // Served root, so tests/http-diagnostics.php can relate displayed paths.
             'PGACC_TEST_APP_ROOT' => $copy,
-        );
+        ];
         $server = null;
         if ($context['http']) {
-            $arguments = array(PHP_BINARY);
+            $arguments = [PHP_BINARY];
             foreach (pgacc_mutation_server_ini() as $setting) {
                 $arguments[] = '-d';
                 $arguments[] = str_replace('%APP%', $copy, $setting);
             }
-            $arguments = array_merge($arguments, array('-S', '127.0.0.1:' . $port, '-t', $copy));
+            $arguments = array_merge($arguments, ['-S', '127.0.0.1:' . $port, '-t', $copy]);
             $server = pgacc_mutation_start(
                 $arguments,
                 $environment,
                 $copy,
-                $context['output'] . '/' . $id . '.server.log'
+                $context['output'] . '/' . $id . '.server.log',
             );
             if (!wait_for_port($port, 15)) {
                 pgacc_mutation_stop($server);
@@ -262,18 +262,18 @@ function run_case($context, $mutation, $mutantSource, $index)
         foreach ($target['tests'] as $test) {
             $remaining = $target['timeout'] - (microtime(true) - $started);
             if ($test['type'] === 'http') {
-                $arguments = array(PHP_BINARY, $copy . '/' . $test['script']);
+                $arguments = [PHP_BINARY, $copy . '/' . $test['script']];
                 $label = $test['script'];
                 $testEnvironment = $environment;
             } else {
                 $arguments = phpunit_arguments($copy, $test);
                 $label = 'phpunit --filter ' . $test['filter'];
                 // Coverage is not collected here; Xdebug only slows PHPUnit down.
-                $testEnvironment = array_merge($environment, array('XDEBUG_MODE' => 'off'));
+                $testEnvironment = array_merge($environment, ['XDEBUG_MODE' => 'off']);
             }
             file_put_contents($log, "\n[mutation runner] $label\n", FILE_APPEND);
             if ($remaining <= 0) {
-                $run = array('exit' => null, 'timed_out' => true, 'seconds' => 0.0);
+                $run = ['exit' => null, 'timed_out' => true, 'seconds' => 0.0];
             } else {
                 $run = pgacc_mutation_run($arguments, $testEnvironment, $copy, $log, $remaining);
             }
@@ -298,13 +298,13 @@ function run_case($context, $mutation, $mutantSource, $index)
             $failedBy = $run['command'];
         }
     }
-    return array(
+    return [
         'id' => $id,
         'raw_status' => $status,
         'failed_by' => $failedBy,
         'seconds' => round(microtime(true) - $started, 2),
         'log' => basename($log),
-    );
+    ];
 }
 
 function main($argv)
@@ -318,7 +318,7 @@ function main($argv)
     $name = basename($targetPath, '.php');
     if ($options['only'] !== null) {
         $only = explode(',', $options['only']);
-        $selected = array();
+        $selected = [];
         foreach ($target['mutations'] as $mutation) {
             if (in_array($mutation['id'], $only, true)) {
                 $selected[] = $mutation;
@@ -332,8 +332,8 @@ function main($argv)
     $phpMinor = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 
     // Apply every mutation before running anything: definition errors abort.
-    $sources = array();
-    $mutants = array();
+    $sources = [];
+    $mutants = [];
     foreach ($target['mutations'] as $mutation) {
         if (!isset($sources[$mutation['file']])) {
             $path = $app . '/' . $mutation['file'];
@@ -363,7 +363,7 @@ function main($argv)
             $target['mutations'],
             $mutants,
             pgacc_mutation_parse_diff($diff),
-            $targetFile
+            $targetFile,
         );
         out(sprintf('Changed lines select %d mutation(s)', count($target['mutations'])));
         if (count($target['mutations']) === 0 && !$options['check']) {
@@ -374,7 +374,7 @@ function main($argv)
                 }
                 file_put_contents(
                     $output . '/summary.txt',
-                    "Mutation target $name: no mutation's search region overlaps the changed lines\nResult: PASS\n"
+                    "Mutation target $name: no mutation's search region overlaps the changed lines\nResult: PASS\n",
                 );
             }
             out('Nothing to run: no search region overlaps the changed lines.');
@@ -393,7 +393,7 @@ function main($argv)
         pgacc_mutation_fail("cannot create $output");
     }
     $work = rtrim($options['work'], '/');
-    $context = array(
+    $context = [
         'target' => $target,
         'output' => $output,
         'work' => $work,
@@ -401,7 +401,7 @@ function main($argv)
         'http' => $http,
         // The PHPUnit bootstrap connects to the database too when PGHOST is set.
         'database' => getenv('PGHOST') ? create_template($app) : null,
-    );
+    ];
 
     out("PHP " . PHP_VERSION . ": running baseline (" . implode(', ', array_map(function ($test) {
         return $test['type'] === 'http' ? $test['script'] : 'phpunit --filter ' . $test['filter'];
@@ -411,14 +411,14 @@ function main($argv)
         echo file_get_contents($output . '/baseline.log');
         out("Baseline FAILED ({$baseline['raw_status']}, {$baseline['failed_by']}) on PHP $phpMinor; "
             . 'the unmutated application must pass before mutation testing. See baseline.log.');
-        file_put_contents($output . '/results.json', json_encode(array(
-            'target' => $name, 'php' => PHP_VERSION, 'baseline' => $baseline, 'mutants' => array(),
-        ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        file_put_contents($output . '/results.json', json_encode([
+            'target' => $name, 'php' => PHP_VERSION, 'baseline' => $baseline, 'mutants' => [],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
         return 2;
     }
     out(sprintf('Baseline passed in %.1fs', $baseline['seconds']));
 
-    $results = array();
+    $results = [];
     foreach ($target['mutations'] as $index => $mutation) {
         $mutant = $mutants[$mutation['id']];
         $result = run_case($context, $mutation, $mutant['source'], $index + 1);
@@ -442,11 +442,11 @@ function main($argv)
     shell('rm -rf ' . escapeshellarg($work));
 
     $summary = pgacc_mutation_summarize($results);
-    $hashes = array();
+    $hashes = [];
     foreach ($sources as $file => $source) {
         $hashes[$file] = hash('sha256', $source);
     }
-    file_put_contents($output . '/results.json', json_encode(array(
+    file_put_contents($output . '/results.json', json_encode([
         'target' => $name,
         'description' => $target['description'],
         'php' => PHP_VERSION,
@@ -456,7 +456,7 @@ function main($argv)
         'baseline' => $baseline,
         'summary' => $summary,
         'mutants' => $results,
-    ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
     $text = pgacc_mutation_format_summary($name, PHP_VERSION, $results, $summary);
     file_put_contents($output . '/summary.txt', $text);
     echo "\n" . $text;

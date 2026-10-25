@@ -52,11 +52,11 @@ assert_no_fatal_error($spendings['body'], 'spendings');
 $failedLogin = http_request(
     '/index.php?action=login',
     'POST',
-    array(
+    [
         'submit' => 'Anmeldung',
         'name' => 'synthetic-admin',
         'pass' => 'wrong-password',
-    )
+    ],
 );
 assert_status($failedLogin, 200, 'failed login');
 assert_contains($failedLogin['body'], 'Login erforderlich', 'failed login');
@@ -68,8 +68,8 @@ $authCookies = login_user('synthetic-admin', 'correct-password');
 $ledger = http_request(
     '/index.php?action=all&filter_date=2024',
     'GET',
-    array(),
-    $authCookies
+    [],
+    $authCookies,
 );
 assert_status($ledger, 200, 'authenticated ledger');
 assert_contains($ledger['body'], 'Synthetic Donor', 'authenticated ledger');

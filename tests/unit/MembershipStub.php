@@ -19,11 +19,11 @@ final class MembershipStub
     // Serves $body as the member list until reset().
     public static function serve($body)
     {
-        $context = stream_context_create(array('http' => array(
+        $context = stream_context_create(['http' => [
             'method' => 'POST',
             'header' => "Content-Type: text/plain\r\n",
             'content' => $body,
-        )));
+        ]]);
         if (self::control('/__stub/body', $context) !== "mode body\n") {
             throw new RuntimeException('membership stub did not accept the body');
         }

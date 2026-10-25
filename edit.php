@@ -20,10 +20,12 @@ function page_edit_merge($rights)
     }
     $bid1 = 0;
     $bid2 = 0;
-    if (isset($_POST["bid1"]))
+    if (isset($_POST["bid1"])) {
         $bid1 = intval($_POST["bid1"]);
-    if (isset($_POST["bid2"]))
+    }
+    if (isset($_POST["bid2"])) {
         $bid2 = intval($_POST["bid2"]);
+    }
     if ($bid1 == 0 || $bid2 == 0) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div><br /><br /><br />';
         return;
@@ -52,8 +54,9 @@ function page_edit_drop_acks($rights)
 {
     global $dbconn;
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
+    }
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -97,8 +100,9 @@ function page_edit_ack($rights)
         return;
     }
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
+    }
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -175,8 +179,9 @@ function page_edit_save($rights)
         return;
     }
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
+    }
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -253,25 +258,29 @@ function page_edit_save($rights)
     }
     // Corrected values are named in the redirect (warn=) for the edit page.
     $warn = '';
-    if (count($voucher_warnings) > 0)
+    if (count($voucher_warnings) > 0) {
         $warn = '&warn=' . implode(',', array_unique($voucher_warnings));
+    }
     relocate("index.php?action=edit&id=$id&hint=5$warn");
 }
 function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = 0)
 {
     global $dbconn;
     if (isset($_POST["changed"])) {
-        if ($part_to_remove != -1 && $part >= $part_to_remove)
+        if ($part_to_remove != -1 && $part >= $part_to_remove) {
             $voucher = get_voucher($part + 1, $rights, false);
-        else if ($new_part) {
+        } elseif ($new_part) {
             $voucher = get_voucher($part - 1, $rights, false);
             $voucher['file'] = -1;
             $voucher['bid'] = 0;
-        } else $voucher = get_voucher($part, $rights, false);
+        } else {
+            $voucher = get_voucher($part, $rights, false);
+        }
     } else {
         $part_o = $part;
-        if ($part_to_remove != -1 && $part >= $part_to_remove)
+        if ($part_to_remove != -1 && $part >= $part_to_remove) {
             $part++;
+        }
         $query = "SELECT income FROM type WHERE id = " . $vouchers[$part]['type'];
         $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -333,8 +342,9 @@ function page_edit($rights, $unsaved = false)
         $bid = intval($_POST["bid"]);
     }
     $hint = 0;
-    if (isset($_GET["hint"]))
+    if (isset($_GET["hint"])) {
         $hint = intval($_GET["hint"]);
+    }
     switch ($hint) {
         case 1:
             echo '<div class="slot_notice" id="slot_notice"><h1>Upload erfolgreich - Buchung Nr. ' . $id . ' - Buchungszeile Nr. ' . $bid . '</h1></div>';
@@ -363,11 +373,13 @@ function page_edit($rights, $unsaved = false)
         'purpose' => 'Gespeichert, aber: eine Zweckwidmung ist nur bei einer Spende möglich – die Zweckwidmung wurde entfernt.',
     ];
     $warn_codes = [];
-    if (isset($_GET["warn"]) && is_string($_GET["warn"]))
+    if (isset($_GET["warn"]) && is_string($_GET["warn"])) {
         $warn_codes = explode(',', $_GET["warn"]);
+    }
     foreach ($warn_notes as $code => $note) {
-        if (in_array($code, $warn_codes, true))
+        if (in_array($code, $warn_codes, true)) {
             echo '<div class="slot_error" id="slot_error">' . $note . '</div><br />';
+        }
     }
     $rightssql = rights2orgasql($rights);
     $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " $rightssql ORDER BY id ASC;";
@@ -384,21 +396,25 @@ function page_edit($rights, $unsaved = false)
         echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
         return;
     }
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
+    }
     $part_to_remove = -1;
     if (isset($_POST["remove"]) && intval($_POST["remove"]) >= 0 && intval($_POST["remove"]) < $parts) {
         $parts--;
         $part_to_remove = intval($_POST["remove"]);
     }
     $acks = 0;
-    if ($vouchers[0]['ack1'] != null && strlen($vouchers[0]['ack1']) > 3)
+    if ($vouchers[0]['ack1'] != null && strlen($vouchers[0]['ack1']) > 3) {
         $acks++;
-    if ($vouchers[0]['ack2'] != null && strlen($vouchers[0]['ack2']) > 3)
+    }
+    if ($vouchers[0]['ack2'] != null && strlen($vouchers[0]['ack2']) > 3) {
         $acks++;
+    }
     // The merge form (POST, see merge() below) cannot be nested in mainform.
-    if (has_right($rights, 'root'))
+    if (has_right($rights, 'root')) {
         echo '<form id="mergeform" action="index.php?action=merge" method="post" style="display: none">' . csrf_field() . '<input type="hidden" name="bid1" value="' . intval($id) . '" /><input type="hidden" name="bid2" value="" /></form>';
+    }
     page_form_header("edit");
     echo '<input type="hidden" name="id" value="' . intval($id) . '" />
 <input type="hidden" name="acks" value="' . intval($acks) . '" />
@@ -455,4 +471,3 @@ function merge()
 
     end_of_form($parts, $rights, $bgfandack && !$unsaved, $rights, true, !$unsaved);
 }
-?>

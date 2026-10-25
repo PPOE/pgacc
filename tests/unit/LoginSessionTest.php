@@ -20,7 +20,7 @@ function login_test_throwing_random_bytes($length)
 
 final class LoginSessionTest extends FunctionsTestCase
 {
-    const TEST_KEY = 'synthetic-test-only-encryption-key';
+    public const TEST_KEY = 'synthetic-test-only-encryption-key';
 
     private $hadKey;
     private $previousKey;
@@ -76,7 +76,7 @@ final class LoginSessionTest extends FunctionsTestCase
 
     public function testSessionKeyFailsClosedWithoutAValidKey()
     {
-        foreach (array('', '0123456789abcde', 'CHANGE-ME-to-a-long-random-key', 'a-long-key-CHANGE-ME', 12345678901234567, null) as $key) {
+        foreach (['', '0123456789abcde', 'CHANGE-ME-to-a-long-random-key', 'a-long-key-CHANGE-ME', 12345678901234567, null] as $key) {
             $GLOBALS['key'] = $key;
             self::assertFalse(login_session_key(), var_export($key, true));
             self::assertFalse(login_session_token(1, 5, '2026-10-24 10:00:00.123456'), var_export($key, true));
@@ -99,7 +99,7 @@ final class LoginSessionTest extends FunctionsTestCase
 
     public function testNewNoncesAreRandom()
     {
-        $nonces = array();
+        $nonces = [];
         for ($i = 0; $i < 20; $i++) {
             $nonce = login_nonce(login_random_bytes(4));
             self::assertTrue(is_int($nonce) && $nonce >= 1 && $nonce <= 2147483647, var_export($nonce, true));
@@ -143,7 +143,7 @@ final class LoginSessionTest extends FunctionsTestCase
         unlink($log);
         $after = $failTransaction ? $before : self::cookieOf($connection);
         pg_query($connection, 'ROLLBACK');
-        return array($result, $text, $before, $after);
+        return [$result, $text, $before, $after];
     }
 
     public function testStartSessionStoresANewNonceAndReturnsItsToken()
@@ -200,7 +200,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $expected = hash_hmac(
             'sha256',
             'pgacc-login|1|5|' . $login,
-            hash_hmac('sha256', 'pgacc-session-key', self::TEST_KEY, true)
+            hash_hmac('sha256', 'pgacc-session-key', self::TEST_KEY, true),
         );
         $token = login_session_token(1, 5, $login);
         self::assertSame($expected, $token);
@@ -219,7 +219,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $before = time();
         $header = login_cookie_header('pp_pgacc_login', 'abc', 86400);
         $after = time();
-        $expected = array();
+        $expected = [];
         for ($now = $before; $now <= $after; $now++) {
             $expected[] = 'Set-Cookie: pp_pgacc_login=abc; expires=' . gmdate('D, d M Y H:i:s', $now + 86400)
                 . ' GMT; Max-Age=86400; secure; HttpOnly; SameSite=Lax';
@@ -227,7 +227,7 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertContains($header, $expected);
         self::assertSame(
             'Set-Cookie: pp_pgacc_id=deleted; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; secure; HttpOnly; SameSite=Lax',
-            login_cookie_header('pp_pgacc_id', 'deleted', 0)
+            login_cookie_header('pp_pgacc_id', 'deleted', 0),
         );
         $short = login_cookie_header('pp_pgacc_id', 7, 1);
         self::assertSame(1, preg_match('/^Set-Cookie: pp_pgacc_id=7; expires=.* GMT; Max-Age=1; secure; HttpOnly; SameSite=Lax$/D', $short));
@@ -236,35 +236,35 @@ final class LoginSessionTest extends FunctionsTestCase
 
     public static function allowedTargets()
     {
-        return array('index.php', 'index.php?action=all&filter_date=2024', 'index.php#top', 'index.php?',
-            '/', '/index.php?action=all', '/a', '/.', '/~x/%2F', '/!', '/[x]', 'index.php?a=~&b=!');
+        return ['index.php', 'index.php?action=all&filter_date=2024', 'index.php#top', 'index.php?',
+            '/', '/index.php?action=all', '/a', '/.', '/~x/%2F', '/!', '/[x]', 'index.php?a=~&b=!'];
     }
 
     public static function rejectedTargets()
     {
-        return array('https://evil.example/', 'http://evil.example', '//evil.example', '/\\evil.example',
+        return ['https://evil.example/', 'http://evil.example', '//evil.example', '/\\evil.example',
             '\\\\evil.example', '\\', 'javascript:alert(1)', 'index.php://evil.example', 'index.phpevil',
             'index.php/x', 'index_php', "index.php\r\nSet-Cookie: a=1", "index.php\n", "/x\n", "/\n", "\n",
             ' /x', 'index.php?a=1 b', '/a b', "/\tx", "/x\x7f", "/x\x00", "index.php?\x00", 'evil.php',
-            "/\xc3\xa4", "/x\\y", 'index.php?\\', 'index.php#\\x', 'x/index.php', '?a=1', '#x', '');
+            "/\xc3\xa4", "/x\\y", 'index.php?\\', 'index.php#\\x', 'x/index.php', '?a=1', '#x', ''];
     }
 
     // Targets that are not hex are refused before hex2ascii(), whose hexdec()
     // reports other characters on PHP 7.4+.
     public function testTargetsThatAreNotHexRaiseNoDiagnostics()
     {
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message) use (&$diagnostics) {
             $diagnostics[] = $message;
             return true;
         });
-        $results = array();
-        foreach (array('"><script>', '2F x', "2F\n", "\n2F", 'x2F', '2Fx') as $hex) {
+        $results = [];
+        foreach (['"><script>', '2F x', "2F\n", "\n2F", 'x2F', '2Fx'] as $hex) {
             $results[] = login_target($hex);
             $results[] = login_form_target($hex);
         }
         restore_error_handler();
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
         self::assertSame(array_fill(0, 6, 'index.php'), array_values(array_filter($results)));
     }
 
@@ -282,8 +282,8 @@ final class LoginSessionTest extends FunctionsTestCase
         }
         self::assertSame('index.php?a=1', login_target('69 6e 64 65 78 2E 70 68 70 3F 61 3D 31'));
         self::assertSame('69 6e 64 65 78 2E 70 68 70', login_form_target('69 6e 64 65 78 2E 70 68 70'));
-        self::assertSame('index.php', login_target(array('2F')));
-        self::assertSame('', login_form_target(array('2F')));
+        self::assertSame('index.php', login_target(['2F']));
+        self::assertSame('', login_form_target(['2F']));
         self::assertFalse(login_target_decode('2F x'));
         self::assertSame('/', login_target_decode('2F'));
         self::assertSame('/', login_target('2F'));
@@ -320,7 +320,7 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertFalse(login_token_equals('', false));
         self::assertFalse(login_token_equals(false, false));
         self::assertFalse(login_token_equals('5', 5));
-        self::assertFalse(login_token_equals($token, array($token)));
+        self::assertFalse(login_token_equals($token, [$token]));
     }
 
     public function testFormTokenIsAnHmacOfTheSessionUnderItsOwnSubkey()
@@ -329,7 +329,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $expected = hash_hmac(
             'sha256',
             'pgacc-csrf|1|5|' . $login,
-            hash_hmac('sha256', 'pgacc-csrf-key', self::TEST_KEY, true)
+            hash_hmac('sha256', 'pgacc-csrf-key', self::TEST_KEY, true),
         );
         $token = csrf_session_token(1, 5, $login);
         self::assertSame($expected, $token);
@@ -341,7 +341,7 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertNotSame($token, csrf_session_token(1, 55, $login));
         $GLOBALS['key'] = 'another-synthetic-test-key';
         self::assertNotSame($token, csrf_session_token(1, 5, $login));
-        foreach (array('', '0123456789abcde', 'CHANGE-ME-to-a-long-random-key', null) as $key) {
+        foreach (['', '0123456789abcde', 'CHANGE-ME-to-a-long-random-key', null] as $key) {
             $GLOBALS['key'] = $key;
             self::assertFalse(csrf_session_token(1, 5, $login), var_export($key, true));
         }
@@ -355,25 +355,25 @@ final class LoginSessionTest extends FunctionsTestCase
         $token = str_repeat('ab', 32);
         $GLOBALS['csrf_token'] = $token;
         self::assertSame('<input type="hidden" name="csrf_token" value="' . $token . '" />', csrf_field());
-        $_POST = array('csrf_token' => $token);
+        $_POST = ['csrf_token' => $token];
         self::assertTrue(csrf_request_valid());
-        foreach (array(array(), array('csrf_token' => ''), array('csrf_token' => 'cd' . substr($token, 2)),
-            array('csrf_token' => $token . 'a'), array('csrf_token' => array($token)), array('token' => $token)) as $post) {
+        foreach ([[], ['csrf_token' => ''], ['csrf_token' => 'cd' . substr($token, 2)],
+            ['csrf_token' => $token . 'a'], ['csrf_token' => [$token]], ['token' => $token]] as $post) {
             $_POST = $post;
             self::assertFalse(csrf_request_valid(), var_export($post, true));
         }
         // Without a session (checklogin() leaves false) nothing is valid,
         // not even an empty field.
-        foreach (array(false, null, '') as $none) {
+        foreach ([false, null, ''] as $none) {
             $GLOBALS['csrf_token'] = $none;
             self::assertSame('<input type="hidden" name="csrf_token" value="" />', csrf_field());
-            foreach (array(array(), array('csrf_token' => ''), array('csrf_token' => $token)) as $post) {
+            foreach ([[], ['csrf_token' => ''], ['csrf_token' => $token]] as $post) {
                 $_POST = $post;
-                self::assertFalse(csrf_request_valid(), var_export(array($none, $post), true));
+                self::assertFalse(csrf_request_valid(), var_export([$none, $post], true));
             }
         }
         unset($GLOBALS['csrf_token']);
-        $_POST = array('csrf_token' => '');
+        $_POST = ['csrf_token' => ''];
         self::assertFalse(csrf_request_valid());
         $_POST = $previousPost;
         if ($hadToken) {
@@ -387,7 +387,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $previousMethod = $hadMethod ? $_SERVER['REQUEST_METHOD'] : null;
         $_SERVER['REQUEST_METHOD'] = 'POST';
         self::assertTrue(request_is_post());
-        foreach (array('GET', 'HEAD', 'post', 'PUT', '') as $method) {
+        foreach (['GET', 'HEAD', 'post', 'PUT', ''] as $method) {
             $_SERVER['REQUEST_METHOD'] = $method;
             self::assertFalse(request_is_post(), $method);
         }

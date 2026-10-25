@@ -37,9 +37,9 @@ if (count($problems) > 0) {
 $files = array_unique(array_merge(ref_list_files($referenceDir), ref_list_files($actualDir)));
 sort($files, SORT_STRING);
 $same = 0;
-$used = array();
-$failed = array();
-$accepted = array();
+$used = [];
+$failed = [];
+$accepted = [];
 foreach ($files as $file) {
     $reference = "$referenceDir/$file";
     $actual = "$actualDir/$file";
@@ -51,7 +51,7 @@ foreach ($files as $file) {
     }
     $changed = ref_changed_lines($referenceExists ? $reference : '/dev/null', $actualExists ? $actual : '/dev/null');
     $state = !$referenceExists ? 'only in this lane' : (!$actualExists ? 'missing in this lane' : 'differs');
-    $diff = array();
+    $diff = [];
     exec('diff -u ' . escapeshellarg($referenceExists ? $reference : '/dev/null') . ' '
         . escapeshellarg($actualExists ? $actual : '/dev/null') . ' 2>&1', $diff);
     ref_write("$reportDir/diffs/$file.diff", implode("\n", $diff) . "\n");
@@ -62,13 +62,13 @@ foreach ($files as $file) {
     if (count($unmatched) === 0) {
         $accepted[] = "$file ($state) accepted by " . implode(', ', array_keys($ids));
     } else {
-        $failed[$file] = array($state, $unmatched, count($changed));
+        $failed[$file] = [$state, $unmatched, count($changed)];
     }
 }
 $stale = ref_stale_entries($php, $entries, $used);
 
 // Failures grouped by top-level category (http, sql, db, helpers, ...).
-$categories = array();
+$categories = [];
 foreach ($failed as $file => $failure) {
     $category = strpos($file, '/') === false ? $file : substr($file, 0, strpos($file, '/'));
     $categories[$category] = isset($categories[$category]) ? $categories[$category] + 1 : 1;

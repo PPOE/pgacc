@@ -63,4 +63,3 @@ Impressum: <a href="https://piratenpartei.at/rechtliches/impressum/">piratenpart
     </div>
 ';
 }
-?>

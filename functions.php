@@ -25,70 +25,91 @@ function ascii2hex($ascii)
 function csv_download_link($i = -1)
 {
     global $make_csv;
-    if ($make_csv)
+    if ($make_csv) {
         return;
+    }
     $link = $_SERVER['REQUEST_URI'] . (str_contains($_SERVER['REQUEST_URI'], '?') ? "&" : "?") . "format=csv";
     echo "<br style=\"clear: both;\" /><center>";
-    if ($i >= 0)
+    if ($i >= 0) {
         echo "$i Umsätze gefunden<br /><br />";
+    }
     echo "<a href=\"" . html_escape($link) . "\">Als CSV Datei herunterladen</a></center>";
 }
 function getfilter()
 {
     $filter = "";
-    if (is_string($_GET['filter_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_id']) == 1)
+    if (is_string($_GET['filter_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_id']) == 1) {
         $filter .= " AND voucher_id = " . $_GET['filter_id'];
-    if (is_string($_GET['filter_bid'] ?? null) && preg_match('/^\d+$/', $_GET['filter_bid']) == 1)
+    }
+    if (is_string($_GET['filter_bid'] ?? null) && preg_match('/^\d+$/', $_GET['filter_bid']) == 1) {
         $filter .= " AND id = " . $_GET['filter_bid'];
+    }
     if (is_string($_GET['filter_date'] ?? null)) {
         if (preg_match('/^\d\d\d\d$/', $_GET['filter_date']) == 1) {
             $filter .= " AND date >= '" . $_GET['filter_date'] . "-01-01' AND date <= '" . $_GET['filter_date'] . "-12-31' ";
-        } else if (preg_match('/^\d\d\d\d-\d\d$/', $_GET['filter_date']) == 1) {
+        } elseif (preg_match('/^\d\d\d\d-\d\d$/', $_GET['filter_date']) == 1) {
             $filter .= " AND date >= '" . $_GET['filter_date'] . "-01' AND date < TIMESTAMP '" . $_GET['filter_date'] . "-01' + INTERVAL '1 month' ";
-        } else if (preg_match('/^\d\d\d\d-\d\d-\d\d$/', $_GET['filter_date']) == 1) {
+        } elseif (preg_match('/^\d\d\d\d-\d\d-\d\d$/', $_GET['filter_date']) == 1) {
             $filter .= " AND date = '" . $_GET['filter_date'] . "' ";
         }
     }
-    if (is_string($_GET['filter_type'] ?? null) && preg_match('/^\d+$/', $_GET['filter_type']) == 1)
+    if (is_string($_GET['filter_type'] ?? null) && preg_match('/^\d+$/', $_GET['filter_type']) == 1) {
         $filter .= " AND type = " . $_GET['filter_type'];
-    else if (is_string($_GET['filter_type'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_type']) == 1)
+    } elseif (is_string($_GET['filter_type'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_type']) == 1) {
         $filter .= " AND lower(type.name) LIKE lower('%" . $_GET['filter_type'] . "%')";
-    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^\d+$/', $_GET['filter_lo']) == 1)
+    }
+    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^\d+$/', $_GET['filter_lo']) == 1) {
         $filter .= " AND orga = " . $_GET['filter_lo'];
-    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_lo']) == 1)
+    }
+    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_lo']) == 1) {
         $filter .= " AND lower(lo.name) LIKE lower('%" . $_GET['filter_lo'] . "%')";
-    if (isset($_GET['filter_member']))
+    }
+    if (isset($_GET['filter_member'])) {
         $filter .= " AND member ";
-    if (is_string($_GET['filter_member_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_member_id']) == 1)
+    }
+    if (is_string($_GET['filter_member_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_member_id']) == 1) {
         $filter .= " AND member_id = " . $_GET['filter_member_id'];
-    if (is_string($_GET['filter_gk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_gk']) == 1)
+    }
+    if (is_string($_GET['filter_gk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_gk']) == 1) {
         $filter .= " AND contra_account LIKE '" . $_GET['filter_gk'] . "%'";
-    if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/', $_GET['filter_amount']) == 1)
+    }
+    if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/', $_GET['filter_amount']) == 1) {
         $filter .= " AND amount " . $_GET['filter_amount'] . "00";
-    else if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
+    } elseif (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1) {
         $filter .= " AND amount " . str_replace([".",","], ["",""], $_GET['filter_amount']);
-    else if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
+    } elseif (is_string($_GET['filter_amount'] ?? null) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1) {
         $filter .= " AND amount = " . str_replace([".",","], ["",""], $_GET['filter_amount']);
-    if (is_string($_GET['filter_k'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_k']) == 1)
+    }
+    if (is_string($_GET['filter_k'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_k']) == 1) {
         $filter .= " AND account LIKE '" . $_GET['filter_k'] . "%'";
-    if (is_string($_GET['filter_vk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_vk']) == 1)
+    }
+    if (is_string($_GET['filter_vk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_vk']) == 1) {
         $filter .= " AND vaccount LIKE '" . $_GET['filter_vk'] . "%'";
-    if (is_string($_GET['filter_text'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_text']) == 1)
+    }
+    if (is_string($_GET['filter_text'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_text']) == 1) {
         $filter .= " AND lower(comment) LIKE lower('%" . $_GET['filter_text'] . "%')";
-    if (is_string($_GET['filter_comment'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_comment']) == 1)
+    }
+    if (is_string($_GET['filter_comment'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_comment']) == 1) {
         $filter .= " AND lower(commentgf) LIKE lower('%" . $_GET['filter_comment'] . "%')";
-    if (isset($_GET['filter_comm']))
+    }
+    if (isset($_GET['filter_comm'])) {
         $filter .= " AND committed ";
-    if (is_string($_GET['filter_ack'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack']) == 1)
+    }
+    if (is_string($_GET['filter_ack'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack']) == 1) {
         $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
-    if (is_string($_GET['filter_ack_old'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack_old']) == 1)
+    }
+    if (is_string($_GET['filter_ack_old'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack_old']) == 1) {
         $filter .= " AND (ack1_old LIKE '%" . $_GET['filter_ack_old'] . "%' OR ack2_old LIKE '%" . $_GET['filter_ack_old'] . "%') ";
-    if (isset($_GET['filter_refund']))
+    }
+    if (isset($_GET['filter_refund'])) {
         $filter .= " AND refund ";
-    if (isset($_GET['filter_bel']))
+    }
+    if (isset($_GET['filter_bel'])) {
         $filter .= " AND file != 0 ";
-    if (is_string($_GET['filter_name'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_name']) == 1)
+    }
+    if (is_string($_GET['filter_name'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_name']) == 1) {
         $filter .= " AND lower(vouchers.name) LIKE lower('%" . $_GET['filter_name'] . "%')";
+    }
     return $filter;
 }
 function tag($tag, $text)
@@ -97,20 +118,24 @@ function tag($tag, $text)
     if ($make_csv) {
         $text = str_replace(["\r\n", "\n", "\r"], [' / ', ' / ', ' / '], $text ?? '');
         // A tab would split the tab-separated cell.
-        if ($tag == 'td')
+        if ($tag == 'td') {
             $text = str_replace(["\t"], [' '], $text);
+        }
         if (preg_match('/^-?\d+(\.\d+)?€$/', $text) == 1) {
             $text = str_replace(["."], [","], $text);
         }
         // A cell that a spreadsheet would read as a formula or a quoted field (not
         // a number), also after leading whitespace, starts with a single quote.
-        else if ($tag == 'td' && preg_match('/^[ \t\n\r\f\x0B]*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1)
+        elseif ($tag == 'td' && preg_match('/^[ \t\n\r\f\x0B]*[=+\-@"]/', $text) == 1 && preg_match('/^-?\d+([.,]\d+)?$/', $text) != 1) {
             $text = "'" . $text;
-        if ($tag == 'tr')
+        }
+        if ($tag == 'tr') {
             return "$text\n";
-        else if ($tag == 'td')
+        } elseif ($tag == 'td') {
             return "$text\t";
-        else return "$text";
+        } else {
+            return "$text";
+        }
     }
     return "<$tag>$text</$tag>\n";
 }
@@ -126,8 +151,9 @@ function html_escape($text)
 function listing_text($text)
 {
     global $make_csv;
-    if ($make_csv)
+    if ($make_csv) {
         return $text;
+    }
     return html_escape($text);
 }
 function acc_header($dbconn, $page = "index", $year = 2015)
@@ -205,8 +231,9 @@ function acc_header($dbconn, $page = "index", $year = 2015)
         echo '<a href="index.php?action=mb"' . ($page == "mb" ? ' class="selected"' : '') . '>Mitgliedsbeiträge</a>';
         echo '<a href="index.php?action=tinyreport"' . ($page == "tinyreport" ? ' class="selected"' : '') . '>Konten</a>';
         //echo '<a href="index.php?action=vreport"'.($page == "vreport"?' class="selected"':'').'>Virt. Konten</a>';
-        if (has_right($rights, 'bgf') || has_right($rights, 'Rbgf') || has_right($rights, 'root'))
+        if (has_right($rights, 'bgf') || has_right($rights, 'Rbgf') || has_right($rights, 'root')) {
             echo '<a href="index.php?action=deleted&filter_date=' . $year . '"' . ($page == "deleted" ? ' class="selected"' : '') . '>Alte Rev.</a>';
+        }
         //  if (strpos($rights,'root') !== false)
         echo '<a href="index.php?action=accounts"' . ($page == "accounts" ? ' class="selected"' : '') . '>Benutzer</a>';
     }
@@ -217,8 +244,9 @@ function acc_header($dbconn, $page = "index", $year = 2015)
 function block_start($p = "")
 {
     global $make_csv;
-    if ($make_csv)
+    if ($make_csv) {
         return;
+    }
     echo '
 <br style="clear: both;" />
 <div class="wiki use_terms' . $p . '">
@@ -227,8 +255,9 @@ function block_start($p = "")
 function block_end()
 {
     global $make_csv;
-    if ($make_csv)
+    if ($make_csv) {
         return;
+    }
     echo '
 </div>
 ';
@@ -243,10 +272,12 @@ function acc_footer()
 <div class="ui_tabs"><div class="ui_tabs_links">
       <a href="index.php?action=impressum">Impressum</a>
 ';
-    if (strlen($rights ?? '') == 0)
+    if (strlen($rights ?? '') == 0) {
         echo '<a href="index.php?action=login">Login</a>';
-    if (strlen($rights ?? '') != 0)
+    }
+    if (strlen($rights ?? '') != 0) {
         echo '<form class="inline" action="index.php?action=logout" method="post">' . csrf_field() . '<button class="link" type="submit">Logout</button></form>';
+    }
     echo '      </div>
     </div>
     </div>
@@ -271,8 +302,9 @@ function acc_footer()
 // integer size).
 function amount_cents($value, $decimal, $thousands, $two_decimals)
 {
-    if (!is_string($value))
+    if (!is_string($value)) {
         return null;
+    }
     $value = trim($value, " \t\r\n");
     $parts = null;
     $group = '';
@@ -280,16 +312,19 @@ function amount_cents($value, $decimal, $thousands, $two_decimals)
         $group = str_replace($separator, '', $thousands);
         $euros = $group === '' ? '\d+' : '\d{1,3}(?:[' . preg_quote($group, '/') . ']\d{3})+|\d+';
         $pattern = '/^([+-]?)(' . $euros . ')(?:' . preg_quote($separator, '/') . ($two_decimals ? '(\d\d))' : '(\d\d?))?') . '$/D';
-        if (preg_match($pattern, $value, $parts) == 1)
+        if (preg_match($pattern, $value, $parts) == 1) {
             break;
+        }
         $parts = null;
     }
-    if ($parts === null)
+    if ($parts === null) {
         return null;
+    }
     $digits = ltrim(str_replace(str_split($group), '', $parts[2]) . str_pad($parts[3] ?? '', 2, '0'), '0');
     $limit = $parts[1] == '-' ? '2147483648' : '2147483647';
-    if (strlen($digits) > strlen($limit) || (strlen($digits) == strlen($limit) && strcmp($digits, $limit) > 0))
+    if (strlen($digits) > strlen($limit) || (strlen($digits) == strlen($limit) && strcmp($digits, $limit) > 0)) {
         return null;
+    }
     return intval(($parts[1] == '-' ? '-' : '') . $digits);
 }
 function format_date($date)
@@ -297,7 +332,7 @@ function format_date($date)
     if ($date != null && preg_match('/^((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)$/', $date) == 1) {
         $tmp = explode(".", $date);
         $date = $tmp[2] . '-' . $tmp[1] . '-' . $tmp[0];
-    } else if ($date != null && preg_match('/^\d\d\d\d-\d\d-\d\d \d.*$/', $date) == 1) {
+    } elseif ($date != null && preg_match('/^\d\d\d\d-\d\d-\d\d \d.*$/', $date) == 1) {
         $tmp = explode(" ", $date);
         $date = $tmp[0];
     }
@@ -321,14 +356,17 @@ function rights_tokens($rights)
 // there either), so users write only what they can see.
 function organization_allowed($lo, $rights)
 {
-    if (has_right($rights, 'bgf'))
+    if (has_right($rights, 'bgf')) {
         return true;
+    }
     $lo = strval($lo);
-    if (preg_match('/^\d+$/D', $lo) != 1)
+    if (preg_match('/^\d+$/D', $lo) != 1) {
         return false;
+    }
     foreach (rights_tokens($rights) as $right) {
-        if (preg_match('/^\d+$/D', $right) == 1 && ltrim($right, '0') === ltrim($lo, '0'))
+        if (preg_match('/^\d+$/D', $right) == 1 && ltrim($right, '0') === ltrim($lo, '0')) {
             return true;
+        }
     }
     return false;
 }
@@ -338,15 +376,18 @@ function organization_allowed($lo, $rights)
 function write_rights($rights)
 {
     $tokens = rights_tokens($rights);
-    if (!in_array('Rbgf', $tokens, true))
+    if (!in_array('Rbgf', $tokens, true)) {
         return $rights;
+    }
     $rights_w = [];
     foreach ($tokens as $right) {
-        if ($right !== 'Rbgf' && $right !== '')
+        if ($right !== 'Rbgf' && $right !== '') {
             $rights_w[] = $right;
+        }
     }
-    if (count($rights_w) == 0)
+    if (count($rights_w) == 0) {
         return false;
+    }
     return implode(",", $rights_w);
 }
 function rights2orgasql($rights)
@@ -355,11 +396,13 @@ function rights2orgasql($rights)
     if (!in_array('bgf', $rights_r) && !in_array('Rbgf', $rights_r)) {
         $rights2 = [];
         foreach ($rights_r as $right) {
-            if (preg_match('/^\d+$/', $right) == 1)
+            if (preg_match('/^\d+$/', $right) == 1) {
                 $rights2[] = "'" . $right . "'";
+            }
         }
-        if (count($rights2) > 0)
+        if (count($rights2) > 0) {
             return " AND orga IN (" . implode(",", $rights2) . ") ";
+        }
         return " AND false ";
     }
     return "";
@@ -539,9 +582,11 @@ function percent_of_bookings()
 
 function eyes()
 {
-    if (isset($_GET["noeyes"]))
+    if (isset($_GET["noeyes"])) {
         return " NOT deleted ";
-    else return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
+    } else {
+        return " NOT deleted AND (ack1 IS NOT NULL OR ack2 IS NOT NULL) ";
+    }
 }
 
 /**
@@ -559,8 +604,9 @@ function whitelist($array, $whitelist)
 {
     $new_array = [];
     foreach ($array as $key => $value) {
-        if (isset($whitelist[$key]))
+        if (isset($whitelist[$key])) {
             $new_array[$key] = $value;
+        }
     }
     return $new_array;
 }
@@ -664,8 +710,9 @@ function receipt_key_is_valid($key)
 function receipt_configured_key()
 {
     // constants.php is required in global scope (index.php).
-    if (isset($GLOBALS['key']) && receipt_key_is_valid($GLOBALS['key']))
+    if (isset($GLOBALS['key']) && receipt_key_is_valid($GLOBALS['key'])) {
         return $GLOBALS['key'];
+    }
     return '';
 }
 
@@ -688,10 +735,12 @@ function receipt_legacy_path($directory, $number)
 // PDF and JPEG by their magic bytes; anything else is sent as a download.
 function receipt_content_type($plain)
 {
-    if (str_starts_with($plain, '%PDF'))
+    if (str_starts_with($plain, '%PDF')) {
         return 'application/pdf';
-    if (str_starts_with($plain, "\xFF\xD8\xFF"))
+    }
+    if (str_starts_with($plain, "\xFF\xD8\xFF")) {
         return 'image/jpeg';
+    }
     return 'application/octet-stream';
 }
 
@@ -755,11 +804,13 @@ function receipt_equals($known, $given)
 
 function receipt_equals_fallback($known, $given)
 {
-    if (strlen($known) !== strlen($given))
+    if (strlen($known) !== strlen($given)) {
         return false;
+    }
     $difference = 0;
-    for ($i = 0; $i < strlen($known); $i++)
+    for ($i = 0; $i < strlen($known); $i++) {
         $difference |= ord($known[$i]) ^ ord($given[$i]);
+    }
     return $difference === 0;
 }
 
@@ -784,15 +835,17 @@ function receipt_v2_encrypt($key, $number, $data, $iv = null)
 // so a wrong key, another file number or a modified file is rejected.
 function receipt_v2_decrypt($key, $number, $file)
 {
-    if (!is_string($file) || strlen($file) < 68 || !str_starts_with($file, 'PGR2'))
+    if (!is_string($file) || strlen($file) < 68 || !str_starts_with($file, 'PGR2')) {
         return false;
+    }
     [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $ciphertext = substr($file, 20, -32);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, substr($file, 0, 20));
     hash_update($mac, $ciphertext);
-    if (!receipt_equals(hash_final($mac, true), substr($file, -32)))
+    if (!receipt_equals(hash_final($mac, true), substr($file, -32))) {
         return false;
+    }
     return receipt_v2_cipher($encryptionKey, substr($file, 4, 16))->decrypt($ciphertext);
 }
 
@@ -814,14 +867,16 @@ function receipt_v2_encrypt_stream($key, $number, $in, $out, $iv = null)
             $pending .= (string) $chunk;
             break;
         }
-        if ((string) $chunk === '')
+        if ((string) $chunk === '') {
             return false;
+        }
         $pending .= $chunk;
         // Whole blocks now; the rest (and the padding) with the last chunk. An
         // empty encrypt() would reset phpseclib's continuous IV.
         $whole = strlen($pending) - strlen($pending) % 16;
-        if ($whole === 0)
+        if ($whole === 0) {
             continue;
+        }
         $ciphertext = $cipher->encrypt(substr($pending, 0, $whole));
         $pending = (string) substr($pending, $whole);
         hash_update($mac, $ciphertext);
@@ -845,8 +900,9 @@ function receipt_temp_path($path)
 function receipt_write_file($path, $bytes)
 {
     $temp = receipt_temp_path($path);
-    if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path))
+    if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path)) {
         return true;
+    }
     @unlink($temp);
     return false;
 }
@@ -866,12 +922,15 @@ function receipt_store($directory, $number, $source)
     $in = @fopen($source, 'rb');
     $out = $in === false ? false : @fopen($temp, 'xb');
     $stored = $out !== false && receipt_v2_encrypt_stream($receiptKey, $number, $in, $out);
-    if ($in !== false)
+    if ($in !== false) {
         fclose($in);
-    if ($out !== false)
+    }
+    if ($out !== false) {
         $stored = fclose($out) && $stored && @rename($temp, $path);
-    if ($stored)
+    }
+    if ($stored) {
         return true;
+    }
     @unlink($temp);
     error_log("pgacc: receipt $number.v2.aes could not be written");
     return false;
@@ -892,24 +951,27 @@ function receipt_v2_open($path, $number)
         return false;
     }
     $receipt = receipt_v2_open_with($receiptKey, $number, $path);
-    if ($receipt === false)
+    if ($receipt === false) {
         error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file)");
+    }
     return $receipt;
 }
 
 function receipt_v2_open_with($key, $number, $path)
 {
     $in = @fopen($path, 'rb');
-    if ($in === false)
+    if ($in === false) {
         return false;
+    }
     $stat = fstat($in);
     $length = $stat['size'] - 52;
     $header = (string) fread($in, 20);
     [$encryptionKey, $macKey] = receipt_v2_keys($key, $number);
     $mac = hash_init('sha256', HASH_HMAC, $macKey);
     hash_update($mac, $header);
-    for ($remaining = $length; $remaining > 0; $remaining -= 65536)
+    for ($remaining = $length; $remaining > 0; $remaining -= 65536) {
         hash_update($mac, (string) fread($in, min(65536, $remaining)));
+    }
     $valid = $length >= 16 && str_starts_with($header, 'PGR2')
       && receipt_equals(hash_final($mac, true), (string) fread($in, 32));
     $iv = substr($header, 4, 16);
@@ -961,8 +1023,9 @@ function receipt_v2_decrypt_chunks($receipt, $emit)
         $ciphertext -= $expected;
         $chunk = (string) fread($in, $expected);
         $complete = strlen($chunk) === $expected;
-        if ($complete)
+        if ($complete) {
             call_user_func($emit, substr($cipher->decrypt($chunk), 0, min(65536, $left)));
+        }
     }
     $complete = $complete && receipt_v2_identity(fstat($in)) === $receipt['stat'];
     fclose($in);
@@ -974,8 +1037,9 @@ function receipt_v2_decrypt_chunks($receipt, $emit)
 function receipt_v2_read_with($key, $number, $path)
 {
     $receipt = receipt_v2_open_with($key, $number, $path);
-    if ($receipt === false)
+    if ($receipt === false) {
         return false;
+    }
     $chunks = [];
     $complete = receipt_v2_decrypt_chunks($receipt, function ($chunk) use (&$chunks) {
         $chunks[] = $chunk;
@@ -1003,9 +1067,10 @@ function receipt_v2_echo($chunk)
 // client sees fewer bytes than Content-Length) and be logged.
 function receipt_v2_send($receipt)
 {
-    if (!receipt_v2_decrypt_chunks($receipt, 'receipt_v2_echo'))
+    if (!receipt_v2_decrypt_chunks($receipt, 'receipt_v2_echo')) {
         error_log("pgacc: receipt {$receipt['number']}.v2.aes changed or could not be read while it was sent; "
           . 'the download is incomplete');
+    }
 }
 
 // Membership-system exchange (getusers.php, mbapi.php): key and IV.
@@ -1050,16 +1115,18 @@ function login_random_bytes($length, $random = 'random_bytes')
 function login_session_key()
 {
     $key = receipt_configured_key();
-    if ($key === '')
+    if ($key === '') {
         return false;
+    }
     return hash_hmac('sha256', 'pgacc-session-key', $key, true);
 }
 
 // The users.cookie nonce (1 to 2147483647) for four random bytes, else false.
 function login_nonce($bytes)
 {
-    if (strlen($bytes) != 4)
+    if (strlen($bytes) != 4) {
         return false;
+    }
     $value = unpack('N', $bytes);
     return max(1, $value[1] & 0x7FFFFFFF);
 }
@@ -1093,8 +1160,9 @@ function login_start_session($connection, $id, $bytes = null)
 function login_session_token($id, $nonce, $login)
 {
     $sessionKey = login_session_key();
-    if ($sessionKey === false)
+    if ($sessionKey === false) {
         return false;
+    }
     return hash_hmac('sha256', 'pgacc-login|' . $id . '|' . $nonce . '|' . $login, $sessionKey);
 }
 
@@ -1113,8 +1181,9 @@ function login_token_equals($known, $given)
 function csrf_session_token($id, $nonce, $login)
 {
     $key = receipt_configured_key();
-    if ($key === '')
+    if ($key === '') {
         return false;
+    }
     return hash_hmac('sha256', 'pgacc-csrf|' . $id . '|' . $nonce . '|' . $login, hash_hmac('sha256', 'pgacc-csrf-key', $key, true));
 }
 
@@ -1163,8 +1232,9 @@ function login_target_allowed($target)
 // hex2ascii(), whose hexdec() reports them on PHP 7.4+.
 function login_target_decode($hex)
 {
-    if (!is_string($hex) || strspn($hex, '0123456789ABCDEFabcdef ') != strlen($hex))
+    if (!is_string($hex) || strspn($hex, '0123456789ABCDEFabcdef ') != strlen($hex)) {
         return false;
+    }
     $target = hex2ascii($hex);
     return login_target_allowed($target) ? $target : false;
 }
@@ -1182,5 +1252,3 @@ function login_form_target($hex)
 {
     return login_target_decode($hex) === false ? '' : $hex;
 }
-
-?>

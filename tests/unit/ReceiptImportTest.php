@@ -40,13 +40,13 @@ final class ReceiptImportTest extends FunctionsTestCase
         $directory = sys_get_temp_dir() . '/pgacc-receipt-import-' . uniqid('', true);
         mkdir($directory . '/files', 0700, true);
         file_put_contents($directory . '/upload.pdf', $plain);
-        $_FILES = array($field => array(
-            'name' => array(3 => 'statement.pdf'),
-            'tmp_name' => array(3 => $directory . '/upload.pdf'),
-        ));
+        $_FILES = [$field => [
+            'name' => [3 => 'statement.pdf'],
+            'tmp_name' => [3 => $directory . '/upload.pdf'],
+        ]];
         if ($field === 'file0') {
-            $_FILES[$field] = array('name' => 'receipt.pdf', 'tmp_name' => $directory . '/upload.pdf',
-                'size' => strlen($plain));
+            $_FILES[$field] = ['name' => 'receipt.pdf', 'tmp_name' => $directory . '/upload.pdf',
+                'size' => strlen($plain)];
         }
         $hadKey = array_key_exists('key', $GLOBALS);
         $previousKey = $hadKey ? $GLOBALS['key'] : null;
@@ -58,8 +58,8 @@ final class ReceiptImportTest extends FunctionsTestCase
         $log = $directory . '/error.log';
         $previousLog = ini_set('error_log', $log);
         $workingDirectory = getcwd();
-        $diagnostics = array();
-        $stored = array();
+        $diagnostics = [];
+        $stored = [];
         $file = null;
         // pg_connect() returns the default link that the application code uses.
         $connection = pg_connect(pgacc_test_connection_string());
@@ -89,8 +89,8 @@ final class ReceiptImportTest extends FunctionsTestCase
             } else {
                 unset($GLOBALS['key']);
             }
-            $_FILES = array();
-            $_POST = array();
+            $_FILES = [];
+            $_POST = [];
             foreach (glob($directory . '/files/*') as $path) {
                 $stored[basename($path)] = file_get_contents($path);
                 unlink($path);
@@ -103,7 +103,7 @@ final class ReceiptImportTest extends FunctionsTestCase
             rmdir($directory . '/files');
             rmdir($directory);
         }
-        return array($output, $file, $stored, $diagnostics, $logText);
+        return [$output, $file, $stored, $diagnostics, $logText];
     }
 
     private static function import($key, $plain)
@@ -135,10 +135,10 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
         // The voucher row names the one file the import wrote.
         self::assertGreaterThan(0, intval($file));
-        self::assertSame(array("$file.v2.aes"), array_keys($stored));
+        self::assertSame(["$file.v2.aes"], array_keys($stored));
         self::assertSame('PGR2', substr($stored["$file.v2.aes"], 0, 4));
         self::assertSame($plain, receipt_v2_decrypt($key, $file, $stored["$file.v2.aes"]));
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
         self::assertSame('', $log);
     }
 
@@ -160,12 +160,12 @@ final class ReceiptImportTest extends FunctionsTestCase
                     pg_query($GLOBALS['dbconn'], $setup);
                 }
                 page_import2_match_voucher($rights, 3, 'XY/987654321', '2024-09-15');
-            }
+            },
         );
         self::assertSame('Keine Buchung gefunden.<br />', $output);
         self::assertSame('0', $file);
-        self::assertSame(array(), $stored);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $stored);
+        self::assertSame([], $diagnostics);
         self::assertSame('', $log);
     }
 
@@ -184,35 +184,35 @@ final class ReceiptImportTest extends FunctionsTestCase
                           VALUES (9303, 4711, 20, 1, 'Synthetic approved row', timestamp '2024-09-15 00:00:00', 0, 'synthetic-a', 'synthetic-b')");
                 page_import2_match_voucher('2', 3, 'XY/987654321', '2024-09-15');
                 $approvals = pg_fetch_row(pg_query($GLOBALS['dbconn'], 'SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id = 9303'));
-            }
+            },
         );
         self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
-        self::assertSame(array(null, null, 'synthetic-a', 'synthetic-b'), $approvals);
+        self::assertSame([null, null, 'synthetic-a', 'synthetic-b'], $approvals);
     }
 
     public static function refusedImportProvider()
     {
-        return array(
-            'other organization' => array('1', null),
-            'finalized row' => array('2', 'UPDATE vouchers SET receipt_received = true WHERE id = 9301'),
-            'finalized row of another organization' => array(
+        return [
+            'other organization' => ['1', null],
+            'finalized row' => ['2', 'UPDATE vouchers SET receipt_received = true WHERE id = 9301'],
+            'finalized row of another organization' => [
                 'bgf',
                 "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, receipt_received)
                  VALUES (9302, 4711, 20, 1, 'Synthetic other row', timestamp '2024-09-15 00:00:00', 0, true)",
-            ),
-        );
+            ],
+        ];
     }
 
     public function testImportWithoutAConfiguredKeyIsRefused()
     {
         $vector = self::receiptVector('pdf document');
-        foreach (array(null, '', 'CHANGE-ME', 'short-key') as $key) {
+        foreach ([null, '', 'CHANGE-ME', 'short-key'] as $key) {
             list($output, $file, $stored, $diagnostics, $log) = self::import($key, hex2bin($vector['plain']));
 
             self::assertSame('Beleg konnte nicht gespeichert werden.<br />', $output);
             self::assertSame('0', $file);
-            self::assertSame(array(), $stored);
-            self::assertSame(array(), $diagnostics);
+            self::assertSame([], $stored);
+            self::assertSame([], $diagnostics);
             self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
         }
     }
@@ -237,27 +237,27 @@ final class ReceiptImportTest extends FunctionsTestCase
                           VALUES (9304, 4712, 20, 2, 'Synthetic other voucher', timestamp '2024-09-15 00:00:00', 0, 'synthetic-c')");
                 page_new_file($rights);
                 $approvals = pg_fetch_all(pg_query($GLOBALS['dbconn'], 'SELECT id, file, ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id IN (9301, 9304) ORDER BY id'));
-            }
+            },
         );
         self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div>'
             . '<br /><br /><br />', $output);
         self::assertSame('0', $file);
-        self::assertSame(array(), $stored);
-        self::assertSame(array(
-            array('id' => '9301', 'file' => '0', 'ack1' => 'synthetic-a', 'ack2' => 'synthetic-b', 'ack1_old' => null, 'ack2_old' => null),
-            array('id' => '9304', 'file' => '0', 'ack1' => 'synthetic-c', 'ack2' => null, 'ack1_old' => null, 'ack2_old' => null),
-        ), $approvals);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $stored);
+        self::assertSame([
+            ['id' => '9301', 'file' => '0', 'ack1' => 'synthetic-a', 'ack2' => 'synthetic-b', 'ack1_old' => null, 'ack2_old' => null],
+            ['id' => '9304', 'file' => '0', 'ack1' => 'synthetic-c', 'ack2' => null, 'ack1_old' => null, 'ack2_old' => null],
+        ], $approvals);
+        self::assertSame([], $diagnostics);
         self::assertSame('', $log);
     }
 
     public static function refusedUploadProvider()
     {
-        return array(
-            'row of another organization' => array('1', array('parts' => '1', 'bid0' => '9301', 'id' => '4711')),
-            'nonexistent row' => array('2', array('parts' => '1', 'bid0' => '9399', 'id' => '4711')),
-            'row of another voucher' => array('2', array('parts' => '1', 'bid0' => '9301', 'id' => '4712')),
-        );
+        return [
+            'row of another organization' => ['1', ['parts' => '1', 'bid0' => '9301', 'id' => '4711']],
+            'nonexistent row' => ['2', ['parts' => '1', 'bid0' => '9399', 'id' => '4711']],
+            'row of another voucher' => ['2', ['parts' => '1', 'bid0' => '9301', 'id' => '4712']],
+        ];
     }
 
     public function testUploadFailureKeepsTheRowsPreviousReceipt()
@@ -265,7 +265,7 @@ final class ReceiptImportTest extends FunctionsTestCase
         // A row that already has a receipt keeps it when storing the new one
         // fails (no receipt key).
         $vector = self::receiptVector('pdf document');
-        $_POST = array('parts' => '1', 'bid0' => '9301', 'id' => '4711');
+        $_POST = ['parts' => '1', 'bid0' => '9301', 'id' => '4711'];
         list($output, $file, $stored) = self::runWithReceipt(
             null,
             hex2bin($vector['plain']),
@@ -273,34 +273,34 @@ final class ReceiptImportTest extends FunctionsTestCase
             function () {
                 pg_query($GLOBALS['dbconn'], 'UPDATE vouchers SET file = 77 WHERE id = 9301');
                 page_new_file('2');
-            }
+            },
         );
         self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div>'
             . '<br /><br /><br />', $output);
         self::assertSame('77', $file);
-        self::assertSame(array(), $stored);
+        self::assertSame([], $stored);
     }
 
     public function testUploadWithoutAConfiguredKeyIsRefused()
     {
         // The receipt upload on the voucher edit page (new.php page_new_file()).
         $vector = self::receiptVector('pdf document');
-        foreach (array(null, '', 'CHANGE-ME', 'short-key') as $key) {
-            $_POST = array('parts' => '1', 'bid0' => '9301', 'id' => '4711');
+        foreach ([null, '', 'CHANGE-ME', 'short-key'] as $key) {
+            $_POST = ['parts' => '1', 'bid0' => '9301', 'id' => '4711'];
             list($output, $file, $stored, $diagnostics, $log) = self::runWithReceipt(
                 $key,
                 hex2bin($vector['plain']),
                 'file0',
                 function () {
                     page_new_file('2');
-                }
+                },
             );
 
             self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div>'
                 . '<br /><br /><br />', $output);
             self::assertSame('0', $file);
-            self::assertSame(array(), $stored);
-            self::assertSame(array(), $diagnostics);
+            self::assertSame([], $stored);
+            self::assertSame([], $diagnostics);
             self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
         }
     }
@@ -310,19 +310,19 @@ final class ReceiptImportTest extends FunctionsTestCase
     // first), so only a constructed upload reaches it.
     public function testUploadErrorIsReported()
     {
-        $_FILES = array('upload' => array(
-            'name' => array('<i>a&b</i>.pdf'),
-            'type' => array('application/pdf'),
-            'tmp_name' => array(''),
-            'error' => array(UPLOAD_ERR_PARTIAL),
-            'size' => array(100),
-        ));
+        $_FILES = ['upload' => [
+            'name' => ['<i>a&b</i>.pdf'],
+            'type' => ['application/pdf'],
+            'tmp_name' => [''],
+            'error' => [UPLOAD_ERR_PARTIAL],
+            'size' => [100],
+        ]];
         ob_start();
         try {
             page_import2_process('2');
         } finally {
             $output = ob_get_clean();
-            $_FILES = array();
+            $_FILES = [];
         }
         self::assertStringContainsString('Datei 1 (&lt;i&gt;a&amp;b&lt;/i&gt;.pdf):<br />'
             . 'Wurde nicht erfolgreich hochgeladen und konnte daher nicht importiert werden.<br />', $output);

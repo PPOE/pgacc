@@ -25,7 +25,7 @@
 
 $branchesFile = null;
 $failOnBranches = false;
-$arguments = array();
+$arguments = [];
 foreach (array_slice($argv, 1) as $argument) {
     if (strpos($argument, '--branches=') === 0) {
         $branchesFile = substr($argument, strlen('--branches='));
@@ -47,7 +47,7 @@ if ($clover === false) {
     exit(2);
 }
 
-$uncoveredBranches = array();
+$uncoveredBranches = [];
 if ($branchesFile !== null) {
     $branchesText = @file_get_contents($branchesFile);
     if ($branchesText === false) {
@@ -56,11 +56,11 @@ if ($branchesFile !== null) {
     }
     foreach (preg_split('/\R/', $branchesText) as $entry) {
         if (preg_match('/^(.+):(\d+)-(\d+)(?:\s+#\s*(.*))?$/', trim($entry), $match)) {
-            $uncoveredBranches[$match[1]][] = array(
+            $uncoveredBranches[$match[1]][] = [
                 (int) $match[2],
                 (int) $match[3],
                 isset($match[4]) ? $match[4] : '',
-            );
+            ];
         }
     }
 }
@@ -73,10 +73,10 @@ if ($rangesText === false) {
 }
 
 // relative path => [line => hit count] for executable statements
-$report = array();
+$report = [];
 foreach ($clover->xpath('//file') as $file) {
     $name = (string) $file['name'];
-    $lines = array();
+    $lines = [];
     foreach ($file->line as $line) {
         if ((string) $line['type'] === 'stmt') {
             $lines[(int) $line['num']] = (int) $line['count'];
@@ -86,12 +86,12 @@ foreach ($clover->xpath('//file') as $file) {
 }
 
 $root = common_directory(array_keys($report));
-$byRelative = array();
+$byRelative = [];
 foreach ($report as $name => $lines) {
     $byRelative[substr($name, strlen($root))] = $lines;
 }
 
-$wanted = array();
+$wanted = [];
 foreach (preg_split('/\R/', $rangesText) as $number => $entry) {
     $entry = trim(preg_replace('/#.*/', '', $entry));
     if ($entry === '') {
@@ -132,7 +132,7 @@ foreach ($wanted as $path => $lines) {
         continue;
     }
 
-    $uncovered = array();
+    $uncovered = [];
     $fileChecked = 0;
     foreach (array_keys($lines) as $line) {
         if (!isset($byRelative[$path][$line])) {
@@ -153,7 +153,7 @@ foreach ($wanted as $path => $lines) {
             $path,
             count($uncovered),
             $fileChecked,
-            implode(', ', compress($uncovered))
+            implode(', ', compress($uncovered)),
         ));
     } else {
         printf("%s: %d changed executable lines, all covered\n", $path, $fileChecked);
@@ -170,7 +170,7 @@ foreach ($wanted as $path => $lines) {
                         $branch[0],
                         $branch[1],
                         $branch[2],
-                        $line
+                        $line,
                     );
                     if ($failOnBranches) {
                         fwrite(STDERR, $message);
@@ -214,7 +214,7 @@ function common_directory(array $paths)
 function compress(array $lines)
 {
     sort($lines);
-    $ranges = array();
+    $ranges = [];
     $start = $previous = null;
     foreach ($lines as $line) {
         if ($previous !== null && $line === $previous + 1) {

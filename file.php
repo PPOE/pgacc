@@ -14,8 +14,9 @@ function download_file($rights)
     }
     pg_free_result($result);
 
-    if ($file == 0)
+    if ($file == 0) {
         return false;
+    }
 
     $directory = getcwd() . '/files';
     $path = receipt_v2_path($directory, $file);
@@ -39,15 +40,17 @@ function download_file($rights)
         // (see tests/COMPATIBILITY_PLAN.md); anything but a PDF is sent as JPEG.
         // Also sent while <n>.aes is kept and <n>.v2.aes does not decrypt (e.g. a
         // key mismatch before the migration deletes the legacy files).
-        if (file_exists($path))
+        if (file_exists($path)) {
             error_log("pgacc: receipt $file.v2.aes could not be decrypted; sent the legacy $file.aes");
+        }
         $path = receipt_legacy_path($directory, $file);
         $data = receipt_decrypt($vid, '', file_get_contents($path));
         $type = str_starts_with($data, '%PDF') ? 'application/pdf' : 'image/jpeg';
         $length = filesize($path);
     }
-    if ($v2)
+    if ($v2) {
         header('X-Content-Type-Options: nosniff');
+    }
     if ($type == 'application/pdf') {
         header("Content-Type: application/pdf");
         header("Content-Disposition: inline; filename=\"$file.pdf\"");
@@ -57,8 +60,9 @@ function download_file($rights)
         $v2 ? receipt_v2_send($receipt) : print($data);
     } else {
         header("Content-Type: $type");
-        if ($type == 'application/octet-stream')
+        if ($type == 'application/octet-stream') {
             header("Content-Disposition: attachment; filename=\"$file.bin\"");
+        }
         header('Content-Transfer-Encoding: binary');
         header('Content-Length: ' . $length);
         header('Accept-Ranges: bytes');
@@ -67,4 +71,3 @@ function download_file($rights)
 
     return true;
 }
-?>

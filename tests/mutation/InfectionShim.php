@@ -22,7 +22,7 @@
  */
 final class PgaccInfectionShim
 {
-    const CLASS_NAME = 'PgaccFunctionsMutationShim';
+    public const CLASS_NAME = 'PgaccFunctionsMutationShim';
 
     /**
      * Command line entry: wrap <functions.php> into <output dir>/functions.php.
@@ -56,7 +56,7 @@ final class PgaccInfectionShim
         $class = self::CLASS_NAME;
         $result = '';
         $depth = 0;
-        $functions = array();
+        $functions = [];
         $opened = false;
         $closed = false;
         $expectName = false;
@@ -86,7 +86,7 @@ final class PgaccInfectionShim
                     $result .= 'public static function';
                     continue;
                 }
-                if (!in_array($id, array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML), true)) {
+                if (!in_array($id, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML], true)) {
                     throw new RuntimeException('Unsupported top-level code: ' . $text);
                 }
                 if ($id === T_INLINE_HTML && trim($text) !== '') {
@@ -107,14 +107,14 @@ final class PgaccInfectionShim
             } elseif ($text === '}') {
                 $depth--;
             }
-            if (in_array($text, array('__FUNCTION__', '__METHOD__', '__CLASS__', 'func_get_args', 'func_get_arg', 'func_num_args'), true)
+            if (in_array($text, ['__FUNCTION__', '__METHOD__', '__CLASS__', 'func_get_args', 'func_get_arg', 'func_num_args'], true)
                 || $id === T_STATIC) {
                 throw new RuntimeException('Scope-sensitive construct is not supported: ' . $text);
             }
             $result .= $text;
         }
 
-        if (!$opened || $depth !== 0 || $expectName || $inSignature || $functions === array()) {
+        if (!$opened || $depth !== 0 || $expectName || $inSignature || $functions === []) {
             throw new RuntimeException('Could not wrap ' . $source);
         }
         if (!$closed) {

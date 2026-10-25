@@ -45,18 +45,18 @@ final class GetUsersTest extends FunctionsTestCase
 
         self::assertSame(PGSQL_TRANSACTION_INTRANS, $status);
         self::assertCount(32, $rows);
-        self::assertSame(array('id' => '2001', 'name' => 'Synthetic Member 00', 'lo' => '9', 'paid' => '0'), $rows[0]);
-        $organizations = array();
+        self::assertSame(['id' => '2001', 'name' => 'Synthetic Member 00', 'lo' => '9', 'paid' => '0'], $rows[0]);
+        $organizations = [];
         foreach (array_slice($rows, 0, 10) as $row) {
             $organizations[] = $row['lo'];
         }
         // Membership-system codes 37-45 and an unknown code (99).
-        self::assertSame(array('9', '1', '3', '2', '4', '5', '6', '10', '8', '10'), $organizations);
-        self::assertSame(array('id' => '2030', 'name' => 'Synthetic Member 29', 'lo' => '10', 'paid' => '1'), $rows[29]);
+        self::assertSame(['9', '1', '3', '2', '4', '5', '6', '10', '8', '10'], $organizations);
+        self::assertSame(['id' => '2030', 'name' => 'Synthetic Member 29', 'lo' => '10', 'paid' => '1'], $rows[29]);
         // stripslashes() and ISO-8859-15 to UTF-8.
-        self::assertSame(array('id' => '2031', 'name' => "O'Synthetic \xE2\x82\xACuro", 'lo' => '1', 'paid' => '1'), $rows[30]);
+        self::assertSame(['id' => '2031', 'name' => "O'Synthetic \xE2\x82\xACuro", 'lo' => '1', 'paid' => '1'], $rows[30]);
         // The last line before the zero padding, which rtrim() removes.
-        self::assertSame(array('id' => '2032', 'name' => 'Last Synthetic', 'lo' => '2', 'paid' => '0'), $rows[31]);
+        self::assertSame(['id' => '2032', 'name' => 'Last Synthetic', 'lo' => '2', 'paid' => '0'], $rows[31]);
     }
 
     public function testImportsTheStubListOverHttps()
@@ -82,29 +82,29 @@ final class GetUsersTest extends FunctionsTestCase
             MembershipStub::reset();
             $GLOBALS['datakey'] = $datakey;
         }
-        $expected = array(
+        $expected = [
             // Every organization code of the mapping, and an unknown one (99).
-            array('9101', 'Anna Fluss', '9', '1'),
-            array('9102', 'Bernd Fluss', '1', '0'),
-            array('9103', 'Carla Fluss', '3', '1'),
-            array('9104', 'Dieter Fluss', '2', '0'),
-            array('9105', 'Emma Fluss', '4', '1'),
-            array('9106', 'Franz Fluss', '5', '0'),
-            array('9107', 'Gerda Fluss', '6', '1'),
-            array('9108', 'Hannes Fluss', '10', '0'),
-            array('9109', 'Iris Fluss', '8', '1'),
-            array('9110', 'Unbekannt Fluss', '10', '0'),
+            ['9101', 'Anna Fluss', '9', '1'],
+            ['9102', 'Bernd Fluss', '1', '0'],
+            ['9103', 'Carla Fluss', '3', '1'],
+            ['9104', 'Dieter Fluss', '2', '0'],
+            ['9105', 'Emma Fluss', '4', '1'],
+            ['9106', 'Franz Fluss', '5', '0'],
+            ['9107', 'Gerda Fluss', '6', '1'],
+            ['9108', 'Hannes Fluss', '10', '0'],
+            ['9109', 'Iris Fluss', '8', '1'],
+            ['9110', 'Unbekannt Fluss', '10', '0'],
             // ISO-8859-15 umlauts and sharp s, converted to UTF-8.
-            array('9111', "J\xC3\xBCrgen Gr\xC3\xB6\xC3\x9Fe-Wei\xC3\x9F", '2', '1'),
+            ['9111', "J\xC3\xBCrgen Gr\xC3\xB6\xC3\x9Fe-Wei\xC3\x9F", '2', '1'],
             // stripslashes(): \' and \\ in the list become ' and \.
-            array('9112', "D'Arcy Back\\slash", '1', '0'),
-        );
+            ['9112', "D'Arcy Back\\slash", '1', '0'],
+        ];
         // The short line "x<TAB>1" and the empty last line are skipped.
         for ($i = 0; $i < 20; $i++) {
-            $expected[] = array((string) (9120 + $i), sprintf('Synthetic Flow Filler %02d', $i), '2', (string) ($i % 2));
+            $expected[] = [(string) (9120 + $i), sprintf('Synthetic Flow Filler %02d', $i), '2', (string) ($i % 2)];
         }
         foreach ($expected as $index => $row) {
-            $expected[$index] = array_combine(array('id', 'name', 'lo', 'paid'), $row);
+            $expected[$index] = array_combine(['id', 'name', 'lo', 'paid'], $row);
         }
         self::assertSame($expected, $rows);
     }
@@ -120,7 +120,7 @@ final class GetUsersTest extends FunctionsTestCase
         }
         $rows = self::importMembers($datakey, base64_encode(membership_encrypt($datakey, $plain)));
         self::assertCount(39, $rows);
-        self::assertSame(array('id' => '2101', 'name' => 'Synthetic Odd Id', 'lo' => '1', 'paid' => '1'), $rows[0]);
+        self::assertSame(['id' => '2101', 'name' => 'Synthetic Odd Id', 'lo' => '1', 'paid' => '1'], $rows[0]);
     }
 
     private static function importMembers($key, $response)

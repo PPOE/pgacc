@@ -13,9 +13,9 @@ final class CryptoTest extends FunctionsTestCase
     private static function vectors($group)
     {
         $vectors = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/mcrypt/vectors.json'), true);
-        $cases = array();
+        $cases = [];
         foreach ($vectors[$group] as $vector) {
-            $cases[$vector['name']] = array($vector);
+            $cases[$vector['name']] = [$vector];
         }
         return $cases;
     }
@@ -88,7 +88,7 @@ final class CryptoTest extends FunctionsTestCase
         $text = hex2bin($vector['text']);
         self::assertSame(
             $vector['output'],
-            sha1($text) . "\n" . base64_encode(membership_encrypt($vector['datakey'], $text))
+            sha1($text) . "\n" . base64_encode(membership_encrypt($vector['datakey'], $text)),
         );
     }
 
@@ -100,7 +100,7 @@ final class CryptoTest extends FunctionsTestCase
         // getusers.php: base64 ciphertext in, zero padding stripped with rtrim().
         self::assertSame(
             $vector['decrypted'],
-            bin2hex(rtrim(membership_decrypt($vector['datakey'], base64_decode($vector['sData'])), "\0"))
+            bin2hex(rtrim(membership_decrypt($vector['datakey'], base64_decode($vector['sData'])), "\0")),
         );
         $padded = membership_decrypt($vector['datakey'], base64_decode($vector['sData']));
         self::assertSame(0, strlen($padded) % 32);
@@ -117,11 +117,11 @@ final class CryptoTest extends FunctionsTestCase
         self::assertSame(64, strlen(rijndael256_encrypt($key, str_repeat('x', 33), $iv)));
         self::assertSame(
             'x' . str_repeat("\0", 31),
-            rijndael256_decrypt($key, rijndael256_encrypt($key, 'x', $iv), $iv)
+            rijndael256_decrypt($key, rijndael256_encrypt($key, 'x', $iv), $iv),
         );
         self::assertNotSame(
             rijndael256_encrypt($key, 'x', $iv),
-            rijndael256_encrypt($key, 'x', str_repeat('j', 32))
+            rijndael256_encrypt($key, 'x', str_repeat('j', 32)),
         );
     }
 }

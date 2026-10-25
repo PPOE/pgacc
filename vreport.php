@@ -15,10 +15,12 @@ function v_graph($konto, $date_begin, $date_end)
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND vaccount IN ($konto) ";
     }
-    if ($date_begin)
+    if ($date_begin) {
         $cond .= " AND date >= '$date_begin' ";
-    if ($date_end)
+    }
+    if ($date_end) {
         $cond .= " AND date <= '$date_end' ";
+    }
 
     $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount) / 100.0, (SELECT SUM(amount) / 100.0 FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
@@ -39,10 +41,12 @@ function v_report($konto, $date_begin, $date_end)
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND vaccount IN ($konto)";
     }
-    if ($date_begin)
+    if ($date_begin) {
         $cond .= " AND date >= '$date_begin' ";
-    if ($date_end)
+    }
+    if ($date_end) {
         $cond .= " AND date <= '$date_end' ";
+    }
     echo '
 <table><tr><td>
 <h3>Einnahmen</h3>
@@ -122,12 +126,15 @@ function page_vreport($rights)
     $konto = "";
     $date_begin = "";
     $date_end = "";
-    if (isset($_GET["konto"]) && preg_match('/^[ A-Z0-9-,]+$/i', $_GET["konto"]) == 1)
+    if (isset($_GET["konto"]) && preg_match('/^[ A-Z0-9-,]+$/i', $_GET["konto"]) == 1) {
         $konto = $_GET["konto"];
-    if (isset($_GET["date_begin"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_begin"]) == 1)
+    }
+    if (isset($_GET["date_begin"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_begin"]) == 1) {
         $date_begin = $_GET["date_begin"];
-    if (isset($_GET["date_end"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_end"]) == 1)
+    }
+    if (isset($_GET["date_end"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_end"]) == 1) {
         $date_end = $_GET["date_end"];
+    }
     echo "<h1>Bericht Konto $konto</h1><br>";
     block_start();
     v_graph($konto, $date_begin, $date_end);
@@ -135,4 +142,3 @@ function page_vreport($rights)
     block_end();
 
 }
-?>

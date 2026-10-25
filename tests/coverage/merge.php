@@ -38,7 +38,7 @@ $coverageDir = rtrim($argv[1], '/');
 $outputDir = rtrim($argv[2], '/');
 $appRoot = '/app';
 
-$files = array();
+$files = [];
 foreach (glob($appRoot . '/*.php') as $file) {
     if (basename($file) !== 'constants.php') {
         $files[] = $file;
@@ -74,7 +74,7 @@ if (count($requestFiles) === 0) {
 }
 
 foreach ($requestFiles as $index => $requestFile) {
-    $payload = unserialize(file_get_contents($requestFile), array('allowed_classes' => false));
+    $payload = unserialize(file_get_contents($requestFile), ['allowed_classes' => false]);
     if (!is_array($payload) || !isset($payload['coverage'], $payload['request'])) {
         fwrite(STDERR, "Malformed request coverage: $requestFile\n");
         exit(1);
@@ -100,7 +100,7 @@ remove_tree($outputDir . '/html');
 if ($branches) {
     // One "file:start-end # function" line per branch (basic block) that no
     // test reached; consumed by check-changed-lines.php --branches.
-    $uncoveredBranches = array();
+    $uncoveredBranches = [];
     foreach ($coverage->getData()->functionCoverage() as $file => $functions) {
         foreach ($functions as $function => $functionData) {
             foreach ($functionData['branches'] as $branch) {
@@ -110,7 +110,7 @@ if ($branches) {
                         substr($file, strlen($appRoot) + 1),
                         $branch['line_start'],
                         $branch['line_end'],
-                        $function
+                        $function,
                     );
                 }
             }
@@ -121,7 +121,7 @@ if ($branches) {
     unlink($outputDir . '/uncovered-branches.txt');
 }
 
-$rows = array();
+$rows = [];
 foreach ($report as $node) {
     if ($node instanceof File) {
         $rows[$node->name()] = $node;
@@ -129,10 +129,10 @@ foreach ($report as $node) {
 }
 ksort($rows);
 
-$lines = array();
+$lines = [];
 $lines[] = sprintf(
     'Merged coverage of the application (PHPUnit + %d HTTP requests)',
-    count($requestFiles)
+    count($requestFiles),
 );
 $lines[] = rtrim(sprintf('%-18s %17s %17s', 'File', 'Lines', $branches ? 'Branches' : ''));
 foreach ($rows as $node) {
@@ -140,14 +140,14 @@ foreach ($rows as $node) {
         '%-18s %17s %17s',
         $node->name(),
         ratio($node->numberOfExecutedLines(), $node->numberOfExecutableLines()),
-        $branches ? ratio($node->numberOfExecutedBranches(), $node->numberOfExecutableBranches()) : ''
+        $branches ? ratio($node->numberOfExecutedBranches(), $node->numberOfExecutableBranches()) : '',
     ));
 }
 $lines[] = rtrim(sprintf(
     '%-18s %17s %17s',
     'Total',
     ratio($report->numberOfExecutedLines(), $report->numberOfExecutableLines()),
-    $branches ? ratio($report->numberOfExecutedBranches(), $report->numberOfExecutableBranches()) : ''
+    $branches ? ratio($report->numberOfExecutedBranches(), $report->numberOfExecutableBranches()) : '',
 ));
 
 $summary = implode(PHP_EOL, $lines) . PHP_EOL;
@@ -158,7 +158,7 @@ function without_paths(array $functionCoverage)
 {
     foreach ($functionCoverage as $file => $functions) {
         foreach ($functions as $name => $function) {
-            $functionCoverage[$file][$name]['paths'] = array();
+            $functionCoverage[$file][$name]['paths'] = [];
         }
     }
 

@@ -19,7 +19,7 @@ function page_import2_form()
 function page_import2_process($rights)
 {
     $mimetypes_whitelist = [
-        'application/pdf'
+        'application/pdf',
     ];
 
     block_start();
@@ -41,7 +41,7 @@ function page_import2_process($rights)
             continue;
         }
 
-        if (($handle = fopen($_FILES['upload']['tmp_name'][$i], "r")) !== FALSE) {
+        if (($handle = fopen($_FILES['upload']['tmp_name'][$i], "r")) !== false) {
             $contents = fread($handle, filesize($_FILES['upload']['tmp_name'][$i]));
             fclose($handle);
 

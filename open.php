@@ -14,9 +14,9 @@ function page_open($rights)
     }
     pg_free_result($result);
     global $make_csv;
-    if (!$make_csv)
+    if (!$make_csv) {
         echo '</table>';
+    }
     block_end();
     csv_download_link();
 }
-?>

@@ -83,7 +83,7 @@ function token_equivalence_compare($old, $new, $allowCrlfToLf = false, &$crlfToL
     $crlfToLf = false;
     $oldTokens = token_equivalence_normalize($old);
     $newTokens = token_equivalence_normalize($new);
-    foreach (array('old' => $oldTokens, 'new' => $newTokens) as $side => $tokens) {
+    foreach (['old' => $oldTokens, 'new' => $newTokens] as $side => $tokens) {
         foreach ($tokens as $token) {
             if ($token[0] === 'T_LINE') {
                 return "the $side file uses __LINE__ (line $token[2]): line numbers are output, not provable";
@@ -113,7 +113,7 @@ function token_equivalence_compare($old, $new, $allowCrlfToLf = false, &$crlfToL
             $a[2],
             token_equivalence_describe($a),
             $b[2],
-            token_equivalence_describe($b)
+            token_equivalence_describe($b),
         );
     }
 
@@ -123,11 +123,11 @@ function token_equivalence_compare($old, $new, $allowCrlfToLf = false, &$crlfToL
 // The significant tokens of $source: list of array(name, compared text, line).
 function token_equivalence_normalize($source)
 {
-    $tokens = array();
+    $tokens = [];
     $line = 1;
     foreach (token_get_all($source) as $token) {
         if (!is_array($token)) {
-            $tokens[] = array('char', $token, $line);
+            $tokens[] = ['char', $token, $line];
             continue;
         }
         list($id, $text, $line) = $token;
@@ -144,7 +144,7 @@ function token_equivalence_normalize($source)
                 $text = preg_replace('/^[ \t]+|[ \t]+$/m', '', str_replace("\r\n", "\n", $text));
                 break;
         }
-        $tokens[] = array(token_name($id), $text, $line);
+        $tokens[] = [token_name($id), $text, $line];
     }
 
     return $tokens;
@@ -162,10 +162,10 @@ function token_equivalence_verdict($old, $new, $allowCrlfToLf)
 {
     $difference = token_equivalence_compare($old, $new, $allowCrlfToLf, $crlfToLf);
     if ($difference !== null) {
-        return array(false, "token change: $difference");
+        return [false, "token change: $difference"];
     }
 
-    return array(true, $crlfToLf ? 'equivalent (CRLF -> LF in output tokens)' : 'equivalent');
+    return [true, $crlfToLf ? 'equivalent (CRLF -> LF in output tokens)' : 'equivalent'];
 }
 
 function token_equivalence_main($arguments)
@@ -178,7 +178,7 @@ function token_equivalence_main($arguments)
         PHP_VERSION_ID,
         ini_get('short_open_tag'),
         $expected,
-        function_exists('token_get_all')
+        function_exists('token_get_all'),
     );
     if ($problem !== null) {
         fwrite(STDERR, "token-equivalence.php: refusing to run: $problem\n");

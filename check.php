@@ -13,8 +13,9 @@ if ($dbconn === false) {
 }
 
 $kto = 0;
-if (preg_match('/^[A-Z0-9 ]+$/i', $_GET['kto']) == 1)
+if (preg_match('/^[A-Z0-9 ]+$/i', $_GET['kto']) == 1) {
     $kto = $_GET['kto'];
+}
 $max = intval($_GET['max']);
 
 $like = '%/00000%';

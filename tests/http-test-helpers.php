@@ -27,7 +27,7 @@ set_error_handler('test_client_error_handler');
 // sent with $form as multipart/form-data (POST only).
 // POST requests of a session carry its form token, as the forms of the pages
 // do, unless $form sets csrf_token itself (null: no token).
-function http_request($path, $method = 'GET', $form = array(), $cookies = array(), $baseUrl = null, $files = array())
+function http_request($path, $method = 'GET', $form = [], $cookies = [], $baseUrl = null, $files = [])
 {
     if ($method === 'POST' && isset($cookies['pp_pgacc_login']) && !array_key_exists('csrf_token', $form)) {
         $form['csrf_token'] = session_csrf_token($cookies, $baseUrl);
@@ -40,15 +40,15 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     }
 
     $requestId = next_diagnostics_request_id();
-    $headers = array(
+    $headers = [
         'X-Forwarded-Proto: https',
         'Host: pgacc.test',
         'Connection: close',
         'X-Pgacc-Test-Request: ' . $requestId,
-    );
+    ];
 
     if (count($cookies) > 0) {
-        $cookieParts = array();
+        $cookieParts = [];
         foreach ($cookies as $name => $value) {
             $cookieParts[] = $name . '=' . $value;
         }
@@ -77,22 +77,22 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
         $headers[] = 'Content-Length: ' . strlen($content);
     }
 
-    $context = stream_context_create(array(
-        'http' => array(
+    $context = stream_context_create([
+        'http' => [
             'method' => $method,
             'header' => implode("\r\n", $headers),
             'content' => $content,
             'ignore_errors' => true,
             'follow_location' => 0,
             'timeout' => 10,
-        ),
-    ));
+        ],
+    ]);
 
     $url = rtrim($baseUrl, '/') . $path;
     $body = @file_get_contents($url, false, $context);
     $responseHeaders = http_get_last_response_headers();
     if (!is_array($responseHeaders)) {
-        $responseHeaders = array();
+        $responseHeaders = [];
     }
 
     if ($body === false || count($responseHeaders) === 0) {
@@ -103,11 +103,11 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
         fail_test("could not parse status for $method $path");
     }
 
-    $response = array(
+    $response = [
         'status' => intval($matches[1]),
         'headers' => $responseHeaders,
         'body' => $body,
-    );
+    ];
     collect_response_diagnostics($requestId, "$method $path", $response);
     return $response;
 }
@@ -117,11 +117,11 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
 // without a valid session.
 function session_csrf_token($cookies, $baseUrl = null)
 {
-    static $tokens = array();
+    static $tokens = [];
     $cacheKey = strval($baseUrl) . '|' . (isset($cookies['pp_pgacc_id']) ? $cookies['pp_pgacc_id'] : '')
         . '|' . (isset($cookies['pp_pgacc_login']) ? $cookies['pp_pgacc_login'] : '');
     if (!array_key_exists($cacheKey, $tokens)) {
-        $page = http_request('/index.php?action=accounts', 'GET', array(), $cookies, $baseUrl);
+        $page = http_request('/index.php?action=accounts', 'GET', [], $cookies, $baseUrl);
         $tokens[$cacheKey] = preg_match('/name="csrf_token" value="([0-9a-f]{64})"/', $page['body'], $matches) === 1
             ? $matches[1] : null;
     }
@@ -141,7 +141,7 @@ function response_header($response, $name)
 
 function response_cookies($response)
 {
-    $cookies = array();
+    $cookies = [];
     foreach ($response['headers'] as $header) {
         if (stripos($header, 'Set-Cookie:') !== 0) {
             continue;
@@ -192,22 +192,22 @@ function assert_no_fatal_error($body, $label)
 
 function login_request($name, $password, $target = null, $baseUrl = null)
 {
-    $form = array(
+    $form = [
         'submit' => 'Anmeldung',
         'name' => $name,
         'pass' => $password,
-    );
+    ];
     if ($target !== null) {
         $form['target'] = strtoupper(bin2hex($target));
     }
-    return http_request('/index.php?action=login', 'POST', $form, array(), $baseUrl);
+    return http_request('/index.php?action=login', 'POST', $form, [], $baseUrl);
 }
 
 // Returns a list of problems (empty when the response is a valid login
 // redirect), so callers can assert it or record it as a known failure.
 function login_response_problems($response, $expectedLocation, $expectedUserId = null)
 {
-    $problems = array();
+    $problems = [];
     if ($response['status'] !== 302) {
         $problems[] = "returned HTTP {$response['status']}, expected 302";
     }
@@ -233,7 +233,7 @@ function login_response_problems($response, $expectedLocation, $expectedUserId =
 
 function logout_response_problems($response)
 {
-    $problems = array();
+    $problems = [];
     if ($response['status'] !== 302) {
         $problems[] = "returned HTTP {$response['status']}, expected 302";
     }
@@ -242,9 +242,9 @@ function logout_response_problems($response)
         $problems[] = 'Location was ' . var_export($location, true) . ", expected 'index.php'";
     }
     $cookies = response_cookies($response);
-    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
+    foreach (['pp_pgacc_login', 'pp_pgacc_id'] as $cookie) {
         // PHP sends a cleared cookie as "deleted" with an expiry in the past.
-        if (!isset($cookies[$cookie]) || !in_array($cookies[$cookie], array('', 'deleted'), true)) {
+        if (!isset($cookies[$cookie]) || !in_array($cookies[$cookie], ['', 'deleted'], true)) {
             $problems[] = "did not clear the $cookie cookie";
         }
     }
@@ -256,7 +256,7 @@ function logout_response_problems($response)
 // displayed diagnostic before or after the header).
 function redirect_problems($response, $expectedLocation)
 {
-    $problems = array();
+    $problems = [];
     if ($response['status'] !== 302) {
         $problems[] = "returned HTTP {$response['status']}, expected 302";
     }
@@ -291,12 +291,12 @@ function start_unbuffered_server($port)
         . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__));
     $server = proc_open(
         $command,
-        array(
-            0 => array('file', '/dev/null', 'r'),
-            1 => array('file', $log, 'a'),
-            2 => array('file', $log, 'a'),
-        ),
-        $pipes
+        [
+            0 => ['file', '/dev/null', 'r'],
+            1 => ['file', $log, 'a'],
+            2 => ['file', $log, 'a'],
+        ],
+        $pipes,
     );
     if (!is_resource($server)) {
         fail_test('could not start the output_buffering=0 server');

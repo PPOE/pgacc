@@ -34,4 +34,3 @@ function page_login()
     block_end();
 
 }
-?>

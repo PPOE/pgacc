@@ -52,4 +52,3 @@ function page_recover($rights)
         echo '<br /><br /><br />';
     }
 }
-?>

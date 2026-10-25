@@ -11,7 +11,7 @@
  * response body are also detected as a cross-check.
  */
 
-$GLOBALS['pgacc_test_diagnostics'] = array();
+$GLOBALS['pgacc_test_diagnostics'] = [];
 $GLOBALS['pgacc_test_request_counter'] = 0;
 $GLOBALS['pgacc_test_known_failure'] = null;
 $GLOBALS['pgacc_test_diagnostics_reported'] = false;
@@ -68,7 +68,7 @@ function known_diagnostic_reason($record)
 // the copy the mutation runner serves (PGACC_TEST_APP_ROOT).
 function displayed_relative_file($file)
 {
-    $roots = array('/app');
+    $roots = ['/app'];
     if (getenv('PGACC_TEST_APP_ROOT')) {
         $roots[] = rtrim(getenv('PGACC_TEST_APP_ROOT'), '/');
     }
@@ -87,15 +87,15 @@ function displayed_body_diagnostics($body)
     $pattern = '/(?:<b>)?(Fatal error|Parse error|Recoverable fatal error|Warning|Notice'
         . '|Deprecated|Strict Standards)(?:<\/b>)?:\s+(.*?) in (?:<b>)?(\S+?)(?:<\/b>)?'
         . ' on line (?:<b>)?(\d+)/';
-    $found = array();
+    $found = [];
     if (preg_match_all($pattern, $body, $matches, PREG_SET_ORDER)) {
         foreach ($matches as $match) {
-            $found[] = array(
+            $found[] = [
                 'label' => $match[1],
                 'message' => strip_tags($match[2]),
                 'file' => displayed_relative_file($match[3]),
                 'line' => intval($match[4]),
-            );
+            ];
         }
     }
     return $found;
@@ -105,7 +105,7 @@ function collect_response_diagnostics($requestId, $label, $response)
 {
     $path = diagnostics_directory() . '/' . $requestId . '.jsonl';
     $completed = false;
-    $records = array();
+    $records = [];
     if (is_file($path)) {
         foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
             $record = json_decode($line, true);
@@ -134,7 +134,7 @@ function collect_response_diagnostics($requestId, $label, $response)
             }
         }
         if (!$logged) {
-            $records[] = array(
+            $records[] = [
                 'uri' => '',
                 'php' => server_php_version(),
                 'type' => 'DISPLAYED ' . $displayed['label'],
@@ -142,7 +142,7 @@ function collect_response_diagnostics($requestId, $label, $response)
                 'file' => $displayed['file'],
                 'line' => $displayed['line'],
                 'reported' => true,
-            );
+            ];
         }
     }
 
@@ -179,18 +179,18 @@ function unexpected_diagnostics_count()
 function print_diagnostics_summary()
 {
     $GLOBALS['pgacc_test_diagnostics_reported'] = true;
-    $groups = array();
+    $groups = [];
     foreach ($GLOBALS['pgacc_test_diagnostics'] as $record) {
-        $key = implode('|', array(
+        $key = implode('|', [
             diagnostic_status($record),
             $record['type'],
             $record['file'],
             $record['line'],
             $record['message'],
             $record['reported'] ? 'reported' : 'hidden',
-        ));
+        ]);
         if (!isset($groups[$key])) {
-            $groups[$key] = array('record' => $record, 'labels' => array());
+            $groups[$key] = ['record' => $record, 'labels' => []];
         }
         $groups[$key]['labels'][$record['label']] = true;
     }
@@ -216,7 +216,7 @@ function print_diagnostics_summary()
             $record['reported'] ? '' : ' (hidden by error_reporting/@)',
             $record['message'],
             implode(', ', array_slice($labels, 0, 3)),
-            $more
+            $more,
         ));
     }
 }

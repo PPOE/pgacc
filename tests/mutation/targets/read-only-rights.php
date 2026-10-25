@@ -16,98 +16,98 @@
 $check = "if (\$rights === false) {\n        echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Keine Zugriffsrechte.";
 $scoped = '$rights = write_rights($rights);';
 $unscoped = '$rights = write_rights($rights) === false ? false : $rights;';
-$mutations = array();
-$regions = array(
-    'ack' => array('edit.php', 'function page_edit_ack($rights)', 'function page_edit_save($rights)'),
-    'save' => array('edit.php', 'function page_edit_save($rights)', 'function page_edit_buchung('),
-    'new-save' => array('new.php', 'function page_new_save($rights)', 'function page_new_file($rights)'),
-    'upload' => array('new.php', 'function page_new_file($rights)', 'function page_edit_form('),
-);
+$mutations = [];
+$regions = [
+    'ack' => ['edit.php', 'function page_edit_ack($rights)', 'function page_edit_save($rights)'],
+    'save' => ['edit.php', 'function page_edit_save($rights)', 'function page_edit_buchung('],
+    'new-save' => ['new.php', 'function page_new_save($rights)', 'function page_new_file($rights)'],
+    'upload' => ['new.php', 'function page_new_file($rights)', 'function page_edit_form('],
+];
 foreach ($regions as $name => $region) {
-    $mutations[] = array(
+    $mutations[] = [
         'id' => "$name-read-only-allowed",
         'file' => $region[0],
-        'region' => array('start' => $region[1], 'end' => $region[2]),
+        'region' => ['start' => $region[1], 'end' => $region[2]],
         'search' => $check,
         'replace' => str_replace('if ($rights === false)', 'if (false)', $check),
         'rationale' => 'Fail-open: read-only bgf changes data.',
-    );
+    ];
     if ($name === 'new-save') {
-        $mutations[count($mutations) - 1]['equivalent'] = array('reason' => 'Rbgf alone has no organization '
-            . 'right, so the organization check of the save refuses every voucher of it as well.');
+        $mutations[count($mutations) - 1]['equivalent'] = ['reason' => 'Rbgf alone has no organization '
+            . 'right, so the organization check of the save refuses every voucher of it as well.'];
     }
 }
-foreach (array('ack', 'new-save') as $name) {
-    $mutations[] = array(
+foreach (['ack', 'new-save'] as $name) {
+    $mutations[] = [
         'id' => "$name-read-only-rights-kept",
         'file' => $regions[$name][0],
-        'region' => array('start' => $regions[$name][1], 'end' => $regions[$name][2]),
+        'region' => ['start' => $regions[$name][1], 'end' => $regions[$name][2]],
         'search' => $scoped,
         'replace' => $unscoped,
         'rationale' => 'Wrong organization: with "Rbgf,2" the write uses the read rights (all '
             . 'organizations, or the default organization 10) instead of organization 2.',
-    );
+    ];
 }
-$mutations[] = array(
+$mutations[] = [
     'id' => 'accounts-read-only-allowed',
     'file' => 'accounts.php',
     'search' => 'if ($rights === false || $id != $ownId',
     'replace' => 'if ($id != $ownId',
     'rationale' => 'Fail-open: read-only bgf changes its password.',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'import2-read-only-allowed',
     'file' => 'index.php',
-    'region' => array('start' => 'else if ($page == "import2")', 'end' => 'else if ($page == "statistics")'),
+    'region' => ['start' => 'elseif ($page == "import2")', 'end' => 'elseif ($page == "statistics")'],
     'search' => 'if (write_rights($rights) === false)',
     'replace' => 'if (false)',
     'rationale' => 'Fail-open: read-only bgf opens the receipt import.',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'write-rights-keeps-read-only',
     'file' => 'functions.php',
     'search' => "        if (\$right !== 'Rbgf' && \$right !== '')",
     'replace' => "        if (\$right !== '')",
     'rationale' => 'Rbgf does not count as a write right.',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'write-rights-ignores-read-only',
     'file' => 'functions.php',
-    'search' => "    if (!in_array('Rbgf', \$tokens, true))\n        return \$rights;",
-    'replace' => "    if (true)\n        return \$rights;",
+    'search' => "    if (!in_array('Rbgf', \$tokens, true)) {",
+    'replace' => "    if (true) {",
     'rationale' => 'Fail-open: Rbgf counts as a write right.',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'write-rights-empty-not-refused',
     'file' => 'functions.php',
-    'search' => "    if (count(\$rights_w) == 0)\n        return false;",
-    'replace' => "    if (count(\$rights_w) == 0)\n        return '';",
+    'search' => "    if (count(\$rights_w) == 0) {\n        return false;\n    }",
+    'replace' => "    if (count(\$rights_w) == 0) {\n        return '';\n    }",
     'rationale' => 'Fail-open: without other rights read-only bgf would write as a user without '
         . 'rights (voucher creation in organization 10).',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'menu-write-links-for-read-only',
     'file' => 'functions.php',
     'search' => "        if (write_rights(\$rights) !== false) {",
     'replace' => "        if (true) {",
     'rationale' => 'The menu offers no write pages to read-only bgf.',
-);
-$mutations[] = array(
+];
+$mutations[] = [
     'id' => 'form-buttons-for-read-only',
     'file' => 'new.php',
     'search' => "if (write_rights(\$rights) !== false && (has_right(\$rights, 'bgf')",
     'replace' => "if (true && (has_right(\$rights, 'bgf')",
     'rationale' => 'The voucher form offers no save, approval or reset buttons to read-only bgf.',
-);
+];
 
-return array(
+return [
     'description' => 'Read-only bgf (Rbgf): refused writes and hidden write controls '
         . '(write-workflow and PHPUnit tests)',
     'file' => 'edit.php',
-    'tests' => array(
-        array('type' => 'phpunit', 'filter' => 'testWriteRights|testAccHeaderOffersNoWritePagesToReadOnlyRights'),
-        array('type' => 'http', 'script' => 'tests/write-workflows.php'),
-    ),
+    'tests' => [
+        ['type' => 'phpunit', 'filter' => 'testWriteRights|testAccHeaderOffersNoWritePagesToReadOnlyRights'],
+        ['type' => 'http', 'script' => 'tests/write-workflows.php'],
+    ],
     'timeout' => 240,
     'mutations' => $mutations,
-);
+];

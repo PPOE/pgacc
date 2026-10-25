@@ -23,7 +23,7 @@ define('DONATIONS_CAPTCHA_INTRO', 'musst du ein Rätsel lösen');
 define(
     'DONATIONS_EMPTY_TABLE',
     "\n<table id=\"donations\" style=\"min-width: 50%\" border=\"1\">\n"
-    . "<tr><td><b>Name</b></td><td><b>Spendensumme</b></td></tr>\n</table>"
+    . "<tr><td><b>Name</b></td><td><b>Spendensumme</b></td></tr>\n</table>",
 );
 
 function donations_page($year, $form = null)
@@ -60,7 +60,7 @@ function donations_captcha($body, $year, $label)
     if ($hidden !== $a + $b - 37) {
         fail_test("$label: hidden captcha $hidden is not $a + $b - 37");
     }
-    return array($a, $b, $hidden);
+    return [$a, $b, $hidden];
 }
 
 function assert_donations_heading($body, $year, $label)
@@ -75,13 +75,13 @@ function assert_donations_heading($body, $year, $label)
 
 function assert_no_donor_data($body, $label)
 {
-    $names = array('Synthetic Donor', 'Synthetic Future Donor', 'Synthetic Supplier', 'Synthetic Draft');
+    $names = ['Synthetic Donor', 'Synthetic Future Donor', 'Synthetic Supplier', 'Synthetic Draft'];
     foreach ($names as $name) {
         assert_not_contains($body, $name, "$label donor name");
         assert_not_contains(
             $body,
             base64_encode(htmlentities($name, ENT_COMPAT, 'UTF-8')),
-            "$label encoded donor name"
+            "$label encoded donor name",
         );
     }
     assert_not_contains($body, '<td id="s0">', "$label donor row");
@@ -116,31 +116,31 @@ function assert_list_page($body, $year, $label)
 $body = donations_page(2024);
 list($a, $b, $hidden) = assert_captcha_page($body, 2024, 'donations 2024 captcha');
 
-$wrong = donations_page(2024, array(
+$wrong = donations_page(2024, [
     'captcha_input' => strval($a + $b + 1),
     'captcha' => strval($hidden),
     'submit' => 'Bestätigen',
-));
+]);
 assert_captcha_page($wrong, 2024, 'donations 2024 wrong answer');
 
-$missing = donations_page(2024, array('captcha' => strval($hidden), 'submit' => 'Bestätigen'));
+$missing = donations_page(2024, ['captcha' => strval($hidden), 'submit' => 'Bestätigen']);
 assert_captcha_page($missing, 2024, 'donations 2024 missing answer');
 
-$list = donations_page(2024, array(
+$list = donations_page(2024, [
     'captcha_input' => strval($a + $b),
     'captcha' => strval($hidden),
     'submit' => 'Bestätigen',
-));
+]);
 assert_list_page($list, 2024, 'donations 2024 list');
 
 // 2025: only a donation below the threshold.
 $body = donations_page(2025);
 list($a, $b, $hidden) = assert_captcha_page($body, 2025, 'donations 2025 captcha');
-$list = donations_page(2025, array(
+$list = donations_page(2025, [
     'captcha_input' => strval($a + $b),
     'captcha' => strval($hidden),
     'submit' => 'Bestätigen',
-));
+]);
 assert_list_page($list, 2025, 'donations 2025 list');
 
 // Before 2012: the 2013 page, without a captcha form and without a list.
@@ -156,11 +156,11 @@ $kdonations = http_request('/index.php?action=kdonations&year=2024');
 assert_status($kdonations, 200, 'kdonations GET');
 assert_contains($kdonations['body'], '<h1>Sachspendenliste der Piratenpartei Österreichs</h1>', 'kdonations GET');
 assert_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, 'kdonations GET');
-$kdonations = http_request('/index.php?action=kdonations&year=2024', 'POST', array(
+$kdonations = http_request('/index.php?action=kdonations&year=2024', 'POST', [
     'captcha_input' => '37',
     'captcha' => '0',
     'submit' => 'Bestätigen',
-));
+]);
 assert_status($kdonations, 200, 'kdonations list');
 assert_no_fatal_error($kdonations['body'], 'kdonations list');
 assert_not_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, 'kdonations list');
@@ -170,13 +170,13 @@ assert_contains($kdonations['body'], DONATIONS_NOTICE . '</table>', 'kdonations 
 // Logged-in users see both lists on a GET without the captcha; a forged
 // session cookie (valid id, wrong token) still gets the captcha.
 $admin = login_user('synthetic-admin', 'correct-password');
-$forged = array('pp_pgacc_id' => $admin['pp_pgacc_id'], 'pp_pgacc_login' => str_repeat('0', 64));
+$forged = ['pp_pgacc_id' => $admin['pp_pgacc_id'], 'pp_pgacc_login' => str_repeat('0', 64)];
 $kheader = '<table><tr><td><b><a href="index.php?action=kdonations&amp;sort=datea">Datum</a></b>';
-foreach (array('logged-in' => $admin, 'forged cookie' => $forged) as $who => $cookies) {
-    $donations = http_request('/index.php?action=donations&year=2024', 'GET', array(), $cookies);
+foreach (['logged-in' => $admin, 'forged cookie' => $forged] as $who => $cookies) {
+    $donations = http_request('/index.php?action=donations&year=2024', 'GET', [], $cookies);
     assert_status($donations, 200, "donations 2024 $who");
     assert_no_fatal_error($donations['body'], "donations 2024 $who");
-    $kdonations = http_request('/index.php?action=kdonations&year=2024', 'GET', array(), $cookies);
+    $kdonations = http_request('/index.php?action=kdonations&year=2024', 'GET', [], $cookies);
     assert_status($kdonations, 200, "kdonations $who");
     assert_no_fatal_error($kdonations['body'], "kdonations $who");
     if ($who === 'logged-in') {
@@ -193,12 +193,12 @@ foreach (array('logged-in' => $admin, 'forged cookie' => $forged) as $who => $co
 
 // Years after 9999 (also beyond the integer range, which intval() saturates)
 // are handled like those before 2012: the 2013 page, no invalid SQL.
-foreach (array('10000', '99999999999999999999') as $year) {
+foreach (['10000', '99999999999999999999'] as $year) {
     $late = donations_page($year);
     assert_donations_heading($late, 2013, "donations $year");
     assert_not_contains($late, DONATIONS_CAPTCHA_INTRO, "donations $year");
     assert_no_donor_data($late, "donations $year");
-    $lateList = http_request('/index.php?action=donations&year=' . $year, 'GET', array(), $admin);
+    $lateList = http_request('/index.php?action=donations&year=' . $year, 'GET', [], $admin);
     assert_status($lateList, 200, "donations $year logged-in");
     assert_not_contains($lateList['body'], 'Abfrage fehlgeschlagen', "donations $year logged-in");
     assert_donations_heading($lateList['body'], 2013, "donations $year logged-in");

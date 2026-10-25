@@ -67,76 +67,76 @@ $base = "<?php\n\$a = array(1, 'k' => array(2, 3));\nlist(\$x, \$y) = f(\$a);\n?
 check('identical sources are equivalent', equivalent($base, $base));
 check('array() vs [] is equivalent', equivalent(
     "<?php\n\$a = array(1, 'k' => array(2, 3), );\nf(array());\n",
-    "<?php\n\$a = [1, 'k' => [2, 3]];\nf([]);\n"
+    "<?php\n\$a = [1, 'k' => [2, 3]];\nf([]);\n",
 ));
 check('list() vs [] destructuring is equivalent', equivalent(
     "<?php\nlist(\$a, list(, \$b)) = f();\nforeach (\$x as list('k' => \$c)) {}\n",
-    "<?php\n[\$a, [, \$b]] = f();\nforeach (\$x as ['k' => \$c]) {}\n"
+    "<?php\n[\$a, [, \$b]] = f();\nforeach (\$x as ['k' => \$c]) {}\n",
 ));
 check('re-indentation, line breaks and ordinary comments are equivalent', equivalent(
     "<?php\nif (\$a) { // why\n  f(array(1,\n 2)); /* note */ g();\n}\n",
-    "<?php\nif (\$a) {\n    # other words\n    f([1, 2]);\n    g();\n}\n"
+    "<?php\nif (\$a) {\n    # other words\n    f([1, 2]);\n    g();\n}\n",
 ));
 
 // --------------------------------------------------- non-equivalent changes
 check('a changed string is not equivalent', !equivalent(
     "<?php\necho 'a  b';\n",
-    "<?php\necho 'a b';\n"
+    "<?php\necho 'a b';\n",
 ));
 check('a string quote change is not equivalent (kind and raw value stay)', !equivalent(
     "<?php\necho 'ab';\n",
-    "<?php\necho \"ab\";\n"
+    "<?php\necho \"ab\";\n",
 ));
 check('a changed number spelling is not equivalent', !equivalent("<?php\n\$a = 10;\n", "<?php\n\$a = 0xA;\n"));
 check('changed inline HTML is not equivalent', !equivalent(
     "<?php \$a = 1; ?>\n<p>\n  html\n</p>\n",
-    "<?php \$a = 1; ?>\n<p>\n    html\n</p>\n"
+    "<?php \$a = 1; ?>\n<p>\n    html\n</p>\n",
 ));
 check('a newline swallowed by ?> or not is not equivalent', !equivalent(
     "<?php \$a = 1; ?>\n<p></p>",
-    "<?php \$a = 1; ?>\n\n<p></p>"
+    "<?php \$a = 1; ?>\n\n<p></p>",
 ));
 check('a changed operator is not equivalent', !equivalent("<?php\n\$a = \$b == \$c;\n", "<?php\n\$a = \$b === \$c;\n"));
 check('a reordered statement is not equivalent', !equivalent(
     "<?php\nf();\ng();\n",
-    "<?php\ng();\nf();\n"
+    "<?php\ng();\nf();\n",
 ));
 check('a changed heredoc body is not equivalent', !equivalent(
     "<?php\necho <<<EOT\n  a {\$b}  c\n  EOT;\n",
-    "<?php\necho <<<EOT\n  a {\$b} c\n  EOT;\n"
+    "<?php\necho <<<EOT\n  a {\$b} c\n  EOT;\n",
 ));
 check('a changed heredoc indentation is not equivalent', !equivalent(
     "<?php\necho <<<EOT\n  a\n  EOT;\n",
-    "<?php\necho <<<EOT\n    a\n    EOT;\n"
+    "<?php\necho <<<EOT\n    a\n    EOT;\n",
 ));
 check('a changed interpolation spelling is not equivalent', !equivalent(
     "<?php\necho \"a \$b c\";\n",
-    "<?php\necho \"a {\$b} c\";\n"
+    "<?php\necho \"a {\$b} c\";\n",
 ));
 check('a changed doc comment is not equivalent', !equivalent(
     "<?php\n/** @var int */\nfunction f() {}\n",
-    "<?php\n/**  @var int */\nfunction f() {}\n"
+    "<?php\n/**  @var int */\nfunction f() {}\n",
 ));
 check('a removed doc comment is not equivalent', !equivalent(
     "<?php\n/** doc */\nfunction f() {}\n",
-    "<?php\nfunction f() {}\n"
+    "<?php\nfunction f() {}\n",
 ));
 check('a cast spelling change is not equivalent', !equivalent("<?php\n\$a = (integer) \$b;\n", "<?php\n\$a = (int) \$b;\n"));
 check('an added __LINE__ is not provable', str_starts_with(verdict(
     "<?php\n\$a = array(1);\n",
-    "<?php\n\$a = [__LINE__];\n"
+    "<?php\n\$a = [__LINE__];\n",
 ), 'not provable: the new file uses __LINE__'));
 check('a file with __LINE__ is never equivalent, even unchanged', !equivalent(
     "<?php\necho __LINE__;\n",
-    "<?php\necho __LINE__;\n"
+    "<?php\necho __LINE__;\n",
 ));
 check('a file with __halt_compiler() is never equivalent', !equivalent(
     "<?php\nf(array());\n__halt_compiler();data",
-    "<?php\nf([]);\n__halt_compiler();data"
+    "<?php\nf([]);\n__halt_compiler();data",
 ));
 check('array() vs [] inside a string is a string change', !equivalent(
     "<?php\necho 'array()';\n",
-    "<?php\necho '[]';\n"
+    "<?php\necho '[]';\n",
 ));
 
 // ----------------------------------------------------------- short open tags

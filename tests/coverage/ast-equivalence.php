@@ -116,7 +116,7 @@ function ast_equivalence_compare($old, $new)
                 $lines['old'][$index][1],
                 ast_equivalence_shorten($lines['old'][$index][0]),
                 $lines['new'][$index][1],
-                ast_equivalence_shorten($lines['new'][$index][0])
+                ast_equivalence_shorten($lines['new'][$index][0]),
             );
         }
     }
@@ -174,7 +174,7 @@ function ast_equivalence_dump($value, $path, $source, $side, $line, &$lines)
             $attributes['startFilePos'],
             $attributes['endFilePos'],
             $attributes['startTokenPos'],
-            $attributes['endTokenPos']
+            $attributes['endTokenPos'],
         );
         if ($value instanceof PhpParser\Node\Expr\Array_ || $value instanceof PhpParser\Node\Expr\List_) {
             unset($attributes['kind']);
