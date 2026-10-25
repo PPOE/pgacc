@@ -11,7 +11,8 @@
 # Output in build/release/: pgacc-<version>.tar.gz (top directory
 # pgacc-<version>/), pgacc-<version>.tar.gz.sha256, notes-<version>.md (the
 # CHANGELOG.md section "## [<version>] - YYYY-MM-DD ...", which must exist and
-# be dated) and title-<version>.txt (the release title). The built vendor/ is
+# be dated) and title-<version>.txt (the release title). PGACC_VERSION in
+# impressum.php (shown on the Impressum) must equal <version>. The built vendor/ is
 # loaded on PHP 8.5 (tests/release-vendor-check.php in the php:8.5-cli image
 # pinned by tests/php-runtime.Dockerfile) unless --skip-check-php is given.
 set -eu
@@ -91,6 +92,14 @@ if [ -z "$heading" ]; then
 fi
 if ! printf '%s\n' "$heading" | grep -Eq '^## \[[^]]*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}( .*)?$'; then
   echo "The CHANGELOG.md section of $version is not dated (\"## [$version] - YYYY-MM-DD\"): $heading" >&2
+  exit 1
+fi
+# The version shown on the Impressum (PGACC_VERSION in impressum.php at HEAD)
+# must be the released one.
+shown=$(git -C "$repo_dir" show HEAD:impressum.php 2>/dev/null |
+  sed -n "s/^const PGACC_VERSION = '\\([^']*\\)';\$/\\1/p")
+if [ "$shown" != "$version" ]; then
+  echo "PGACC_VERSION in impressum.php is \"$shown\", not $version; set it in the release pull request" >&2
   exit 1
 fi
 mkdir -p "$out_dir"

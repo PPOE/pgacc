@@ -221,6 +221,32 @@ foreach (array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_
 $arrayListing = page_view('/index.php?action=all&format=csv' . $arrayFilters, $admin, 'root,bgf')['body'];
 assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter values');
 
+// The Impressum links to the party's legal notice and shows the exact release
+// version of pgacc (PGACC_VERSION) but only the major versions of PHP and
+// PostgreSQL (no minor versions, no distribution suffix).
+$impressum = page_view('/index.php?action=impressum', array(), 'anonymous')['body'];
+assert_contains($impressum, 'Das Impressum der Piratenpartei Österreichs findet sich unter <a href="https://piratenpartei.at/rechtliches/impressum/">piratenpartei.at/rechtliches/impressum</a>.', 'Impressum');
+assert_not_contains($impressum, 'Schadinagasse', 'Impressum');
+// pgacc's license cell links to the licensing status in LICENSE.
+assert_contains($impressum, '>pgacc</a></td><td class=""><div>', 'Impressum');
+assert_contains($impressum, '<td class=""><a href="https://github.com/PPOE/pgacc/blob/master/LICENSE">siehe LICENSE</a></td></tr><tr class="ui_list_row ui_list_odd"><td class=""><a href="http://www.php.net">PHP</a>', 'Impressum');
+if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR__ . '/../impressum.php'), $releaseVersion) !== 1) {
+    fail_test('impressum.php: PGACC_VERSION was not found');
+}
+$expectedVersions = array(
+    'pgacc' => array('/^\d+\.\d+\.\d+$/D', $releaseVersion[1]),
+    'PHP' => array('/^\d+$/D', (string) PHP_MAJOR_VERSION),
+    'PostgreSQL' => array('/^\d+$/D', '18'),
+);
+foreach ($expectedVersions as $software => $expected) {
+    if (preg_match('#>' . $software . '</a></td><td class=""><div>([^<]*)</div>#', $impressum, $versionCell) !== 1) {
+        fail_test("Impressum: no version cell for $software");
+    }
+    if (preg_match($expected[0], $versionCell[1]) !== 1 || $versionCell[1] !== $expected[1]) {
+        fail_test("Impressum: $software version " . var_export($versionCell[1], true) . ", expected $expected[1]");
+    }
+}
+
 // Requests without X-Forwarded-Proto: https are redirected to https.
 $plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
     'http' => array('header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10),
