@@ -196,9 +196,16 @@ return array(
         array(
             'id' => 'members-error-status-accepted',
             'file' => 'getusers.php',
-            'search' => "if (\$sData === false || (is_array(\$headers) && !preg_match('#^HTTP/\\S+ 200 #', \$headers[0])))",
+            'search' => "if (\$sData === false || (is_array(\$headers) && !preg_match('#^HTTP/\\S+ 200 #', \$status)))",
             'replace' => 'if ($sData === false)',
             'rationale' => 'A failed fetch (HTTP error status) stops with its own error.',
+        ),
+        array(
+            'id' => 'members-first-status-line',
+            'file' => 'getusers.php',
+            'search' => "    \$status = \$header;",
+            'replace' => "    \$status = \$status === '' ? \$header : \$status;",
+            'rationale' => 'After a redirect the status of the last response counts.',
         ),
         array(
             'id' => 'members-fields-unchecked',

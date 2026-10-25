@@ -10,7 +10,13 @@ global $datakey,$dbconn;
 $context = stream_context_create(array('http' => array('ignore_errors' => true)));
 $sData = @file_get_contents("https://mitglieder.piratenpartei.at/adm_api/adm_names.php", false, $context);
 $headers = http_get_last_response_headers();
-if ($sData === false || (is_array($headers) && !preg_match('#^HTTP/\S+ 200 #', $headers[0])))
+// After a redirect (followed with the same verification) the headers hold
+// every response: the last status line counts.
+$status = '';
+foreach (is_array($headers) ? $headers : array() as $header)
+  if (strncmp($header, 'HTTP/', 5) == 0)
+    $status = $header;
+if ($sData === false || (is_array($headers) && !preg_match('#^HTTP/\S+ 200 #', $status)))
   die('Mitgliederliste konnte nicht abgerufen werden!');
 if (strlen($datakey) == 0)
   die('Kein Passwort!');

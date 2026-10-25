@@ -98,6 +98,57 @@ final class GetUsersTest extends FunctionsTestCase
         self::assertSame(array('id' => '2032', 'name' => 'Last Synthetic', 'lo' => '2', 'paid' => '0'), $rows[31]);
     }
 
+    public function testImportsTheStubListOverHttps()
+    {
+        // The whole flow without a replaced stream wrapper: getUsers()
+        // fetches the stub's "flow" list (tests/reference/membership/flow.tsv,
+        // format in server.php) over verified HTTPS, decrypts and parses it.
+        // Needs the membership stub of compose.test.yaml.
+        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
+        // The stub's key (tests/runtime/test-constants.php).
+        $GLOBALS['datakey'] = 'synthetic-reference-membership-key';
+        self::assertSame("mode flow\n", file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=flow'));
+        $connection = pg_connect(pgacc_test_connection_string());
+        pg_query($connection, 'BEGIN');
+        try {
+            AppExitGuard::enter('getUsers()');
+            getUsers();
+            $result = pg_query($connection, 'SELECT id, name, lo, paid FROM ppmembers ORDER BY id');
+            $rows = pg_fetch_all($result);
+            pg_free_result($result);
+        } finally {
+            AppExitGuard::leave();
+            pg_query($connection, 'ROLLBACK');
+            file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=ok');
+            $GLOBALS['datakey'] = $datakey;
+        }
+        $expected = array(
+            // Every organization code of the mapping, and an unknown one (99).
+            array('9101', 'Anna Fluss', '9', '1'),
+            array('9102', 'Bernd Fluss', '1', '0'),
+            array('9103', 'Carla Fluss', '3', '1'),
+            array('9104', 'Dieter Fluss', '2', '0'),
+            array('9105', 'Emma Fluss', '4', '1'),
+            array('9106', 'Franz Fluss', '5', '0'),
+            array('9107', 'Gerda Fluss', '6', '1'),
+            array('9108', 'Hannes Fluss', '10', '0'),
+            array('9109', 'Iris Fluss', '8', '1'),
+            array('9110', 'Unbekannt Fluss', '10', '0'),
+            // ISO-8859-15 umlauts and sharp s, converted to UTF-8.
+            array('9111', "J\xC3\xBCrgen Gr\xC3\xB6\xC3\x9Fe-Wei\xC3\x9F", '2', '1'),
+            // stripslashes(): \' and \\ in the list become ' and \.
+            array('9112', "D'Arcy Back\\slash", '1', '0'),
+        );
+        // The short line "x<TAB>1" and the empty last line are skipped.
+        for ($i = 0; $i < 20; $i++) {
+            $expected[] = array((string) (9120 + $i), sprintf('Synthetic Flow Filler %02d', $i), '2', (string) ($i % 2));
+        }
+        foreach ($expected as $index => $row) {
+            $expected[$index] = array_combine(array('id', 'name', 'lo', 'paid'), $row);
+        }
+        self::assertSame($expected, $rows);
+    }
+
     public function testMemberIdsAreNumbers()
     {
         // A member id that is not a number (second-order input from the

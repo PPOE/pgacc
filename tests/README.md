@@ -172,8 +172,12 @@ image with the server certificate (`/etc/pgacc-test-tls/membership.pem`), so
 the reference image, which builds on it, gets both too. The certificates are
 valid from 2020 to 2099 because the reference runs fake the application's
 clock. `GET https://mitglieder.piratenpartei.at/__stub/mode?set=<mode>` switches
-the member-list response (`ok`, `short`, `garbage`, `empty`, `error`; see the header of
-`server.php`); `tests/http-import.php` uses it for the failure cases.
+the member-list response (`ok`, `short`, `garbage`, `empty`, `flow`, `redirect`,
+`error`; see the header of `server.php`, which also documents the response
+format as `getusers.php` reads it). `tests/http-import.php` uses it for the
+failure cases, a redirect and a member match. `GetUsersTest` fetches the
+synthetic `flow` list (`tests/reference/membership/flow.tsv`) over HTTPS and
+checks the exact `ppmembers` rows.
 
 All test servers run with `output_buffering=4096`, but no redirect depends on
 it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat

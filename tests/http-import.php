@@ -251,6 +251,25 @@ membership_stub_mode('ok');
 $memberPage = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
 assert_status($memberPage, 200, 'member-fee page');
 assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
+// A redirect is followed (with the same certificate verification) and the
+// status of the last response counts.
+membership_stub_mode('redirect');
+$redirected = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
+assert_contains($redirected['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page after a redirect');
+assert_not_contains($redirected['body'], 'Mitgliederliste konnte nicht abgerufen werden!', 'member-fee page after a redirect');
+// A bank import matches a line's name against the list it just fetched (the
+// stub's "flow" list; its rows are checked in GetUsersTest): the voucher
+// becomes a membership fee (type 1) of that member.
+membership_stub_mode('flow');
+$flowImport = import_csv('flow.csv', $handkassaHeader
+    . "07.04.2024;7,00;Handkassa;Synthetic flow member line;;;Nein;Nein;Jürgen Größe-Weiß;0;1;;;\r\n", $adminCookies);
+assert_contains($flowImport['body'], 'wurde erfolgreich importiert', 'import with the flow list');
+$flowRow = @pg_query_params($database, 'SELECT name, member_id, type FROM vouchers WHERE comment = $1', array('Synthetic flow member line'));
+$flowFields = $flowRow === false ? false : pg_fetch_all($flowRow);
+if ($flowFields !== array(array('name' => 'Jürgen Größe-Weiß', 'member_id' => '9111', 'type' => '1'))) {
+    fail_test('member line with the flow list: ' . var_export($flowFields, true));
+}
+membership_stub_mode('ok');
 foreach (array('DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',
     "INSERT INTO ppmembers VALUES (8801, 'Synthetic Kept Member', 1, 1), (8802, 'Synthetic Kept Other', 10, 0)") as $query) {
     if (@pg_query($database, $query) === false) {

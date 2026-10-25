@@ -1240,7 +1240,8 @@ differences above are only visible for out-of-range input.
   abgerufen werden!"), a short response (unchanged), a line of five or more
   characters without the five tab-separated fields, or a list without any
   member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
-  before the table is touched. Behaviour change (owner review): before, such
+  before the table is touched. After a redirect the last status line counts.
+  Proposed behaviour change, not decided (owner review): before, such
   a line was imported as member 0 with PHP warnings, and a list without
   member lines left an empty table. Drop, create and insert run in one
   transaction (a savepoint inside a caller's transaction, as in the unit
@@ -1248,7 +1249,8 @@ differences above are only visible for out-of-range input.
   and voucher pages still drop `ppmembers` after each view, so a failed
   refresh shows the error instead of serving an older list. Tests:
   `tests/http-import.php` (stub modes `short`, `garbage`, `empty`, `error`,
-  a `ppmembers` view for the SQL error), `GetUsersTest`; the stub speaks
+  `redirect`, a `ppmembers` view for the SQL error, a member match with the
+  `flow` list), `GetUsersTest` (exact rows of the `flow` list over HTTPS); the stub speaks
   HTTPS with a per-build test CA (`tests/README.md`).
 - [ ] Open follow-up (not changed with the HTTPS refresh): the member list is
   still fetched on every GET of the import and member-fee pages (`import.php`
