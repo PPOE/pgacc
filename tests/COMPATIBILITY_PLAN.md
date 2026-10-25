@@ -986,11 +986,8 @@ differences above are only visible for out-of-range input.
   uses `<?` or `<?=`. Both `DisallowShortOpenTag` baseline entries removed.
 - [ ] Replace implicit PostgreSQL connection use incrementally with explicit
   connection arguments; PHP 8.5 emits deprecations from the current helpers.
-- [x] Update the HTTP test helper's deprecated `$http_response_header` use on
-  PHP 8.5, with feature detection and a fallback for the legacy runtimes.
-  The fallback lives in a separate file that PHP 8.4+ never compiles; a
-  variable-variable read is not enough, since PHP 8.0 then leaves the
-  variable unset.
+- [x] Replace the HTTP test helper's deprecated `$http_response_header` use
+  with `http_get_last_response_headers()`.
 - [ ] Fix the malformed amount-filter regular expression at `functions.php:73`
   in a separate tested change. Its following statement is currently unreachable.
 - [x] Protect receipt and membership encryption contracts with synthetic fixtures

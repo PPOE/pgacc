@@ -262,9 +262,7 @@ entries when the application is fixed; never add one without review. On PHP
 compiles a file.
 
 The test client also fails on its own unsilenced diagnostics. It reads response
-headers with `http_get_last_response_headers()` (PHP 8.4+), else with
-`$http_response_header` in `tests/http-legacy-headers.php`, which is not
-included on PHP 8.5 (deprecated at compile time).
+headers with `http_get_last_response_headers()`.
 
 ### PHP 8.5 lane
 

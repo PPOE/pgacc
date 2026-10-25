@@ -89,14 +89,8 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     ));
 
     $url = rtrim($baseUrl, '/') . $path;
-    if (function_exists('http_get_last_response_headers')) {
-        // PHP 8.4+; PHP 8.5 deprecates the magic $http_response_header local.
-        $body = @file_get_contents($url, false, $context);
-        $responseHeaders = http_get_last_response_headers();
-    } else {
-        require_once __DIR__ . '/http-legacy-headers.php';
-        list($body, $responseHeaders) = legacy_file_get_contents_with_headers($url, $context);
-    }
+    $body = @file_get_contents($url, false, $context);
+    $responseHeaders = http_get_last_response_headers();
     if (!is_array($responseHeaders)) {
         $responseHeaders = array();
     }

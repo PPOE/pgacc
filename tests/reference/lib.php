@@ -114,13 +114,8 @@ function ref_http($requestId, $method, $path, $form, $files, $cookies)
         ),
     ));
     $url = rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . $path;
-    if (function_exists('http_get_last_response_headers')) {
-        $body = @file_get_contents($url, false, $context);
-        $responseHeaders = http_get_last_response_headers();
-    } else {
-        require_once dirname(__DIR__) . '/http-legacy-headers.php';
-        list($body, $responseHeaders) = legacy_file_get_contents_with_headers($url, $context);
-    }
+    $body = @file_get_contents($url, false, $context);
+    $responseHeaders = http_get_last_response_headers();
     if ($body === false || !is_array($responseHeaders) || count($responseHeaders) === 0) {
         ref_fail("request $requestId failed: $method $path");
     }
