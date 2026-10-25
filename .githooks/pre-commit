@@ -1,0 +1,46 @@
+#!/bin/sh
+# Opt-in pre-commit hook: git config core.hooksPath .githooks
+# Fails the commit if a staged PHP file is not formatted (PER-CS 3.0,
+# whitespace rules only; the CI check, scripts/format.sh --check). It checks
+# the staged content (the index blobs), not the working tree.
+#   exit 1: a staged file needs formatting (the diff is shown);
+#   exit 2: the check could not run (Docker, image build, ...).
+set -eu
+
+repo_dir=$(git rev-parse --show-toplevel)
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.php')
+[ -n "$files" ] || exit 0
+
+# The staged blobs and the staged formatter config, at their repository
+# paths, in a directory under build/ (ignored by Git).
+mkdir -p "$repo_dir/build"
+work=$(mktemp -d "$repo_dir/build/pre-commit.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+config=.php-cs-fixer.dist.php
+git show ":$config" >"$work/$config" 2>/dev/null || cp "$repo_dir/$config" "$work/$config"
+for file in $files; do
+  mkdir -p "$work/$(dirname "$file")"
+  git show ":$file" >"$work/$file"
+done
+
+status=0
+# shellcheck disable=SC2086 # $files: one plain path per line
+(cd "$work" && sh "$repo_dir/scripts/format.sh" --check --root="$work" $files) >"$work.out" 2>&1 || status=$?
+case "$status" in
+  0) rm -f "$work.out"; exit 0 ;;
+  8)
+    sed -E "s#$repo_dir/##g; s#(/app/)?build/pre-commit\.[A-Za-z0-9]+/##g" "$work.out" | grep -v '^PHP CS Fixer\|^PHP runtime\|^Loaded config\|^Running analysis' >&2 || true
+    rm -f "$work.out"
+    echo "pre-commit: staged PHP files are not formatted. Run:" >&2
+    # shellcheck disable=SC2086
+    echo "  sh scripts/format.sh $(echo $files)" >&2
+    echo "then git add them again (or bypass once with git commit --no-verify)." >&2
+    exit 1
+    ;;
+  *)
+    cat "$work.out" >&2
+    rm -f "$work.out"
+    echo "pre-commit: the formatting check could not run (exit $status); see above." >&2
+    exit 2
+    ;;
+esac

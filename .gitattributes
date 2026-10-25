@@ -29,6 +29,8 @@
 /.gitattributes export-ignore
 /.git-blame-ignore-revs export-ignore
 /.php-cs-fixer.dist.php export-ignore
+/.claude export-ignore
+/.githooks export-ignore
 
 # Ad-hoc voucher-number check without login; production's web server denies it.
 /check.php export-ignore
