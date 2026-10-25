@@ -123,6 +123,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
   columns once; header, filter row, voucher rows and CSV must match the output
   for `synthetic-admin`. The column buttons (POST `hide=-3`/`hide=1` with the
   form token) change the stored preference; the old GET `?hide=` does not.
+- `http-connect-failure.php`: with an unreachable database (a second server
+  in the test container, `PGHOST=127.0.0.1 PGPORT=1`, coverage recorded),
+  `index.php`, `check.php` and `mbapi.php` answer "Verbindungsaufbau
+  fehlgeschlagen" and log the `pg_connect()` reason.
 - `http-csrf.php` (last in every lane): form tokens. For every write action
   (voucher creation, revision, approval, approval reset, receipt upload,
   merge, recovery, accounts, both imports, column preferences, logout) a

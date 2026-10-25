@@ -22,9 +22,10 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
    on an assertion; a fixture, connection, parse or fatal setup error is not red evidence.
 2. Make minimal, behaviour-preserving changes. Behavioural changes are the owner's decision: surface them
    (PR text, `tests/COMPATIBILITY_PLAN.md`) and never slip them into a fix or refactor.
-3. Cover every changed executable line, and mutation-test the change before (red) and after; report both.
-   HTTP-reached code: a target in `tests/mutation/targets/`; add or extend one for new behaviour, introduce
-   no survivors. `functions.php` helpers: `sh tests/mutation/infection.sh 8.5`, once the helper change
+3. Cover every changed executable line. Mutation evidence before merge: run the affected mutants locally with
+   `--only=` (red before the fix, green after; report both), or add the `mutation` label to the pull request
+   (CI's mutation job, blocking). HTTP-reached code: a target in `tests/mutation/targets/`; add or extend one
+   for new behaviour, introduce no survivors. `functions.php` helpers: `sh tests/mutation/infection.sh 8.5`, once the helper change
    is finished. Details: `tests/mutation/README.md` ("Required step for fixes").
 4. Never weaken tests, baselines, canaries or analysis config to get a green run. Each baseline change is reviewed.
 

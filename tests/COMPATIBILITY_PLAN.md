@@ -93,6 +93,19 @@ Found while covering the changed lines (owner decisions, not fixed):
   against `vouchers`.
 - CI: mutation testing runs in its own job only with the `mutation` or
   `full-ci` label, weekly and on manual runs (owner decision).
+- [x] Review fixes: a failed `pg_connect()` in `index.php`, `check.php` and
+  `mbapi.php` called `pg_last_error()` without a connection (an uncaught
+  Error on PHP 8); they now log `error_get_last()` and die with
+  "Verbindungsaufbau fehlgeschlagen" (`http-connect-failure.php`).
+  `report.php` called the nonexistent `pg_prev_error()` on two query
+  failures; now `pg_last_error($dbconn)`. `vreport.php` guards a NULL
+  `vaccount` like `tinyreport.php` (mutation `vreport-vaccount-null-guard-removed`).
+- [ ] Later: a static rule (PHPStan or a grep check) against implicit `pg_*`
+  connections.
+- [ ] Later: the changed-line base of pull request `synchronize` runs (the
+  previous head, not the PR base) for the coverage gate and the mutation job.
+- [ ] Later: adding a label (`mutation`, `full-ci`) re-runs the whole
+  pipeline, not only the added job.
 
 Harness follow-ups found in the first step (not done there):
 
@@ -1394,7 +1407,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321` (fixed: `page_import()` takes the rights for the import checks); `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
-| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
+| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths died with a fatal error instead of their message: **fixed** (`pg_last_error($dbconn)`, PHP 8.5-only migration review fixes). |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` (`$bgfandack`) is observed by `tests/http-output-escaping.php` (re-rendered new-voucher form) as known failure `KF-NEW-UNDEFINED-BGFANDACK`; `wk.php` is observed by `tests/http-output-escaping.php` as known failure `KF-WK-UNDEFINED-YEAR`. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; observed by `tests/http-output-escaping.php` as known failure `KF-REPORT-UNDEFINED-UNIT`), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **Removed** with the dead voucher-ID check it guarded (see "PHP 8.5-only migration"); formerly known failure `KF-IMPORT-REGEX-G`. |
