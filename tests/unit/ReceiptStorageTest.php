@@ -630,6 +630,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertFalse($receipt);
         // Neither the key nor its fingerprint goes to the web server's log.
         self::assertStringContainsString('pgacc: receipt 43.v2.aes could not be decrypted (wrong key or modified file)', $log);
+        self::assertStringNotContainsString('could not be opened', $log);
         self::assertStringNotContainsString(self::TEST_KEY, $log);
         self::assertStringNotContainsString($fingerprints[self::TEST_KEY], $log);
         self::assertStringNotContainsString('fingerprint', $log);
@@ -648,7 +649,10 @@ final class ReceiptStorageTest extends FunctionsTestCase
             return receipt_v2_open($missing, '44');
         });
         self::assertFalse($receipt);
-        self::assertStringContainsString('pgacc: receipt 44.v2.aes could not be decrypted', $log);
+        // A file that cannot be opened (missing, e.g. deleted after the check,
+        // or unreadable) is not reported as a wrong key.
+        self::assertStringContainsString('pgacc: receipt 44.v2.aes could not be opened', $log);
+        self::assertStringNotContainsString('wrong key', $log);
         self::assertSame([], $diagnostics);
 
         $GLOBALS['key'] = 'CHANGE-ME';

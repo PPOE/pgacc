@@ -1020,7 +1020,13 @@ function receipt_v2_open($path, $number)
         error_log("pgacc: receipt $number.v2.aes not decrypted: no valid receipt key (\$key) configured");
         return false;
     }
-    $receipt = receipt_v2_open_with($receiptKey, $number, $path);
+    $in = @fopen($path, 'rb');
+    if ($in === false) {
+        // Missing (e.g. deleted after the check) or unreadable: not a wrong key.
+        error_log("pgacc: receipt $number.v2.aes could not be opened");
+        return false;
+    }
+    $receipt = receipt_v2_open_handle($receiptKey, $number, $in);
     if ($receipt === false) {
         error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file)");
     }
@@ -1033,6 +1039,12 @@ function receipt_v2_open_with($key, $number, $path)
     if ($in === false) {
         return false;
     }
+    return receipt_v2_open_handle($key, $number, $in);
+}
+
+// receipt_v2_open_with() for a file opened as $in (closed unless returned).
+function receipt_v2_open_handle($key, $number, $in)
+{
     $stat = fstat($in);
     $length = $stat['size'] - 52;
     $header = (string) fread($in, 20);
