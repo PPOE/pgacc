@@ -346,9 +346,12 @@ Matching rules, enforced for every mutation before anything runs:
 - Equivalent spellings (for example `array()` and `[]`) are tolerated only when
   listed: `search` may be a list, and exactly one listed spelling may match.
   `replace` is then a string, or a list with one replacement per spelling.
-- Write strings with `"\n"`. In CRLF files (most application files) they match
-  CRLF line endings, and the mutant keeps CRLF, so only the mutated bytes
-  differ. Files with mixed line endings are rejected.
+- Write strings with `"\n"` and the formatted code's spacing and 4-space
+  indentation (PER-CS, `sh scripts/format.sh`); application files are LF.
+  (A CRLF file would still match, and its mutant keep CRLF; files with mixed
+  line endings are rejected.) A reformat moves search strings: the formatting
+  pull request rewrote every target so that each new mutant is
+  token-equivalent to the old one (`tests/coverage/token-equivalence.php`).
 - `replace` must keep the number of lines. Shifted lines would move
   diagnostics that `tests/known-diagnostics.php` lists by `file:line`, and the
   mutant would be "killed" by the baseline check rather than by the tests.

@@ -43,8 +43,8 @@ return array(
         array(
             'id' => 'default-organization-fixed',
             'file' => 'new.php',
-            'search' => '  $default_lo = intval($rights2[0]);',
-            'replace' => '  $default_lo = 10;',
+            'search' => '        $default_lo = intval($rights2[0]);',
+            'replace' => '        $default_lo = 10;',
             'rationale' => 'Without a posted organization, a user of one organization saves into that '
                 . 'organization (creation and revision).',
         ),
@@ -59,8 +59,8 @@ return array(
         array(
             'id' => 'default-organization-untrimmed',
             'file' => 'new.php',
-            'search' => "\$rights2 = rights_tokens(\$rights);\nif (count(\$rights2) == 1 && preg_match(",
-            'replace' => "\$rights2 = explode(',', \$rights === null ? '' : \$rights);\nif (count(\$rights2) == 1 && preg_match(",
+            'search' => "\$rights2 = rights_tokens(\$rights);\n    if (count(\$rights2) == 1 && preg_match(",
+            'replace' => "\$rights2 = explode(',', \$rights === null ? '' : \$rights);\n    if (count(\$rights2) == 1 && preg_match(",
             'rationale' => 'The single organization is trimmed: "2 " defaults to organization 2.',
         ),
         array(
@@ -86,15 +86,15 @@ return array(
         array(
             'id' => 'organization-bgf-exemption-removed',
             'file' => 'functions.php',
-            'search' => "  if (has_right(\$rights, 'bgf'))\n    return true;\n  \$lo = strval(\$lo);",
-            'replace' => "  if (false)\n    return true;\n  \$lo = strval(\$lo);",
+            'search' => "    if (has_right(\$rights, 'bgf'))\n        return true;\n    \$lo = strval(\$lo);",
+            'replace' => "    if (false)\n        return true;\n    \$lo = strval(\$lo);",
             'rationale' => 'bgf users may post any organization.',
         ),
         array(
             'id' => 'organization-root-exemption-granted',
             'file' => 'functions.php',
-            'search' => "  if (has_right(\$rights, 'bgf'))\n    return true;\n  \$lo = strval(\$lo);",
-            'replace' => "  if (has_right(\$rights, 'bgf') || has_right(\$rights, 'root'))\n    return true;\n  \$lo = strval(\$lo);",
+            'search' => "    if (has_right(\$rights, 'bgf'))\n        return true;\n    \$lo = strval(\$lo);",
+            'replace' => "    if (has_right(\$rights, 'bgf') || has_right(\$rights, 'root'))\n        return true;\n    \$lo = strval(\$lo);",
             'rationale' => 'root is no organization right: users write only what rights2orgasql() lets them read.',
         ),
         array(
@@ -121,8 +121,8 @@ return array(
         array(
             'id' => 'organization-lo-pattern-removed',
             'file' => 'functions.php',
-            'search' => "  if (preg_match('/^\\d+\$/D', \$lo) != 1)\n    return false;",
-            'replace' => "  if (false)\n    return false;",
+            'search' => "    if (preg_match('/^\\d+\$/D', \$lo) != 1)\n        return false;",
+            'replace' => "    if (false)\n        return false;",
             'rationale' => 'Only a numeric organization can be allowed (an empty one is not organization 0).',
         ),
         array(
@@ -142,15 +142,15 @@ return array(
         array(
             'id' => 'default-organization-unchecked',
             'file' => 'new.php',
-            'search' => '  if (!organization_allowed($lo, $rights))',
-            'replace' => '  if ($lo != default_organization($rights) && !organization_allowed($lo, $rights))',
+            'search' => '        if (!organization_allowed($lo, $rights))',
+            'replace' => '        if ($lo != default_organization($rights) && !organization_allowed($lo, $rights))',
             'rationale' => 'The default organization of a part without a posted one is checked too.',
         ),
         array(
             'id' => 'posted-organization-first-part-only',
             'file' => 'new.php',
-            'search' => "for (\$part = 0; \$part < \$parts; \$part++)\n{\n  \$lo = get_param(",
-            'replace' => "for (\$part = 0; \$part < 1; \$part++)\n{\n  \$lo = get_param(",
+            'search' => "for (\$part = 0; \$part < \$parts; \$part++) {\n        \$lo = get_param(",
+            'replace' => "for (\$part = 0; \$part < 1; \$part++) {\n        \$lo = get_param(",
             'rationale' => 'Every part of a voucher is checked, not only the first.',
         ),
         array(
@@ -170,8 +170,8 @@ return array(
         array(
             'id' => 'accounts-root-password-keeps-sessions',
             'file' => 'accounts.php',
-            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL\":\"\")",
-            'replace' => "crypt('\$pass', gen_salt('md5'))\":\"\")",
+            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL\" : \"\")",
+            'replace' => "crypt('\$pass', gen_salt('md5'))\" : \"\")",
             'rationale' => 'A password change by root ends the sessions of that user.',
         ),
         array(
@@ -185,8 +185,8 @@ return array(
         array(
             'id' => 'accounts-rights-change-ends-sessions',
             'file' => 'accounts.php',
-            'search' => "cookie = NULL\":\"\").\" WHERE id = \$id\";",
-            'replace' => "cookie = NULL\":\", cookie = NULL\").\" WHERE id = \$id\";",
+            'search' => "cookie = NULL\" : \"\") . \" WHERE id = \$id\";",
+            'replace' => "cookie = NULL\" : \", cookie = NULL\") . \" WHERE id = \$id\";",
             'rationale' => 'A change of the rights only keeps the sessions.',
         ),
         array(
@@ -308,15 +308,15 @@ return array(
         array(
             'id' => 'finalization-write-restored',
             'file' => 'index.php',
-            'search' => '  else if (isset($_POST["belegfehler"]))',
-            'replace' => '  else if (isset($_POST["beleg"]) && pg_query($dbconn, "UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
+            'search' => '    else if (isset($_POST["belegfehler"]))',
+            'replace' => '    else if (isset($_POST["beleg"]) && pg_query($dbconn, "UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} else if (isset($_POST["belegfehler"]))',
             'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',
         ),
         array(
             'id' => 'accounts-other-user-root-substring',
             'file' => 'accounts.php',
-            'search' => "&& !has_right(\$rights, 'root'))\n      {",
-            'replace' => "&& strpos(\$rights,'root') === false)\n      {",
+            'search' => "&& !has_right(\$rights, 'root')) {",
+            'replace' => "&& strpos(\$rights,'root') === false) {",
             'rationale' => 'Only the exact root right changes other users.',
         ),
         array(
@@ -329,43 +329,43 @@ return array(
         array(
             'id' => 'accounts-rights-update-root-substring',
             'file' => 'accounts.php',
-            'search' => "      else if (has_right(\$rights, 'root')) ",
-            'replace' => "      else if (strpos(\$rights,'root') !== false) ",
+            'search' => "            else if (has_right(\$rights, 'root'))",
+            'replace' => "            else if (strpos(\$rights,'root') !== false)",
             'rationale' => 'Only the exact root right changes rights.',
         ),
         array(
             'id' => 'accounts-help-root-substring',
             'file' => 'accounts.php',
-            'search' => "if (has_right(\$rights, 'root'))\n{\n  echo '<p>1: Burgenland",
-            'replace' => "if (strpos(\$rights,'root') !== false)\n{\n  echo '<p>1: Burgenland",
+            'search' => "if (has_right(\$rights, 'root')) {\n        echo '<p>1: Burgenland",
+            'replace' => "if (strpos(\$rights,'root') !== false) {\n        echo '<p>1: Burgenland",
             'rationale' => 'The rights help is shown to root only.',
         ),
         array(
             'id' => 'accounts-rights-column-root-substring',
             'file' => 'accounts.php',
-            'search' => "<td><b>Passwort</b></td>'.(has_right(\$rights, 'root') ?",
-            'replace' => "<td><b>Passwort</b></td>'.(strpos(\$rights,'root') !== false ?",
+            'search' => "<td><b>Passwort</b></td>' . (has_right(\$rights, 'root') ?",
+            'replace' => "<td><b>Passwort</b></td>' . (strpos(\$rights,'root') !== false ?",
             'rationale' => 'The rights column is shown to root only.',
         ),
         array(
             'id' => 'accounts-user-list-root-substring',
             'file' => 'accounts.php',
-            'search' => "if (!has_right(\$rights, 'root'))\n{\n  \$restrict",
-            'replace' => "if (strpos(\$rights,'root') === false)\n{\n  \$restrict",
+            'search' => "if (!has_right(\$rights, 'root')) {\n        \$restrict",
+            'replace' => "if (strpos(\$rights,'root') === false) {\n        \$restrict",
             'rationale' => 'Only root lists every user.',
         ),
         array(
             'id' => 'accounts-rights-input-root-substring',
             'file' => 'accounts.php',
-            'search' => "value=\"******\"></td>'.(has_right(\$rights, 'root') ? '<td><input type=\"text\" name=\"rights'.\$i",
-            'replace' => "value=\"******\"></td>'.(strpos(\$rights,'root') !== false ? '<td><input type=\"text\" name=\"rights'.\$i",
+            'search' => "value=\"******\"></td>' . (has_right(\$rights, 'root') ? '<td><input type=\"text\" name=\"rights' . \$i",
+            'replace' => "value=\"******\"></td>' . (strpos(\$rights,'root') !== false ? '<td><input type=\"text\" name=\"rights' . \$i",
             'rationale' => 'The rights inputs are shown to root only.',
         ),
         array(
             'id' => 'accounts-create-row-root-substring',
             'file' => 'accounts.php',
-            'search' => "if (has_right(\$rights, 'root'))\n  echo '<tr><td><input type=\"text\" name=\"name-1\"",
-            'replace' => "if (strpos(\$rights,'root') !== false)\n  echo '<tr><td><input type=\"text\" name=\"name-1\"",
+            'search' => "if (has_right(\$rights, 'root'))\n        echo '<tr><td><input type=\"text\" name=\"name-1\"",
+            'replace' => "if (strpos(\$rights,'root') !== false)\n        echo '<tr><td><input type=\"text\" name=\"name-1\"",
             'rationale' => 'The new-user row is shown to root only.',
         ),
         array(
@@ -385,8 +385,8 @@ return array(
         array(
             'id' => 'merge-link-root-substring',
             'file' => 'edit.php',
-            'search' => "if (has_right(\$rights, 'root'))\n{\n  echo '<script",
-            'replace' => "if (strpos(\$rights, 'root') !== false)\n{\n  echo '<script",
+            'search' => "if (has_right(\$rights, 'root')) {\n        echo '<script",
+            'replace' => "if (strpos(\$rights, 'root') !== false) {\n        echo '<script",
             'rationale' => 'The merge link is shown to root only.',
         ),
         array(
@@ -434,22 +434,22 @@ return array(
         array(
             'id' => 'revision-old-approvals-posted',
             'region' => $save,
-            'search' => "  \$ack1 = \$line['ack1_old'];",
-            'replace' => "  \$ack1 = \$_POST['ack1_old'];",
+            'search' => "        \$ack1 = \$line['ack1_old'];",
+            'replace' => "        \$ack1 = \$_POST['ack1_old'];",
             'rationale' => 'The old approvals of new rows come from the database, not from the form.',
         ),
         array(
             'id' => 'revision-old-approvals-dropped',
             'region' => $save,
-            'search' => "  \$ack2 = \$line['ack2_old'];",
-            'replace' => "  \$ack2 = null;",
+            'search' => "        \$ack2 = \$line['ack2_old'];",
+            'replace' => "        \$ack2 = null;",
             'rationale' => 'New rows keep the replaced rows\' second approval as old approval.',
         ),
         array(
             'id' => 'upload-reset-scoped',
             'file' => 'new.php',
-            'search' => "  vouchers_reset_ack(\$id, '');",
-            'replace' => '  vouchers_reset_ack($id, $rightssql);',
+            'search' => "    vouchers_reset_ack(\$id, '');",
+            'replace' => '    vouchers_reset_ack($id, $rightssql);',
             'rationale' => 'An upload resets the approvals of other organizations\' rows too.',
         ),
         array(
@@ -482,14 +482,14 @@ return array(
         ),
         array(
             'id' => 'edit-page-empty-for-bgf',
-            'search' => "revisions are restored with the recovery page.\nif (\$parts == 0)",
-            'replace' => "revisions are restored with the recovery page.\nif (\$parts == 0 && !has_right(\$rights, 'bgf'))",
+            'search' => "revisions are restored with the recovery page.\n    if (\$parts == 0)",
+            'replace' => "revisions are restored with the recovery page.\n    if (\$parts == 0 && !has_right(\$rights, 'bgf'))",
             'rationale' => 'A voucher without current rows has no edit form, also for bgf (the save refuses it).',
         ),
         array(
             'id' => 'edit-page-rows-uninitialized',
-            'search' => "\$vouchers = array();\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n  \$vouchers[] = \$line;",
-            'replace' => "\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n  \$vouchers[] = \$line;",
+            'search' => "\$vouchers = array();\n    while (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n        \$vouchers[] = \$line;",
+            'replace' => "\nwhile (\$line = pg_fetch_array(\$result, null, PGSQL_ASSOC)) {\n        \$vouchers[] = \$line;",
             'rationale' => 'A voucher without rows raises no undefined-variable diagnostics.',
         ),
         array(

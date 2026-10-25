@@ -8,8 +8,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 - After the 1.0.0 release (tag `php5-last`, the last one for PHP 5.3 / PostgreSQL 8.4) the application supports
   and tests **PHP 8.5 only** and **PostgreSQL 18 only** (new server). Modern PHP syntax and functions are allowed,
-  but the change rules below still apply: no restyling, minimal diffs, no syntax modernization of code you are
-  not changing. PHPCompatibility checks `testVersion` 8.5- (`tests/static-analysis/phpcs.xml`), PHPStan
+  but the change rules below still apply: minimal diffs, no syntax modernization of code you are not changing
+  (formatting is automatic, see "File conventions"). PHPCompatibility checks `testVersion` 8.5- (`tests/static-analysis/phpcs.xml`), PHPStan
   `phpVersion` 8.5.
 - PostgreSQL: schema in `tests/fixtures/schema.sql`; tests run on 18 (`compose.test.yaml`).
 - One lane (`tests/README.md`): PHP 8.5 x PG 18, with coverage, the changed-line gate, the mutation runner,
@@ -77,10 +77,14 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## File conventions
 
-- Several files use CRLF (`index.php`, `functions.php`, `new.php`, `edit.php`, `import.php`, ...), others LF.
-  Check with `file <name>` and keep line endings byte-exact. Never convert them.
-- Indentation is mixed. Do not reformat, re-indent or restyle code you are not changing. Diffs stay minimal.
-  A formatting pass is planned for later ("coding-standard checks" in `tests/COMPATIBILITY_PLAN.md`).
+- PHP files follow PER Coding Style 3.0, whitespace rules only (`.php-cs-fixer.dist.php`; 4-space indentation,
+  PER brace placement and spacing). Format changed PHP files with `sh scripts/format.sh <files>`. Never change
+  inline HTML or string contents to satisfy the formatter.
+- Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the PHP 5 recordings
+  and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`, `icons/`,
+  `js/`, `jquery.fileupload.js`) are byte-exact (`-text`): never convert them.
+- Token-changing modernization (array syntax, `elseif`, visibility, closing tags, imports) is a separate,
+  planned change: don't mix it into fixes. The formatting commit is listed in `.git-blame-ignore-revs`.
 
 ## Safety
 

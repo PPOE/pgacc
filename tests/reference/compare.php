@@ -8,7 +8,8 @@
  * Every recorded file must be byte-identical, unless each changed line is
  * accepted by a reviewed entry in tests/reference/allowlist.php for this PHP
  * version (PGACC_REFERENCE_LANE). Missing and extra files count as all lines
- * removed or added. Stale allowlist entries fail as well. Files under
+ * removed or added. 'transform' entries rewrite the reference before the
+ * comparison (CRLF read as LF). Stale allowlist entries fail as well. Files under
  * diagnostics/ are informational: their differences are reported but do not
  * fail, because PHP diagnostics are already gated per lane by
  * tests/known-diagnostics.php (and their wording changes between versions).
@@ -54,8 +55,25 @@ foreach ($files as $file) {
     $actual = "$actualDir/$file";
     $referenceExists = is_file($reference);
     $actualExists = is_file($actual);
+    // 'transform' entries (RD-FORMAT-CRLF-TO-LF) rewrite the reference first;
+    // the rewritten copy is compared and kept in the report.
+    $transformedBy = array();
+    if ($referenceExists) {
+        $text = file_get_contents($reference);
+        $transformedBy = $used;
+        $transformed = ref_transform_reference($php, $file, $text, $entries, $used);
+        $transformedBy = array_keys(array_diff_assoc($used, $transformedBy));
+        if ($transformed !== $text) {
+            $reference = "$reportDir/transformed-reference/$file";
+            ref_write($reference, $transformed);
+        }
+    }
     if ($referenceExists && $actualExists && file_get_contents($reference) === file_get_contents($actual)) {
-        $same++;
+        if (count($transformedBy) > 0) {
+            $accepted[] = "$file (differs) accepted by " . implode(', ', $transformedBy);
+        } else {
+            $same++;
+        }
         continue;
     }
     $changed = ref_changed_lines($referenceExists ? $reference : '/dev/null', $actualExists ? $actual : '/dev/null');
@@ -73,7 +91,7 @@ foreach ($files as $file) {
         $used[$id] = isset($used[$id]) ? $used[$id] + $count : $count;
     }
     if (count($unmatched) === 0) {
-        $accepted[] = "$file ($state) accepted by " . implode(', ', array_keys($ids));
+        $accepted[] = "$file ($state) accepted by " . implode(', ', array_merge($transformedBy, array_keys($ids)));
     } else {
         $failed[$file] = array($state, $unmatched, count($changed));
     }

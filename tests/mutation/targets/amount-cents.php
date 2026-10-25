@@ -19,14 +19,14 @@ return array(
     'mutations' => array(
         array(
             'id' => 'anlage-sum-unformatted',
-            'search' => '<td>" . sprintf("%1.2f",$amount) . "&nbsp;€</td><td>0.00&nbsp;€',
+            'search' => '<td>" . sprintf("%1.2f", $amount) . "&nbsp;€</td><td>0.00&nbsp;€',
             'replace' => '<td>$amount&nbsp;€</td><td>0.00&nbsp;€',
             'rationale' => 'The pre-fix donation sum: a whole-euro (or zero) sum loses its cents.',
         ),
         array(
             'id' => 'anlage-sum-no-decimals',
-            'search' => 'sprintf("%1.2f",$amount)',
-            'replace' => 'sprintf("%1.0f",$amount)',
+            'search' => 'sprintf("%1.2f", $amount)',
+            'replace' => 'sprintf("%1.0f", $amount)',
             'rationale' => 'A format without cent places.',
         ),
         array(

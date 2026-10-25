@@ -24,8 +24,8 @@ return array(
     'mutations' => array(
         array(
             'id' => 'import-form-without-token',
-            'search' => "method=\"POST\">\n'.csrf_field().'\n",
-            'replace' => "method=\"POST\">\n'.''.'\n",
+            'search' => "method=\"POST\">\n' . csrf_field() . '\n",
+            'replace' => "method=\"POST\">\n' . ''. '\n",
             'rationale' => 'The import form carries the form token of the session.',
         ),
         array(
@@ -54,20 +54,20 @@ return array(
         ),
         array(
             'id' => 'import-date-range-unchecked',
-            'search' => '  return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));',
-            'replace' => '  return true;',
+            'search' => '    return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));',
+            'replace' => '    return true;',
             'rationale' => 'Out-of-range dates (month 13, February 30) do not reach the SQL.',
         ),
         array(
             'id' => 'import-skip-aborts',
-            'search' => "              \$skipped[] = \$lineno;\n              continue;",
-            'replace' => "              \$skipped[] = \$lineno;\n              return -1;",
+            'search' => "                    \$skipped[] = \$lineno;\n                    continue;",
+            'replace' => "                    \$skipped[] = \$lineno;\n                    return -1;",
             'rationale' => 'An offending line is skipped; the remaining lines and files are imported.',
         ),
         array(
             'id' => 'import-skip-unrecorded',
-            'search' => "              \$skipped[] = \$lineno;",
-            'replace' => "              ;",
+            'search' => "                    \$skipped[] = \$lineno;",
+            'replace' => "                    ;",
             'rationale' => 'The summary lists the skipped lines.',
         ),
         array(
@@ -86,22 +86,22 @@ return array(
         array(
             'id' => 'import2-lookup-finalized-ignored',
             'file' => 'import2.php',
-            'search' => '    . " AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received)";',
-            'replace' => '    . "";',
+            'search' => '      . " AND NOT EXISTS (SELECT 1 FROM vouchers F WHERE F.voucher_id = vouchers.voucher_id AND NOT F.deleted AND F.receipt_received)";',
+            'replace' => '      . "";',
             'rationale' => 'The PDF import does not attach receipts to vouchers with a finalized row.',
         ),
         array(
             'id' => 'import2-failed-store-keeps-file',
             'file' => 'import2.php',
-            'search' => '    $result = pg_query($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '    $result = pg_query($dbconn, "SELECT 1;")',
+            'search' => '        $result = pg_query($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'replace' => '        $result = pg_query($dbconn, "SELECT 1;")',
             'rationale' => 'A receipt that could not be stored leaves the voucher without a file number.',
         ),
         array(
             'id' => 'import2-reset-scoped',
             'file' => 'import2.php',
-            'search' => "  vouchers_reset_ack(\$id, '');",
-            'replace' => '  vouchers_reset_ack($id, $rightssql);',
+            'search' => "    vouchers_reset_ack(\$id, '');",
+            'replace' => '    vouchers_reset_ack($id, $rightssql);',
             'rationale' => 'The PDF import resets the approvals of the whole voucher.',
         ),
         array(
@@ -134,8 +134,8 @@ return array(
         array(
             'id' => 'upload-failed-store-keeps-file',
             'file' => 'new.php',
-            'search' => '  $result = pg_query($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '  $result = pg_query($dbconn, "SELECT 1;")',
+            'search' => '        $result = pg_query($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'replace' => '        $result = pg_query($dbconn, "SELECT 1;")',
             'rationale' => 'A receipt that could not be stored does not stay referenced: the row gets its '
                 . 'previous file number back.',
         ),
@@ -148,14 +148,14 @@ return array(
         ),
         array(
             'id' => 'import-member-match-ends-file',
-            'search' => "pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
-            'replace' => "pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true; break;",
+            'search' => "pg_escape_string(\$dbconn, \$line['name']);\n                            pg_free_result(\$result);\n                            \$found = true;",
+            'replace' => "pg_escape_string(\$dbconn, \$line['name']);\n                            pg_free_result(\$result);\n                            \$found = true; break;",
             'rationale' => 'A member match does not end the import of the file.',
         ),
         array(
             'id' => 'import-member-name-unescaped',
-            'search' => "\$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
-            'replace' => "\$voucher['name'] = \$line['name'];\n                pg_free_result(\$result);\n                \$found = true;",
+            'search' => "\$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);\n                            pg_free_result(\$result);\n                            \$found = true;",
+            'replace' => "\$voucher['name'] = \$line['name'];\n                            pg_free_result(\$result);\n                            \$found = true;",
             'rationale' => 'Removed escape: a member name with a quote is inserted as SQL.',
         ),
         array(
@@ -211,8 +211,8 @@ return array(
         array(
             'id' => 'members-fields-unchecked',
             'file' => 'getusers.php',
-            'search' => '  if (count($values) < 5)',
-            'replace' => '  if (false)',
+            'search' => '        if (count($values) < 5)',
+            'replace' => '        if (false)',
             'rationale' => 'An undecryptable list (lines without the five fields) is not imported.',
         ),
         array(
@@ -239,15 +239,15 @@ return array(
         array(
             'id' => 'members-sql-error-ignored',
             'file' => 'getusers.php',
-            'search' => '  $error = pg_result_status($result) == PGSQL_FATAL_ERROR ? pg_result_error($result) : null;',
-            'replace' => '  $error = null;',
+            'search' => '    $error = pg_result_status($result) == PGSQL_FATAL_ERROR ? pg_result_error($result) : null;',
+            'replace' => '    $error = null;',
             'rationale' => 'An SQL error in the refresh stops the page.',
         ),
         array(
             'id' => 'members-without-transaction',
             'file' => 'getusers.php',
-            'search' => "  \$nested ? 'SAVEPOINT getusers;' : 'BEGIN;',",
-            'replace' => "  \$nested ? 'SAVEPOINT getusers;' : 'SELECT 1;',",
+            'search' => "        \$nested ? 'SAVEPOINT getusers;' : 'BEGIN;',",
+            'replace' => "        \$nested ? 'SAVEPOINT getusers;' : 'SELECT 1;',",
             'rationale' => 'Drop, create and insert run in one transaction: a failed INSERT keeps the old rows.',
         ),
     ),

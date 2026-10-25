@@ -65,15 +65,15 @@ return array(
         array(
             'id' => 'csrf-session-not-checked',
             'region' => $csrfBlock,
-            'search' => "  checklogin('id', false);\n  if (!csrf_request_valid())",
-            'replace' => "  true;\n  if (!csrf_request_valid())",
+            'search' => "    checklogin('id', false);\n    if (!csrf_request_valid())",
+            'replace' => "    true;\n    if (!csrf_request_valid())",
             'rationale' => 'Pages without the login check (logout) need the session of the request for its token.',
         ),
         array(
             'id' => 'csrf-error-continues',
             'region' => $csrfBlock,
-            'search' => "    pg_close(\$dbconn);\n    return;\n  }\n}",
-            'replace' => "    true;\n    true;\n  }\n}",
+            'search' => "        pg_close(\$dbconn);\n        return;\n    }\n}",
+            'replace' => "        true;\n    true;\n    }\n}",
             'rationale' => 'A refused request ends after the token error: nothing is written.',
         ),
         array(
@@ -100,10 +100,10 @@ return array(
         array(
             'id' => 'hide-on-get',
             'region' => $hide,
-            'search' => "if (isset(\$_POST[\"hide\"]) && !\$csrf_exempt)\n{\n  global \$user_id;\n  global \$user_prefs_hide;\n"
-                . "  \$id = checklogin('id');\n  \$col = intval(\$_POST[\"hide\"]);",
-            'replace' => "if (isset(\$_REQUEST[\"hide\"]) && !\$csrf_exempt)\n{\n  global \$user_id;\n  global \$user_prefs_hide;\n"
-                . "  \$id = checklogin('id');\n  \$col = intval(\$_REQUEST[\"hide\"]);",
+            'search' => "if (isset(\$_POST[\"hide\"]) && !\$csrf_exempt) {\n    global \$user_id;\n    global \$user_prefs_hide;\n"
+                . "    \$id = checklogin('id');\n    \$col = intval(\$_POST[\"hide\"]);",
+            'replace' => "if (isset(\$_REQUEST[\"hide\"]) && !\$csrf_exempt) {\n    global \$user_id;\n    global \$user_prefs_hide;\n"
+                . "    \$id = checklogin('id');\n    \$col = intval(\$_REQUEST[\"hide\"]);",
             'rationale' => 'The old GET link (?hide=N) stores no column preference.',
         ),
         array(
@@ -123,8 +123,8 @@ return array(
             'id' => 'merge-on-get',
             'file' => 'edit.php',
             'region' => $merge,
-            'search' => "if (!request_is_post())\n{",
-            'replace' => "if (false)\n{",
+            'search' => "if (!request_is_post()) {",
+            'replace' => "if (false) {",
             'rationale' => 'The old GET link merges nothing and points to the button.',
         ),
         array(
@@ -145,8 +145,8 @@ return array(
         array(
             'id' => 'merge-form-not-root-only',
             'file' => 'edit.php',
-            'search' => "if (has_right(\$rights, 'root'))\n  echo '<form id=\"mergeform\"",
-            'replace' => "if (true)\n  echo '<form id=\"mergeform\"",
+            'search' => "if (has_right(\$rights, 'root'))\n        echo '<form id=\"mergeform\"",
+            'replace' => "if (true)\n        echo '<form id=\"mergeform\"",
             'rationale' => 'Only root gets the merge form.',
         ),
         array(
@@ -159,29 +159,29 @@ return array(
         array(
             'id' => 'recover-form-without-token',
             'file' => 'recover.php',
-            'search' => "method=\"post\">\n'.csrf_field().'\n",
-            'replace' => "method=\"post\">\n'.''.'\n",
+            'search' => "method=\"post\">\n' . csrf_field() . '\n",
+            'replace' => "method=\"post\">\n' . ''. '\n",
             'rationale' => 'The recovery form carries the form token.',
         ),
         array(
             'id' => 'voucher-form-without-token',
             'file' => 'new.php',
-            'search' => "method=\"post\">\n'.csrf_field().'\n",
-            'replace' => "method=\"post\">\n'.''.'\n",
+            'search' => "method=\"post\">\n' . csrf_field() . '\n",
+            'replace' => "method=\"post\">\n' . ''. '\n",
             'rationale' => 'The voucher form (new and edit) carries the form token.',
         ),
         array(
             'id' => 'accounts-form-without-token',
             'file' => 'accounts.php',
-            'search' => "method=\"POST\">'.csrf_field().'<table>",
-            'replace' => "method=\"POST\">'.''.'<table>",
+            'search' => "method=\"POST\">' . csrf_field() . '<table>",
+            'replace' => "method=\"POST\">' . ''. '<table>",
             'rationale' => 'The user list (account and password form) carries the form token.',
         ),
         array(
             'id' => 'column-form-without-token',
             'file' => 'closed.php',
-            'search' => "method=\"post\">'.csrf_field().'<button",
-            'replace' => "method=\"post\">'.'<button",
+            'search' => "method=\"post\">' . csrf_field() . '<button",
+            'replace' => "method=\"post\">' . '<button",
             'rationale' => 'The column buttons of the listings carry the form token.',
         ),
         array(

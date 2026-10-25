@@ -12,7 +12,7 @@
 return array(
     'description' => 'report.php page_report() $prevcond initialization (HTTP report)',
     'file' => 'report.php',
-    'region' => array('start' => 'function page_report(', 'end' => '$cond = date_condition($year,1);'),
+    'region' => array('start' => 'function page_report(', 'end' => '$cond = date_condition($year, 1);'),
     'tests' => array(
         array('type' => 'http', 'script' => 'tests/http-smoke.php'),
     ),

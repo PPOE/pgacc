@@ -25,6 +25,10 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
                 self::assertSame(T_OPEN_TAG, $token[0]);
                 continue;
             }
+            // The blank line after "<?php" (PER-CS).
+            if ($index === 1 && is_array($token) && $token[0] === T_WHITESPACE) {
+                continue;
+            }
             $code .= is_array($token) ? $token[1] : $token;
             if (strlen($code) > 300) {
                 break;

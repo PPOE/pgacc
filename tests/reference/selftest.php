@@ -51,6 +51,50 @@ check('allowlist problems', ref_allowlist_problems(array(
     'entry 5: pg must be a non-empty list of PostgreSQL versions',
     'entry 6: pg must be a non-empty list of PostgreSQL versions',
 ));
+check('transform entry problems', ref_allowlist_problems(array(
+    array('id' => 'T1', 'php' => array('8.5'), 'files' => '*', 'transform' => 'crlf-to-lf', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'T2', 'php' => array('8.5'), 'files' => '*', 'transform' => 'trim', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'T3', 'php' => array('8.5'), 'files' => '*', 'transform' => 'crlf-to-lf', 'lines' => '/a/', 'reason' => 'r', 'category' => 'accepted'),
+)), array(
+    "entry 1: transform must be 'crlf-to-lf'",
+    'entry 2: transform and lines exclude each other',
+));
+$transformEntries = array(
+    array('id' => 'T', 'php' => array('8.5'), 'files' => array('http/*', 'helpers/misc.txt'), 'transform' => 'crlf-to-lf', 'reason' => 'r', 'category' => 'accepted'),
+    array('id' => 'L', 'php' => array('8.5'), 'files' => '*', 'lines' => '/^[-+]x$/', 'reason' => 'r', 'category' => 'accepted'),
+);
+$html = "# step: s\r\nstatus: 200\nheader: Content-type: text/html\n--- body (11 bytes) ---\n<p>\r\n</p>\r\n";
+$used = array();
+check(
+    'crlf-to-lf converts a text/html body and its length',
+    ref_transform_reference('8.5', 'http/a.txt', $html, $transformEntries, $used),
+    "# step: s\r\nstatus: 200\nheader: Content-type: text/html\n--- body (9 bytes) ---\n<p>\n</p>\n"
+);
+check('crlf-to-lf counts the converted line endings', $used, array('T' => 2));
+$csv = "status: 200\nheader: Content-type: text/csv; charset=UTF-8\n--- body (6 bytes) ---\na\r\nb\r\n";
+check(
+    'crlf-to-lf converts only the final CRLF of another text body',
+    ref_crlf_to_lf($csv, 'http/a.txt'),
+    "status: 200\nheader: Content-type: text/csv; charset=UTF-8\n--- body (5 bytes) ---\na\r\nb\n"
+);
+$binary = "status: 200\nheader: Content-type: application/pdf\n--- body (binary, 4 bytes, sha256 x) ---\nYQ0K\r\n";
+check('crlf-to-lf never converts a binary body', ref_crlf_to_lf($binary, 'http/a.txt'), $binary);
+check('crlf-to-lf converts other recordings throughout', ref_crlf_to_lf("a\r\nb\r\n", 'sql/a.sql'), "a\nb\n");
+$used = array();
+check('crlf-to-lf only on its files', ref_transform_reference('8.5', 'sql/a.sql', "a\r\n", $transformEntries, $used), "a\r\n");
+check('crlf-to-lf only on its PHP versions', ref_transform_reference('7.4', 'http/a.txt', $html, $transformEntries, $used), $html);
+check('crlf-to-lf without CRLF is not used', array(ref_transform_reference('8.5', 'helpers/misc.txt', "a\n", $transformEntries, $used), $used), array("a\n", array()));
+check(
+    'transform entries accept no lines',
+    ref_classify_changes('8.5', 'http/a.txt', array('-y', '+x'), $transformEntries),
+    array(array('L' => 1), array('-y'))
+);
+check(
+    'crlf-to-lf in exported strings',
+    ref_crlf_to_lf('a string(7) "\r\n<p>\r\n" b string(3) "\\\\r\n"', 'helpers/misc.txt'),
+    'a string(5) "\n<p>\n" b string(3) "\\\\r\n"'
+);
+check('a list of globs matches any of them', array(ref_files_match(array('a/*', 'b'), 'b'), ref_files_match(array('a/*'), 'b')), array(true, false));
 $pgEntries = array(
     array('id' => 'P', 'php' => array('7.4'), 'pg' => array('18'), 'files' => '*', 'lines' => '/a/', 'reason' => 'r', 'category' => 'todo'),
     array('id' => 'Q', 'php' => array('7.4'), 'files' => '*', 'lines' => '/b/', 'reason' => 'r', 'category' => 'todo'),
