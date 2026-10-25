@@ -221,6 +221,73 @@ foreach (array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_
 $arrayListing = page_view('/index.php?action=all&format=csv' . $arrayFilters, $admin, 'root,bgf')['body'];
 assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter values');
 
+// The Impressum names the provider and links to the party's legal notice. Its
+// software table lists pgacc (exact release version), PHP and PostgreSQL (major
+// versions only, no distribution suffix) and the third-party software without
+// versions: every runtime package of composer.lock, Chart.js (js/) and the Silk
+// icons (icons/, credit required by CC BY 2.5).
+$impressum = page_view('/index.php?action=impressum', array(), 'anonymous')['body'];
+assert_contains($impressum, '<span style="font-weight: bold;">Diensteanbieter:</span></div><br />' . "\n"
+    . 'Piratenpartei Österreichs<br />' . "\n"
+    . 'Impressum: <a href="https://piratenpartei.at/rechtliches/impressum/">piratenpartei.at/rechtliches/impressum</a><br />', 'Impressum');
+assert_not_contains($impressum, 'Schadinagasse', 'Impressum');
+assert_not_contains($impressum, 'findet sich unter', 'Impressum');
+if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR__ . '/../impressum.php'), $releaseVersion) !== 1) {
+    fail_test('impressum.php: PGACC_VERSION was not found');
+}
+// The version format of the release tooling (scripts/release.sh,
+// .github/workflows/release.yml), prereleases included.
+$releaseVersionPattern = '/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/D';
+foreach (array('2.0.0' => 1, '2.1.0-rc.1' => 1, '2.0' => 0, '2.0.0 (Debian)' => 0) as $sample => $matches) {
+    if (preg_match($releaseVersionPattern, $sample) !== $matches) {
+        fail_test("release version pattern: wrong result for $sample");
+    }
+}
+// Expected rows: name => [link, version pattern, exact version, license, license link].
+$expectedRows = array(
+    'pgacc' => array('https://github.com/PPOE/pgacc', $releaseVersionPattern, $releaseVersion[1], 'LICENSE', 'https://github.com/PPOE/pgacc/blob/master/LICENSE'),
+    'PHP' => array('http://www.php.net', '/^\d+$/D', (string) PHP_MAJOR_VERSION, 'PHP License', 'http://www.php.net/license/3_01.txt'),
+    'PostgreSQL' => array('http://www.postgresql.org/', '/^\d+$/D', '18', 'PostgreSQL License', 'http://www.postgresql.org/about/licence'),
+);
+$lock = json_decode(file_get_contents(__DIR__ . '/../composer.lock'), true);
+if (!is_array($lock) || count($lock['packages']) < 1) {
+    fail_test('composer.lock: no runtime packages');
+}
+foreach ($lock['packages'] as $package) {
+    $licenses = $package['license'];
+    $expectedRows[$package['name']] = array(
+        isset($package['homepage']) ? $package['homepage'] : preg_replace('/\.git$/', '', $package['source']['url']),
+        null, '–', implode(', ', $licenses), count($licenses) === 1 ? 'https://spdx.org/licenses/' . $licenses[0] . '.html' : null,
+    );
+}
+// The bundled software exists, so its rows are not stale.
+foreach (array('js/chart.umd.min.js', 'icons/accept.png') as $bundled) {
+    if (!is_file(__DIR__ . '/../' . $bundled)) {
+        fail_test("Impressum: $bundled no longer exists; update the software table");
+    }
+}
+$expectedRows['Chart.js'] = array('https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html');
+$expectedRows['Silk Icons von Mark James'] = array('http://www.famfamfam.com/lab/icons/silk/', null, '–', 'CC BY 2.5', 'https://creativecommons.org/licenses/by/2.5/');
+
+if (preg_match('#<table class="ui_list impressum_list">.*?<tbody class="ui_list_body">(.*?)</tbody></table>#s', $impressum, $softwareTable) !== 1) {
+    fail_test('Impressum: no software table');
+}
+preg_match_all('#<tr class="ui_list_row ui_list_odd"><td class="">(?:<a href="([^"]*)">)?([^<]*)(?:</a>)?</td><td class=""><div>([^<]*)</div></td><td class="">(?:<a href="([^"]*)">)?([^<]*)(?:</a>)?</td></tr>#', $softwareTable[1], $rows, PREG_SET_ORDER);
+$actualNames = array_map(function ($row) {
+    return html_entity_decode($row[2], ENT_QUOTES, 'UTF-8');
+}, $rows);
+if ($actualNames !== array_keys($expectedRows)) {
+    fail_test('Impressum: software rows ' . var_export($actualNames, true) . ', expected ' . var_export(array_keys($expectedRows), true));
+}
+foreach ($rows as $index => $row) {
+    $expected = $expectedRows[$actualNames[$index]];
+    $actual = array(html_entity_decode($row[1], ENT_QUOTES, 'UTF-8'), $row[3], html_entity_decode($row[5], ENT_QUOTES, 'UTF-8'), html_entity_decode($row[4], ENT_QUOTES, 'UTF-8'));
+    $wanted = array($expected[0], $expected[2], $expected[3], $expected[4] === null ? '' : $expected[4]);
+    if ($actual !== $wanted || ($expected[1] !== null && preg_match($expected[1], $row[3]) !== 1)) {
+        fail_test("Impressum: row {$actualNames[$index]} " . var_export($actual, true) . ', expected ' . var_export($wanted, true));
+    }
+}
+
 // Requests without X-Forwarded-Proto: https are redirected to https.
 $plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
     'http' => array('header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10),
