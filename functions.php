@@ -1034,35 +1034,15 @@ function membership_decrypt($datakey, $data)
  * log in, and changing $key ends every session.
  */
 
-// $length bytes from a CSPRNG, or false: random_bytes() (PHP 7+), else
-// openssl (only a cryptographically strong result; PHP 5.3 has no
-// random_bytes()), else mcrypt's /dev/urandom source. The function names are
-// parameters for the tests.
-function login_random_bytes($length, $random = 'random_bytes', $openssl = 'openssl_random_pseudo_bytes', $mcrypt = 'mcrypt_create_iv')
+// $length bytes from random_bytes(), or false when the system has no random
+// source. $random: the function to call (for the tests).
+function login_random_bytes($length, $random = 'random_bytes')
 {
-    if (function_exists($random)) {
-        try {
-            $bytes = $random($length);
-            if (strlen($bytes) == $length)
-                return $bytes;
-        } catch (Exception) {
-            // No random source: try the next one.
-        }
+    try {
+        return $random($length);
+    } catch (\Random\RandomException) {
+        return false;
     }
-    if (function_exists($openssl)) {
-        $strong = false;
-        $bytes = $openssl($length, $strong);
-        /** @var bool $strong set by reference */
-        if ($strong === true && strlen($bytes) == $length)
-            return $bytes;
-    }
-    if (function_exists($mcrypt)) {
-        // 1 is MCRYPT_DEV_URANDOM (undefined without the mcrypt extension).
-        $bytes = $mcrypt($length, 1);
-        if (strlen($bytes) == $length)
-            return $bytes;
-    }
-    return false;
 }
 
 // The session key, or false without a valid $key: the same key and check

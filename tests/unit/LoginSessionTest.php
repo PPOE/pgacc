@@ -1,14 +1,13 @@
 <?php
 
 /*
- * Login session helpers in functions.php: CSPRNG bytes with their fallback,
+ * Login session helpers in functions.php: CSPRNG bytes that fail closed,
  * the session key derived from $key, the users.cookie nonce, the
  * pp_pgacc_login token and its constant-time comparison, and the form token
  * (CSRF) with its field, request check and the POST check.
  */
 
-// Stand-ins for random_bytes(), openssl_random_pseudo_bytes() and
-// mcrypt_create_iv().
+// Stand-ins for random_bytes().
 function login_test_random_bytes($length)
 {
     return str_repeat('r', $length);
@@ -16,53 +15,7 @@ function login_test_random_bytes($length)
 
 function login_test_throwing_random_bytes($length)
 {
-    throw new Exception('no random source');
-}
-
-function login_test_short_random_bytes($length)
-{
-    return str_repeat('u', $length - 1);
-}
-
-function login_test_strong_bytes($length, &$strong)
-{
-    $strong = true;
-    return str_repeat('s', $length);
-}
-
-function login_test_weak_bytes($length, &$strong)
-{
-    $strong = false;
-    return str_repeat('w', $length);
-}
-
-function login_test_short_bytes($length, &$strong)
-{
-    $strong = true;
-    return str_repeat('t', $length - 1);
-}
-
-// A source that does not report its strength.
-function login_test_silent_bytes($length, &$strong)
-{
-    return str_repeat('q', $length);
-}
-
-function login_test_failing_bytes($length, &$strong)
-{
-    $strong = true;
-    return false;
-}
-
-function login_test_mcrypt_bytes($length, $source)
-{
-    // MCRYPT_DEV_URANDOM is 1.
-    return $source === 1 ? str_repeat('m', $length) : 'wrong source';
-}
-
-function login_test_mcrypt_short_bytes($length, $source)
-{
-    return str_repeat('n', $length + 1);
+    throw new \Random\RandomException('no random source');
 }
 
 final class LoginSessionTest extends FunctionsTestCase
@@ -104,37 +57,14 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertSame(4, strlen(login_random_bytes(4)));
     }
 
-    public function testRandomBytesPreferRandomBytes()
+    public function testRandomBytesUseRandomBytes()
     {
-        self::assertSame('rrrr', login_random_bytes(4, 'login_test_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('ssss', login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('ssss', login_random_bytes(4, 'login_test_short_random_bytes', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_weak_bytes', 'login_test_mcrypt_bytes'));
-        self::assertFalse(login_random_bytes(4, 'login_test_throwing_random_bytes', 'login_test_weak_bytes', 'login_test_missing_mcrypt'));
-        if (function_exists('random_bytes')) {
-            self::assertSame(4, strlen(login_random_bytes(4, 'random_bytes', 'login_test_missing_openssl', 'login_test_missing_mcrypt')));
-        }
-    }
-
-    public function testRandomBytesPreferStrongOpenssl()
-    {
-        self::assertSame('ssss', login_random_bytes(4, 'login_test_missing_random', 'login_test_strong_bytes', 'login_test_mcrypt_bytes'));
-    }
-
-    public function testRandomBytesFallBackToMcryptUrandom()
-    {
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_weak_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_short_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_failing_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_silent_bytes', 'login_test_mcrypt_bytes'));
-        self::assertSame('mmmm', login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_mcrypt_bytes'));
+        self::assertSame('rrrr', login_random_bytes(4, 'login_test_random_bytes'));
     }
 
     public function testRandomBytesFailClosed()
     {
-        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_weak_bytes', 'login_test_missing_mcrypt'));
-        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_missing_mcrypt'));
-        self::assertFalse(login_random_bytes(4, 'login_test_missing_random', 'login_test_missing_openssl', 'login_test_mcrypt_short_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_throwing_random_bytes'));
     }
 
     public function testSessionKeyIsDerivedFromAValidKey()
@@ -249,8 +179,8 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertStringNotContainsString('short', str_replace('pgacc: login refused: no valid session key ($key in constants.php)', '', $text));
         $GLOBALS['key'] = self::TEST_KEY;
 
-        // Without random bytes.
-        list($result, $text, $before, $after) = self::startSession(false);
+        // Without random bytes: random_bytes() throws.
+        list($result, $text, $before, $after) = self::startSession(login_random_bytes(4, 'login_test_throwing_random_bytes'));
         self::assertFalse($result);
         self::assertSame($before, $after);
         self::assertStringContainsString('pgacc: login refused: no secure random source', $text);

@@ -486,10 +486,9 @@ with synthetic users and covered by a mutation target.
   `functions.php`). The `pp_pgacc_login` cookie was the `mt_rand()` value
   stored in `users.cookie`. `users.cookie` stays an `integer` column (no
   schema change): it now holds a nonce of 31 random bits (1 to 2147483647)
-  from a CSPRNG (`random_bytes()` on PHP 7+, else
+  from a CSPRNG (`random_bytes()`; the 1.0.x line for PHP 5.3 fell back to
   `openssl_random_pseudo_bytes()` with a strong result, else
-  `mcrypt_create_iv()` with `/dev/urandom`; PHP 5.3 has no `random_bytes()`),
-  replaced by every login. The cookie is
+  `mcrypt_create_iv()` with `/dev/urandom`), replaced by every login. The cookie is
   `hash_hmac('sha256', "pgacc-login|<id>|<nonce>|<users.login>", K)` in hex
   (64 digits) with the session key
   `K = hash_hmac('sha256', 'pgacc-session-key', $key, true)`, derived from the
