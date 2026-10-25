@@ -6,6 +6,20 @@ function date_condition($year, $begin = 1)
         return "AND date < '" . (intval($year) + 1) . "-01-01'";
     else return " AND date >= '" . $year . "-01-01' AND date < '" . (intval($year) + 1) . "-01-01'";
 }
+// from http://www.php.net/manual/de/function.htmlspecialchars.php
+function umlaute($text)
+{
+    $returnvalue = "";
+    for ($i = 0;$i < strlen($text);$i++) {
+        $teil = hexdec(rawurlencode(substr($text, $i, 1)));
+        if ($teil < 32 || $teil > 1114111) {
+            $returnvalue .= substr($text, $i, 1);
+        } else {
+            $returnvalue .= "&#" . $teil . ";";
+        }
+    }
+    return $returnvalue;
+}
 function page_donations($year)
 {
     global $dbconn;
