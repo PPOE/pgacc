@@ -47,12 +47,11 @@ function page_view($path, $cookies, $label)
     return $response;
 }
 
-// Known failures (tests/COMPATIBILITY_PLAN.md, owner decisions): page_transfer()
-// is defined nowhere, and page_closed() selects three columns too few.
+// Known failure (tests/COMPATIBILITY_PLAN.md): page_closed() selects three
+// columns too few.
 function page_view_known($path, $cookies, $label)
 {
     $known = array(
-        '/index.php?action=transfer' => array('KF-TRANSFER-UNDEFINED-FUNCTION', 'index.php', 'page_transfer()'),
         '/index.php?action=closed' => array('KF-CLOSED-MISSING-COLUMNS', 'closed.php', 'Undefined array key'),
     );
     if (!isset($known[$path])) {
@@ -216,6 +215,13 @@ pg_close($database);
 // An unknown action shows the report.
 $unknown = page_view('/index.php?action=unknown', array(), 'anonymous')['body'];
 assert_contains($unknown, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'unknown action');
+
+// The removed transfer page (transfer.php, deleted in 2014) is an unknown
+// action like any other: the report, for visitors and logged-in users.
+foreach (array('anonymous', 'root,bgf') as $label) {
+    $transfer = page_view('/index.php?action=transfer', $users[$label], $label)['body'];
+    assert_contains($transfer, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', "transfer action ($label)");
+}
 
 // A year with a suffix ("2024-1", accepted by index.php) is passed to the
 // report as a string (known failure): the arithmetic on it warns on PHP 8,

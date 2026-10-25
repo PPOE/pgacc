@@ -119,7 +119,7 @@ function checklogin($get = 'name', $redir = true)
 
 $page = "index";
 if (isset($_GET["action"])) {
-    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
+    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
         $page = $_GET["action"];
     else $page = "report";
 
@@ -270,8 +270,6 @@ if ($page == "all") {
     page_closed($rights);
 } else if ($page == "spendings") {
     page_spendings();
-} else if ($page == "transfer") {
-    page_transfer();
 } else if ($page == "kdonations") {
     page_kdonations(intval($_GET["year"] ?? 0));
 } else if ($page == "donations") {
