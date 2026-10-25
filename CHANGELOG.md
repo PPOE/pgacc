@@ -14,6 +14,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and lists the third-party software (Composer packages, Chart.js, Silk icons)
   with its licenses, left-aligned.
 
+### Removed
+
+- The PHP 5.3 fallbacks for login nonces (openssl, mcrypt) and for the
+  constant-time comparison: `random_bytes()` and `hash_equals()` only.
+
 ### Fixed
 
 - Logging in without a login target no longer ends on a blank page (empty

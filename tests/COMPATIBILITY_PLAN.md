@@ -486,7 +486,7 @@ with synthetic users and covered by a mutation target.
   `functions.php`). The `pp_pgacc_login` cookie was the `mt_rand()` value
   stored in `users.cookie`. `users.cookie` stays an `integer` column (no
   schema change): it now holds a nonce of 31 random bits (1 to 2147483647)
-  from a CSPRNG (`random_bytes()`; the 1.0.x line for PHP 5.3 fell back to
+  from a CSPRNG (`random_bytes()`; releases up to 2.0.0 fell back to
   `openssl_random_pseudo_bytes()` with a strong result, else
   `mcrypt_create_iv()` with `/dev/urandom`), replaced by every login. The cookie is
   `hash_hmac('sha256', "pgacc-login|<id>|<nonce>|<users.login>", K)` in hex
@@ -494,8 +494,8 @@ with synthetic users and covered by a mutation target.
   `K = hash_hmac('sha256', 'pgacc-session-key', $key, true)`, derived from the
   configured `$key` of `constants.php`. `checklogin()` selects the user by
   the id cookie and compares the token in constant time
-  (`login_token_equals()`, through `receipt_equals()`: `hash_equals()`, or
-  its fallback on PHP 5.3). Neither the cookie nor `users.cookie` alone lets
+  (`login_token_equals()`, through `receipt_equals()`: `hash_equals()`;
+  releases up to 2.0.0 also kept a fallback for PHP 5.3). Neither the cookie nor `users.cookie` alone lets
   anyone forge a session without `$key`. Fails closed: without a valid `$key`
   (`receipt_configured_key()`, the same check as for receipts) or a CSPRNG, or when the session cannot be
   stored, nobody can log in (the login form is shown again);
@@ -1248,7 +1248,8 @@ differences above are only visible for out-of-range input.
   - New receipts (upload in `new.php`, PDF import in `import2.php`) are
     `files/<n>.v2.aes`: `"PGR2"`, a random 16-byte IV, AES-256-CBC with
     PKCS#7 padding and an HMAC-SHA256 over all of that (encrypt-then-MAC,
-    compared in constant time with `hash_equals()`, an own loop on PHP 5.3).
+    compared in constant time with `hash_equals()`; releases up to 2.0.0 kept an own
+    loop on PHP 5.3).
     The encryption and MAC keys come from RFC 5869 HKDF-SHA256 of the
     configured `$key` (no salt) with the info `pgacc-receipt-v2|enc|<n>` and
     `pgacc-receipt-v2|mac|<n>` (own implementation with `hash_hmac()`,
@@ -1695,7 +1696,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Short open tag | `file.php:1`, `getusers.php:1` | **Fixed** (short-tag item above) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | **Fixed**: the default enclosure and escape are passed explicitly (step a of the PHP 8.5-only migration) |
-| `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
+| `hash_equals()` not in PHP 5.5 or earlier | `functions.php` (`receipt_equals()`) | **Gone** with `testVersion` 8.5-; `receipt_equals()` calls `hash_equals()` only, the PHP 5.3 fallback `receipt_equals_fallback()` is removed |
 
 ### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token, one fewer after the removal of the dead voucher-ID check, 12 fewer after the dead-code removal, one fewer after the exact amount parsing)
 

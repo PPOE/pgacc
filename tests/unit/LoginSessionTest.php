@@ -15,7 +15,22 @@ function login_test_random_bytes($length)
 
 function login_test_throwing_random_bytes($length)
 {
-    throw new \Random\RandomException('no random source');
+    throw new Exception('no random source');
+}
+
+function login_test_short_random_bytes($length)
+{
+    return str_repeat('u', $length - 1);
+}
+
+function login_test_erroring_random_bytes($length)
+{
+    throw new Error('broken random source');
+}
+
+function login_test_array_random_bytes($length)
+{
+    return array_fill(0, $length, 'r');
 }
 
 final class LoginSessionTest extends FunctionsTestCase
@@ -65,6 +80,9 @@ final class LoginSessionTest extends FunctionsTestCase
     public function testRandomBytesFailClosed()
     {
         self::assertFalse(login_random_bytes(4, 'login_test_throwing_random_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_short_random_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_erroring_random_bytes'));
+        self::assertFalse(login_random_bytes(4, 'login_test_array_random_bytes'));
     }
 
     public function testSessionKeyIsDerivedFromAValidKey()
@@ -119,7 +137,7 @@ final class LoginSessionTest extends FunctionsTestCase
      * error_log() redirected; returns array(result, log text, users.cookie of
      * user 7 before, and after).
      */
-    private static function startSession($bytes = null, $failTransaction = false, $userId = 7)
+    private static function startSession($bytes = null, $failTransaction = false, $userId = 7, $random = 'random_bytes')
     {
         $connection = pg_connect(pgacc_test_connection_string());
         self::assertNotFalse($connection);
@@ -131,7 +149,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $log = tempnam(sys_get_temp_dir(), 'pgacc-log-');
         $previous = ini_set('error_log', $log);
         try {
-            $result = login_start_session($connection, $userId, $bytes);
+            $result = login_start_session($connection, $userId, $bytes, $random);
         } catch (Exception $exception) {
             ini_set('error_log', $previous);
             unlink($log);
@@ -179,8 +197,8 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertStringNotContainsString('short', str_replace('pgacc: login refused: no valid session key ($key in constants.php)', '', $text));
         $GLOBALS['key'] = self::TEST_KEY;
 
-        // Without random bytes: random_bytes() throws.
-        list($result, $text, $before, $after) = self::startSession(login_random_bytes(4, 'login_test_throwing_random_bytes'));
+        // Without random bytes: the source throws.
+        list($result, $text, $before, $after) = self::startSession(null, false, 7, 'login_test_throwing_random_bytes');
         self::assertFalse($result);
         self::assertSame($before, $after);
         self::assertStringContainsString('pgacc: login refused: no secure random source', $text);
