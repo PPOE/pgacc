@@ -81,10 +81,16 @@ Found while covering the changed lines (owner decisions, not fixed):
   warnings, and those cells stay empty in the closed listing. Fix: add the
   three columns to the query (changes the listing's output).
   `http-output-escaping.php` attributes the warnings to the KF id.
-- [ ] `import.php:337` (the duplicate check of BAWAG voucher IDs) is
-  unreachable while `KF-IMPORT-REGEX-G` stands: `preg_match('/.../g')`
-  always fails. The changed-line gate reports it; it has no reviewed
-  exclusion mechanism. It becomes reachable when the regex is fixed.
+- [x] `KF-IMPORT-REGEX-G` resolved by removal (owner decision): the BAWAG
+  voucher-ID duplicate check in `import.php` (11 lines from b08f998
+  "Preserve production pgacc changes", a production-only edit) never ran:
+  its `/g` regex is invalid (warning on every imported line, no match), and
+  its `SELECT` on `import` names columns that table does not have (only
+  `line`). Removing it changes no behaviour; identical lines stay skipped
+  via `import.line`. `http-import.php` asserts a BAWAG line with a voucher ID
+  imports without diagnostics.
+- [ ] Optional later feature: a working duplicate check by BAWAG voucher ID
+  against `vouchers`.
 - CI: mutation testing runs in its own job only with the `mutation` or
   `full-ci` label, weekly and on manual runs (owner decision).
 
@@ -1378,7 +1384,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | **Fixed**: the default enclosure and escape are passed explicitly (step a of the PHP 8.5-only migration) |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token, one fewer after the removal of the dead voucher-ID check)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
@@ -1391,7 +1397,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` (`$bgfandack`) is observed by `tests/http-output-escaping.php` (re-rendered new-voucher form) as known failure `KF-NEW-UNDEFINED-BGFANDACK`; `wk.php` is observed by `tests/http-output-escaping.php` as known failure `KF-WK-UNDEFINED-YEAR`. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; observed by `tests/http-output-escaping.php` as known failure `KF-REPORT-UNDEFINED-UNIT`), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
-| Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
+| Invalid regex modifier `/g` | `import.php:306` | **Removed** with the dead voucher-ID check it guarded (see "PHP 8.5-only migration"); formerly known failure `KF-IMPORT-REGEX-G`. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **Fixed** with the login session token (the cookie is a hex string now); baseline entry removed. |

@@ -438,7 +438,7 @@ pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 
 pg_free_result(escaping_query($database, 'DELETE FROM lo WHERE id IN (3, 5, 10)'));
 
 // Bank CSV import (import.php): file names, MIME types and the report of an
-// invalid line. Each imported line raises the known KF-IMPORT-REGEX-G warning.
+// invalid line.
 function upload($path, $cookies, $field, $name, $type, $content, $form = array())
 {
     $response = http_request($path, 'POST', $form, $cookies, null, array($field => array('name' => $name, 'type' => $type, 'content' => $content)));
@@ -450,9 +450,7 @@ $fileName = '<i id=fn>&ä.csv';
 $fileNameEscaped = '&lt;i id=fn&gt;&amp;ä.csv';
 $handkassa = "Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt\r\n"
     . "Montag;5,00;Handkassa;<s>csvline</s>&ä;;;Nein;Nein;Synthetic Importer;0;1;;;\r\n";
-$import = with_known_failure('KF-IMPORT-REGEX-G', function () use ($admin, $fileName, $handkassa) {
-    return upload('/index.php?action=import', $admin, 'uploadcsv[]', $fileName, 'text/csv', $handkassa, array('MAX_FILE_SIZE' => '1000000'));
-});
+$import = upload('/index.php?action=import', $admin, 'uploadcsv[]', $fileName, 'text/csv', $handkassa, array('MAX_FILE_SIZE' => '1000000'));
 assert_contains($import, "<h2>Importiere $fileNameEscaped</h2>", 'import heading');
 assert_contains($import, "Ungültige Buchungszeile in Datei 1 ($fileNameEscaped), Zeile 2 <br />", 'import invalid line');
 assert_contains($import, "<pre>Montag;5,00;Handkassa;&lt;s&gt;csvline&lt;/s&gt;&amp;ä;;;Nein;Nein;Synthetic Importer;0;1;;;</pre>", 'import raw line');

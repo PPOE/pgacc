@@ -116,8 +116,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   files of `tests/reference/fixtures/import/`. Lines whose date is not a date
   or whose organization the user may not use are reported ("Ungültige
   Buchungszeile", line number) and skipped; the other lines and files are
-  imported. The `/g` regular-expression warning of every imported line is the
-  known failure `KF-IMPORT-REGEX-G`.
+  imported. A re-imported identical line is skipped (`import.line`); a BAWAG
+  line with a voucher ID imports without diagnostics.
 - `http-listing-prefs.php`: the ledger (`?action=all`, `closed.php`) with hidden
   columns. `synthetic-hide-odd`/`synthetic-hide-even` hide each of the 18
   columns once; header, filter row, voucher rows and CSV must match the output
@@ -481,9 +481,8 @@ Open harness items:
 - [ ] Close the real Infection gaps listed in the [mutation notes](mutation/README.md#suggested-tests-for-the-real-gaps)
   (mainly `acc_header` output and `getfilter` validation), then gate CI on no
   new escaped mutants.
-- [ ] Extend the bank import test (`http-import.php`) to import-line
-  deduplication, duplicate re-uploads and the BAWAG voucher IDs once
-  `KF-IMPORT-REGEX-G` is fixed.
+- [ ] Extend the bank import test (`http-import.php`) to duplicate re-uploads
+  of whole files.
 - [ ] Document the `mbapi.php` output contract and verify it against the
   membership system's consumer or an agreed sample.
 - [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit 9 only prints

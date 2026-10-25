@@ -39,14 +39,9 @@ function import_orga($database, $comment)
     return $row;
 }
 
-// Every imported line runs preg_match() with the invalid modifier /g
-// (import.php, an open finding in tests/COMPATIBILITY_PLAN.md): its warning
-// is the known failure KF-IMPORT-REGEX-G, checked at the end.
 function import_csv($name, $content, $cookies)
 {
-    return with_known_failure('KF-IMPORT-REGEX-G', function () use ($name, $content, $cookies) {
-        return import_request($name, $content, $cookies);
-    });
+    return import_request($name, $content, $cookies);
 }
 
 function import_request($name, $content, $cookies)
@@ -142,7 +137,7 @@ $mixed = $handkassaHeader
     . handkassa_line('2024-02-30', 'Synthetic import with an impossible date', '1')
     . handkassa_line('03.04.2024', 'Synthetic import after skipped lines', '1');
 $second = $handkassaHeader . handkassa_line('04.04.2024', 'Synthetic import from a second file', '1');
-$mixedImport = with_known_failure('KF-IMPORT-REGEX-G', function () use ($mixed, $second, $unitOneCookies) {
+$mixedImport = call_user_func(function () use ($mixed, $second, $unitOneCookies) {
     return http_request(
         '/index.php?action=import',
         'POST',
@@ -213,17 +208,18 @@ if (import_count($database, 'Synthetic BAWAG line of organization 2%') !== 0) {
     fail_test('BAWAG line of organization 2 imported by organization 1');
 }
 
-$regexWarnings = 0;
-foreach ($GLOBALS['pgacc_test_diagnostics'] as $record) {
-    if ($record['known_failure'] === 'KF-IMPORT-REGEX-G') {
-        if ($record['file'] !== 'import.php' || strpos($record['message'], "Unknown modifier 'g'") === false) {
-            fail_test('unexpected diagnostic during the import: ' . $record['file'] . ':' . $record['line'] . ' ' . $record['message']);
-        }
-        $regexWarnings++;
-    }
-}
-if ($regexWarnings === 0) {
-    fail_test('KF-IMPORT-REGEX-G no longer occurs: turn it into a regular check');
+// A BAWAG line with a voucher ID (XY/123456789) imports without diagnostics
+// (the former known failure KF-IMPORT-REGEX-G: a voucher-ID check with an
+// invalid /g regex warned on every line and never ran; it was removed). The
+// same line again is skipped by the import.line check.
+$bawagId = "AT606000050110117300;Synthetic BAWAG voucher XY/123456789|BAWAATWW AT611904300234573201 Synthetic Spender;06.04.2024;06.04.2024;+7,00;EUR\n";
+$firstId = import_csv('bawag-id.csv', $bawagId, $adminCookies);
+assert_contains($firstId['body'], 'wurde erfolgreich importiert', 'BAWAG voucher ID import');
+assert_not_contains($firstId['body'], 'fehlgeschlagen', 'BAWAG voucher ID import');
+$againId = import_csv('bawag-id.csv', $bawagId, $adminCookies);
+assert_contains($againId['body'], 'wurde erfolgreich importiert', 'BAWAG voucher ID import again');
+if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
+    fail_test('BAWAG voucher ID import: expected one voucher after importing the same line twice');
 }
 
 pg_close($database);

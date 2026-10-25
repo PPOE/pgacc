@@ -37,12 +37,6 @@ parameters:
 			path: ../../import.php
 
 		-
-			message: '#^Regex pattern is invalid\: Unknown modifier ''g'' in pattern\: /\[A\-Z\]\{2\}\\/\\d\{9\}/g$#'
-			identifier: regexp.pattern
-			count: 1
-			path: ../../import.php
-
-		-
 			message: '#^Variable \$file_number might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
