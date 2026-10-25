@@ -3,18 +3,48 @@
 All notable changes to pgacc are documented in this file. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [2.0.0] - 2026-10-25
+
+First release for PHP 8.5 and PostgreSQL 18. PHP 5 and 7 are no longer
+supported; v1.0.0 (`php5-last`) is the last release for them. Read UPGRADING.md
+before upgrading.
+
+### Security
+
+- The member list is fetched from the membership system over HTTPS with
+  certificate verification; redirects are refused. The list is decrypted and
+  checked before the member table is replaced, in one transaction: a failed,
+  short or invalid response keeps the previous list.
 
 ### Changed
 
-- The PDF receipt import works on PHP 8.5: `smalot/pdfparser` 2.13.1
-  replaces 0.9.23 and TCPDF 6.2.6. A file that cannot be read as a PDF is
-  reported and skipped; the other files of the upload are still imported.
+- Requires PHP 8.5 and PostgreSQL 18 (tested only there). Every database call
+  passes the connection explicitly, so PHP 8.5 runs without deprecations.
+- The PDF receipt import works again (`smalot/pdfparser` 2.13.1 replaces
+  0.9.23 and TCPDF 6.2.6). A file that cannot be read as a PDF is reported and
+  skipped; the other files of the upload are still imported.
+- A member list with a malformed line or without any member is rejected
+  instead of being imported partly as member 0.
+- Saving an edited voucher whose values had to be corrected (missing date,
+  refund or purpose flags) still saves, then shows a note on the voucher page
+  instead of discarding the warning.
+- Amounts are always shown with cents, and table cells use tabular digits so
+  amounts line up ([#1](https://github.com/PPOE/pgacc/issues/1)).
+
+### Fixed
+
+- The CSV download link works on pages without a query string
+  ([#2](https://github.com/PPOE/pgacc/issues/2)).
+- A failed database connection shows "Verbindungsaufbau fehlgeschlagen"
+  instead of a PHP error; the report page's error handling used a function
+  that does not exist.
+- A never-working, production-only duplicate check in the bank import was
+  removed (identical lines are still skipped as before).
 
 ### Upgrade notes
 
-- The server's PHP needs the `iconv` and `zlib` extensions (see
-  UPGRADING.md).
+- Requires PHP 8.5 with `pgsql`, `iconv`, `zlib` and `openssl`, PostgreSQL 18,
+  and outgoing HTTPS to the membership system. Steps in UPGRADING.md.
 
 ## [1.0.0] - 2026-10-25 (php5-last)
 

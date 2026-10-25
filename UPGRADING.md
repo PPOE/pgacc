@@ -4,16 +4,32 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
-## Upgrade to the next release (unreleased)
+## Upgrade to 2.0.0
 
-Before deploying it on the new server (PHP 8.5, PostgreSQL 18):
+2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for
+PHP 5.3 and PostgreSQL 8.4.
 
-1. Check the PHP extensions. In the unpacked release directory run
-   `composer check-platform-reqs --no-dev` with the server's PHP (Composer
-   is needed only for this check, not to install). It must report `ext-iconv`
-   and `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5
-   as present. Without Composer, `php -m` must list `iconv`, `zlib` and
+1. Finish the 1.0.0 steps first (valid `$key`, receipt migration to
+   `<n>.v2.aes`; `--delete-legacy` may wait).
+2. Check the PHP extensions. In the unpacked release directory run
+   `composer check-platform-reqs --no-dev` with the target PHP (Composer is
+   needed only for this check, not to install). It must report `ext-iconv` and
+   `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5 as
+   present. Without Composer, `php -m` must list `iconv`, `zlib`, `openssl` and
    `pgsql`.
+3. Outgoing HTTPS to the membership system must work with a trusted CA bundle
+   (the member list is fetched over verified HTTPS).
+4. Upgrade the database to PostgreSQL 18 if needed: dump the `accounting`
+   database (preferably with the PostgreSQL 18 `pg_dump`) and restore it.
+   Keep `files/` and `constants.php` (with its `$key` and `$datakey`)
+   unchanged.
+5. Deploy the release archive and keep the web-server rules of the 1.0.0
+   steps (deny `files/`, `vendor/`, `tests/`, `constants.php`,
+   `migrate-receipt-key.php`, `check.php`, `composer.*`; no directory
+   listing; HTTPS).
+6. Check: log in, open a voucher with a receipt, download it, open the
+   member-fee page (member list fetch), and run a test bank or PDF import on
+   a copy if possible.
 
 ## Upgrade to 1.0.0
 
