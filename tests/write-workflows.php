@@ -1690,6 +1690,23 @@ $titleRow = database_row(
 assert_database_field($titleRow, 'name', 'Dr. Synthetisch Bernd', 'member voucher with a title');
 assert_database_field($titleRow, 'member_id', '9002', 'member voucher with a title');
 
+// A member part without a member number and without a name looks up no
+// member: the voucher is saved with member number 0.
+$noNameForm = voucher_form('Synthetic voucher of a member without a name', '-1.80', 0);
+$noNameForm['member0'] = '1';
+$noNameForm['name0'] = '';
+$noNameVoucher = http_request('/index.php?action=new', 'POST', $noNameForm, $adminCookies);
+assert_contains($noNameVoucher['body'], 'Buchung erfasst', 'member voucher without a name');
+$noNameRow = database_row(
+    $database,
+    'SELECT name, member, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member without a name'),
+    'member voucher without a name'
+);
+assert_database_field($noNameRow, 'name', '', 'member voucher without a name');
+assert_database_field($noNameRow, 'member', 't', 'member voucher without a name');
+assert_database_field($noNameRow, 'member_id', '0', 'member voucher without a name');
+
 // Array values ("bid0[]", "street0[]") are invalid input like other
 // malformed values: the defaults are saved.
 $arrayForm = voucher_form('Synthetic voucher with array values', '-1.70', 0);

@@ -118,12 +118,12 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
     if ($voucher['member'] == 'true') {
         getusers();
         if ($voucher['mitgliedsnummer'] == 0) {
+            $queries = [];
             if (strlen($voucher['name']) > 0) {
                 $n = $voucher['name'];
                 $n2 = trim(str_replace(['Mag.','DI (FH)','iur.','Dipl.-Ing.','Dr.','Ing.'], ['','','','','',''], $n));
                 $nt = explode(" ", $n, 2);
                 $nt2 = explode(" ", $n2, 2);
-                $queries = [];
                 $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n');";
                 if (count($nt) == 2)
                     $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt[1]} {$nt[0]}');";
