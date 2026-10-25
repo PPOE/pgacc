@@ -102,7 +102,7 @@ function page_import($rights)
                     continue;
                 }
                 $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
-                $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+                $result = db_query($dbconn, $query);
                 if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
                     continue;
                 }
@@ -233,12 +233,7 @@ function page_import($rights)
                     $skipped[] = $lineno;
                     continue;
                 }
-                $query = "SELECT nextval('voucher_number') AS num;";
-                $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-                while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-                    $voucher_number = $line['num'];
-                }
-                pg_free_result($result);
+                $voucher_number = db_next_value($dbconn, 'voucher_number');
                 $voucher['person_type'] = 1;
                 $voucher['member'] = 'false';
                 $voucher['mitgliedsnummer'] = 0;
@@ -267,7 +262,7 @@ function page_import($rights)
                     // strings, independent of standard_conforming_strings), and an empty
                     // name matches nothing.
                     $query = "SELECT * FROM ppmembers WHERE name <> '' AND '$csvline' ILIKE '%' || replace(replace(replace(name, E'\\\\', E'\\\\\\\\'), '%', E'\\\\%'), '_', E'\\\\_') || '%' ESCAPE E'\\\\'";
-                    if ($result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn))) {
+                    if ($result = db_query($dbconn, $query)) {
                         if (pg_num_rows($result) == 1) {
                             $line = pg_fetch_array($result, null, PGSQL_ASSOC);
                             $voucher['member'] = 'true';
@@ -304,7 +299,7 @@ function page_import($rights)
                     }
                     $found = false;
                     foreach ($queries as $query) {
-                        if ($result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn))) {
+                        if ($result = db_query($dbconn, $query)) {
                             if (pg_num_rows($result) == 1) {
                                 $line = pg_fetch_array($result, null, PGSQL_ASSOC);
                                 $voucher['member'] = 'true';
@@ -331,17 +326,11 @@ function page_import($rights)
                 //print_r($voucher);
 
                 $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher['date']}', {$voucher['type']},{$voucher['lo']},{$voucher['member']},{$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}','{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}','{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}','{$voucher['comment']}',{$voucher['purpose']},{$voucher['receipt']})";
-                $result = pg_query($dbconn, $query) or die('Abfrage (' . $query . ') fehlgeschlagen: ' . pg_last_error($dbconn));
-                while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-                }
-                pg_free_result($result);
+                db_exec($dbconn, $query, 'Abfrage (' . $query . ') fehlgeschlagen: ');
 
                 if ($dovoucher2) {
                     $query = "INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES ($voucher_number, '{$voucher2['date']}', {$voucher2['type']},{$voucher2['lo']},{$voucher2['member']},{$voucher2['mitgliedsnummer']},'{$voucher2['gegenkonto']}','{$voucher2['name']}','{$voucher2['street']}','{$voucher2['plz']}','{$voucher2['city']}',{$voucher2['amount']},'{$voucher2['konto']}','{$voucher2['comment']}',{$voucher2['purpose']},{$voucher2['receipt']})";
-                    $result = pg_query($dbconn, $query) or die('Abfrage (' . $query . ') fehlgeschlagen: ' . pg_last_error($dbconn));
-                    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-                    }
-                    pg_free_result($result);
+                    db_exec($dbconn, $query, 'Abfrage (' . $query . ') fehlgeschlagen: ');
                 }
 
                 $query = "INSERT INTO import (line) VALUES ('{$csvline}');";
@@ -367,6 +356,5 @@ function page_import($rights)
 </form>';
     block_end();
     $query = 'DROP TABLE IF EXISTS ppmembers;';
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    pg_free_result($result);
+    db_exec($dbconn, $query);
 }
