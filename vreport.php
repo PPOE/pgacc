@@ -112,7 +112,7 @@ function page_vreport($rights)
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         $k = $line2['vaccount'] ?? '';
         if ($rights == '' && is_numeric(str_replace([" ","AT"], ["",""], $k))) {
-            $k = substr($line2['vaccount'], -3, 3);
+            $k = substr($k, -3, 3);
         }
         echo "<li><a href=\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\">Konto '" . html_escape($k) . "'</a></li>";
     }

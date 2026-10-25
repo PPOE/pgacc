@@ -1636,11 +1636,13 @@ Recommendation (owner decision):
     syntax-only step opts in only by owner decision (`tests/README.md`,
     "Coverage").
   - [x] Step 2, PHP 8 functions and operators without a behaviour change
-    (branch `refactor/rector-php8-neutral`), with the pinned Rector rules
-    listed in `tests/rector/rector.php`: `str_contains()`,
+    (branch `refactor/rector-php8-neutral`), one Rector run reviewed per
+    site and not kept in `tests/rector/rector.php` (on other code these rules
+    also rewrite loose comparisons, `strpos()` with an offset and arguments
+    with side effects): `str_contains()`,
     `str_starts_with()`, `str_ends_with()`, `??`, `??=` (parameters), `catch`
     without an unused variable, unused extra arguments removed, `trim(...)`.
-    Each replacement is defined as the old expression for every input; the
+    At every rewritten site the new expression equals the old one; the
     strict gates and the reference comparison apply. Mutation targets were
     rewritten to the new spellings (same mutants). Left out because they
     change behaviour: `switch` -> `match` (strict comparison),
