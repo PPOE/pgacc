@@ -4,8 +4,14 @@ function fail($i,$optional = "")
   echo "Buchung $i FEHLT$optional<br />\n";
 }
 require("constants.php");
-$dbconn = pg_connect("dbname=accounting")
-  or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
+$dbconn = pg_connect("dbname=accounting");
+if ($dbconn === false)
+{
+  // No connection: pg_last_error() would throw; log the reason, show a fixed message.
+  $pgacc_connect_error = error_get_last();
+  error_log('pgacc: pg_connect failed: ' . ($pgacc_connect_error === null ? 'no error message' : $pgacc_connect_error['message']));
+  die('Verbindungsaufbau fehlgeschlagen');
+}
 
 $kto = 0;
 if (preg_match('/^[A-Z0-9 ]+$/i',$_GET['kto']) == 1) 

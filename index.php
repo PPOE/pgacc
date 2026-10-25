@@ -68,8 +68,14 @@ require("recover.php");
 require("file.php");
 require("statistics.php");
 require("vendor/autoload.php");
-$dbconn = pg_connect("dbname=accounting")
-  or die('Verbindungsaufbau fehlgeschlagen: ' . pg_last_error());
+$dbconn = pg_connect("dbname=accounting");
+if ($dbconn === false)
+{
+  // No connection: pg_last_error() would throw; log the reason, show a fixed message.
+  $pgacc_connect_error = error_get_last();
+  error_log('pgacc: pg_connect failed: ' . ($pgacc_connect_error === null ? 'no error message' : $pgacc_connect_error['message']));
+  die('Verbindungsaufbau fehlgeschlagen');
+}
 
 require("functions.php");
 

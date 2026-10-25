@@ -40,6 +40,7 @@ php tests/http-import.php || test_status=1
 php tests/http-receipts.php || test_status=1
 php tests/http-output-escaping.php || test_status=1
 php tests/http-csrf.php || test_status=1
+php tests/http-connect-failure.php || test_status=1
 
 if [ -n "$coverage_dir" ]; then
   XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir" \
