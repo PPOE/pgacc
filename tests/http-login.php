@@ -361,14 +361,15 @@ check('login of 23 hours ago authenticates', authenticated_as_problems(aged_sess
 check('login older than 24 hours rejected', not_authenticated_problems(aged_session_cookies(3, '25 hours')));
 
 // The login form always posts a target field, empty unless the login page was
-// opened with ?target=. An empty target is used as is: "Location:" is empty.
+// opened with ?target=. An empty target redirects to index.php (not an empty
+// "Location:", which browsers show as a blank page).
 $emptyTargetLogin = http_request('/index.php?action=login', 'POST', array(
     'submit' => 'Anmeldung',
     'name' => 'synthetic-admin',
     'pass' => 'correct-password',
     'target' => '',
 ));
-check('valid login with empty target', login_response_problems($emptyTargetLogin, '', 1));
+check('valid login with empty target', login_response_problems($emptyTargetLogin, 'index.php', 1));
 
 // Already logged in: the login page only reports success, posted credentials
 // are not used, and a posted target redirects.
@@ -387,13 +388,14 @@ if ($loggedIn['status'] !== 200 || response_header($loggedIn, 'Location') !== nu
 check('login page when already logged in', $loggedInProblems);
 if (isset($adminCookies['pp_pgacc_login']) && isset($adminCookies['pp_pgacc_id'])) {
     check('login page when already logged in, with target', logged_in_target_problems($adminCookies, $target));
+    check('login page when already logged in, with empty target', logged_in_target_problems($adminCookies, '', null, 'index.php'));
 } else {
     check('login page when already logged in, with target', array('no login cookies to test with'));
 }
 
-// Login targets must be pages of this application: empty (the form's
-// default), index.php with an optional query, or an absolute path (the
-// targets of checklogin()). Anything else (other hosts, schemes, "//",
+// Login targets must be pages of this application: index.php with an
+// optional query, or an absolute path (the targets of checklogin()).
+// Anything else (an empty target, other hosts, schemes, "//",
 // backslashes, control characters, line breaks that would add headers,
 // spaces) redirects to index.php instead, after a login and when already
 // logged in.

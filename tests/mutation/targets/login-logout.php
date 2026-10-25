@@ -476,6 +476,16 @@ return array(
             'rationale' => 'The form carries the target of the login redirect, so the login returns to that page.',
         ),
 
+        // login_target_allowed() in functions.php: the login form's empty target.
+        array(
+            'id' => 'login-empty-target-allowed',
+            'file' => 'functions.php',
+            'search' => "\\x7e]*)?)\$/D', \$target)",
+            'replace' => "\\x7e]*)?)?\$/D', \$target)",
+            'rationale' => 'The empty target of the login form redirects to index.php, not to an empty '
+                . 'Location (a blank page).',
+        ),
+
         // page_new_buchung() in new.php, compiled on every request.
         array(
             'id' => 'page-new-buchung-default-restored',
