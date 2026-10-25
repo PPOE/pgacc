@@ -8,6 +8,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Logged-in users see the donor lists without the arithmetic check.
+- The virtual-account chart uses Chart.js; jQuery and Flot are removed.
 
 ### Fixed
 

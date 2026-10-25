@@ -1,4 +1,5 @@
 <?php
+
 function v_graph($konto, $date_begin, $date_end)
 {
     global $dbconn;
@@ -6,9 +7,8 @@ function v_graph($konto, $date_begin, $date_end)
         return;
     }
 
-    echo '<script src="js/jquery-1.11.0.min.js"></script>' . "\n";
-    echo '<script src="js/jquery.flot.js"></script>' . "\n";
-    echo '<script src="js/jquery.flot.time.js"></script>' . "\n";
+    echo '<script src="js/chart.umd.min.js"></script>' . "\n";
+    echo '<script src="js/vreport-chart.js"></script>' . "\n";
 
     $cond = " AND vaccount LIKE '$konto%' ";
     if (strpos($konto, ",") !== false) {
@@ -24,64 +24,11 @@ function v_graph($konto, $date_begin, $date_end)
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     //$array = pg_fetch_all($result);
     $array = [];
-    $min = 0;
     while ($line = pg_fetch_array($result)) {
         $array[] = [$line['timestamp'], $line['runningtotal']];
-        $min = $line['runningtotal'] < $min ? $line['runningtotal'] : $min;
     }
-    echo '<script>var values = ' . json_encode($array) . ';</script>' . "\n";
-    echo '<div id="graph" style="width: 100%; height: 400px;"></div>';
-    ?>
-    <script>
-      var previousPoint = null;
-      $("#graph").bind("plothover", function(event, pos, item) {
-        if (item) {
-	  if (previousPoint == item.dataIndex) {
-            return;
-          }
-          previousPoint = item.dataIndex;
-          $('#tooltip').remove();
-          var date = new Date(item.datapoint[0]);
-          var dateformatted = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear();
-	  var value = item.datapoint[1].toFixed(2) + '€';
-          $('<div id="tooltip">' + dateformatted + ': ' + value + '</div>').css({
-            position: 'absolute',
-            top: item.pageY + 20,
-            left: item.pageX - 60,
-            display: 'none',
-            padding: 8,
-            'background-color': 'rgba(255, 255, 255, 0.8)'
-          }).appendTo("body").fadeIn(400);
-        } else {
-          $('#tooltip').remove();
-          previousPoint = null;
-        }
-      });
-
-      $.plot(
-        "#graph",
-        [values], {
-          series: {
-            lines: {
-              show: true,
-              steps: true
-            },
-            points: {
-              show: true
-            }
-          },
-          grid: {hoverable: true, clickable: true},
-          xaxis: {
-            mode: "time", 
-            timeformat: "%d.%m.%Y"
-          },
-          yaxis: {
-            min: <?php echo $min * 1.1; ?>
-          }
-        }
-      );
-    </script>
-  <?php
+    echo '<script type="application/json" id="graph-data">' . json_encode($array, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>' . "\n";
+    echo '<div id="graph" style="position: relative; width: 100%; height: 400px;"><canvas id="graph-canvas"></canvas></div>';
 }
 
 function v_report($konto, $date_begin, $date_end)

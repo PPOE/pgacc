@@ -125,6 +125,43 @@ foreach (array('vreport' => 'TEST-VIRTUAL', 'tinyreport' => 'TEST-ACCOUNT') as $
     assert_contains($body, "<tr><td><b>Summe</b></td><td>-90.00&nbsp;€</td></tr>", "$action $konto expense sum");
 }
 
+// The virtual-account chart (js/vreport-chart.js, Chart.js): no inline
+// script, only the two script files and the points (timestamp in ms, running
+// total) as a JSON data element. TEST-VIRTUAL-1% also matches TEST-VIRTUAL-10.
+$chart = page_view('/index.php?action=vreport&konto=TEST-VIRTUAL-1', array(), 'anonymous')['body'];
+preg_match_all('/<script\b([^>]*)>/i', $chart, $scripts);
+foreach ($scripts[1] as $attributes) {
+    if (strpos($attributes, ' src="') === false && $attributes !== ' type="application/json" id="graph-data"') {
+        fail_test("vreport chart: inline script <script$attributes>");
+    }
+}
+assert_contains($chart, "<script src=\"js/chart.umd.min.js\"></script>\n<script src=\"js/vreport-chart.js\"></script>\n", 'vreport chart scripts');
+assert_contains($chart, '<div id="graph" style="position: relative; width: 100%; height: 400px;"><canvas id="graph-canvas"></canvas></div>', 'vreport chart canvas');
+assert_not_contains($chart, 'jquery', 'vreport chart without jQuery');
+if (preg_match('#<script type="application/json" id="graph-data">(.*?)</script>#s', $chart, $graphData) !== 1) {
+    fail_test('vreport chart: no graph-data element');
+}
+$points = array(
+    array('1325289600000.000000', '50.0000000000000000'),  // 2011-12-31
+    array('1706745600000.000000', '170.0000000000000000'), // 2024-02-01
+    array('1709251200000.000000', '200.0000000000000000'), // 2024-03-01
+    array('1719792000000.000000', '200.0000000000000000'), // 2024-07-01
+    array('1722470400000.000000', '210.0000000000000000'), // 2024-08-01
+    array('1735689600000.000000', '235.0000000000000000'), // 2025-01-01
+);
+if (json_decode($graphData[1], true) !== $points) {
+    fail_test("vreport chart: unexpected points {$graphData[1]}");
+}
+// The web server serves both files as they are (static files bypass the
+// diagnostics recorder, so they are read here instead of requested).
+foreach (array('js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js' => "'graph-data'") as $script => $marker) {
+    $content = @file_get_contents(__DIR__ . '/../' . $script);
+    if ($content === false) {
+        fail_test("$script is missing");
+    }
+    assert_contains($content, $marker, $script);
+}
+
 // The listing and report filters of the links of the campaign report
 // (kdonations: type, unit, from, to) and of the account reports (several
 // comma-separated accounts, date_begin, date_end).

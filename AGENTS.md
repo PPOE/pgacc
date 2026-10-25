@@ -85,7 +85,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   (`sh scripts/format.sh --check --ci`). Never change inline HTML or string contents to satisfy the formatter.
 - Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the reference recordings
   and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php85/`, `icons/`,
-  `js/`, `jquery.fileupload.js`) are byte-exact (`-text`): never convert them.
+  vendored `js/` files) are byte-exact (`-text`): never convert them.
 - Token-changing modernization (array syntax, `elseif`, visibility, closing tags, imports) is a separate,
   planned change: don't mix it into fixes. The changed-line gates are strict (every changed line counts);
   `tests/coverage/ast-equivalence.sh` and `token-equivalence.sh` are standalone review tools. Exempting
