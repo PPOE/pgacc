@@ -35,7 +35,7 @@
 /.claude export-ignore
 /.githooks export-ignore
 
-# Ad-hoc voucher-number check without login; production's web server denies it.
+# Command-line voucher-number check (php check.php <account> <max>).
 /check.php export-ignore
 
 # The database schema referenced by the README setup stays in. Directories

@@ -559,21 +559,6 @@ foreach ($cleanup as $query) {
     }
 }
 
-// check.php: the voucher-number check of a cash account ("Handkassa"
-// comments "Nr.<n>.").
-$check = @pg_query($database, "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
-    VALUES (9140, 4770, 20, 2, false, -100, 'Handkassa SYNTH', 'Synthetic cash Nr.2.', timestamp '2024-09-15 00:00:00', 1, 0, '')");
-if ($check === false) {
-    fail_test('inserting the cash voucher failed: ' . pg_last_error($database));
-}
-$checkPage = http_request('/check.php?kto=Handkassa%20SYNTH&max=3');
-assert_status($checkPage, 200, 'check.php for a cash account');
-assert_contains($checkPage['body'], 'Habe 1 von 1 Buchungen gefunden.<br /><br />', 'check.php for a cash account');
-assert_contains($checkPage['body'], "Buchung 2 OK<br />\nBuchung 3 FEHLT (0 results)<br />\n", 'check.php for a cash account');
-if (@pg_query($database, 'DELETE FROM vouchers WHERE id = 9140') === false) {
-    fail_test('removing the cash voucher failed: ' . pg_last_error($database));
-}
-
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Bank import tests passed\n";

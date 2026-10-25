@@ -1,6 +1,6 @@
 php_value short_open_tag 1
-# Command-line only (it also answers 404 to web requests).
-<Files "migrate-receipt-key.php">
+# Command-line only (they also answer 404 to web requests).
+<FilesMatch "^(migrate-receipt-key|check)\.php$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
@@ -8,4 +8,4 @@ php_value short_open_tag 1
     Order allow,deny
     Deny from all
   </IfModule>
-</Files>
+</FilesMatch>

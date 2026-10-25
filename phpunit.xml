@@ -26,6 +26,7 @@
       <file>tests/unit/ReceiptStorageTest.php</file>
       <file>tests/unit/ReceiptMigrationTest.php</file>
       <file>tests/unit/ReceiptMigrationCommandTest.php</file>
+      <file>tests/unit/CheckCommandTest.php</file>
       <file>tests/unit/ShortOpenTagTest.php</file>
       <file>tests/unit/UnusedOutputTest.php</file>
       <file>tests/unit/AmountParsingTest.php</file>
@@ -38,6 +39,7 @@
   </coverage>
   <source>
     <include>
+      <file>check.php</file>
       <file>functions.php</file>
       <file>getusers.php</file>
       <file>donations.php</file>

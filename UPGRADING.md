@@ -68,7 +68,9 @@ PHP 5.3 and PostgreSQL 8.4.
 5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`,
    `constants.php`, `migrate-receipt-key.php`, `check.php` and
    `composer.json`/`composer.lock`, and to disable directory listings.
-   `.htaccess` covers only `migrate-receipt-key.php` on Apache. Lighttpd
+   `migrate-receipt-key.php` and `check.php` run only on the command line
+   and answer 404 over HTTP; on Apache, `.htaccess` denies only these two.
+   Lighttpd
    (adjust the prefix if pgacc is not at the document root):
 
    ```
