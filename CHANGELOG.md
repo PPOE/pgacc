@@ -5,9 +5,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2.0.0] - 2026-10-25
 
-First release for PHP 8.5 and PostgreSQL 18, meant for the new server. PHP 5
-and 7 are no longer supported; the old server keeps v1.0.0 (`php5-last`) until
-the move. Read UPGRADING.md before moving.
+First release for PHP 8.5 and PostgreSQL 18. PHP 5 and 7 are no longer
+supported; v1.0.0 (`php5-last`) is the last release for them. Read UPGRADING.md
+before upgrading.
 
 ### Security
 
@@ -43,9 +43,8 @@ the move. Read UPGRADING.md before moving.
 
 ### Upgrade notes
 
-- New server: PHP 8.5 with `pgsql`, `iconv`, `zlib` and `openssl`, and
-  PostgreSQL 18; outgoing HTTPS to the membership system. Steps in
-  UPGRADING.md.
+- Requires PHP 8.5 with `pgsql`, `iconv`, `zlib` and `openssl`, PostgreSQL 18,
+  and outgoing HTTPS to the membership system. Steps in UPGRADING.md.
 
 ## [1.0.0] - 2026-10-25 (php5-last)
 
