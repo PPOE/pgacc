@@ -304,4 +304,28 @@ final class ReceiptImportTest extends FunctionsTestCase
             self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
         }
     }
+
+    // An upload error reports the file and imports nothing. Browsers send no
+    // type with an upload error (PHP then reports an empty type, refused
+    // first), so only a constructed upload reaches it.
+    public function testUploadErrorIsReported()
+    {
+        $_FILES = array('upload' => array(
+            'name' => array('<i>a&b</i>.pdf'),
+            'type' => array('application/pdf'),
+            'tmp_name' => array(''),
+            'error' => array(UPLOAD_ERR_PARTIAL),
+            'size' => array(100),
+        ));
+        ob_start();
+        try {
+            page_import2_process('2');
+        } finally {
+            $output = ob_get_clean();
+            $_FILES = array();
+        }
+        self::assertStringContainsString('Datei 1 (&lt;i&gt;a&amp;b&lt;/i&gt;.pdf):<br />'
+            . 'Wurde nicht erfolgreich hochgeladen und konnte daher nicht importiert werden.<br />', $output);
+        self::assertStringNotContainsString('gefunden', $output);
+    }
 }

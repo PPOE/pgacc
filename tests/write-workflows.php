@@ -1607,6 +1607,101 @@ assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'membe
 
 // Password/session regressions run independently in http-session-lifecycle.php.
 
+// The account form's empty row with the unchanged password placeholder
+// creates no user.
+$userCount = database_row($database, 'SELECT COUNT(*) AS count FROM users', array(), 'users before an empty account row');
+$emptyAccount = http_request('/index.php?action=accounts', 'POST', array('submit' => 'Benutzer -1 erstellen',
+    'name-1' => 'synthetic-placeholder-user', 'password-1' => '******', 'rights-1' => '1'), $adminCookies);
+assert_status($emptyAccount, 200, 'account row with the password placeholder');
+assert_contains($emptyAccount['body'], '<h1>Benutzerverwaltung:</h1>', 'account row with the password placeholder');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM users', array(), $userCount['count'], 'users after an empty account row');
+
+// Recovery and merge need both IDs.
+$recoveryWithoutRow = http_request('/index.php?action=recover&id=1004', 'GET', array(), $adminCookies);
+assert_contains($recoveryWithoutRow['body'], '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div>', 'recovery without bid');
+assert_not_contains($recoveryWithoutRow['body'], 'action=recover&amp;id=', 'recovery without bid');
+$mergeWithoutSecond = http_request('/index.php?action=merge', 'POST', array('bid1' => '1004'), $adminCookies);
+assert_status($mergeWithoutSecond, 200, 'merge without bid2');
+assert_contains($mergeWithoutSecond['body'], '<div class="slot_error" id="slot_error">FEHLER: Buchungen nicht gefunden.</div>', 'merge without bid2');
+
+// The voucher page of a voucher whose first row is a "Beleg" row (type 45):
+// the first row cannot be a Beleg row and is shown as income.
+foreach (array(
+    "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+     VALUES (9160, 4790, 45, 2, false, 0, 'TEST-ACCOUNT-2', 'Synthetic Beleg row', timestamp '2024-09-15 00:00:00', 1, 0, '')",
+    "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+     VALUES (9161, 4791, 20, 2, false, -100, 'TEST-ACCOUNT-2', 'Synthetic first of two rows', timestamp '2024-09-15 00:00:00', 1, 0, ''),
+            (9162, 4791, 20, 2, false, -200, 'TEST-ACCOUNT-2', 'Synthetic second of two rows', timestamp '2024-09-15 00:00:00', 1, 0, '')",
+) as $query) {
+    if (@pg_query($database, $query) === false) {
+        fail_test('inserting synthetic edit vouchers failed: ' . pg_last_error($database));
+    }
+}
+$belegPage = http_request('/index.php?action=edit&id=4790', 'GET', array(), $adminCookies);
+assert_status($belegPage, 200, 'voucher page of a Beleg row');
+assert_contains($belegPage['body'], '<h3>Buchungszeile 9160</h3>', 'voucher page of a Beleg row');
+assert_contains($belegPage['body'], '<option value="in" selected>Einnahme</option>', 'voucher page of a Beleg row');
+assert_not_contains($belegPage['body'], '<option value="bel"', 'voucher page of a Beleg row');
+
+// Removing a row before it is changed shows the stored rows after it.
+$removed = http_request('/index.php?action=edit&id=4791', 'POST', array('id' => '4791', 'parts' => '2', 'remove' => '0'), $adminCookies);
+assert_status($removed, 200, 'voucher page with a removed row');
+assert_contains($removed['body'], '<h3>Buchungszeile 9162</h3>', 'voucher page with a removed row');
+assert_not_contains($removed['body'], '<h3>Buchungszeile 9161</h3>', 'voucher page with a removed row');
+assert_contains($removed['body'], 'value="Synthetic second of two rows"', 'voucher page with a removed row');
+
+// "Beleg hinzufügen" (addB) adds an empty Beleg row, on the voucher page and
+// on the creation page.
+$addBelegForm = revision_form('4791', 'Synthetic first of two rows', '-1.00');
+unset($addBelegForm['speichern']);
+$addBelegForm['addB'] = '1';
+$addBeleg = http_request('/index.php?action=edit&id=4791', 'POST', $addBelegForm, $adminCookies);
+assert_status($addBeleg, 200, 'voucher page with an added Beleg row');
+assert_contains($addBeleg['body'], '<h3>Neue Buchungszeile</h3>', 'voucher page with an added Beleg row');
+assert_contains($addBeleg['body'], '<option value="bel" selected>Beleg</option>', 'voucher page with an added Beleg row');
+$newBelegForm = voucher_form('Synthetic creation with a Beleg row', '-1.00', 0);
+unset($newBelegForm['speichern']);
+$newBelegForm['addB'] = '1';
+$newBeleg = http_request('/index.php?action=new', 'POST', $newBelegForm, $adminCookies);
+assert_status($newBeleg, 200, 'creation page with an added Beleg row');
+assert_contains($newBeleg['body'], '<input value="2" type="hidden" id="parts" name="parts" />', 'creation page with an added Beleg row');
+assert_contains($newBeleg['body'], '<option value="bel" selected>Beleg</option>', 'creation page with an added Beleg row');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic creation with a Beleg row'), 0, 'creation page with an added Beleg row');
+
+// A receipt upload ("PDF Hochladen") without a file is refused.
+$noFile = edit_request('4791', array('fileupload' => 'PDF Hochladen (OHNE SPEICHERN)', 'bid0' => '9161'), $adminCookies);
+assert_status($noFile, 200, 'receipt upload without a file');
+assert_contains($noFile['body'], '<div class="slot_error" id="slot_error">FEHLER: Datei Upload fehlgeschlagen.</div>', 'receipt upload without a file');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = 4791 AND file = 0', array(), 2, 'receipt upload without a file');
+
+// Without a member number the member is also looked up without academic
+// titles ("Dr. Synthetisch Bernd" is member 9002).
+$titleForm = voucher_form('Synthetic voucher of a member with a title', '-1.90', 0);
+$titleForm['member0'] = '1';
+$titleForm['name0'] = 'Dr. Synthetisch Bernd';
+$titleVoucher = http_request('/index.php?action=new', 'POST', $titleForm, $adminCookies);
+assert_contains($titleVoucher['body'], 'Buchung erfasst', 'member voucher with a title');
+$titleRow = database_row(
+    $database,
+    'SELECT name, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member with a title'),
+    'member voucher with a title'
+);
+assert_database_field($titleRow, 'name', 'Dr. Synthetisch Bernd', 'member voucher with a title');
+assert_database_field($titleRow, 'member_id', '9002', 'member voucher with a title');
+
+// "ack" on the creation form calls page_new_ack(), which is defined nowhere
+// (known failure, tests/COMPATIBILITY_PLAN.md): a fatal error, nothing saved.
+$newAckForm = voucher_form('Synthetic creation with ack', '-1.00', 0);
+unset($newAckForm['speichern']);
+$newAckForm['ack'] = '1';
+$newAck = with_expected_diagnostics('KF-NEW-ACK-UNDEFINED-FUNCTION', array(array('index.php', 'page_new_ack()')), function () use ($newAckForm, $adminCookies) {
+    return http_request('/index.php?action=new', 'POST', $newAckForm, $adminCookies);
+});
+assert_status($newAck, 200, 'ack on the creation form');
+assert_not_contains($newAck['body'], 'Buchung erfasst', 'ack on the creation form');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic creation with ack'), 0, 'ack on the creation form');
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Voucher write-workflow characterization tests passed\n";

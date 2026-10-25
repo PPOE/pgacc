@@ -331,6 +331,101 @@ if (@pg_query($database, 'DROP VIEW ppmembers') === false) {
     fail_test('dropping the ppmembers view failed: ' . pg_last_error($database));
 }
 
+// The BAWAG fixtures: every known account (organizations 2-10), an
+// ISO-8859-15 file (converted to UTF-8, application/vnd.ms-excel), the
+// contra account and name taken from the comment's second line, membership
+// fees ("MB", "Mitgliedsbeitrag") and names with academic titles. The
+// imported rows are removed again, so that the later scripts see the same
+// data.
+function import_single_value($database, $query)
+{
+    $result = @pg_query($database, $query);
+    if ($result === false) {
+        fail_test('query failed: ' . pg_last_error($database));
+    }
+    $rows = pg_fetch_all_columns($result, 0);
+    pg_free_result($result);
+    return $rows;
+}
+
+// vouchers.id has no unique constraint (the sequence can repeat fixture
+// IDs): the imported rows are those written after this transaction ID.
+$importStart = import_single_value($database, 'SELECT txid_current()')[0];
+$importLines = import_single_value($database, 'SELECT line FROM import');
+$latin9 = http_request(
+    '/index.php?action=import',
+    'POST',
+    array('MAX_FILE_SIZE' => '1000000'),
+    $adminCookies,
+    null,
+    array(
+        'uploadcsv[0]' => array('name' => '', 'type' => 'text/csv', 'content' => ''),
+        'uploadcsv[1]' => array('name' => 'bawag-latin9.csv', 'type' => 'application/vnd.ms-excel',
+            'content' => file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-latin9.csv')),
+    )
+);
+assert_status($latin9, 200, 'BAWAG ISO-8859-15 fixture');
+assert_contains($latin9['body'], "<table>\n<h2>Importiere bawag-latin9.csv</h2>\n", 'BAWAG ISO-8859-15 fixture');
+assert_contains($latin9['body'], 'Datei 2 (bawag-latin9.csv) wurde erfolgreich importiert', 'BAWAG ISO-8859-15 fixture');
+$bawagFixture = import_csv('bawag.csv', file_get_contents(__DIR__ . '/reference/fixtures/import/bawag.csv'), $adminCookies);
+assert_contains($bawagFixture['body'], 'Datei 1 (bawag.csv) wurde erfolgreich importiert', 'BAWAG fixture');
+assert_not_contains($bawagFixture['body'], 'Ungültige Buchungszeile', 'BAWAG fixture');
+// A second comment line "<name> <x> <text>" gives the name and the contra
+// account "<x> <text>".
+$bawagName = import_csv('bawag-name.csv', "AT606000050110117300;Synthetic transfer|Synthetic Sender a Zahlung;14.01.2024;14.01.2024;+6,00;EUR\n", $adminCookies);
+assert_contains($bawagName['body'], 'Datei 1 (bawag-name.csv) wurde erfolgreich importiert', 'BAWAG name before the contra account');
+$importedRows = 'FROM vouchers WHERE xmin::text::bigint > $1';
+$imported = @pg_query_params($database, "SELECT orga, type, member, contra_account, name, amount $importedRows ORDER BY id, comment", array($importStart));
+$summary = array();
+foreach ($imported === false ? array() : pg_fetch_all($imported) as $row) {
+    $summary[] = implode('|', array($row['orga'], $row['type'], $row['member'], $row['contra_account'], $row['name'], $row['amount']));
+}
+// The two lines of the ISO-8859-15 file come first; bawag.csv repeats them
+// at its end, and they are skipped there (import.line).
+$expected = array(
+    '6|8|f|BAWAATWW AT666666666666666666|Jörg Österreicher|1234',
+    '6|28|t|BAWAATWW AT777777777777777777|Zoë Synthetisch|-500',
+    '2|8|f|BAWAATWW AT611904300234573201|Synthetic Spender|5000',
+    '2|1|t|OPSKATWW AT111111111111111111|Testa Mitglied|2400',
+    '2|28|f|BAWAATWW AT222222222222222222|Synthetic Lieferant GmbH|-123456',
+    '10|1|t|||2000',
+    '3|1|t|BAWAATWW AT444444444444444444|Dr. Gerlinde Titelträgerin|1500',
+    '4|14|f|||5',
+    '5|1|t|12345 67890|Maria Synthetisch|100000000',
+    '6|8|f|BAWAATWW AT555555555555555555|Synthetic O\'Quote|10',
+    '8|28|f|||-1',
+    '9|1|t||Synthetica|300',
+    '2|14|f|||400',
+    '2|8|f|a Zahlung|Synthetic Sender|600',
+);
+if ($summary !== $expected) {
+    fail_test('BAWAG fixture rows: ' . var_export($summary, true));
+}
+$cleanup = array(array("DELETE $importedRows", array($importStart)));
+foreach (array_diff(import_single_value($database, 'SELECT line FROM import'), $importLines) as $line) {
+    $cleanup[] = array('DELETE FROM import WHERE line = $1', array($line));
+}
+foreach ($cleanup as $query) {
+    if (@pg_query_params($database, $query[0], $query[1]) === false) {
+        fail_test('removing the BAWAG fixture rows failed: ' . pg_last_error($database));
+    }
+}
+
+// check.php: the voucher-number check of a cash account ("Handkassa"
+// comments "Nr.<n>.").
+$check = @pg_query($database, "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+    VALUES (9140, 4770, 20, 2, false, -100, 'Handkassa SYNTH', 'Synthetic cash Nr.2.', timestamp '2024-09-15 00:00:00', 1, 0, '')");
+if ($check === false) {
+    fail_test('inserting the cash voucher failed: ' . pg_last_error($database));
+}
+$checkPage = http_request('/check.php?kto=Handkassa%20SYNTH&max=3');
+assert_status($checkPage, 200, 'check.php for a cash account');
+assert_contains($checkPage['body'], 'Habe 1 von 1 Buchungen gefunden.<br /><br />', 'check.php for a cash account');
+assert_contains($checkPage['body'], "Buchung 2 OK<br />\nBuchung 3 FEHLT (0 results)<br />\n", 'check.php for a cash account');
+if (@pg_query($database, 'DELETE FROM vouchers WHERE id = 9140') === false) {
+    fail_test('removing the cash voucher failed: ' . pg_last_error($database));
+}
+
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Bank import tests passed\n";

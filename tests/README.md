@@ -92,7 +92,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
   user and anonymously. Any PHP diagnostic, fatal error or HTTP status other
   than 200 or a redirect fails; the account reports must show both tables.
   `?action=transfer` and `?action=closed` are attributed to the known failures
-  `KF-TRANSFER-UNDEFINED-FUNCTION` and `KF-CLOSED-MISSING-COLUMNS`.
+  `KF-TRANSFER-UNDEFINED-FUNCTION` and `KF-CLOSED-MISSING-COLUMNS`. Also the
+  listing and account-report filters, a numeric virtual account for
+  visitors, an organization balance in the report, an unknown action, the
+  https redirect and `?year=2024-1` (known failure `KF-REPORT-YEAR-SUFFIX`).
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line
@@ -345,6 +348,19 @@ not covered.
 
 Coverage is measured on the PHP 8.5 lane. A covered line ran; mutation testing
 checks that its result was asserted.
+
+### Per-file line coverage floor
+
+After the merge, `tests/coverage/check-file-floor.php build/coverage/clover.xml`
+fails the lane if any application file has less than 95% line coverage (the
+Clover `statements` of each file, as in `summary.txt`). Branches are not
+checked. Files that cannot reach 95% because of documented unreachable lines
+are listed in `tests/coverage/file-floor-exceptions.php` with their current
+coverage as a lower floor and the reason; every entry is reviewed. An exception
+whose file reaches 95% fails too, so that it is removed (a ratchet). Raise
+coverage with characterization tests of reachable lines; dead code and
+impossible conditions get no contrived test. The check also runs on its own
+(PHP with SimpleXML) on a downloaded `coverage-php85` report.
 
 ### Proving coverage of changed lines
 

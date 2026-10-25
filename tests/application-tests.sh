@@ -46,6 +46,8 @@ php tests/http-connect-failure.php || test_status=1
 if [ -n "$coverage_dir" ]; then
   XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir" \
     || test_status=1
+  # Per-file line coverage floor (tests/README.md, "Coverage").
+  php tests/coverage/check-file-floor.php "$report_dir/clover.xml" || test_status=1
   if [ -f "$report_dir/changed-lines.txt" ]; then
     set -- "$report_dir/clover.xml" "$report_dir/changed-lines.txt"
     if [ -f "$report_dir/uncovered-branches.txt" ]; then

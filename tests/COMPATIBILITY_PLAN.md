@@ -93,6 +93,17 @@ Found while covering the changed lines (owner decisions, not fixed):
   warnings, and those cells stay empty in the closed listing. Fix: add the
   three columns to the query (changes the listing's output).
   `http-output-escaping.php` attributes the warnings to the KF id.
+- [ ] Known failure `KF-NEW-ACK-UNDEFINED-FUNCTION` (found while raising
+  per-file coverage): a POST with `ack` to `?action=new` calls
+  `page_new_ack()`, which is defined nowhere (see the "Undefined functions"
+  finding): a fatal error, nothing is saved. `write-workflows.php` attributes
+  it to the KF id. Fix: remove the dispatch branch or show the form (owner).
+- [ ] Known failure `KF-REPORT-YEAR-SUFFIX` (same): `index.php` accepts
+  `?year=2024-1` and passes the string to `page_report()`, whose arithmetic
+  (`$year - 1`) warns "A non-numeric value encountered" on PHP 8 and uses
+  2024. `http-page-views.php` attributes it to the KF id. Fix: drop the
+  variant or parse it (owner; the PHP 5 recording `report-year-variant-anon`
+  pins its output).
 - [x] Plain page views (`tests/http-page-views.php`, every dispatched page
   and menu link without parameters): `?action=import`/`import2` died with a
   `count(null)` `TypeError`; `search` without `member`, `donations` and
