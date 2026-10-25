@@ -1,0 +1,40 @@
+# step: all-sort-commentd
+# request: GET /index.php?action=all&format=csv&sort=commentd as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (6845 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+2012	212	2024-10-01	Synthetic in-kind donation	Synthetic Regional Unit	Nein	BG/123456789 12	TEST-ACCOUNT-2	TEST-VIRTUAL-2	99,99€	Sachspende Österreich / zweite Zeile BG/123456789 12	Kommentar <b>GF</b>	Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Jörg "Quote" O'Brien Gasse 2 8010 Graz	
+1007	108	2011-12-31	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-008	TEST-ACCOUNT-1	TEST-VIRTUAL-1	50,00€	Voucher before public transaction cutoff		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2005	205	2012-03-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-205	TEST-ACCOUNT-1	TEST-VIRTUAL-1	3,33€	Year 2012 a		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor 2012   	
+2006	206	2012-03-02	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-206	TEST-ACCOUNT-1	TEST-VIRTUAL-1	6,67€	Year 2012 b		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Donor 2012   	
+2008	208	2012-10-15	Synthetic expense	Synthetic Piratenpartei Six	Nein	SYNTHETIC-208	TEST-ACCOUNT-6	TEST-VIRTUAL-6	-1234,56€	Plakate Graz		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Campaign Printer   	
+2009	209	2012-11-01	Synthetic donation	Synthetic Piratenpartei Six	Nein	SYNTHETIC-209	TEST-ACCOUNT-6	TEST-VIRTUAL-6	500,05€	Wahlkampfspende		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Campaign Donor   	
+2007	207	2012-12-31	Synthetic expense	Synthetic National Unit	Nein	SYNTHETIC-207	TEST-ACCOUNT-1	TEST-VIRTUAL-1	-0,01€	Year 2012 c		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier 2012   	
+2010	210	2013-07-01	Synthetic legacy expense	Synthetic Federal Unit	Nein	SYNTHETIC-210	TEST-ACCOUNT-10	TEST-VIRTUAL-10	-21474836,47€	NRW 2013 int4 limit		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Agency   	
+2011	211	2013-08-01	Synthetic in-kind donation	Synthetic Piratenpartei Six	Nein	SYNTHETIC-211	TEST-ACCOUNT-6	TEST-VIRTUAL-6	21474836,47€	NRW 2013 Sachspende		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic In-Kind Donor   	
+1001	101	2024-02-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-001	TEST-ACCOUNT-1	TEST-VIRTUAL-1	120,00€	Closed donation		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+1002	102	2024-03-01	Synthetic legacy donation	Synthetic National Unit	Nein	SYNTHETIC-002	TEST-ACCOUNT-1	TEST-VIRTUAL-1	30,00€	Partially reviewed legacy donation		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2020	220	2024-03-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-220	AT606000050110117300		-12,34€	Lastschrift BG/000000220		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Statement Supplier   	
+2021	221	2024-03-31	Synthetic bank charges	Synthetic Regional Unit	Nein		AT606000050110117300		-0,50€	Zinsen BG/000000221		Ja	 	<del></del> <del></del>	Nein	Nein	Bank   	
+2014	214	2024-03-31	Synthetic bank charges	Synthetic Regional Unit	Nein		TEST-ACCOUNT-2	TEST-VIRTUAL-2	-7,50€	Entgelt für Kontoführung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Bank   	
+1003	103	2024-04-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-003	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-50,00€	Closed expense with attachment		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Ja	Synthetic Supplier   	
+1003	104	2024-04-01	Synthetic legacy expense	Synthetic Regional Unit	Nein	SYNTHETIC-004	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-15,00€	Second row of attached voucher		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier   	
+1004	105	2024-05-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-005	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-25,00€	Unreviewed expense		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Draft   	
+2022	222	2024-06-30	Synthetic bank charges	Synthetic Regional Unit	Nein		AT606000050110117300		-7,00€	Entgelt für Kontoführung		Ja	 	<del></del> <del></del>	Nein	Nein	Bank   	
+1006	107	2024-07-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-007	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,00€	Zero-value closed voucher		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+1009	110	2024-08-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-010	TEST-ACCOUNT-1	TEST-VIRTUAL-1	10,00€	Partially reviewed donation		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2013	213	2024-10-02	Synthetic in-kind service	Synthetic National Unit	Nein	SYNTHETIC-213	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,05€	Dienstleistung		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Service Donor   	
+2015	215	2024-11-11	Synthetic private refund	Synthetic Regional Unit	Nein	AT000000000000000215	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-42,00€	Rückerstattung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Ja	Nein	Private Person   	
+2016	216	2024-12-01	Synthetic internal transfer in	Synthetic National Unit	Nein		TEST-ACCOUNT-1		1000,00€	Umbuchung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Intern   	
+2016	217	2024-12-01	Synthetic internal transfer out	Synthetic Regional Unit	Nein		TEST-ACCOUNT-2		-1000,00€	Umbuchung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Intern   	
+1008	109	2025-01-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-009	TEST-ACCOUNT-1	TEST-VIRTUAL-1	25,00€	Different reporting year		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Future Donor   	
+2001	201	2025-11-03	Synthetic membership fee	Synthetic Regional Unit	9001	AT000000000000009001	TEST-ACCOUNT-1		24,00€	MB 2026		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Anna Synthetisch-Müller Teststraße 1 1010 Wien	
+2002	202	2026-01-15	Synthetic membership fee	Synthetic Regional Unit	9004		TEST-ACCOUNT-1		19,99€	Mitgliedsbeitrag knapp		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Dieter Synthetisch   	
+2003	203	2026-02-01	Synthetic membership fee	Synthetic Federal Unit	9031		TEST-ACCOUNT-1		0,01€	MB Teil 1		Ja	 	<del></del> <del></del>	Nein	Nein	Testa Mitglied   	
+2003	204	2026-02-01	Synthetic membership fee	Synthetic Federal Unit	9031		TEST-ACCOUNT-1		19,99€	MB Teil 2		Ja	 	<del></del> <del></del>	Nein	Nein	Testa Mitglied   	
+2019	219	2026-05-31	Synthetic expense	Synthetic Ünit Vier	Nein	SYNTHETIC-219	TEST-ACCOUNT-4	TEST-VIRTUAL-4	-0,99€	Büromaterial		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier   	
+2018	218	2026-06-01	Synthetic other income	Synthetic Ünit Vier	Nein	SYNTHETIC-218	TEST-ACCOUNT-4	TEST-VIRTUAL-4	0,10€	Zinsen		Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Other Income   	
+

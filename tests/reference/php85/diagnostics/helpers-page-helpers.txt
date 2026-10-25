@@ -1,0 +1,112 @@
+date_condition(float(1.5000000000000001E+300)): 2 The float 1.5E+300 is not representable as an int, cast occurred
+date_condition(float(1.5000000000000001E+300), int(0)): 2 The float 1.5E+300 is not representable as an int, cast occurred
+umlaute(string(3) "0.0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "-1"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "+1"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) " 12"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "12 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) " 12 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) " 12 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "12\n"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "0x1A"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "1.0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "1,5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "-0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) ".5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "5."): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "NAN"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "NAN"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "INF"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "INF"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "1.005"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "2.5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(20) "-9223372036854775809"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "\303\244"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "\303\244"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(1) "\374"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "\344\366"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(2) "\344\366"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "\342\202\254"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "\342\202\254"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "\342\202\254"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(1) "\244"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "a\nb"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "tab\tx"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "tab\tx"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "tab\tx"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "dq\""): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "dq\""): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "BG/123456789"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(12) "BG/123456789"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(20) "AT606000050110117300"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(10) "31.12.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(10) "31.12.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "1.1.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "1.1.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "1,2"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "Rbgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "Rbgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) " 1,2 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) " 1,2 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) " 1,2 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "1e3,2"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "true"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "true"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(4) "true"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+umlaute(string(3) "a b"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+convif(true, null): 8192 iconv(): Passing null to parameter #3 ($string) of type string is deprecated

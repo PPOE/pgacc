@@ -1,0 +1,4 @@
+E_WARNING report.php:121: A non-numeric value encountered
+E_WARNING report.php:143: pg_query(): Query failed: ERROR:  invalid input syntax for type timestamp: &quot;2024-1-01-01&quot;
+LINE 1: ...ELECT id FROM type WHERE income = 1)  AND date &gt;= '2024-1-01...
+                                                             ^

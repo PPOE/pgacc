@@ -1,0 +1,11 @@
+sprintf money string(5) "12abc": 2 A non-numeric value encountered
+sprintf money string(4) "0x1A": 2 A non-numeric value encountered
+sprintf money string(4) "0b11": 2 A non-numeric value encountered
+sprintf money string(3) "1,5": 2 A non-numeric value encountered
+sprintf money string(10) "31.12.2024": 2 A non-numeric value encountered
+sprintf money string(8) "1.1.2024": 2 A non-numeric value encountered
+sprintf money string(19) "2024-01-01 12:00:00": 2 A non-numeric value encountered
+sprintf money string(3) "1,2": 2 A non-numeric value encountered
+sprintf money string(5) " 1,2 ": 2 A non-numeric value encountered
+sprintf money string(5) "1e3,2": 2 A non-numeric value encountered
+number conversion float(1.5000000000000001E+300): 2 The float 1.5E+300 is not representable as an int, cast occurred

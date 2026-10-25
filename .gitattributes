@@ -6,12 +6,12 @@
 # Line endings: every text file of ours is LF, in the repository and in checkouts
 # (the formatting pull request converted the former CRLF files). Recorded and
 # fixture bytes stay exactly as they are: the import CSV fixtures are CRLF on
-# purpose, and the PHP 5 recordings hold the CRLF output of the former CRLF
-# sources (tests/reference/allowlist.php, RD-FORMAT-CRLF-TO-LF).
+# purpose, and the reference recordings (tests/reference/php85/) hold the
+# application output as received.
 * text=auto eol=lf
 /tests/fixtures/** -text
 /tests/reference/fixtures/** -text
-/tests/reference/php5/** -text
+/tests/reference/php85/** -text
 # Third-party files stay exactly as shipped (icons/readme.* are CRLF).
 /icons/** -text
 /js/** -text

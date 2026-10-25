@@ -1,5 +1,5 @@
-# PHP 5 reference recordings (golden master). Added on top of a lane's Compose
-# files by tests/reference/run.sh; see tests/README.md, "PHP 5 reference
+# Reference recordings (golden master). Added on top of a lane's Compose
+# files by tests/reference/run.sh; see tests/README.md, "Reference
 # recordings". PGACC_REFERENCE_* are set by run.sh.
 services:
   database:
@@ -83,8 +83,6 @@ services:
       PGACC_TEST_DIAGNOSTICS_DIR: /diagnostics
       PGACC_REFERENCE_MODE: ${PGACC_REFERENCE_MODE:?}
       PGACC_REFERENCE_LANE: ${PGACC_REFERENCE_LANE:?}
-      # Selects the allowlist entries with a 'pg' key (compare.php).
-      PGACC_TEST_PG: "18"
       PGACC_REFERENCE_OWNER: ${PGACC_REFERENCE_OWNER:-}
       PGACC_REFERENCE_STATEMENT_LOG: /pglog/statements.csv
       PGACC_REFERENCE_STUB_LOG: /stub/requests.log

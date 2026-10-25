@@ -1,0 +1,605 @@
+hex2ascii(null): 8192 str_replace(): Passing null to parameter #3 ($subject) of type array|string is deprecated
+hex2ascii(int(-1)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(int(-1000)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(int(-2147483649)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(int(-9223372036854775808)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(-0)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(0.10000000000000001)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(0.30000000000000004)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(0.69999999999999996)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(1.0049999999999999)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(2.5)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(-2.5)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(-2.5)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(3.5)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(1000000000000000)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(1000000000000000)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(10000000000000000)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(10000000000000000)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(1.5000000000000001E+300)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(1.5000000000000001E+300)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(12.345000000000001)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(33.333333333333336)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(-0.01)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(float(-0.01)): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "0.0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "-1"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "+1"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "1.0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "1,5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "-0"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) ".5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "5."): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "NAN"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "NAN"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "INF"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "1.005"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "2.5"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(20) "-9223372036854775809"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "\303\244"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(11) "\303\226sterreich"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(1) "\374"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "\344\366"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "\342\202\254"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "\342\202\254"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(1) "\244"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "tab\tx"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "tab\tx"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(6) "quote'"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "dq\""): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "dq\""): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "<b>x</b>"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "&amp;"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "BG/123456789"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(12) "BG/123456789"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(20) "AT606000050110117300"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(10) "31.12.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(10) "31.12.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "1.1.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "1.1.2024"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(19) "2024-01-01 12:00:00"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(8) "root,bgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "1,2"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "Rbgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "Rbgf"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) " 1,2 "): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(5) "1e3,2"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "null"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "true"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(4) "true"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "zz"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(2) "4G"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+hex2ascii(string(3) "-41"): 8192 Invalid characters passed for attempted conversion, these have been ignored
+ascii2hex(null): 8192 strlen(): Passing null to parameter #1 ($string) of type string is deprecated
+ascii2hex(true): 2 Trying to access array offset on true
+ascii2hex(true): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(true): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(0)): 2 Trying to access array offset on int
+ascii2hex(int(0)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(0)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(1)): 2 Trying to access array offset on int
+ascii2hex(int(1)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(1)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1)): 2 Trying to access array offset on int
+ascii2hex(int(-1)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1)): 2 Trying to access array offset on int
+ascii2hex(int(-1)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(7)): 2 Trying to access array offset on int
+ascii2hex(int(7)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(7)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(42)): 2 Trying to access array offset on int
+ascii2hex(int(42)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(42)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(42)): 2 Trying to access array offset on int
+ascii2hex(int(42)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(42)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(100)): 2 Trying to access array offset on int
+ascii2hex(int(100)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(100)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(100)): 2 Trying to access array offset on int
+ascii2hex(int(100)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(100)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(100)): 2 Trying to access array offset on int
+ascii2hex(int(100)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(100)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2000)): 2 Trying to access array offset on int
+ascii2hex(int(2000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2000)): 2 Trying to access array offset on int
+ascii2hex(int(2000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2000)): 2 Trying to access array offset on int
+ascii2hex(int(2000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2000)): 2 Trying to access array offset on int
+ascii2hex(int(2000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1000)): 2 Trying to access array offset on int
+ascii2hex(int(-1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1000)): 2 Trying to access array offset on int
+ascii2hex(int(-1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1000)): 2 Trying to access array offset on int
+ascii2hex(int(-1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1000)): 2 Trying to access array offset on int
+ascii2hex(int(-1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-1000)): 2 Trying to access array offset on int
+ascii2hex(int(-1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483647)): 2 Trying to access array offset on int
+ascii2hex(int(2147483647)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483647)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(2147483648)): 2 Trying to access array offset on int
+ascii2hex(int(2147483648)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(2147483648)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-2147483649)): 2 Trying to access array offset on int
+ascii2hex(int(-2147483649)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-2147483649)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(9223372036854775807)): 2 Trying to access array offset on int
+ascii2hex(int(9223372036854775807)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(9223372036854775807)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(int(-9223372036854775808)): 2 Trying to access array offset on int
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(int(-9223372036854775808)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0)): 2 Trying to access array offset on float
+ascii2hex(float(0)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0)): 2 Trying to access array offset on float
+ascii2hex(float(-0)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0)): 2 Trying to access array offset on float
+ascii2hex(float(-0)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.10000000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.10000000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.10000000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.10000000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.30000000000000004)): 2 Trying to access array offset on float
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.30000000000000004)): 2 Trying to access array offset on float
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.30000000000000004)): 2 Trying to access array offset on float
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.30000000000000004)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.69999999999999996)): 2 Trying to access array offset on float
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.69999999999999996)): 2 Trying to access array offset on float
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(0.69999999999999996)): 2 Trying to access array offset on float
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(0.69999999999999996)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.0049999999999999)): 2 Trying to access array offset on float
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.0049999999999999)): 2 Trying to access array offset on float
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.0049999999999999)): 2 Trying to access array offset on float
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.0049999999999999)): 2 Trying to access array offset on float
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.0049999999999999)): 2 Trying to access array offset on float
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.0049999999999999)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(2.5)): 2 Trying to access array offset on float
+ascii2hex(float(2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(2.5)): 2 Trying to access array offset on float
+ascii2hex(float(2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(2.5)): 2 Trying to access array offset on float
+ascii2hex(float(2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-2.5)): 2 Trying to access array offset on float
+ascii2hex(float(-2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-2.5)): 2 Trying to access array offset on float
+ascii2hex(float(-2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-2.5)): 2 Trying to access array offset on float
+ascii2hex(float(-2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-2.5)): 2 Trying to access array offset on float
+ascii2hex(float(-2.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-2.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(3.5)): 2 Trying to access array offset on float
+ascii2hex(float(3.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(3.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(3.5)): 2 Trying to access array offset on float
+ascii2hex(float(3.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(3.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(3.5)): 2 Trying to access array offset on float
+ascii2hex(float(3.5)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(3.5)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000)): 2 Trying to access array offset on float
+ascii2hex(float(1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000)): 2 Trying to access array offset on float
+ascii2hex(float(1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000)): 2 Trying to access array offset on float
+ascii2hex(float(1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000)): 2 Trying to access array offset on float
+ascii2hex(float(1000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(1000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(10000000000000000)): 2 Trying to access array offset on float
+ascii2hex(float(10000000000000000)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(10000000000000000)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 2 Trying to access array offset on float
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(1.5000000000000001E+300)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(12.345000000000001)): 2 Trying to access array offset on float
+ascii2hex(float(12.345000000000001)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(12.345000000000001)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(33.333333333333336)): 2 Trying to access array offset on float
+ascii2hex(float(33.333333333333336)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(33.333333333333336)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0.01)): 2 Trying to access array offset on float
+ascii2hex(float(-0.01)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0.01)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0.01)): 2 Trying to access array offset on float
+ascii2hex(float(-0.01)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0.01)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0.01)): 2 Trying to access array offset on float
+ascii2hex(float(-0.01)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0.01)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0.01)): 2 Trying to access array offset on float
+ascii2hex(float(-0.01)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0.01)): 8192 ord(): Providing an empty string is deprecated
+ascii2hex(float(-0.01)): 2 Trying to access array offset on float
+ascii2hex(float(-0.01)): 8192 ord(): Passing null to parameter #1 ($character) of type string is deprecated
+ascii2hex(float(-0.01)): 8192 ord(): Providing an empty string is deprecated

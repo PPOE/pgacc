@@ -1,0 +1,2 @@
+[GET array(string(4) "sort" => string(0) "")] getoppsort(null): 8192 substr(): Passing null to parameter #1 ($string) of type string is deprecated
+[GET array(string(4) "sort" => int(0))] getoppsort(null): 8192 substr(): Passing null to parameter #1 ($string) of type string is deprecated

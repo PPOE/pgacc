@@ -1,7 +1,0 @@
-# step: ack-two-parts
-# request: POST /index.php?action=edit&id=5001 as admin
-# form: id=5001&parts=2&ack=Best%C3%A4tigen&csrf_token=%7B%7Bcsrf-token%7D%7D
-status: 302
-header: Location: index.php?action=edit&id=5001&hint=4
-header: Content-type: text/html
---- body (0 bytes) ---

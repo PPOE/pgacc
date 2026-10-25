@@ -1,0 +1,13 @@
+# step: all-filter-member
+# request: GET /index.php?action=all&format=csv&filter_member=1 as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (924 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+2001	201	2025-11-03	Synthetic membership fee	Synthetic Regional Unit	9001	AT000000000000009001	TEST-ACCOUNT-1		24,00€	MB 2026		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Anna Synthetisch-Müller Teststraße 1 1010 Wien	
+2002	202	2026-01-15	Synthetic membership fee	Synthetic Regional Unit	9004		TEST-ACCOUNT-1		19,99€	Mitgliedsbeitrag knapp		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Dieter Synthetisch   	
+2003	203	2026-02-01	Synthetic membership fee	Synthetic Federal Unit	9031		TEST-ACCOUNT-1		0,01€	MB Teil 1		Ja	 	<del></del> <del></del>	Nein	Nein	Testa Mitglied   	
+2003	204	2026-02-01	Synthetic membership fee	Synthetic Federal Unit	9031		TEST-ACCOUNT-1		19,99€	MB Teil 2		Ja	 	<del></del> <del></del>	Nein	Nein	Testa Mitglied   	
+

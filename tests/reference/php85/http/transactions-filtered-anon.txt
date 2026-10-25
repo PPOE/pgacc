@@ -1,0 +1,207 @@
+# step: transactions-filtered-anon
+# request: GET /index.php?action=transactions&filter_date=2024&sort=amd as anon
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (6965 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Kontobewegungen - Piratenpartei Österreichs</title>
+  <meta name="description" content="Liste aller Kontobewegungen der Piratenpartei Österreichs" />
+  <meta name="keywords" content="konto, einsicht, kontenbewegungen, transaktionen" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page transactions">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions" class="selected">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+</div><br />
+<h1>Kontobewegungen der Piratenpartei Österreichs</h1>
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<table><tr><td><b><a href="index.php?action=transactions&amp;sort=datea&amp;filter_date=2024">Datum</a></b>
+</td>
+<td><b><a href="index.php?action=transactions&amp;sort=typea&amp;filter_date=2024">Art</a></b>
+</td>
+<td><b><a href="index.php?action=transactions&amp;sort=loa&amp;filter_date=2024">LO</a></b>
+</td>
+<td><b><a href="index.php?action=transactions&amp;sort=ka&amp;filter_date=2024">Konto</a></b>
+</td>
+<td><b><a href="index.php?action=transactions&amp;sort=ama&amp;filter_date=2024">Betrag</a></b>
+</td>
+</tr>
+<tr><td>2013-08-01</td>
+<td>Synthetic in-kind donation</td>
+<td>Synthetic Piratenpartei Six</td>
+<td>TEST-ACCOUNT-6</td>
+<td>21474836.47€</td>
+</tr><tr><td>2024-12-01</td>
+<td>Synthetic internal transfer in</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>1000.00€</td>
+</tr><tr><td>2012-11-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic Piratenpartei Six</td>
+<td>TEST-ACCOUNT-6</td>
+<td>500.05€</td>
+</tr><tr><td>2024-02-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>120.00€</td>
+</tr><tr><td>2024-10-01</td>
+<td>Synthetic in-kind donation</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>99.99€</td>
+</tr><tr><td>2024-03-01</td>
+<td>Synthetic legacy donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>30.00€</td>
+</tr><tr><td>2025-01-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>25.00€</td>
+</tr><tr><td>2025-11-03</td>
+<td>Synthetic membership fee</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>24.00€</td>
+</tr><tr><td>2026-01-15</td>
+<td>Synthetic membership fee</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>19.99€</td>
+</tr><tr><td>2026-02-01</td>
+<td>Synthetic membership fee</td>
+<td>Synthetic Federal Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>19.99€</td>
+</tr><tr><td>2024-08-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>10.00€</td>
+</tr><tr><td>2012-03-02</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>6.67€</td>
+</tr><tr><td>2012-03-01</td>
+<td>Synthetic donation</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>3.33€</td>
+</tr><tr><td>2026-06-01</td>
+<td>Synthetic other income</td>
+<td>Synthetic Ünit Vier</td>
+<td>TEST-ACCOUNT-4</td>
+<td>0.10€</td>
+</tr><tr><td>2024-10-02</td>
+<td>Synthetic in-kind service</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>0.05€</td>
+</tr><tr><td>2026-02-01</td>
+<td>Synthetic membership fee</td>
+<td>Synthetic Federal Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>0.01€</td>
+</tr><tr><td>2012-12-31</td>
+<td>Synthetic expense</td>
+<td>Synthetic National Unit</td>
+<td>TEST-ACCOUNT-1</td>
+<td>-0.01€</td>
+</tr><tr><td>2024-03-31</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>AT6060000Piratenpartei Kärnten</td>
+<td>-0.50€</td>
+</tr><tr><td>2026-05-31</td>
+<td>Synthetic expense</td>
+<td>Synthetic Ünit Vier</td>
+<td>TEST-ACCOUNT-4</td>
+<td>-0.99€</td>
+</tr><tr><td>2024-06-30</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>AT6060000Piratenpartei Kärnten</td>
+<td>-7.00€</td>
+</tr><tr><td>2024-03-31</td>
+<td>Synthetic bank charges</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-7.50€</td>
+</tr><tr><td>2024-03-15</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>AT6060000Piratenpartei Kärnten</td>
+<td>-12.34€</td>
+</tr><tr><td>2024-04-01</td>
+<td>Synthetic legacy expense</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-15.00€</td>
+</tr><tr><td>2024-05-01</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-25.00€</td>
+</tr><tr><td>2024-11-11</td>
+<td>Synthetic private refund</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-42.00€</td>
+</tr><tr><td>2024-04-01</td>
+<td>Synthetic expense</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-50.00€</td>
+</tr><tr><td>2024-12-01</td>
+<td>Synthetic internal transfer out</td>
+<td>Synthetic Regional Unit</td>
+<td>TEST-ACCOUNT-2</td>
+<td>-1000.00€</td>
+</tr><tr><td>2012-10-15</td>
+<td>Synthetic expense</td>
+<td>Synthetic Piratenpartei Six</td>
+<td>TEST-ACCOUNT-6</td>
+<td>-1234.56€</td>
+</tr><tr><td>2013-07-01</td>
+<td>Synthetic legacy expense</td>
+<td>Synthetic Federal Unit</td>
+<td>TEST-ACCOUNT-10</td>
+<td>-21474836.47€</td>
+</tr></table>
+</div>
+<br style="clear: both;" /><center><a href="/index.php?action=transactions&amp;filter_date=2024&amp;sort=amd&amp;format=csv">Als CSV Datei herunterladen</a></center>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=login">Login</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

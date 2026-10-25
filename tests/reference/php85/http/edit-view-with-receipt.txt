@@ -1,0 +1,455 @@
+# step: edit-view-with-receipt
+# request: GET /index.php?action=edit&id=5001 as admin
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (21160 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 24 Buchungszeilen, 9 (37.5 %) abgeschlossen, 3 (12.5 %) bearbeitet, 12 (50 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page edit">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+<form id="mergeform" action="index.php?action=merge" method="post" style="display: none"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><input type="hidden" name="bid1" value="5001" /><input type="hidden" name="bid2" value="" /></form>
+<script type="text/javascript">
+function deleteB(part)
+{
+  document.getElementById("ack").style.display = "none";
+  var max = parseInt(document.getElementById("parts").value);
+  if (max == 1)
+  {
+    alert("Kann letzte Buchungszeile nicht löschen!");
+    return;
+  }
+  if (!confirm("Sicher löschen?"))
+    return;
+  var e = document.createElement("div");
+  e.innerHTML = "<input type='hidden' name='remove' value='" + part + "' />";
+  document.mainform.appendChild(e);
+  document.mainform.submit();
+}
+function clicked(init)
+{
+  var max = 1;
+  try {
+    max = parseInt(document.getElementById("parts").value);
+  }
+  catch (e)
+  {
+    alert("Anzahl der Buchungszeilen konnte nicht ermittelt werden.");
+  }
+
+  if (max == 1)
+  {
+    document.getElementById("del_voucher_0").style.display = "none";
+  }
+  if (init !== true)
+  {
+    try { document.getElementById("ack").style.display = "none"; } catch (e) { }
+    try { document.getElementById("belegdiv").style.display = "none"; } catch (e) { }
+  }
+  var i = 0;
+  while (i < max)
+  {
+    if (document.getElementById("dir" + i).selectedIndex == 0)
+    {
+      if (document.getElementById("in_type" + i).options[document.getElementById("in_type" + i).selectedIndex].value == 8)
+        document.getElementById("purpose_block" + i).style.display = "";
+      else
+        document.getElementById("purpose_block" + i).style.display = "none";
+      document.getElementById("refund_block" + i).style.display = "none";
+      document.getElementById("date_block" + i).style.display = "";
+      document.getElementById("not_bel_a_" + i).style.display = "";
+      document.getElementById("not_bel_b_" + i).style.display = "";
+      document.getElementById("in_block" + i).style.display = "";
+      document.getElementById("out_block" + i).style.display = "none";
+      document.getElementById("wk_block" + i).style.display = "none";
+    }
+    else if (document.getElementById("dir" + i).selectedIndex == 1)
+    {
+      document.getElementById("purpose_block" + i).style.display = "none";
+      document.getElementById("refund_block" + i).style.display = "";
+      document.getElementById("date_block" + i).style.display = "";
+      document.getElementById("not_bel_a_" + i).style.display = "";
+      document.getElementById("not_bel_b_" + i).style.display = "";
+      document.getElementById("in_block" + i).style.display = "none";
+      document.getElementById("out_block" + i).style.display = "";
+      document.getElementById("wk_block" + i).style.display = "none";
+    }
+    else if (document.getElementById("dir" + i).selectedIndex == 2)
+    {
+      document.getElementById("purpose_block" + i).style.display = "none";
+      document.getElementById("refund_block" + i).style.display = "none";
+      document.getElementById("date_block" + i).style.display = "";
+      document.getElementById("not_bel_a_" + i).style.display = "";
+      document.getElementById("not_bel_b_" + i).style.display = "";
+      document.getElementById("in_block" + i).style.display = "none";
+      document.getElementById("out_block" + i).style.display = "none";
+      document.getElementById("wk_block" + i).style.display = "";
+    }
+    else if (document.getElementById("dir" + i).selectedIndex == 3)
+    {
+      document.getElementById("date_block" + i).style.display = "none";
+      document.getElementById("not_bel_a_" + i).style.display = "none";
+      document.getElementById("not_bel_b_" + i).style.display = "none";
+    }
+    else
+    {
+      alert("Ungültige Typ-Auswahl");
+    }
+    if (document.getElementById("member" + i).checked)
+    {
+      document.getElementById("mitgliedsnummer" + i).style.display = "";
+      document.getElementById("street" + i).style.display = "none";
+      document.getElementById("plz" + i).style.display = "none";
+      document.getElementById("city" + i).style.display = "none";
+      document.getElementById("gegenkonto" + i).style.display = "none";
+      document.getElementById("person_type" + i).selectedIndex = 0;
+    }
+    else
+    {
+      document.getElementById("mitgliedsnummer" + i).style.display = "none";
+      document.getElementById("street" + i).style.display = "";
+      document.getElementById("plz" + i).style.display = "";
+      document.getElementById("city" + i).style.display = "";
+      document.getElementById("gegenkonto" + i).style.display = "";
+    }
+    var i = i + 1;
+  }
+}
+</script>
+<form name="mainform" class="vertical" enctype="multipart/form-data" action="index.php?action=edit" method="post">
+<input type="hidden" name="csrf_token" value="{{csrf-token}}" />
+<input type="hidden" name="id" value="5001" />
+<input type="hidden" name="acks" value="0" />
+<input type="hidden" name="ack1" value="" />
+<input type="hidden" name="ack2" value="" />
+<input type="hidden" name="ack1_old" value="synthetic-admin" />
+<input type="hidden" name="ack2_old" value="" />
+<input type="hidden" name="changed" value="1" />
+<h1>Buchung 5001 bearbeiten</h1>
+<script type="text/javascript">
+function merge()
+{
+  // The first click asks for the other voucher, the second one merges.
+  var form = document.getElementById("mergeform");
+  if (form.bid2.value != "")
+  {
+    form.submit();
+    return;
+  }
+  var bid = prompt("Merge mit welcher anderen Buchung?", "");
+  if (bid === null || bid == "")
+    return;
+  form.bid2.value = bid;
+  document.getElementById("mergelink").innerHTML = "Merge mit Buchung " + bid;
+}
+</script>
+<a href="javascript:merge();" id="mergelink" name="mergelink" />Merge</a>
+<br />
+<br /><h4>Bestätigt von:  <del>synthetic-admin </del></h4>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<h3>Buchungszeile 1001</h3>
+<input type="hidden" name="bid0" value="1001" />
+<div id="date_block0">
+<label class="ui_field_label" for="date0">Datum</label><input type="text" id="date0" name="date0" value="2024-09-15" onchange="clicked();" />
+</div>
+<div>
+<label for="dir0" class="ui_field_label">Typ
+</label>
+<select id="dir0" name="dir0" onchange="clicked();">
+<option value="in" selected>Einnahme</option>
+<option value="out">Ausgabe</option>
+<option value="wk">Wahlkampfausgabe</option>
+</select>
+</div>
+<div id="not_bel_a_0">
+<div id="in_block0">
+<label for="in_type0" class="ui_field_label">Art der Einnahme</label> 
+<select id="in_type0" name="in_type0" onchange="clicked();">
+<option value="1">Synthetic membership fee</option>
+<option value="8" selected="selected">Synthetic donation</option>
+<option value="18">Synthetic legacy donation</option>
+<option value="14">Synthetic other income</option>
+<option value="11">Synthetic in-kind donation</option>
+<option value="12">Synthetic in-kind service</option>
+<option value="13">Synthetic member credit</option>
+<option value="29">Synthetic internal transfer in</option>
+
+</select>
+</div>
+<div id="out_block0" style="display: none;">
+<label for="out_type0" class="ui_field_label">Art der Ausgabe</label> 
+<select id="out_type0" name="out_type0" onchange="clicked();">
+
+</select>
+</div>
+<div id="wk_block0" style="display: none;">
+<label for="wk_type0" class="ui_field_label">Art der Wahlkampfausgabe</label> 
+<select id="wk_type0" name="wk_type0" onchange="clicked();">
+<option value="20">Synthetic expense</option>
+    <option value="21">Synthetic legacy expense</option>
+    <option value="28">Synthetic bank charges</option>
+    <option value="23">Synthetic member credit offset</option>
+    <option value="30">Synthetic internal transfer out</option>
+    <option value="1029">Synthetic private refund</option>
+    
+</select>
+</div>
+<div id="person_type_block0">
+<label for="person_type0" class="ui_field_label">Art des Geschäftspartners</label> 
+<select id="person_type0" name="person_type0" onchange="clicked();">
+<option value="5">Synthetic public body</option>
+    <option value="4">Synthetic company</option>
+    <option value="3">Synthetic association</option>
+    <option value="2" selected="selected">Synthetic person</option>
+    <option value="1">Synthetic organization</option>
+    
+</select>
+
+</div>
+<div>
+<label for="lo0" class="ui_field_label">Teilorganisation</label> 
+<select id="lo0" name="lo0" onchange="clicked();">
+<option value="1" selected="selected">Synthetic National Unit</option>
+<option value="2">Synthetic Regional Unit</option>
+<option value="3">Synthetic Unit Three</option>
+<option value="4">Synthetic Ünit Vier</option>
+<option value="5">Synthetic Unit Five</option>
+<option value="6">Synthetic Piratenpartei Six</option>
+<option value="8">Synthetic Unit Eight</option>
+<option value="9">Synthetic Unit Nine</option>
+<option value="10">Synthetic Federal Unit</option>
+
+</select>
+</div>
+<div>
+<label class="ui_field_label" for="member0">Mitglied</label><input type="checkbox" id="member0" name="member0" value="1"  onchange="clicked();" /> &middot; <a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9001" target="_blank">In MV öffnen</a>
+</div>
+<div id="mitgliedsnummer0">
+<label class="ui_field_label" for="mitgliedsnummer0">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer0" value="9001" onchange="clicked();" />
+</div>
+<div id="gegenkonto0">
+<label class="ui_field_label" for="gegenkonto0">Fremdkonto</label><input type="text" name="gegenkonto0" value="SYNTHETICREF" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="amount0">Betrag (in €)</label><input type="text" id="amount0" name="amount0" value="100.50" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="konto0">Konto</label><input type="text" id="konto0" name="konto0" value="TESTACCOUNT2" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="comment0">Buchungstext</label><input type="text" id="comment0" name="comment0" value="Reference two parts income" onchange="clicked();" />
+</div>
+</div>
+<div>
+<label class="ui_field_label" for="commentgf0">Kommentar</label><input type="text" id="commentgf0" name="commentgf0" value="Reference workflow" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="vkonto0">Virtuelles Konto</label><input type="text" id="vkonto0" name="vkonto0" value="TESTVIRTUAL2" onchange="clicked();" />
+</div>
+<div id="not_bel_b_0">
+<div id="purpose_block0">
+<label class="ui_field_label" for="purpose0">Zweckgebunden</label><input type="checkbox" id="purpose0" name="purpose0" value="1"  onchange="clicked();" />
+</div>
+<div id="refund_block0">
+<label class="ui_field_label" for="refund0">Rückerstattung</label><input type="checkbox" id="refund0" name="refund0" value="1"  onchange="clicked();" />
+</div>
+<div id="name0">
+<label class="ui_field_label" for="name0">Name</label><input type="text" name="name0" value="Synthetic Reference Supplier" onchange="clicked();" />
+</div>
+<div id="street0">
+<label class="ui_field_label" for="street0">Straße</label><input type="text" name="street0" value="Test Street 1" onchange="clicked();" />
+</div>
+<div id="plz0">
+<label class="ui_field_label" for="plz0">PLZ</label><input type="text" name="plz0" value="0000" onchange="clicked();" />
+</div>
+<div id="city0">
+<label class="ui_field_label" for="city0">Ort</label><input type="text" name="city0" value="Test City" onchange="clicked();" />
+</div>
+</div>
+<div id="city0">
+<label class="ui_field_label" for="file0">Beleg</label><a href="?action=file&id=1001" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file0" value="100" />
+</div>
+<div id="del_voucher_0" style="float: right;">
+<a href="javascript:deleteB(0);">Diese Buchungszeile löschen</a>
+</div>
+<br />
+
+</div>
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<h3>Buchungszeile 1002</h3>
+<input type="hidden" name="bid1" value="1002" />
+<div id="date_block1">
+<label class="ui_field_label" for="date1">Datum</label><input type="text" id="date1" name="date1" value="2024-09-16" onchange="clicked();" />
+</div>
+<div>
+<label for="dir1" class="ui_field_label">Typ
+</label>
+<select id="dir1" name="dir1" onchange="clicked();">
+<option value="in">Einnahme</option>
+<option value="out">Ausgabe</option>
+<option value="wk" selected>Wahlkampfausgabe</option><option value="bel">Beleg</option>
+</select>
+</div>
+<div id="not_bel_a_1">
+<div id="in_block1" style="display: none;">
+<label for="in_type1" class="ui_field_label">Art der Einnahme</label> 
+<select id="in_type1" name="in_type1" onchange="clicked();">
+<option value="1">Synthetic membership fee</option>
+<option value="8">Synthetic donation</option>
+<option value="18">Synthetic legacy donation</option>
+<option value="14">Synthetic other income</option>
+<option value="11">Synthetic in-kind donation</option>
+<option value="12">Synthetic in-kind service</option>
+<option value="13">Synthetic member credit</option>
+<option value="29">Synthetic internal transfer in</option>
+
+</select>
+</div>
+<div id="out_block1" style="display: none;">
+<label for="out_type1" class="ui_field_label">Art der Ausgabe</label> 
+<select id="out_type1" name="out_type1" onchange="clicked();">
+
+</select>
+</div>
+<div id="wk_block1">
+<label for="wk_type1" class="ui_field_label">Art der Wahlkampfausgabe</label> 
+<select id="wk_type1" name="wk_type1" onchange="clicked();">
+<option value="20">Synthetic expense</option>
+    <option value="21" selected="selected">Synthetic legacy expense</option>
+    <option value="28">Synthetic bank charges</option>
+    <option value="23">Synthetic member credit offset</option>
+    <option value="30">Synthetic internal transfer out</option>
+    <option value="1029">Synthetic private refund</option>
+    
+</select>
+</div>
+<div id="person_type_block1">
+<label for="person_type1" class="ui_field_label">Art des Geschäftspartners</label> 
+<select id="person_type1" name="person_type1" onchange="clicked();">
+<option value="5">Synthetic public body</option>
+    <option value="4">Synthetic company</option>
+    <option value="3">Synthetic association</option>
+    <option value="2">Synthetic person</option>
+    <option value="1" selected="selected">Synthetic organization</option>
+    
+</select>
+
+</div>
+<div>
+<label for="lo1" class="ui_field_label">Teilorganisation</label> 
+<select id="lo1" name="lo1" onchange="clicked();">
+<option value="1" selected="selected">Synthetic National Unit</option>
+<option value="2">Synthetic Regional Unit</option>
+<option value="3">Synthetic Unit Three</option>
+<option value="4">Synthetic Ünit Vier</option>
+<option value="5">Synthetic Unit Five</option>
+<option value="6">Synthetic Piratenpartei Six</option>
+<option value="8">Synthetic Unit Eight</option>
+<option value="9">Synthetic Unit Nine</option>
+<option value="10">Synthetic Federal Unit</option>
+
+</select>
+</div>
+<div>
+<label class="ui_field_label" for="member1">Mitglied</label><input type="checkbox" id="member1" name="member1" value="1"  onchange="clicked();" />
+</div>
+<div id="mitgliedsnummer1">
+<label class="ui_field_label" for="mitgliedsnummer1">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer1" value="0" onchange="clicked();" />
+</div>
+<div id="gegenkonto1">
+<label class="ui_field_label" for="gegenkonto1">Fremdkonto</label><input type="text" name="gegenkonto1" value="SYNTHETICREF" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="amount1">Betrag (in €)</label><input type="text" id="amount1" name="amount1" value="-0.99" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="konto1">Konto</label><input type="text" id="konto1" name="konto1" value="TESTACCOUNT2" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="comment1">Buchungstext</label><input type="text" id="comment1" name="comment1" value="Reference two parts campaign" onchange="clicked();" />
+</div>
+</div>
+<div>
+<label class="ui_field_label" for="commentgf1">Kommentar</label><input type="text" id="commentgf1" name="commentgf1" value="Reference workflow" onchange="clicked();" />
+</div>
+<div>
+<label class="ui_field_label" for="vkonto1">Virtuelles Konto</label><input type="text" id="vkonto1" name="vkonto1" value="TESTVIRTUAL2" onchange="clicked();" />
+</div>
+<div id="not_bel_b_1">
+<div id="purpose_block1">
+<label class="ui_field_label" for="purpose1">Zweckgebunden</label><input type="checkbox" id="purpose1" name="purpose1" value="1"  onchange="clicked();" />
+</div>
+<div id="refund_block1">
+<label class="ui_field_label" for="refund1">Rückerstattung</label><input type="checkbox" id="refund1" name="refund1" value="1"  onchange="clicked();" />
+</div>
+<div id="name1">
+<label class="ui_field_label" for="name1">Name</label><input type="text" name="name1" value="Synthetic Reference Supplier" onchange="clicked();" />
+</div>
+<div id="street1">
+<label class="ui_field_label" for="street1">Straße</label><input type="text" name="street1" value="Test Street 1" onchange="clicked();" />
+</div>
+<div id="plz1">
+<label class="ui_field_label" for="plz1">PLZ</label><input type="text" name="plz1" value="0000" onchange="clicked();" />
+</div>
+<div id="city1">
+<label class="ui_field_label" for="city1">Ort</label><input type="text" name="city1" value="Test City" onchange="clicked();" />
+</div>
+</div>
+<div id="city1">
+<label class="ui_field_label" for="file1">Beleg</label>
+<input type="hidden" name="MAX_FILE_SIZE" value="100000000" />
+<input name="file1" type="file"  onchange="clicked();" accept="application/pdf"/><br />
+<input type="submit" name="fileupload" value="PDF Hochladen (OHNE SPEICHERN)" />
+
+</div>
+<div id="del_voucher_1" style="float: right;">
+<a href="javascript:deleteB(1);">Diese Buchungszeile löschen</a>
+</div>
+<br />
+
+</div>
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<input name="speichern" id="speichern" value="Speichern" type="submit" /><input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/><input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/><input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>
+</div>
+
+<input value="2" type="hidden" id="parts" name="parts" />
+</form><script type="text/javascript">clicked(true);</script>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

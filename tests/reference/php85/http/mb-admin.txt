@@ -1,0 +1,97 @@
+# step: mb-admin
+# request: GET /index.php?action=mb as admin
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (7838 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 24 Buchungszeilen, 9 (37.5 %) abgeschlossen, 3 (12.5 %) bearbeitet, 12 (50 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page mb">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb" class="selected">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+<h2>MB Zahlungen nach LO</h2><table><tr><td>Teilorganisation</td><td>Anzahl</td><td>Summe</td><td>Durchschnitt</td></tr><tr><td>Synthetic Regional Unit</td><td>2</td><td>39.99 €</td><td>20.00 €</td></tr><tr><td>Synthetic Unit Nine</td><td>1</td><td>24.00 €</td><td>24.00 €</td></tr><tr><td>Summe</td><td>3</td><td>63.99 €</td><td>21.33 €</td></tr></table><br /><h2>MB Zahlungen nach Konto</h2><table><tr><td>Konto der Teilorganisation</td><td>Summe</td></tr><tr><td>Synthetic Federal Unit</td><td>20.00 €</td></tr><tr><td>Synthetic Regional Unit</td><td>43.99 €</td></tr></table><br /><h2>Inkonsistenzen bei Zahlungsstatus</h2><table><tr><td>#</td><td>Member</td><td>Name</td><td>Amount</td><td>Paid</td></tr><tr><td>1</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9004">9004</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9004">Buchungszeilen</a>)</td>
+  <td>Dieter Synthetisch</td>
+  <td>19.99</td>
+  <td>1</td></tr><tr><td>2</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9007">9007</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9007">Buchungszeilen</a>)</td>
+  <td>Gerda Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>3</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9010">9010</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9010">Buchungszeilen</a>)</td>
+  <td>Jörg Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>4</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9013">9013</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9013">Buchungszeilen</a>)</td>
+  <td>Maria Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>5</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9016">9016</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9016">Buchungszeilen</a>)</td>
+  <td>Paul Synthetisch-Müller</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>6</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9019">9019</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9019">Buchungszeilen</a>)</td>
+  <td>Theresa Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>7</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9022">9022</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9022">Buchungszeilen</a>)</td>
+  <td>Walter Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>8</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9025">9025</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9025">Buchungszeilen</a>)</td>
+  <td>Zoë Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>9</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9028">9028</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9028">Buchungszeilen</a>)</td>
+  <td>Ludwig Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>10</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9033">9033</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9033">Buchungszeilen</a>)</td>
+  <td>O&#039;Brien Synthetisch</td>
+  <td>0</td>
+  <td>1</td></tr><tr><td>11</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9035">9035</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9035">Buchungszeilen</a>)</td>
+  <td>Synthetica</td>
+  <td>0</td>
+  <td>1</td></tr></table><br /><h2>Mitglieder mit konsistentem Zahlungsstatus</h2><table><tr><td>#</td><td>Member</td><td>Name</td><td>Amount</td><td>Paid</td></tr><tr><td>1</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9001">9001</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9001">Buchungszeilen</a>)</td>
+  <td>Anna Synthetisch-Müller</td>
+  <td>24</td>
+  <td>1</td></tr><tr><td>2</td>
+  <td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=9031">9031</a> (<a href="https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id=9031">Buchungszeilen</a>)</td>
+  <td>Testa Mitglied</td>
+  <td>20</td>
+  <td>1</td></tr></table><h2>Offene Darlehen</h2><table><tr><td>Voucher</td><td>Amount</td><td>Name</td></tr></table>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

@@ -1,6 +1,0 @@
-# step: closed-anon
-# request: GET /index.php?action=closed&filter_date=2024 as anon
-status: 302
-header: Location: index.php?action=login&target=2F696E6465782E7068703F616374696F6E3D636C6F7365642666696C7465725F646174653D32303234
-header: Content-type: text/html
---- body (0 bytes) ---
