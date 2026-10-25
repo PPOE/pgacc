@@ -1243,7 +1243,7 @@ differences above are only visible for out-of-range input.
   characters without the five tab-separated fields, or a list without any
   member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
   before the table is touched.
-  Proposed behaviour change, not decided (owner review): before, such
+  Behaviour change, accepted by the owner (merged in #25): before, such
   a line was imported as member 0 with PHP warnings, and a list without
   member lines left an empty table. Drop, create and insert run in one
   transaction (a savepoint inside a caller's transaction, as in the unit

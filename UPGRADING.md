@@ -4,16 +4,32 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
-## Upgrade to the next release (unreleased)
+## Upgrade to 2.0.0 (move to the new server)
 
-Before deploying it on the new server (PHP 8.5, PostgreSQL 18):
+2.0.0 runs only on PHP 8.5 with PostgreSQL 18. Keep the old server on 1.0.0
+until the move is done and checked.
 
-1. Check the PHP extensions. In the unpacked release directory run
-   `composer check-platform-reqs --no-dev` with the server's PHP (Composer
-   is needed only for this check, not to install). It must report `ext-iconv`
-   and `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5
-   as present. Without Composer, `php -m` must list `iconv`, `zlib` and
-   `pgsql`.
+1. On the old server, finish the 1.0.0 steps first (valid `$key`, receipt
+   migration to `<n>.v2.aes`; `--delete-legacy` may wait).
+2. Check the PHP extensions on the new server. In the unpacked release
+   directory run `composer check-platform-reqs --no-dev` with the server's PHP
+   (Composer is needed only for this check, not to install). It must report
+   `ext-iconv` and `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and
+   PHP 8.5 as present. Without Composer, `php -m` must list `iconv`, `zlib`,
+   `openssl` and `pgsql`.
+3. The new server must reach `https://mitglieder.piratenpartei.at` with a
+   trusted CA bundle (the member list is fetched over verified HTTPS).
+4. Move the data: stop writes on the old server, dump the `accounting`
+   database (preferably with the PostgreSQL 18 `pg_dump` against the old 8.4
+   server), restore it into PostgreSQL 18, and copy `files/` and
+   `constants.php` (with its `$key` and `$datakey`) unchanged.
+5. Deploy the release archive and apply the web-server rules of the 1.0.0
+   steps (deny `files/`, `vendor/`, `tests/`, `constants.php`,
+   `migrate-receipt-key.php`, `check.php`, `composer.*`; no directory
+   listing; HTTPS).
+6. Check: log in, open a voucher with a receipt, download it, open the
+   member-fee page (member list fetch), and run a test bank or PDF import on
+   a copy if possible.
 
 ## Upgrade to 1.0.0
 
