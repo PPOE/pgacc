@@ -23,7 +23,7 @@ function v_graph($konto, $date_begin, $date_end)
     }
 
     $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount) / 100.0, (SELECT SUM(amount) / 100.0 FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     //$array = pg_fetch_all($result);
     $array = [];
     while ($line = pg_fetch_array($result)) {
@@ -53,11 +53,11 @@ function v_report($konto, $date_begin, $date_end)
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
         }
@@ -66,7 +66,7 @@ function v_report($konto, $date_begin, $date_end)
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -79,11 +79,11 @@ function v_report($konto, $date_begin, $date_end)
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
         }
@@ -92,7 +92,7 @@ function v_report($konto, $date_begin, $date_end)
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -111,7 +111,7 @@ function page_vreport($rights)
     //if (strlen($rights) > 0)
     //{
     $query2 = "SELECT vaccount FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY vaccount ORDER BY vaccount";
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     echo "<ul>";
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         $k = $line2['vaccount'] ?? '';

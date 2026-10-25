@@ -8,7 +8,7 @@
 #   analyse.sh update-baselines FILE...  rewrite both baselines from the
 #                                        current findings (review the diff!)
 #
-# FILE... are the tracked top-level application PHP files. The repository is
+# FILE... are the tracked top-level application PHP files and src/*.php. The repository is
 # mounted read-only at /app; analysis runs on a copy in /tmp/workspace.
 set -eu
 
@@ -38,9 +38,10 @@ if [ "$#" -eq 0 ]; then
 fi
 
 rm -rf "$work" "$results"
-mkdir -p "$work/tests" "$results"
+mkdir -p "$work/tests" "$work/src" "$results"
 for file in "$@"; do
-  case "$file" in
+  # A top-level file or a file directly in src/.
+  case "${file#src/}" in
     */*|constants.php|*[!A-Za-z0-9_.-]*)
       echo "Unexpected application file: $file" >&2
       exit 2

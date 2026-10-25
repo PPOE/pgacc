@@ -7,6 +7,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Library code starts moving to `src/`, first the database helpers
+  (`src/db.php`). Deny web access to `src/` like `vendor/` and `tests/`
+  ([UPGRADING.md](UPGRADING.md)); on Apache the shipped `src/.htaccess` does
+  it. A failed database query still prints the same message; the PHP error
+  log now also gets a line `pgacc: query failed, called from <file>:<line>`
+  naming the page, since PHP reports the failed `pg_query()` at
+  `src/db.php`.
 - The notice box at the top of every page shows the booking progress per year
   as a full-width table instead of one sentence per year: booking lines, then
   unbearbeitet, bearbeitet and abgeschlossen (workflow order) with

@@ -36,6 +36,38 @@ if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabu
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 
+// src/db.php only defines functions: a direct request prints nothing (the
+// web server denies src/; the test server ignores .htaccess).
+$library = http_request('/src/db.php');
+if ($library['body'] !== '') {
+    fail_test('src/db.php: a direct request printed ' . var_export($library['body'], true));
+}
+
+// A failed statement ends the request with the pages' message, through each
+// helper (test page tests/runtime/db-failure.php). PHP reports the failed
+// pg_query() at src/db.php (displayed by the test server before the
+// message); db_fail() logs the caller to the error log.
+$missing = "ERROR:  relation \"db_helpers_missing\" does not exist\nLINE 1: ";
+$failures = [
+    'query' => 'Abfrage fehlgeschlagen: ' . $missing . 'SELECT * FROM db_helpers_missing',
+    'query-sql' => 'Abfrage (SELECT * FROM db_helpers_missing) fehlgeschlagen: ' . $missing . 'SELECT * FROM db_helpers_missing',
+    'exec' => 'Abfrage fehlgeschlagen: ' . $missing . 'UPDATE db_helpers_missing SET n = 1',
+];
+with_expected_diagnostics('db-helper-failure', [['src/db.php', 'pg_query(): Query failed']], function () use ($failures) {
+    foreach ($failures as $helper => $expected) {
+        $failure = http_request('/tests/runtime/db-failure.php?helper=' . $helper);
+        assert_status($failure, 200, "db helper failure $helper");
+        if (strpos($failure['body'], "</b><br />\n" . $expected) === false || strpos($failure['body'], 'not ended') !== false) {
+            fail_test("db helper failure $helper: " . var_export($failure['body'], true));
+        }
+    }
+});
+$noRow = http_request('/tests/runtime/db-failure.php?helper=next-value-no-row');
+assert_status($noRow, 200, 'db_next_value() without a row');
+if ($noRow['body'] !== 'Abfrage fehlgeschlagen: ') {
+    fail_test('db_next_value() without a row: ' . var_export($noRow['body'], true));
+}
+
 $transactions = http_request('/index.php?action=transactions');
 assert_status($transactions, 200, 'transactions');
 assert_contains($transactions['body'], 'Kontobewegungen der Piratenpartei Österreichs', 'transactions');

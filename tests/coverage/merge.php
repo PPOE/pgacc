@@ -14,7 +14,8 @@
  * to be useful.
  *
  * <coverage-dir> contains phpunit.cov and http/*.ser. Scope: every top-level
- * application PHP file in /app, except the test-only constants.php. Files that
+ * application PHP file in /app, except the test-only constants.php, and the
+ * library files in /app/src. Files that
  * no test reaches are included with zero coverage (statically analysed, never
  * executed).
  */
@@ -41,7 +42,7 @@ $outputDir = rtrim($argv[2], '/');
 $appRoot = '/app';
 
 $files = [];
-foreach (glob($appRoot . '/*.php') as $file) {
+foreach (array_merge(glob($appRoot . '/*.php'), glob($appRoot . '/src/*.php')) as $file) {
     if (basename($file) !== 'constants.php') {
         $files[] = $file;
     }

@@ -7,7 +7,7 @@ function download_file($rights)
     $rightssql = rights2orgasql($rights);
     $bid = intval($_GET['id'] ?? 0);
     $query = "SELECT file,voucher_id FROM vouchers WHERE NOT deleted AND id = $bid $rightssql ORDER BY id ASC;";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $file = $line['file'];
         $vid = $line['voucher_id'];

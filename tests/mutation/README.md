@@ -252,7 +252,7 @@ its baseline. `run.sh` takes the diff on the host
 ### CI (`ci.sh`)
 
 `sh tests/mutation/ci.sh 8.5 [--changed-since=<base>]` runs the self-test
-and the target list, attempting every target: all 16 committed targets. CI
+and the target list, attempting every target: all 18 committed targets. CI
 runs it in its own job, `Mutation tests (PHP 8.5 / PostgreSQL 18)`, blocking
 when it runs: with `--changed-since` on pull requests labelled `mutation`,
 every target on full runs (weekly, manual, `full-ci` pull requests). Other
@@ -380,6 +380,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `rights2orgasql` | `rights2orgasql()` in `functions.php` | PHPUnit `testRights2orgasql` |
 | `null-arguments` | null guards in `tag()`, `acc_header()`, `acc_footer()`, `rights2orgasql()` | PHPUnit |
 | `login-session` | `login_random_bytes()` and its call in `login_start_session()` in `functions.php` (fail closed without random bytes) | `LoginSessionTest` |
+| `db-helpers` | `db_query()`, `db_exec()`, `db_next_value()`, `db_fail()` and `db_caller()` in `src/db.php`: the die message on failure (with the statement only with `show_sql`), the logged caller, the result, the affected rows, the sequence value and its missing row | `DbHelpersTest` |
 | `login-logout` | `login()` and the early logout/login blocks in `index.php`, `login.php`, the `page_new_buchung()` signature | `http-login.php` |
 | `redirects` | login check and member search redirect in `index.php`, `ob_start()` for edit/merge, `relocate()` in `edit.php` and its callers, `search.php` | `http-redirects.php`, `write-workflows.php` |
 | `rights-checks` | organization scope and rights checks of voucher creation, revision, approval, approval reset, merge, the role checks and new users; the removed finalization (`finalization-write-restored`) | `write-workflows.php` |

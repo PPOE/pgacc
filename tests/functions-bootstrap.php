@@ -28,3 +28,6 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 // tests/mutation/infection.sh substitutes a class-wrapped copy for Infection.
 $functionsFile = getenv('PGACC_FUNCTIONS_FILE');
 require_once $functionsFile ? $functionsFile : dirname(__DIR__) . '/functions.php';
+
+// Database helpers, loaded after functions.php as in index.php.
+require_once dirname(__DIR__) . '/src/db.php';

@@ -32,7 +32,7 @@ remove them with `docker rmi`.
 
 The lane:
 
-1. runs `php -l` on every top-level application file under PHP 8.5;
+1. runs `php -l` on every top-level application file and `src/*.php` under PHP 8.5;
 2. loads the data-free schema and synthetic fixtures and runs
    `database-characterization.sql` with `psql`;
 3. starts the application and runs the HTTP tests, the PHPUnit suite and the
@@ -348,7 +348,7 @@ base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`).
 ## Coverage
 
 `tests/run.sh` adds `compose.coverage.yaml` and measures all 30 top-level
-application files:
+application files and the library files in `src/`:
 
 - The application server runs with `auto_prepend_file=tests/coverage/prepend.php`
   and `XDEBUG_MODE=coverage` (Xdebug 3.5.3). Per request the prepend starts Xdebug
@@ -554,7 +554,7 @@ It runs in its own image (`tests/static-analysis/Dockerfile`): pinned
 (PHP_CodeSniffer 4.0.4, PHPCompatibility 10.0.0-alpha2, PHPCSUtils 1.2.3,
 PHPStan 2.3.2, its PHAR SHA-256 checked). Only the build needs network; the
 analysis has no network, a read-only repository mount and root filesystem. It
-analyses a copy of the 30 tracked top-level application files (no `vendor/`,
+analyses a copy of the 30 tracked top-level application files and `src/*.php` (no `vendor/`,
 `tests/`, `files/`, `proxy/`), with `tests/runtime/test-constants.php` as
 `constants.php` and the locked `vendor/`, so `require()` paths resolve.
 `PGACC_TEST_ID` suffixes the image name.

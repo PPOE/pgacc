@@ -17,6 +17,7 @@ require __DIR__ . '/http-test-helpers.php';
 // the application's helpers (pinned by the vectors).
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/functions.php';
+require_once dirname(__DIR__) . '/src/db.php';
 
 function receipts_database()
 {

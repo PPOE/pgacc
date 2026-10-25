@@ -55,7 +55,7 @@ function page_accounts($rights)
         $restrict = " WHERE id = $id ";
     }
     $query = "SELECT * FROM users $restrict ORDER BY rights DESC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $i = $line['id'];
         echo '<tr><td>' . html_escape($line['name']) . '</td><td><input type="password" name="password' . $i . '" value="******"></td>' . (has_right($rights, 'root') ? '<td><input type="text" name="rights' . $i . '" value="' . html_escape($line['rights']) . '" /></td>' : '') . '<td><input type="submit" name="submit" value="Benutzer ' . $i . ' aktualisieren" /></td></tr>' . "\n";

@@ -161,7 +161,7 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
         $query .= "AND account LIKE '%" . $account . "%'";
     }
     $query .= ";";
-    $result = pg_query($dbconn, $query) or die('Abfrage (' . $query . ') fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query, show_sql: true);
     $lineCount = 0;
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $voucher = $line;
@@ -183,23 +183,15 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
     $id = $voucher["voucher_id"];
     $bid = $voucher["id"];
 
-    $query = "SELECT nextval('file_number') AS num;";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        $file_number = $line['num'];
-    }
-    pg_free_result($result);
+    $file_number = db_next_value($dbconn, 'file_number');
 
     // The receipt is stored only for a row that the scoped update matched.
     $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = 0 $rightssql;";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-    $updated = pg_affected_rows($result);
-    pg_free_result($result);
+    $updated = db_exec($dbconn, $query);
 
     $sourcepath = $_FILES["upload"]["tmp_name"][$i];
     if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath)) {
-        $result = pg_query($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-        pg_free_result($result);
+        db_exec($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;");
         echo "Beleg konnte nicht gespeichert werden.<br />";
         return;
     }

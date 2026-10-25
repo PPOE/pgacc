@@ -173,6 +173,7 @@ build_archive() {
     docker run --rm --network none --read-only \
       --user "$(id -u):$(id -g)" \
       --volume "$repo_dir/functions.php:/app/functions.php:ro" \
+      --volume "$repo_dir/src:/app/src:ro" \
       --volume "$repo_dir/tests:/app/tests:ro" --volume "$stage/vendor:/app/vendor:ro" \
       --workdir /app "$php_image" \
       php tests/release-vendor-check.php || status=$?
