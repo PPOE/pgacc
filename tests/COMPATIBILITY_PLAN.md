@@ -971,9 +971,9 @@ lines, is now the pinned behaviour.
 | `RD-INT-32BIT` | 7 | 216 | b, partly c | 64-bit integers (production was 32-bit): corpus values at or above 2^31 are ints, no saturation or wrap (see "32-bit production integers"). It also pinned app-visible issues (c): the import amount `"9223372036854775808"` saturates to `PHP_INT_MAX` cents (`import.php:118`), `date_condition(PHP_INT_MAX)` builds invalid SQL (`'9.2233720368548E+18-01-01'`), and the `sprintf` money idiom loses precision at `PHP_INT_MAX` (`92233720368547760.00`). |
 | `RD-INTVAL-EXPONENT-DATES` | 1 | 16 | b | `"1e3" + 1` is 1001 on PHP 7.1+ (2 on PHP 5); `date_condition()` input only from tests (`index.php` passes `intval()` years). |
 | `RD-HEX-NUMERIC-STRING` | 1 | 4 | b | `"0x1A"` is not numeric since PHP 7.0 (0.00 instead of 0.26). |
-| `RD-SORT-ORDER` | 1 | 12 | b | PHP 8 stable `sort()` and string-number comparison order ties and mixed values differently. The `todo` asked for a review of the application's sorts with ties: not done, open follow-up below. |
-| `RD-PHP8-STRING-NUMBER-COMPARE` | 1 | 370 | b | PHP 8 string-number comparison (`0 == "abc"` is false). The `todo` asked for a review of the application's non-strict comparisons (konto2lo, rights, filters): not done, open follow-up below. |
-| `RD-PHP8-STRING-NUMBER-SEARCH` | 1 | 68 | b | Same rule in `in_array()`/`array_search()`; trailing whitespace is numeric. Application review open (follow-up below). |
+| `RD-SORT-ORDER` | 1 | 12 | b | PHP 8 stable `sort()` and string-number comparison order ties and mixed values differently. The `todo` asked for a review of the application's sorts with ties: done, no tie reaches a page (follow-up below). |
+| `RD-PHP8-STRING-NUMBER-COMPARE` | 1 | 370 | b | PHP 8 string-number comparison (`0 == "abc"` is false). The `todo` asked for a review of the application's non-strict comparisons (konto2lo, rights, filters): done, no wrong result for reachable input (follow-up below). |
+| `RD-PHP8-STRING-NUMBER-SEARCH` | 1 | 68 | b | Same rule in `in_array()`/`array_search()`; trailing whitespace is numeric. Application review done (follow-up below). |
 | `RD-PHP8-STRING-NUMBER-GETSORT` | 1 | 10 | b | `getoppsort()` with an integer `$_GET[sort]`, reachable only from tests (request values are strings). |
 | `RD-PHP8-KONTO2LO-WHITESPACE` | 1 | 2 | b | `"50110117300 "` now maps to organization 2 (PHP 8 numeric strings may end in whitespace); trimming stays a follow-up in "Found by the PHP 5 reference". |
 | `RD-PHP8-ARRAY-ARG-HEX` | 1 | 4 | b | `TypeError` for an array argument; `hex2ascii()` only gets checked hex strings, `ascii2hex()` the request URI. |
@@ -1093,11 +1093,51 @@ integer size. Any other value is null.
   target `edge-requests`).
 - [x] Out-of-range helper input: `date_condition(1.5E+300)` (float not
   representable as an int). **Fixed** with the year range above.
-- [ ] Review the application's non-strict `in_array()`/`array_search()`/`==`
-  and sorts that can see ties under PHP 8 semantics (e.g. `new.php:656`,
-  `functions.php:321`; konto2lo, rights, filters). The former `todo` entries
-  `RD-PHP8-STRING-NUMBER-COMPARE`/`-SEARCH` and `RD-SORT-ORDER` asked for it;
-  the re-baseline did not do it.
+- [x] Review the application's non-strict `in_array()`/`array_search()`/`==`
+  and sorts that can see ties under PHP 8 semantics (konto2lo, rights,
+  filters; the former `todo` entries `RD-PHP8-STRING-NUMBER-COMPARE`/`-SEARCH`
+  and `RD-SORT-ORDER`). **Reviewed, nothing changed**: no loose comparison of
+  the application code gives a wrong result for an input that can reach it,
+  and a strict comparison would only add equivalent mutants. Checked:
+  - Rights: `has_right()`, `write_rights()` and `organization_allowed()` are
+    strict already. `rights2orgasql()` (`in_array('bgf'/'Rbgf', ...)`) and
+    `end_of_form()` (`new.php:683`, `in_array(trim($lo), konto2lo($rights2))`)
+    compare strings with a non-numeric side, or a single-token rights string
+    with its own token: strict gives the same result. `konto2lo()` returns
+    the rights array unchanged there.
+  - Integer against numeric string, where loose is the intended numeric
+    comparison and matches PostgreSQL (`"08"` is 8; a strict comparison would
+    break): `accounts.php:14` (`intval()` id against the stored id),
+    `get_voucher()`/`page_save_buchung()` (`type == 45`, `in_type != 8`,
+    `mitgliedsnummer == 0`, `file == -1`), the selected options of the
+    voucher form (`new.php:375`-`:437`), `edit.php:278`/`:284`,
+    `getusers.php:63` (organization number of the membership data, `"38\r"`
+    is 38), the `$unit`/`$type` filters (`report.php`, `wk.php`,
+    `spendings.php`, `kdonations.php`), `mb.php:78`/`:97`.
+  - `null`/`''` checks that rely on `null == ''` (`mb.php:32`,
+    `new.php:117`/`:202`/`:203`, `edit.php:395`/`:397`, `vreport.php:114`,
+    `closed.php:247`, `edit.php:453`): intended; `"0"` is not `null`.
+  - String against a non-numeric literal (`$page`, actions, `'t'`, `'csv'`,
+    submit values, CSV headers, `getsort()`/`getoppsort()`/`tag()`, the
+    BAWAG IBAN `switch` in `import.php:104`, MIME whitelists in `import.php:52`
+    and `import2.php:31`, the `in_array()` lists in `index.php`): plain string
+    comparison, equivalent to strict; array request values compare unequal.
+  - Lenient by design, left loose: the Handkassa flags `$data[6]`/`$data[7]
+    == '1'` (`import.php:157`/`:158`) also accept `"01"`, `"1.0"` and `"1 "`;
+    the member-name check `$n != $n2` (`new.php:150`, `import.php:284`) would
+    skip one lookup only for a purely numeric name with surrounding spaces.
+  - `konto2lo()` still maps `"50110117300 "` or `"5.0110117300e10"` to an
+    organization (`RD-PHP8-KONTO2LO-WHITESPACE`), but no page calls it with a
+    string; a strict version would only change the helper recording.
+  - Sorts: no `usort()`/`uasort()` comparators; `migrate-receipt-key.php:144`
+    sorts unique canonical file numbers (`SORT_NUMERIC`), `:145` names
+    (`SORT_STRING`); `array_unique()` in `edit.php:257` gets fixed warning
+    codes. The SQL `ORDER BY` clauses end in a unique key except where the
+    order does not reach the output.
+  - Found on the way, not a comparison issue (owner decision): the voucher
+    form shows the save and approval buttons (`end_of_form()`) only to `bgf`
+    and to users with exactly one right, so a user with `1,2` (or `Rbgf,2`)
+    sees none, although `organization_allowed()` would let them save.
 
 ## Found by the PHP 5 reference
 
