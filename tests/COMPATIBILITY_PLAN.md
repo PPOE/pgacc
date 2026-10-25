@@ -157,8 +157,8 @@ Harness follow-ups found in the first step (not done there):
   `$http_response_header` fallback and the CI lane matrix. PHPCompatibility
   stays: it reports deprecated functions, constants and casts that PHPStan
   does not. The reference allowlist's `pg` key and `PGACC_TEST_PG` stayed
-  until the re-baseline; with one PostgreSQL version and an empty allowlist
-  they can go (later, harness only).
+  until the re-baseline and were removed with it, as was the `crlf-to-lf`
+  transform.
 - [x] `csrf` added to the `ci.sh` list (all 14 targets).
 
 ## Completed and verified
@@ -958,17 +958,17 @@ lines, is now the pinned behaviour.
 | `RD-GETUSERS-TRANSACTION-IMPORT` | 9 | 36 | a | Intended fix: `getusers()` refreshes `ppmembers` in one transaction (`BEGIN`/`COMMIT`). |
 | `RD-GETUSERS-TRANSACTION-MB` | 1 | 4 | a | As above, for the member-fee page. |
 | `RD-CHARSET-DEFAULT` | 228 | 456 | b | PHP 5.6+ `default_charset=UTF-8` adds `; charset=UTF-8`; the pages declare UTF-8 themselves. |
-| `RD-INT-32BIT` | 7 | 216 | b | 64-bit integers (production was 32-bit): corpus values at or above 2^31 are ints, no saturation or wrap. Only out-of-range input changes (see "32-bit production integers"). |
+| `RD-INT-32BIT` | 7 | 216 | b, partly c | 64-bit integers (production was 32-bit): corpus values at or above 2^31 are ints, no saturation or wrap (see "32-bit production integers"). It also pinned app-visible issues (c): the import amount `"9223372036854775808"` saturates to `PHP_INT_MAX` cents (`import.php:118`), `date_condition(PHP_INT_MAX)` builds invalid SQL (`'9.2233720368548E+18-01-01'`), and the `sprintf` money idiom loses precision at `PHP_INT_MAX` (`92233720368547760.00`). |
 | `RD-INTVAL-EXPONENT-DATES` | 1 | 16 | b | `"1e3" + 1` is 1001 on PHP 7.1+ (2 on PHP 5); `date_condition()` input only from tests (`index.php` passes `intval()` years). |
 | `RD-HEX-NUMERIC-STRING` | 1 | 4 | b | `"0x1A"` is not numeric since PHP 7.0 (0.00 instead of 0.26). |
-| `RD-SORT-ORDER` | 1 | 12 | b | PHP 8 stable `sort()` and string-number comparison order ties and mixed values differently. |
-| `RD-PHP8-STRING-NUMBER-COMPARE` | 1 | 370 | b | PHP 8 string-number comparison (`0 == "abc"` is false). |
-| `RD-PHP8-STRING-NUMBER-SEARCH` | 1 | 68 | b | Same rule in `in_array()`/`array_search()`; trailing whitespace is numeric. |
+| `RD-SORT-ORDER` | 1 | 12 | b | PHP 8 stable `sort()` and string-number comparison order ties and mixed values differently. The `todo` asked for a review of the application's sorts with ties: not done, open follow-up below. |
+| `RD-PHP8-STRING-NUMBER-COMPARE` | 1 | 370 | b | PHP 8 string-number comparison (`0 == "abc"` is false). The `todo` asked for a review of the application's non-strict comparisons (konto2lo, rights, filters): not done, open follow-up below. |
+| `RD-PHP8-STRING-NUMBER-SEARCH` | 1 | 68 | b | Same rule in `in_array()`/`array_search()`; trailing whitespace is numeric. Application review open (follow-up below). |
 | `RD-PHP8-STRING-NUMBER-GETSORT` | 1 | 10 | b | `getoppsort()` with an integer `$_GET[sort]`, reachable only from tests (request values are strings). |
 | `RD-PHP8-KONTO2LO-WHITESPACE` | 1 | 2 | b | `"50110117300 "` now maps to organization 2 (PHP 8 numeric strings may end in whitespace); trimming stays a follow-up in "Found by the PHP 5 reference". |
 | `RD-PHP8-ARRAY-ARG-HEX` | 1 | 4 | b | `TypeError` for an array argument; `hex2ascii()` only gets checked hex strings, `ascii2hex()` the request URI. |
 | `RD-PHP8-ARRAY-ARG-RIGHTS` | 1 | 2 | b | `TypeError` for an array argument; `rights2orgasql()` only gets the stored rights string. |
-| `RD-INTVAL-EXPONENT-VALUES` | 1 | 16 | c | `"1e3"` → 1000 is the PHP 7.1+ reading, but the import amount `1e3,2` (`import.php:118`) becomes `PHP_INT_MAX` cents. |
+| `RD-INTVAL-EXPONENT-VALUES` | 1 | 16 | c | Import amounts in exponent form (`import.php:118`): `"1e3"` becomes 1000 cents (PHP 5: 1), `"1e1000"` 0, and `1e3,2` `PHP_INT_MAX` cents. |
 | `RD-PHP8-NONNUMERIC-ARITHMETIC` | 1 | 50 | c | An empty or non-numeric amount (`new.php:46`) and the `sprintf('%1.2f', .../100)` money idiom throw `TypeError` (HTTP 500) where PHP 5 used 0. |
 | `RD-PHP84-ROUND` | 1 | 6 | c | PHP 8.4 `round()`: an entered amount of 1,005 EUR is stored as 100 instead of 101 cents (`new.php:46`). |
 | `RD-PHP8-ARRAY-ARG-GET` | 2 | 42 | c | An array request parameter (`?filter_id[]=1`, POST `amount0[]`) makes `getfilter()`/`get_param()` throw `TypeError` (HTTP 500) instead of ignoring it. |
@@ -976,25 +976,38 @@ lines, is now the pinned behaviour.
 Counts per class (distinct files): (a) 3 entries, 304 files (294 by the
 transform); (b) 11 entries, 238 files; (c) 4 entries, 3 files
 (`helpers/idioms-values.txt`, `helpers/get_param.txt`,
-`helpers/getfilter.txt`). Most files carry several entries (every page has
+`helpers/getfilter.txt`), plus the app-visible part of `RD-INT-32BIT`.
+Most files carry several entries (every page has
 `RD-CHARSET-DEFAULT` and the transform), so the classes overlap; 351 files in
 all.
 
-Informational `diagnostics/` differences (70 files, not gated by the
-comparison; `tests/known-diagnostics.php` gates the lane): undefined-variable
+`diagnostics/` differences (70 files; informational in the PHP 5
+comparison; since the re-baseline they are compared byte for byte like every
+other recording): undefined-variable
 notices of `tinyreport.php`, `vreport.php`, `wk.php`, `new.php` and the `/g`
 regex warning of `import.php` are gone (fixed, a); `closed.php` undefined
 keys are `KF-CLOSED-MISSING-COLUMNS`; the helper corpus shows PHP 8 wording
 and deprecations (`ord('')`, array offset on int, `hexdec()` invalid
-characters; b). One is new and suspicious (c): `index.php:98`
-`explode(",", $line['hide'])` warns `E_DEPRECATED` (null to a string
-parameter) on every request of a logged-in user whose `users.hide` is NULL
-(47 occurrences in 14 requests of the reference user without rights).
+characters; b). New and suspicious (c):
+
+- `index.php:98` `explode(",", $line['hide'])` warns `E_DEPRECATED` (null to a
+  string parameter) on every request of a logged-in user whose `users.hide`
+  is NULL (47 occurrences in 14 requests of the reference user without rights);
+- `getoppsort(null)` (`helpers-getsort`): `substr()` of null is deprecated
+  (an empty or non-string `sort` parameter);
+- `date_condition(1.5E+300)` (and the number-conversion idiom): "The float
+  1.5E+300 is not representable as an int, cast occurred";
+- `convif(true, null)`: `iconv()` of null is deprecated.
 
 Class (c) follow-ups (owner decisions, not fixed here):
 
-- [ ] `import.php:118`: validate amounts before `intval()`; `1e3,2` imports
-  `PHP_INT_MAX` cents (`RD-INTVAL-EXPONENT-VALUES`).
+- [ ] `import.php:118`: validate amounts before `intval()`: `1e3` imports
+  1000 cents (PHP 5: 1), `1e1000` 0 and `1e3,2` `PHP_INT_MAX` cents
+  (`RD-INTVAL-EXPONENT-VALUES`).
+- [ ] Validate the import amount range: `"9223372036854775808"` saturates to
+  `PHP_INT_MAX` cents (`import.php:118`); out-of-range years make
+  `date_condition(PHP_INT_MAX)` build invalid SQL (`'9.2233720368548E+18-01-01'`);
+  the `sprintf` money idiom loses precision at `PHP_INT_MAX` (`RD-INT-32BIT`).
 - [ ] `new.php:46` and the money formatting: an empty or non-numeric amount
   is a `TypeError` (HTTP 500) (`RD-PHP8-NONNUMERIC-ARITHMETIC`).
 - [ ] `new.php:46`: PHP 8.4 `round()` stores 1,005 EUR as 100 cents; decide
@@ -1002,7 +1015,15 @@ Class (c) follow-ups (owner decisions, not fixed here):
 - [ ] `getfilter()`/`get_param()`: array request parameters give HTTP 500
   (`RD-PHP8-ARRAY-ARG-GET`).
 - [ ] `index.php:98`: `explode()` of a NULL `users.hide` is deprecated on
-  PHP 8.1+ (informational diagnostics only).
+  PHP 8.1+.
+- [ ] Null and out-of-range helper input: `getoppsort(null)` (`substr()` of
+  null), `convif(true, null)` (`iconv()` of null), `date_condition(1.5E+300)`
+  (float not representable as an int).
+- [ ] Review the application's non-strict `in_array()`/`array_search()`/`==`
+  and sorts that can see ties under PHP 8 semantics (e.g. `new.php:656`,
+  `functions.php:321`; konto2lo, rights, filters). The former `todo` entries
+  `RD-PHP8-STRING-NUMBER-COMPARE`/`-SEARCH` and `RD-SORT-ORDER` asked for it;
+  the re-baseline did not do it.
 
 ## Found by the PHP 5 reference
 
