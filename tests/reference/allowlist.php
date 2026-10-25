@@ -32,4 +32,4 @@
 // The PHP 5 entries were removed when the reference was re-recorded on PHP
 // 8.5; their audit is in tests/COMPATIBILITY_PLAN.md, "Reference re-baseline
 // on PHP 8.5".
-return array();
+return [];

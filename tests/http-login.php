@@ -9,7 +9,7 @@
  */
 require __DIR__ . '/http-test-helpers.php';
 
-$problems = array();
+$problems = [];
 
 function check($label, $checkProblems)
 {
@@ -26,29 +26,29 @@ function check($label, $checkProblems)
 function redirect_body_problems($response)
 {
     if ($response['body'] !== '') {
-        return array('redirect body was not empty: ' . substr($response['body'], 0, 200));
+        return ['redirect body was not empty: ' . substr($response['body'], 0, 200)];
     }
-    return array();
+    return [];
 }
 
 function authenticated_as_problems($cookies, $baseUrl = null)
 {
     // page_login() reports success when checklogin() accepts the cookies.
-    $response = http_request('/index.php?action=login', 'GET', array(), $cookies, $baseUrl);
+    $response = http_request('/index.php?action=login', 'GET', [], $cookies, $baseUrl);
     if (strpos($response['body'], 'Login erfolgreich!') === false) {
-        return array('cookies were not accepted as an authenticated session');
+        return ['cookies were not accepted as an authenticated session'];
     }
-    return array();
+    return [];
 }
 
 function not_authenticated_problems($cookies)
 {
-    $response = http_request('/index.php?action=login', 'GET', array(), $cookies);
+    $response = http_request('/index.php?action=login', 'GET', [], $cookies);
     if (strpos($response['body'], 'Login erforderlich') === false
         || strpos($response['body'], 'Login erfolgreich!') !== false) {
-        return array('cookies were accepted as an authenticated session');
+        return ['cookies were accepted as an authenticated session'];
     }
-    return array();
+    return [];
 }
 
 // Set-Cookie attributes after the value, keyed by lowercase name; e.g.
@@ -65,7 +65,7 @@ function response_cookie_attributes($response, $name)
         if ($pair[0] !== $name) {
             continue;
         }
-        $attributes = array();
+        $attributes = [];
         foreach ($parts as $part) {
             $attribute = explode('=', trim($part), 2);
             $attributes[strtolower($attribute[0])] = isset($attribute[1]) ? $attribute[1] : true;
@@ -81,7 +81,7 @@ function response_cookie_attributes($response, $name)
 // 1970-01-01 00:00:01 GMT, as setcookie() sends it).
 function login_cookie_header_problems($response, $maxAge)
 {
-    $problems = array();
+    $problems = [];
     $setCookies = 0;
     foreach ($response['headers'] as $header) {
         if (stripos($header, 'Set-Cookie:') === 0) {
@@ -91,9 +91,9 @@ function login_cookie_header_problems($response, $maxAge)
     if ($setCookies !== 2) {
         $problems[] = "sent $setCookies Set-Cookie headers, expected 2";
     }
-    $expected = array('expires', 'httponly', 'max-age', 'samesite', 'secure');
+    $expected = ['expires', 'httponly', 'max-age', 'samesite', 'secure'];
     $cookies = response_cookies($response);
-    foreach (array('pp_pgacc_login', 'pp_pgacc_id') as $cookie) {
+    foreach (['pp_pgacc_login', 'pp_pgacc_id'] as $cookie) {
         $attributes = response_cookie_attributes($response, $cookie);
         if ($attributes === null) {
             $problems[] = "no $cookie cookie";
@@ -153,7 +153,7 @@ function login_state($userId)
         database_connection(),
         "SELECT cookie::text AS cookie, login::text AS login, login > now() - '1 minute'::interval AS recent"
         . ' FROM users WHERE id = $1',
-        array($userId)
+        [$userId],
     );
     if ($result === false || pg_num_rows($result) !== 1) {
         fail_test("could not read the login state of user $userId");
@@ -175,7 +175,7 @@ function login_state_problems($response, $userId)
 {
     $cookies = response_cookies($response);
     $state = login_state($userId);
-    $problems = array();
+    $problems = [];
     // users.cookie (an integer column) holds a random 31-bit nonce, never 0.
     if (preg_match('/^[1-9]\d*$/', (string) $state['cookie']) !== 1 || intval($state['cookie']) > 2147483647) {
         $problems[] = 'users.cookie was ' . var_export($state['cookie'], true) . ', expected a positive 31-bit nonce';
@@ -191,7 +191,7 @@ function login_state_problems($response, $userId)
 
 function rejected_login_problems($response)
 {
-    $problems = array();
+    $problems = [];
     if ($response['status'] !== 200) {
         $problems[] = "returned HTTP {$response['status']}, expected 200";
     }
@@ -218,16 +218,16 @@ function logged_in_target_problems($cookies, $target, $baseUrl = null, $expected
     $response = http_request(
         '/index.php?action=login',
         'POST',
-        array(
+        [
             'submit' => 'Anmeldung',
             'name' => 'synthetic-nobody',
             'pass' => 'wrong-password',
             'target' => strtoupper(bin2hex($target)),
-        ),
+        ],
         $cookies,
-        $baseUrl
+        $baseUrl,
     );
-    $problems = array();
+    $problems = [];
     if ($response['status'] !== 302) {
         $problems[] = "returned HTTP {$response['status']}, expected 302";
     }
@@ -262,7 +262,7 @@ check('second login', array_merge(login_response_problems($relogin, 'index.php',
 $reloginCookies = response_cookies($relogin);
 if (isset($cookies['pp_pgacc_login']) && isset($reloginCookies['pp_pgacc_login'])) {
     $rotationProblems = $cookies['pp_pgacc_login'] === $reloginCookies['pp_pgacc_login']
-        ? array('the second login reused the token') : array();
+        ? ['the second login reused the token'] : [];
     check('second login replaces the token', $rotationProblems);
     check('previous login cookies are rejected', not_authenticated_problems($cookies));
     check('second login cookies authenticate', authenticated_as_problems($reloginCookies));
@@ -277,7 +277,7 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
     $state = login_state(1);
     $otherLogin = response_cookies(login_request('synthetic-read-only-two', 'read-only-two-password'));
     $lastDigit = substr($token, -1) === '0' ? '1' : '0';
-    foreach (array(
+    foreach ([
         'changed digit' => substr($token, 0, 63) . $lastDigit,
         'upper case' => strtoupper($token) === $token ? 'x' : strtoupper($token),
         'users.cookie nonce' => $state['cookie'],
@@ -285,14 +285,14 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
         'empty' => '',
         'too long' => $token . '0',
         'array' => null,
-    ) as $label => $wrongToken) {
+    ] as $label => $wrongToken) {
         $wrongCookies = $wrongToken === null
-            ? array('pp_pgacc_login[]' => $token, 'pp_pgacc_id' => '1')
-            : array('pp_pgacc_login' => $wrongToken, 'pp_pgacc_id' => '1');
+            ? ['pp_pgacc_login[]' => $token, 'pp_pgacc_id' => '1']
+            : ['pp_pgacc_login' => $wrongToken, 'pp_pgacc_id' => '1'];
         check("wrong token rejected ($label)", not_authenticated_problems($wrongCookies));
     }
     check('right token with another user id rejected', not_authenticated_problems(
-        array('pp_pgacc_login' => $token, 'pp_pgacc_id' => isset($otherLogin['pp_pgacc_id']) ? $otherLogin['pp_pgacc_id'] : '0')
+        ['pp_pgacc_login' => $token, 'pp_pgacc_id' => isset($otherLogin['pp_pgacc_id']) ? $otherLogin['pp_pgacc_id'] : '0'],
     ));
     check('valid login cookies still authenticate', authenticated_as_problems($cookies));
 }
@@ -300,24 +300,24 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
 // Even the exact dummy token must not turn a missing database row into a
 // session. The schema does not guarantee unique user IDs, so keep looking
 // when the first row's token does not match (the name column is unique).
-check('missing user rejects the dummy token', not_authenticated_problems(array(
+check('missing user rejects the dummy token', not_authenticated_problems([
     'pp_pgacc_id' => '999999', 'pp_pgacc_login' => expected_login_token(0, 0, ''),
-)));
+]));
 $duplicateSessions = pg_query(
     database_connection(),
     "INSERT INTO users (id, name, login, cookie, rights, hide) VALUES
      (59, 'synthetic-session-decoy', now(), 101, '2', ''),
-     (59, 'synthetic-session-match', now(), 102, '2', '') RETURNING cookie, login"
+     (59, 'synthetic-session-match', now(), 102, '2', '') RETURNING cookie, login",
 );
 if ($duplicateSessions === false || pg_num_rows($duplicateSessions) !== 2) {
     fail_test('could not create the synthetic duplicate-id sessions');
 }
 // Check both tokens: no assumption about which row PostgreSQL returns first.
 while ($candidateSession = pg_fetch_assoc($duplicateSessions)) {
-    check('session lookup accepts matching row ' . $candidateSession['cookie'], authenticated_as_problems(array(
+    check('session lookup accepts matching row ' . $candidateSession['cookie'], authenticated_as_problems([
         'pp_pgacc_id' => '59',
         'pp_pgacc_login' => expected_login_token(59, $candidateSession['cookie'], $candidateSession['login']),
-    )));
+    ]));
 }
 pg_free_result($duplicateSessions);
 pg_query(database_connection(), "DELETE FROM users WHERE id = 59 AND name IN ('synthetic-session-decoy', 'synthetic-session-match')");
@@ -327,17 +327,17 @@ $target = 'index.php?action=all&filter_date=2024';
 $targetLogin = login_request('synthetic-reviewer', 'reviewer-password', $target);
 check('valid login with target', array_merge(
     login_response_problems($targetLogin, $target, 2),
-    redirect_body_problems($targetLogin)
+    redirect_body_problems($targetLogin),
 ));
 check('valid login with target database state', login_state_problems($targetLogin, 2));
 
 // hex2ascii() ignores spaces and decodes lowercase hex as well.
-$spacedLogin = http_request('/index.php?action=login', 'POST', array(
+$spacedLogin = http_request('/index.php?action=login', 'POST', [
     'submit' => 'Anmeldung',
     'name' => 'synthetic-unit-one',
     'pass' => 'unit-password',
     'target' => '69 6e 64 65 78 2E 70 68 70 3F 61 3D 31',
-));
+]);
 check('valid login with spaced lowercase hex target', login_response_problems($spacedLogin, 'index.php?a=1', 3));
 
 // A login older than 24 hours no longer authenticates. The token binds
@@ -347,15 +347,15 @@ function aged_session_cookies($userId, $age)
     if (@pg_query_params(
         database_connection(),
         'UPDATE users SET login = now() - $1::interval WHERE id = $2',
-        array($age, $userId)
+        [$age, $userId],
     ) === false) {
         fail_test("could not age the login of user $userId");
     }
     $state = login_state($userId);
-    return array(
+    return [
         'pp_pgacc_login' => expected_login_token($userId, $state['cookie'], $state['login']),
         'pp_pgacc_id' => strval($userId),
-    );
+    ];
 }
 check('login of 23 hours ago authenticates', authenticated_as_problems(aged_session_cookies(3, '23 hours')));
 check('login older than 24 hours rejected', not_authenticated_problems(aged_session_cookies(3, '25 hours')));
@@ -363,23 +363,23 @@ check('login older than 24 hours rejected', not_authenticated_problems(aged_sess
 // The login form always posts a target field, empty unless the login page was
 // opened with ?target=. An empty target redirects to index.php (not an empty
 // "Location:", which browsers show as a blank page).
-$emptyTargetLogin = http_request('/index.php?action=login', 'POST', array(
+$emptyTargetLogin = http_request('/index.php?action=login', 'POST', [
     'submit' => 'Anmeldung',
     'name' => 'synthetic-admin',
     'pass' => 'correct-password',
     'target' => '',
-));
+]);
 check('valid login with empty target', login_response_problems($emptyTargetLogin, 'index.php', 1));
 
 // Already logged in: the login page only reports success, posted credentials
 // are not used, and a posted target redirects.
 $adminCookies = response_cookies($emptyTargetLogin);
-$loggedIn = http_request('/index.php?action=login', 'POST', array(
+$loggedIn = http_request('/index.php?action=login', 'POST', [
     'submit' => 'Anmeldung',
     'name' => 'synthetic-reviewer',
     'pass' => 'reviewer-password',
-), $adminCookies);
-$loggedInProblems = array();
+], $adminCookies);
+$loggedInProblems = [];
 if ($loggedIn['status'] !== 200 || response_header($loggedIn, 'Location') !== null
     || count(response_cookies($loggedIn)) !== 0
     || strpos($loggedIn['body'], 'Login erfolgreich!') === false) {
@@ -390,7 +390,7 @@ if (isset($adminCookies['pp_pgacc_login']) && isset($adminCookies['pp_pgacc_id']
     check('login page when already logged in, with target', logged_in_target_problems($adminCookies, $target));
     check('login page when already logged in, with empty target', logged_in_target_problems($adminCookies, '', null, 'index.php'));
 } else {
-    check('login page when already logged in, with target', array('no login cookies to test with'));
+    check('login page when already logged in, with target', ['no login cookies to test with']);
 }
 
 // Login targets must be pages of this application: index.php with an
@@ -399,14 +399,14 @@ if (isset($adminCookies['pp_pgacc_login']) && isset($adminCookies['pp_pgacc_id']
 // backslashes, control characters, line breaks that would add headers,
 // spaces) redirects to index.php instead, after a login and when already
 // logged in.
-foreach (array('index.php', '/index.php?action=all&filter_date=2024', '/', 'index.php#top') as $allowedTarget) {
+foreach (['index.php', '/index.php?action=all&filter_date=2024', '/', 'index.php#top'] as $allowedTarget) {
     check("valid login with target " . var_export($allowedTarget, true), login_response_problems(
         login_request('synthetic-unit-two', 'unit-two-password', $allowedTarget),
         $allowedTarget,
-        6
+        6,
     ));
 }
-foreach (array(
+foreach ([
     'absolute URL' => 'https://evil.example/index.php',
     'plain HTTP URL' => 'http://evil.example/',
     'scheme-relative URL' => '//evil.example/',
@@ -423,48 +423,48 @@ foreach (array(
     'tab' => "/\tevil.example",
     'relative path' => 'evil.php',
     'NUL byte' => "index.php\0",
-) as $label => $badTarget) {
+] as $label => $badTarget) {
     $badLogin = login_request('synthetic-unit-two', 'unit-two-password', $badTarget);
     check("login with target ($label) redirects to index.php", array_merge(
         login_response_problems($badLogin, 'index.php', 6),
-        redirect_body_problems($badLogin)
+        redirect_body_problems($badLogin),
     ));
     $badLoginCookies = response_cookies($badLogin);
     if (isset($badLoginCookies['pp_pgacc_login']) && isset($badLoginCookies['pp_pgacc_id'])) {
         check(
             "logged-in login page with target ($label) redirects to index.php",
-            logged_in_target_problems($badLoginCookies, $badTarget, null, 'index.php')
+            logged_in_target_problems($badLoginCookies, $badTarget, null, 'index.php'),
         );
     }
 }
-$arrayTarget = http_request('/index.php?action=login', 'POST', array(
+$arrayTarget = http_request('/index.php?action=login', 'POST', [
     'submit' => 'Anmeldung',
     'name' => 'synthetic-unit-two',
     'pass' => 'unit-two-password',
-    'target' => array('41'),
-));
+    'target' => ['41'],
+]);
 check('login with an array target redirects to index.php', login_response_problems($arrayTarget, 'index.php', 6));
 
 // Rejected logins render the form: no redirect and no cookies. Quotes in the
 // user name or password are escaped, so they are rejected like any other
 // wrong credentials (no SQL error).
-foreach (array(
-    'wrong password' => array('synthetic-admin', 'wrong-password'),
-    'unknown user' => array('synthetic-nobody', 'correct-password'),
-    'quote in user name' => array("synthetic-admin' --", 'correct-password'),
-    'quote in password' => array('synthetic-admin', "x' OR 'a'='a"),
-) as $label => $credentials) {
+foreach ([
+    'wrong password' => ['synthetic-admin', 'wrong-password'],
+    'unknown user' => ['synthetic-nobody', 'correct-password'],
+    'quote in user name' => ["synthetic-admin' --", 'correct-password'],
+    'quote in password' => ['synthetic-admin', "x' OR 'a'='a"],
+] as $label => $credentials) {
     $rejected = login_request($credentials[0], $credentials[1]);
     check("rejected login ($label)", rejected_login_problems($rejected));
 }
 $stateBefore = login_state(1);
 $formTarget = strtoupper(bin2hex('/index.php?action=all'));
-$rejectedWithTarget = http_request('/index.php?action=login&target=' . $formTarget, 'POST', array(
+$rejectedWithTarget = http_request('/index.php?action=login&target=' . $formTarget, 'POST', [
     'submit' => 'Anmeldung',
     'name' => 'synthetic-admin',
     'pass' => 'wrong-password',
     'target' => strtoupper(bin2hex($target)),
-));
+]);
 $rejectedWithTargetProblems = rejected_login_problems($rejectedWithTarget);
 // The form keeps the target from the URL, not the posted one.
 if (strpos($rejectedWithTarget['body'], '<input name="target" type="hidden" value="' . $formTarget . '" />') === false) {
@@ -485,13 +485,13 @@ check('login form', $formProblems);
 
 // The form keeps only a target that is hex for a page of this application
 // (see above); anything else, also markup, becomes an empty target.
-foreach (array(
-    'lowercase spaced hex' => array('2f 69 6e', '2f 69 6e'),
-    'odd hex' => array('ABC', ''),
-    'hex of another host' => array(strtoupper(bin2hex('https://evil.example/')), ''),
-    'markup' => array('"><script>alert(1)</script>', ''),
-    'quote' => array("2F' onfocus='alert(1)", ''),
-) as $label => $case) {
+foreach ([
+    'lowercase spaced hex' => ['2f 69 6e', '2f 69 6e'],
+    'odd hex' => ['ABC', ''],
+    'hex of another host' => [strtoupper(bin2hex('https://evil.example/')), ''],
+    'markup' => ['"><script>alert(1)</script>', ''],
+    'quote' => ["2F' onfocus='alert(1)", ''],
+] as $label => $case) {
     $targetForm = http_request('/index.php?action=login&target=' . rawurlencode($case[0]));
     $targetFormProblems = rejected_login_problems($targetForm);
     if (strpos($targetForm['body'], '<input name="target" type="hidden" value="' . $case[1] . '" />') === false) {
@@ -504,7 +504,7 @@ foreach (array(
 }
 $arrayTargetForm = http_request('/index.php?action=login&target[]=41');
 check('login form with an array target', strpos($arrayTargetForm['body'], '<input name="target" type="hidden" value="" />') === false
-    ? array('form target was not empty') : array());
+    ? ['form target was not empty'] : []);
 
 // Logout (the POST form with the form token) redirects to index.php and
 // clears both cookies. It also ends the session on the server (users.cookie
@@ -513,44 +513,44 @@ check('login form with an array target', strpos($arrayTargetForm['body'], '<inpu
 $reviewerCookies = response_cookies(login_request('synthetic-reviewer', 'reviewer-password'));
 check('admin session before logout', authenticated_as_problems($adminCookies));
 $adminState = login_state(1);
-$getLogout = http_request('/index.php?action=logout', 'GET', array(), $adminCookies);
+$getLogout = http_request('/index.php?action=logout', 'GET', [], $adminCookies);
 check('logout by GET keeps the session', array_merge(
-    $getLogout['status'] === 200 ? array() : array("returned HTTP {$getLogout['status']}, expected 200"),
-    response_header($getLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
-    strpos($getLogout['body'], 'Abmelden mit der Schaltfläche') !== false ? array() : array('no hint to the Logout button'),
-    login_state(1) === $adminState ? array() : array('changed the database login state'),
-    authenticated_as_problems($adminCookies)
+    $getLogout['status'] === 200 ? [] : ["returned HTTP {$getLogout['status']}, expected 200"],
+    response_header($getLogout, 'Set-Cookie') === null ? [] : ['sent a cookie'],
+    strpos($getLogout['body'], 'Abmelden mit der Schaltfläche') !== false ? [] : ['no hint to the Logout button'],
+    login_state(1) === $adminState ? [] : ['changed the database login state'],
+    authenticated_as_problems($adminCookies),
 ));
-$logout = http_request('/index.php?action=logout', 'POST', array(), $adminCookies);
+$logout = http_request('/index.php?action=logout', 'POST', [], $adminCookies);
 check('logout', array_merge(logout_response_problems($logout), redirect_body_problems($logout)));
 check('logout cookie attributes', logout_cookie_attribute_problems($logout));
 $loggedOut = login_state(1);
 check('logout clears users.cookie', $loggedOut['cookie'] === null
-    ? array() : array('users.cookie was ' . var_export($loggedOut['cookie'], true) . ', expected NULL'));
+    ? [] : ['users.cookie was ' . var_export($loggedOut['cookie'], true) . ', expected NULL']);
 check('cookies of a logged-out session are rejected', not_authenticated_problems($adminCookies));
 // A logged-out session has no token: not even one computed for the cleared
 // (empty) users.cookie.
-check('token for the cleared users.cookie rejected', not_authenticated_problems(array(
+check('token for the cleared users.cookie rejected', not_authenticated_problems([
     'pp_pgacc_login' => expected_login_token(1, '', $loggedOut['login']),
     'pp_pgacc_id' => '1',
-)));
+]));
 check('logout keeps the sessions of other users', authenticated_as_problems($reviewerCookies));
 
 // A logout with a wrong session token for a user id ends nothing: without a
 // session there is no form token, and the token error clears no cookie.
 $reviewerState = login_state(2);
-$forgedLogout = http_request('/index.php?action=logout', 'POST', array(), array(
+$forgedLogout = http_request('/index.php?action=logout', 'POST', [], [
     'pp_pgacc_login' => str_repeat('0', 64),
     'pp_pgacc_id' => '2',
-));
+]);
 check('logout with a wrong token', array_merge(
-    $forgedLogout['status'] === 200 ? array() : array("returned HTTP {$forgedLogout['status']}, expected 200"),
-    response_header($forgedLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
-    strpos($forgedLogout['body'], 'Ungültiges Formular-Token') !== false ? array() : array('no token error')
+    $forgedLogout['status'] === 200 ? [] : ["returned HTTP {$forgedLogout['status']}, expected 200"],
+    response_header($forgedLogout, 'Set-Cookie') === null ? [] : ['sent a cookie'],
+    strpos($forgedLogout['body'], 'Ungültiges Formular-Token') !== false ? [] : ['no token error'],
 ));
 check('logout with a wrong token keeps the session', array_merge(
-    login_state(2) === $reviewerState ? array() : array('changed the database login state'),
-    authenticated_as_problems($reviewerCookies)
+    login_state(2) === $reviewerState ? [] : ['changed the database login state'],
+    authenticated_as_problems($reviewerCookies),
 ));
 
 // Same login and logout against a server without output buffering.
@@ -560,38 +560,38 @@ $unbufferedLogin = login_request('synthetic-admin', 'correct-password', null, $u
 check('valid login with output_buffering=0', array_merge(
     login_response_problems($unbufferedLogin, 'index.php', 1),
     login_cookie_attribute_problems($unbufferedLogin),
-    redirect_body_problems($unbufferedLogin)
+    redirect_body_problems($unbufferedLogin),
 ));
 $unbufferedTargetLogin = login_request('synthetic-reviewer', 'reviewer-password', $target, $unbufferedUrl);
 check('valid login with target with output_buffering=0', array_merge(
     login_response_problems($unbufferedTargetLogin, $target, 2),
-    redirect_body_problems($unbufferedTargetLogin)
+    redirect_body_problems($unbufferedTargetLogin),
 ));
 $unbufferedCookies = response_cookies($unbufferedTargetLogin);
 if (isset($unbufferedCookies['pp_pgacc_login']) && isset($unbufferedCookies['pp_pgacc_id'])) {
     check(
         'login page when already logged in, with target, with output_buffering=0',
-        logged_in_target_problems($unbufferedCookies, $target, $unbufferedUrl)
+        logged_in_target_problems($unbufferedCookies, $target, $unbufferedUrl),
     );
 } else {
-    check('login page when already logged in, with target, with output_buffering=0', array('no login cookies to test with'));
+    check('login page when already logged in, with target, with output_buffering=0', ['no login cookies to test with']);
 }
 // Logout with and without the cookies of a session: the session check and
 // the end of the session run before the headers.
-$unbufferedLogout = http_request('/index.php?action=logout', 'POST', array(), $unbufferedCookies, $unbufferedUrl);
+$unbufferedLogout = http_request('/index.php?action=logout', 'POST', [], $unbufferedCookies, $unbufferedUrl);
 $unbufferedLoggedOut = login_state(2);
 check('logout with output_buffering=0', array_merge(
     logout_response_problems($unbufferedLogout),
     logout_cookie_attribute_problems($unbufferedLogout),
     redirect_body_problems($unbufferedLogout),
-    $unbufferedLoggedOut['cookie'] === null ? array() : array('users.cookie was not cleared'),
-    not_authenticated_problems($unbufferedCookies)
+    $unbufferedLoggedOut['cookie'] === null ? [] : ['users.cookie was not cleared'],
+    not_authenticated_problems($unbufferedCookies),
 ));
-$unbufferedAnonymousLogout = http_request('/index.php?action=logout', 'POST', array(), array(), $unbufferedUrl);
+$unbufferedAnonymousLogout = http_request('/index.php?action=logout', 'POST', [], [], $unbufferedUrl);
 check('logout without cookies with output_buffering=0', array_merge(
-    $unbufferedAnonymousLogout['status'] === 200 ? array() : array("returned HTTP {$unbufferedAnonymousLogout['status']}, expected 200"),
-    response_header($unbufferedAnonymousLogout, 'Set-Cookie') === null ? array() : array('sent a cookie'),
-    strpos($unbufferedAnonymousLogout['body'], 'Ungültiges Formular-Token') !== false ? array() : array('no token error')
+    $unbufferedAnonymousLogout['status'] === 200 ? [] : ["returned HTTP {$unbufferedAnonymousLogout['status']}, expected 200"],
+    response_header($unbufferedAnonymousLogout, 'Set-Cookie') === null ? [] : ['sent a cookie'],
+    strpos($unbufferedAnonymousLogout['body'], 'Ungültiges Formular-Token') !== false ? [] : ['no token error'],
 ));
 
 if (count($problems) > 0) {

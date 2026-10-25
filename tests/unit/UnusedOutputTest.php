@@ -25,8 +25,8 @@ final class UnusedOutputTest extends FunctionsTestCase
 
     private function kdonationsLine()
     {
-        kdonations_page_listing_line(array('date' => '2024-01-02 00:00:00', 'type' => 95, 'orga' => 95,
-            'comment' => '<s>comment</s> BG/123456789 12', 'amount' => 1234, 'name' => '<s>donor</s> & Ö'));
+        kdonations_page_listing_line(['date' => '2024-01-02 00:00:00', 'type' => 95, 'orga' => 95,
+            'comment' => '<s>comment</s> BG/123456789 12', 'amount' => 1234, 'name' => '<s>donor</s> & Ö']);
     }
 
     public function testKdonationsListingLineEncodesHtml()
@@ -34,7 +34,7 @@ final class UnusedOutputTest extends FunctionsTestCase
         $GLOBALS['make_csv'] = false;
         self::assertSame("<tr><td>2024-01-02</td>\n<td>&lt;s&gt;type&lt;/s&gt; &amp; &quot;Ö&quot;</td>\n"
             . "<td>&lt;s&gt;lo&lt;/s&gt; &#039;x&#039;</td>\n<td>&lt;s&gt;comment&lt;/s&gt;  <i>Kontodaten</i> </td>\n"
-            . "<td>12.34€</td>\n<td>&lt;s&gt;donor&lt;/s&gt; &amp; Ö</td>\n</tr>", $this->withSyntheticRows(array($this, 'kdonationsLine')));
+            . "<td>12.34€</td>\n<td>&lt;s&gt;donor&lt;/s&gt; &amp; Ö</td>\n</tr>", $this->withSyntheticRows([$this, 'kdonationsLine']));
     }
 
     public function testKdonationsListingLineKeepsCsvRaw()
@@ -42,7 +42,7 @@ final class UnusedOutputTest extends FunctionsTestCase
         $GLOBALS['make_csv'] = true;
         self::assertSame(
             "2024-01-02\t<s>type</s> & \"Ö\"\t<s>lo</s> 'x'\t<s>comment</s>  <i>Kontodaten</i> \t12,34€\t<s>donor</s> & Ö\t\n",
-            $this->withSyntheticRows(array($this, 'kdonationsLine'))
+            $this->withSyntheticRows([$this, 'kdonationsLine']),
         );
     }
 }

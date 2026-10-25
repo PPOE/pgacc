@@ -18,7 +18,7 @@ define('LISTING_PATH', '/index.php?action=all&filter_date=2024');
 
 function listing_columns($hidden)
 {
-    $columns = array();
+    $columns = [];
     for ($col = 1; $col <= LISTING_COLUMNS; $col++) {
         $columns[$col] = in_array($col, $hidden, true);
     }
@@ -71,7 +71,7 @@ function filter_cells($body, $label)
         $body,
         '<form action="index.php" method="GET"> <tr>' . "\n<td>",
         "\n</td>\n</tr></form>",
-        "$label filter row"
+        "$label filter row",
     );
     $cells = explode('</td><td>', $row);
     if (count($cells) !== LISTING_COLUMNS) {
@@ -84,7 +84,7 @@ function filter_cells($body, $label)
 function voucher_rows($body, $label)
 {
     $rows = explode('</tr><tr>', listing_part($body, "</tr></form><tr>", '</tr></table>', "$label rows"));
-    $result = array();
+    $result = [];
     foreach ($rows as $index => $row) {
         $cells = explode("</td>\n", $row);
         if (count($cells) !== LISTING_COLUMNS + 1 || end($cells) !== '') {
@@ -104,7 +104,7 @@ function filter_without_input($cell)
         '',
         $cell,
         -1,
-        $count
+        $count,
     );
     if ($count !== 1) {
         fail_test("reference filter cell has $count filter inputs: $cell");
@@ -161,7 +161,7 @@ function assert_csv_listing($body, $reference, $hidden, $label)
     if (strpos($body, $bom) !== 0 || strpos($reference, $bom) !== 0) {
         fail_test("$label: CSV does not start with the UTF-8 BOM");
     }
-    $expectedLines = array();
+    $expectedLines = [];
     $rows = 0;
     foreach (explode("\n", substr($reference, strlen($bom))) as $line) {
         $fields = explode("\t", $line);
@@ -186,7 +186,7 @@ function assert_csv_listing($body, $reference, $hidden, $label)
 
 function listing($cookies, $suffix = '')
 {
-    $response = http_request(LISTING_PATH . $suffix, 'GET', array(), $cookies);
+    $response = http_request(LISTING_PATH . $suffix, 'GET', [], $cookies);
     assert_status($response, 200, 'listing ' . LISTING_PATH . $suffix);
     if ($suffix !== '&format=csv') {
         // The column buttons carry the form token of this session.
@@ -199,7 +199,7 @@ function listing($cookies, $suffix = '')
 // A column button: POST hide=$hide with the form token of the session.
 function hide_listing($cookies, $hide)
 {
-    $response = http_request(LISTING_PATH, 'POST', array('hide' => $hide), $cookies);
+    $response = http_request(LISTING_PATH, 'POST', ['hide' => $hide], $cookies);
     assert_status($response, 200, 'listing ' . LISTING_PATH . " with hide=$hide");
     return $response['body'];
 }
@@ -208,13 +208,13 @@ $adminCookies = login_user('synthetic-admin', 'correct-password');
 $referenceHtml = listing($adminCookies);
 $referenceCsv = listing($adminCookies, '&format=csv');
 assert_contains($referenceHtml, '<td>Closed donation</td>', 'reference listing');
-assert_html_listing($referenceHtml, $referenceHtml, array(), 'reference listing');
-assert_csv_listing($referenceCsv, $referenceCsv, array(), 'reference listing');
+assert_html_listing($referenceHtml, $referenceHtml, [], 'reference listing');
+assert_csv_listing($referenceCsv, $referenceCsv, [], 'reference listing');
 
-$users = array(
-    'odd' => array('synthetic-hide-odd', 'hide-odd-password', odd_columns()),
-    'even' => array('synthetic-hide-even', 'hide-even-password', even_columns()),
-);
+$users = [
+    'odd' => ['synthetic-hide-odd', 'hide-odd-password', odd_columns()],
+    'even' => ['synthetic-hide-even', 'hide-even-password', even_columns()],
+];
 foreach ($users as $name => $user) {
     list($login, $password, $hidden) = $user;
     $cookies = login_user($login, $password);
@@ -226,7 +226,7 @@ foreach ($users as $name => $user) {
 // Showing a stored hidden column again stores it as 0 for this request; it
 // must then be shown. Hiding it again restores the stored preference.
 list(, , $oddHidden, $oddCookies) = $users['odd'];
-$shown = array_values(array_diff($oddHidden, array(3)));
+$shown = array_values(array_diff($oddHidden, [3]));
 // The old GET link stores nothing.
 assert_html_listing(listing($oddCookies, '&hide=-3'), $referenceHtml, $oddHidden, 'odd-column listing after GET hide=-3');
 assert_html_listing(hide_listing($oddCookies, '-3'), $referenceHtml, $shown, 'odd-column listing after hide=-3');
@@ -235,7 +235,7 @@ assert_csv_listing(listing($oddCookies, '&format=csv'), $referenceCsv, $shown, '
 assert_html_listing(hide_listing($oddCookies, '3'), $referenceHtml, $oddHidden, 'odd-column listing after hide=3');
 
 list(, , $evenHidden, $evenCookies) = $users['even'];
-$moreHidden = array_merge($evenHidden, array(1));
+$moreHidden = array_merge($evenHidden, [1]);
 assert_html_listing(hide_listing($evenCookies, '1'), $referenceHtml, $moreHidden, 'even-column listing after hide=1');
 assert_csv_listing(listing($evenCookies, '&format=csv'), $referenceCsv, $moreHidden, 'even-column listing, stored with 1');
 assert_html_listing(hide_listing($evenCookies, '-1'), $referenceHtml, $evenHidden, 'even-column listing after hide=-1');
@@ -246,7 +246,7 @@ $database = @pg_connect(pgacc_test_connection_string());
 if ($database === false || @pg_query($database, 'UPDATE users SET hide = NULL WHERE id = 1') === false) {
     fail_test('could not clear the hide preference of synthetic-admin');
 }
-assert_html_listing(listing($adminCookies), $referenceHtml, array(), 'listing without a stored preference');
+assert_html_listing(listing($adminCookies), $referenceHtml, [], 'listing without a stored preference');
 if (@pg_query($database, "UPDATE users SET hide = '' WHERE id = 1") === false) {
     fail_test('could not restore the hide preference of synthetic-admin');
 }

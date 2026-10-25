@@ -13,7 +13,7 @@ require __DIR__ . '/runtime/test-constants.php';
 
 function lifecycle_row($database, $userId)
 {
-    $result = pg_query_params($database, 'SELECT cookie, login, rights FROM users WHERE id = $1', array($userId));
+    $result = pg_query_params($database, 'SELECT cookie, login, rights FROM users WHERE id = $1', [$userId]);
     if ($result === false || pg_num_rows($result) !== 1) {
         fail_test('could not read synthetic session user ' . $userId);
     }
@@ -25,7 +25,7 @@ function lifecycle_user($database, $id, $name, $password, $rights)
     $result = pg_query_params(
         $database,
         "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
-        array($id, $name, $password, $rights)
+        [$id, $name, $password, $rights],
     );
     if ($result === false) {
         fail_test('could not create synthetic session user ' . $id);
@@ -35,7 +35,7 @@ function lifecycle_user($database, $id, $name, $password, $rights)
 
 function lifecycle_accepted($cookies)
 {
-    $response = http_request('/index.php?action=login', 'GET', array(), $cookies);
+    $response = http_request('/index.php?action=login', 'GET', [], $cookies);
     assert_status($response, 200, 'session authentication check');
     return strpos($response['body'], 'Login erfolgreich!') !== false;
 }
@@ -50,14 +50,14 @@ function lifecycle_ended($database, $id, $cookies, $label)
         fail_test($label . ': old cookies still authenticate');
     }
     // Clearing the nonce must not create another usable token.
-    if (lifecycle_accepted(array('pp_pgacc_id' => strval($id),
-        'pp_pgacc_login' => login_session_token($id, '', $row['login'])))) {
+    if (lifecycle_accepted(['pp_pgacc_id' => strval($id),
+        'pp_pgacc_login' => login_session_token($id, '', $row['login'])])) {
         fail_test($label . ': a token for the cleared nonce authenticates');
     }
 }
 
 $scenario = isset($argv[1]) ? $argv[1] : 'all';
-if (!in_array($scenario, array('all', 'logout', 'password'), true)) {
+if (!in_array($scenario, ['all', 'logout', 'password'], true)) {
     fail_test('expected all, logout or password scenario');
 }
 $database = pg_connect(pgacc_test_connection_string());
@@ -74,17 +74,17 @@ if ($scenario === 'all' || $scenario === 'logout') {
     if ($firstToken === null || $token === null || $firstToken === $token) {
         fail_test('a new login did not replace the form token');
     }
-    $staleLogout = http_request('/index.php?action=logout', 'POST', array('csrf_token' => $firstToken), $cookies);
+    $staleLogout = http_request('/index.php?action=logout', 'POST', ['csrf_token' => $firstToken], $cookies);
     assert_status($staleLogout, 200, 'logout with the form token of the previous login');
     assert_contains($staleLogout['body'], 'Ungültiges Formular-Token', 'logout with the form token of the previous login');
     if (!lifecycle_accepted($cookies)) {
         fail_test('logout with the form token of the previous login ended the session');
     }
-    $logout = http_request('/index.php?action=logout', 'POST', array(), $cookies);
+    $logout = http_request('/index.php?action=logout', 'POST', [], $cookies);
     assert_status($logout, 302, 'session logout');
     lifecycle_ended($database, 58, $cookies, 'logout');
     // The form token died with the session.
-    $afterLogout = http_request('/index.php?action=logout', 'POST', array('csrf_token' => $token), $cookies);
+    $afterLogout = http_request('/index.php?action=logout', 'POST', ['csrf_token' => $token], $cookies);
     assert_contains($afterLogout['body'], 'Ungültiges Formular-Token', 'form token after logout');
     echo "Session logout regression passed\n";
 }
@@ -98,8 +98,8 @@ if ($scenario === 'all' || $scenario === 'password') {
     $ownChange = http_request(
         '/index.php?action=accounts',
         'POST',
-        array('submit' => 'Benutzer 55 aktualisieren', 'password55' => 'own-password-changed'),
-        $ownCookies
+        ['submit' => 'Benutzer 55 aktualisieren', 'password55' => 'own-password-changed'],
+        $ownCookies,
     );
     assert_status($ownChange, 200, 'own password change');
     assert_contains($ownChange['body'], 'synthetic-own-password', 'own account remains listed after password change');
@@ -112,8 +112,8 @@ if ($scenario === 'all' || $scenario === 'password') {
     $otherChange = http_request(
         '/index.php?action=accounts',
         'POST',
-        array('submit' => 'Benutzer 56 aktualisieren', 'password56' => 'other-password-changed', 'rights56' => '2'),
-        $adminCookies
+        ['submit' => 'Benutzer 56 aktualisieren', 'password56' => 'other-password-changed', 'rights56' => '2'],
+        $adminCookies,
     );
     assert_status($otherChange, 200, 'password change by root');
     lifecycle_ended($database, 56, $otherCookies, 'password change by root');
@@ -126,8 +126,8 @@ if ($scenario === 'all' || $scenario === 'password') {
     $rightsChange = http_request(
         '/index.php?action=accounts',
         'POST',
-        array('submit' => 'Benutzer 57 aktualisieren', 'password57' => '******', 'rights57' => '2,1'),
-        $adminCookies
+        ['submit' => 'Benutzer 57 aktualisieren', 'password57' => '******', 'rights57' => '2,1'],
+        $adminCookies,
     );
     assert_status($rightsChange, 200, 'rights-only change');
     $afterRightsChange = lifecycle_row($database, 57);

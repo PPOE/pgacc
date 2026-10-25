@@ -14,7 +14,7 @@ final class AppExitGuard
     public static function enter($label)
     {
         if (!self::$registered) {
-            register_shutdown_function(array(__CLASS__, 'shutdown'));
+            register_shutdown_function([__CLASS__, 'shutdown']);
             self::$registered = true;
         }
         self::$active = $label;

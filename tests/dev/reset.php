@@ -34,7 +34,7 @@ function dev_connect($database)
             getenv('PGPORT'),
             $database,
             getenv('PGUSER'),
-            getenv('PGPASSWORD')
+            getenv('PGPASSWORD'),
         ), PGSQL_CONNECT_FORCE_NEW);
         if ($connection !== false) {
             return $connection;
@@ -44,7 +44,7 @@ function dev_connect($database)
     dev_fail("cannot connect to database $database");
 }
 
-function dev_sql($connection, $query, $parameters = array())
+function dev_sql($connection, $query, $parameters = [])
 {
     $result = @pg_query_params($connection, $query, $parameters);
     if ($result === false) {
@@ -60,7 +60,7 @@ function dev_empty_directory($directory)
     }
     $entries = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST
+        RecursiveIteratorIterator::CHILD_FIRST,
     );
     foreach ($entries as $entry) {
         $removed = $entry->isDir() && !$entry->isLink() ? rmdir($entry->getPathname()) : unlink($entry->getPathname());
@@ -91,7 +91,7 @@ $maintenance = dev_connect('postgres');
 $row = pg_fetch_row(dev_sql(
     $maintenance,
     "SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = $1",
-    array($template)
+    [$template],
 ));
 if ($row === false || $row[0] !== $hash) {
     echo "Building the template database $template from the fixtures\n";

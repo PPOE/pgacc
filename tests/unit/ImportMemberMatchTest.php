@@ -32,18 +32,18 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             . "05.04.2024;5,00;Handkassa;$text;;;Nein;Nein;;0;1;;;\r\n";
         $path = tempnam(sys_get_temp_dir(), 'pgacc-import');
         file_put_contents($path, $csv);
-        $_FILES = array('uploadcsv' => array(
-            'name' => array('members.csv'),
-            'type' => array('text/csv'),
-            'tmp_name' => array($path),
-            'error' => array(0),
-            'size' => array(strlen($csv)),
-        ));
+        $_FILES = ['uploadcsv' => [
+            'name' => ['members.csv'],
+            'type' => ['text/csv'],
+            'tmp_name' => [$path],
+            'error' => [0],
+            'size' => [strlen($csv)],
+        ]];
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $key;
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message) use (&$diagnostics) {
             $diagnostics[] = $message;
             return true;
@@ -53,7 +53,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             AppExitGuard::enter('page_import()');
             page_import('bgf');
             AppExitGuard::leave();
-            $result = pg_query_params($connection, 'SELECT name, member_id FROM vouchers WHERE comment = $1', array(str_replace('|', "\n", $text)));
+            $result = pg_query_params($connection, 'SELECT name, member_id FROM vouchers WHERE comment = $1', [str_replace('|', "\n", $text)]);
             $row = pg_fetch_assoc($result);
             pg_free_result($result);
         } finally {
@@ -62,10 +62,10 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
-            $_FILES = array();
+            $_FILES = [];
             unlink($path);
         }
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
         self::assertStringContainsString('wurde erfolgreich importiert', $output);
         return $row;
     }
@@ -80,13 +80,13 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
         }
         MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
-        $_FILES = array('uploadcsv' => array(
-            'name' => array('<i>a&b</i>.csv'),
-            'type' => array('text/csv'),
-            'tmp_name' => array(''),
-            'error' => array(UPLOAD_ERR_PARTIAL),
-            'size' => array(100),
-        ));
+        $_FILES = ['uploadcsv' => [
+            'name' => ['<i>a&b</i>.csv'],
+            'type' => ['text/csv'],
+            'tmp_name' => [''],
+            'error' => [UPLOAD_ERR_PARTIAL],
+            'size' => [100],
+        ]];
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $key;
         $connection = pg_connect(pgacc_test_connection_string());
@@ -101,7 +101,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
-            $_FILES = array();
+            $_FILES = [];
         }
         self::assertStringContainsString('Datei 1 (&lt;i&gt;a&amp;b&lt;/i&gt;.csv) wurde nicht erfolgreich hochgeladen', $output);
         self::assertStringNotContainsString('<i>a&b</i>', $output);
@@ -110,8 +110,8 @@ final class ImportMemberMatchTest extends FunctionsTestCase
     public function testQuotedMemberNameMatches()
     {
         self::assertSame(
-            array('name' => "D'Arc", 'member_id' => '7101'),
-            self::importAgainstMember("D'Arc", "Spende von D'Arc")
+            ['name' => "D'Arc", 'member_id' => '7101'],
+            self::importAgainstMember("D'Arc", "Spende von D'Arc"),
         );
     }
 
@@ -121,19 +121,19 @@ final class ImportMemberMatchTest extends FunctionsTestCase
     public function testMemberNamesAreNoPatterns($memberName, $text)
     {
         self::assertSame(
-            array('name' => '', 'member_id' => '0'),
-            self::importAgainstMember($memberName, $text)
+            ['name' => '', 'member_id' => '0'],
+            self::importAgainstMember($memberName, $text),
         );
     }
 
     public static function wildcardMemberProvider()
     {
-        return array(
-            'percent sign' => array('%', 'Spende Synthetic'),
-            'underscore' => array('A_B', 'Spende AxB'),
-            'backslash' => array('A\\\\', 'Spende Ab'),
-            'empty name' => array('', 'Spende Synthetic'),
-        );
+        return [
+            'percent sign' => ['%', 'Spende Synthetic'],
+            'underscore' => ['A_B', 'Spende AxB'],
+            'backslash' => ['A\\\\', 'Spende Ab'],
+            'empty name' => ['', 'Spende Synthetic'],
+        ];
     }
 
     /**
@@ -142,7 +142,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
      */
     public function testConvifOfNullIsEmptyAndDiagnosticFree()
     {
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message) use (&$diagnostics) {
             $diagnostics[] = "$type $message";
             return true;
@@ -155,6 +155,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         }
         self::assertSame('', $converted);
         self::assertSame("\xC3\xA4", $umlaut);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
     }
 }

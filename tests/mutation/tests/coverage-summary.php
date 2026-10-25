@@ -11,7 +11,7 @@ require dirname(dirname(dirname(__DIR__))) . '/vendor/autoload.php';
 
 $coverage = include $argv[1];
 $report = $coverage->getReport();
-$uncovered = array();
+$uncovered = [];
 foreach ($report as $node) {
     if (!$node instanceof SebastianBergmann\CodeCoverage\Node\File) {
         continue;
@@ -22,7 +22,7 @@ foreach ($report as $node) {
         $node->numberOfExecutedLines(),
         $node->numberOfExecutableLines(),
         $node->numberOfExecutedBranches(),
-        $node->numberOfExecutableBranches()
+        $node->numberOfExecutableBranches(),
     );
     foreach ($node->lineCoverageData() as $line => $tests) {
         if (is_array($tests) && count($tests) === 0) {
@@ -39,7 +39,7 @@ foreach ($coverage->getData()->functionCoverage() as $file => $functions) {
                     basename($file),
                     $branch['line_start'],
                     $branch['line_end'],
-                    $function
+                    $function,
                 );
             }
         }

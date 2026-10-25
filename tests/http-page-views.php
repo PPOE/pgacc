@@ -37,9 +37,9 @@ function page_view_path($href, $actions)
 
 function page_view($path, $cookies, $label)
 {
-    $response = http_request($path, 'GET', array(), $cookies);
+    $response = http_request($path, 'GET', [], $cookies);
     // Collected, so that one run reports every broken page.
-    if (!in_array($response['status'], array(200, 302, 303), true)) {
+    if (!in_array($response['status'], [200, 302, 303], true)) {
         $GLOBALS['page_view_problems'][] = "$label GET $path: HTTP {$response['status']}";
     } elseif (strpos($response['body'], 'Fatal error') !== false) {
         $GLOBALS['page_view_problems'][] = "$label GET $path: Fatal error";
@@ -47,26 +47,26 @@ function page_view($path, $cookies, $label)
     return $response;
 }
 
-$page_view_problems = array();
-$users = array(
+$page_view_problems = [];
+$users = [
     'root,bgf' => login_user('synthetic-admin', 'correct-password'),
     'bgf' => login_user('synthetic-reviewer', 'reviewer-password'),
     'suborganization' => login_user('synthetic-unit-one', 'unit-password'),
-    'anonymous' => array(),
-);
+    'anonymous' => [],
+];
 $year = date('Y');
 foreach ($users as $label => $cookies) {
-    $paths = array('/index.php' => true);
+    $paths = ['/index.php' => true];
     foreach ($actions as $action) {
         $paths['/index.php?action=' . $action] = true;
     }
-    foreach (array('open', 'closed', 'all', 'deleted') as $action) {
+    foreach (['open', 'closed', 'all', 'deleted'] as $action) {
         $paths["/index.php?action=$action&filter_date=$year"] = true;
     }
     // Follow the links without further parameters once: the menu links, the
     // year links (report, donations) and the account links (tinyreport,
     // vreport).
-    $seen = array();
+    $seen = [];
     while (count($paths) > 0) {
         $path = key($paths);
         unset($paths[$path]);
@@ -79,7 +79,7 @@ foreach ($users as $label => $cookies) {
                 continue;
             }
             parse_str((string) parse_url($next, PHP_URL_QUERY), $query);
-            if (count(array_diff(array_keys($query), array('action', 'filter_date', 'year', 'konto'))) > 0) {
+            if (count(array_diff(array_keys($query), ['action', 'filter_date', 'year', 'konto'])) > 0) {
                 continue;
             }
             $paths[$next] = true;
@@ -96,7 +96,7 @@ foreach ($users as $label => $cookies) {
 
 // The account reports render both tables, income and expenses, of an account
 // with both.
-foreach (array('vreport' => 'TEST-VIRTUAL', 'tinyreport' => 'TEST-ACCOUNT') as $action => $konto) {
+foreach (['vreport' => 'TEST-VIRTUAL', 'tinyreport' => 'TEST-ACCOUNT'] as $action => $konto) {
     $body = page_view("/index.php?action=$action&konto=$konto", $users['root,bgf'], 'root,bgf')['body'];
     assert_contains($body, "<h1>Bericht Konto $konto</h1>", "$action $konto");
     assert_contains($body, "<h3>Einnahmen</h3>", "$action $konto income");
@@ -108,7 +108,7 @@ foreach (array('vreport' => 'TEST-VIRTUAL', 'tinyreport' => 'TEST-ACCOUNT') as $
 // The virtual-account chart (js/vreport-chart.js, Chart.js): no inline
 // script, only the two script files and the points (timestamp in ms, running
 // total) as a JSON data element. TEST-VIRTUAL-1% also matches TEST-VIRTUAL-10.
-$chart = page_view('/index.php?action=vreport&konto=TEST-VIRTUAL-1', array(), 'anonymous')['body'];
+$chart = page_view('/index.php?action=vreport&konto=TEST-VIRTUAL-1', [], 'anonymous')['body'];
 preg_match_all('/<script\b([^>]*)>/i', $chart, $scripts);
 foreach ($scripts[1] as $attributes) {
     if (strpos($attributes, ' src="') === false && $attributes !== ' type="application/json" id="graph-data"') {
@@ -121,20 +121,20 @@ assert_not_contains($chart, 'jquery', 'vreport chart without jQuery');
 if (preg_match('#<script type="application/json" id="graph-data">(.*?)</script>#s', $chart, $graphData) !== 1) {
     fail_test('vreport chart: no graph-data element');
 }
-$points = array(
-    array('1325289600000.000000', '50.0000000000000000'),  // 2011-12-31
-    array('1706745600000.000000', '170.0000000000000000'), // 2024-02-01
-    array('1709251200000.000000', '200.0000000000000000'), // 2024-03-01
-    array('1719792000000.000000', '200.0000000000000000'), // 2024-07-01
-    array('1722470400000.000000', '210.0000000000000000'), // 2024-08-01
-    array('1735689600000.000000', '235.0000000000000000'), // 2025-01-01
-);
+$points = [
+    ['1325289600000.000000', '50.0000000000000000'],  // 2011-12-31
+    ['1706745600000.000000', '170.0000000000000000'], // 2024-02-01
+    ['1709251200000.000000', '200.0000000000000000'], // 2024-03-01
+    ['1719792000000.000000', '200.0000000000000000'], // 2024-07-01
+    ['1722470400000.000000', '210.0000000000000000'], // 2024-08-01
+    ['1735689600000.000000', '235.0000000000000000'], // 2025-01-01
+];
 if (json_decode($graphData[1], true) !== $points) {
     fail_test("vreport chart: unexpected points {$graphData[1]}");
 }
 // The web server serves both files as they are (static files bypass the
 // diagnostics recorder, so they are read here instead of requested).
-foreach (array('js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js' => "'graph-data'") as $script => $marker) {
+foreach (['js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js' => "'graph-data'"] as $script => $marker) {
     $content = @file_get_contents(__DIR__ . '/../' . $script);
     if ($content === false) {
         fail_test("$script is missing");
@@ -146,15 +146,15 @@ foreach (array('js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js'
 // (kdonations: type, unit, from, to) and of the account reports (several
 // comma-separated accounts, date_begin, date_end).
 $admin = $users['root,bgf'];
-$spendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-01-01&to=2025-01-01', array(), 'anonymous')['body'];
+$spendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-01-01&to=2025-01-01', [], 'anonymous')['body'];
 assert_contains($spendings, "<td>1003</td>\n<td>2024-04-01</td>\n", 'filtered spendings');
 assert_contains($spendings, "<td>-50.00€</td>\n<td>Synthetic Supplier</td>\n</tr>", 'filtered spendings');
 assert_not_contains($spendings, '-15.00€', 'filtered spendings (type 21)');
-$laterSpendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-05-01&to=2025-01-01', array(), 'anonymous')['body'];
+$laterSpendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-05-01&to=2025-01-01', [], 'anonymous')['body'];
 assert_not_contains($laterSpendings, '<td>1003</td>', 'spendings from May 2024');
 $kdonations = page_view('/index.php?action=kdonations&type=11&unit=1&from=2024-01-01&to=2025-01-01', $admin, 'root,bgf')['body'];
 assert_contains($kdonations, 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.</table>', 'filtered in-kind donations');
-foreach (array('tinyreport' => 'TEST-ACCOUNT-1,TEST-ACCOUNT-2', 'vreport' => 'TEST-VIRTUAL-1,TEST-VIRTUAL-2') as $action => $konto) {
+foreach (['tinyreport' => 'TEST-ACCOUNT-1,TEST-ACCOUNT-2', 'vreport' => 'TEST-VIRTUAL-1,TEST-VIRTUAL-2'] as $action => $konto) {
     $body = page_view("/index.php?action=$action&konto=$konto&date_begin=2024-01-01&date_end=2024-12-31", $admin, 'root,bgf')['body'];
     assert_contains($body, "<h1>Bericht Konto $konto</h1>", "$action $konto 2024");
     assert_contains($body, "<tr><td><b>Summe</b></td><td>160.00&nbsp;€</td></tr>", "$action $konto 2024 income sum");
@@ -176,7 +176,7 @@ function page_views_query($database, $query)
 // and spaces ignored) by its last three characters only.
 page_views_query($database, "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
     VALUES (9150, 4780, 8, 1, false, 100, 'TEST-ACCOUNT-1', 'Synthetic numeric virtual account', timestamp '2024-09-15 00:00:00', 2, 0, 'AT12 3456 7890')");
-$numeric = page_view('/index.php?action=vreport', array(), 'anonymous')['body'];
+$numeric = page_view('/index.php?action=vreport', [], 'anonymous')['body'];
 assert_contains($numeric, "<li><a href=\"vreport?konto=890\">Konto '890'</a></li>", 'vreport numeric account for visitors');
 $numeric = page_view('/index.php?action=vreport', $admin, 'root,bgf')['body'];
 assert_contains($numeric, "<li><a href=\"vreport?konto=AT12%203456%207890\">Konto 'AT12 3456 7890'</a></li>", 'vreport numeric account');
@@ -186,7 +186,7 @@ page_views_query($database, 'DELETE FROM vouchers WHERE id = 9150');
 // last day of the year.
 page_views_query($database, "INSERT INTO lo (id, name) VALUES (93, 'Piratenpartei Synthetic Balance Unit')");
 page_views_query($database, "INSERT INTO balance (id, value, orga, date) VALUES (93, 4321, 93, timestamp '2024-12-31 00:00:00')");
-$report = page_view('/index.php?year=2024', array(), 'anonymous')['body'];
+$report = page_view('/index.php?year=2024', [], 'anonymous')['body'];
 assert_contains($report, "<tr><td><a href=\"#Piratenpartei Synthetic Balance Unit\">Piratenpartei Synthetic Balance Unit</a></td>\n"
     . "<td>0.00&nbsp;€</td><td>0.00&nbsp;€</td>\n<td>0.00&nbsp;€</td>\n<td>0.00&nbsp;€</td>\n<td>43.21&nbsp;€</td></tr>\n", 'report organization balance');
 page_views_query($database, 'DELETE FROM balance WHERE id = 93');
@@ -194,19 +194,19 @@ page_views_query($database, 'DELETE FROM lo WHERE id = 93');
 pg_close($database);
 
 // An unknown action shows the report.
-$unknown = page_view('/index.php?action=unknown', array(), 'anonymous')['body'];
+$unknown = page_view('/index.php?action=unknown', [], 'anonymous')['body'];
 assert_contains($unknown, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'unknown action');
 
 // The removed transfer page (transfer.php, deleted in 2014) is an unknown
 // action like any other: the report, for visitors and logged-in users.
-foreach (array('anonymous', 'root,bgf') as $label) {
+foreach (['anonymous', 'root,bgf'] as $label) {
     $transfer = page_view('/index.php?action=transfer', $users[$label], $label)['body'];
     assert_contains($transfer, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', "transfer action ($label)");
 }
 
 // A year that is not four digits (here with a suffix, "2024-1") is invalid
 // input: the report of the current year, like a missing year.
-$suffixed = page_view('/index.php?year=2024-1', array(), 'anonymous')['body'];
+$suffixed = page_view('/index.php?year=2024-1', [], 'anonymous')['body'];
 assert_contains($suffixed, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'report of 2024-1');
 assert_not_contains($suffixed, 'Abfrage fehlgeschlagen', 'report of 2024-1');
 
@@ -214,8 +214,8 @@ assert_not_contains($suffixed, 'Abfrage fehlgeschlagen', 'report of 2024-1');
 // invalid filter values: the unfiltered listing (CSV; the HTML listing
 // reflects the filters in its links, an open follow-up in the plan).
 $arrayFilters = '';
-foreach (array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_amount',
-    'filter_k', 'filter_vk', 'filter_text', 'filter_comment', 'filter_ack', 'filter_ack_old', 'filter_name') as $filter) {
+foreach (['filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_amount',
+    'filter_k', 'filter_vk', 'filter_text', 'filter_comment', 'filter_ack', 'filter_ack_old', 'filter_name'] as $filter) {
     $arrayFilters .= '&' . $filter . '%5B%5D=1';
 }
 $arrayListing = page_view('/index.php?action=all&format=csv' . $arrayFilters, $admin, 'root,bgf')['body'];
@@ -226,7 +226,7 @@ assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter
 // versions only, no distribution suffix) and the third-party software without
 // versions: every runtime package of composer.lock, Chart.js (js/) and the Silk
 // icons (icons/, credit required by CC BY 2.5).
-$impressum = page_view('/index.php?action=impressum', array(), 'anonymous')['body'];
+$impressum = page_view('/index.php?action=impressum', [], 'anonymous')['body'];
 assert_contains($impressum, '<span style="font-weight: bold;">Diensteanbieter:</span></div><br />' . "\n"
     . 'Piratenpartei Österreichs<br />' . "\n"
     . 'Impressum: <a href="https://piratenpartei.at/rechtliches/impressum/">piratenpartei.at/rechtliches/impressum</a><br />', 'Impressum');
@@ -238,36 +238,36 @@ if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR_
 // The version format of the release tooling (scripts/release.sh,
 // .github/workflows/release.yml), prereleases included.
 $releaseVersionPattern = '/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/D';
-foreach (array('2.0.0' => 1, '2.1.0-rc.1' => 1, '2.0' => 0, '2.0.0 (Debian)' => 0) as $sample => $matches) {
+foreach (['2.0.0' => 1, '2.1.0-rc.1' => 1, '2.0' => 0, '2.0.0 (Debian)' => 0] as $sample => $matches) {
     if (preg_match($releaseVersionPattern, $sample) !== $matches) {
         fail_test("release version pattern: wrong result for $sample");
     }
 }
 // Expected rows: name => [link, version pattern, exact version, license, license link].
-$expectedRows = array(
-    'pgacc' => array('https://github.com/PPOE/pgacc', $releaseVersionPattern, $releaseVersion[1], 'LICENSE', 'https://github.com/PPOE/pgacc/blob/master/LICENSE'),
-    'PHP' => array('http://www.php.net', '/^\d+$/D', (string) PHP_MAJOR_VERSION, 'PHP License', 'http://www.php.net/license/3_01.txt'),
-    'PostgreSQL' => array('http://www.postgresql.org/', '/^\d+$/D', '18', 'PostgreSQL License', 'http://www.postgresql.org/about/licence'),
-);
+$expectedRows = [
+    'pgacc' => ['https://github.com/PPOE/pgacc', $releaseVersionPattern, $releaseVersion[1], 'LICENSE', 'https://github.com/PPOE/pgacc/blob/master/LICENSE'],
+    'PHP' => ['http://www.php.net', '/^\d+$/D', (string) PHP_MAJOR_VERSION, 'PHP License', 'http://www.php.net/license/3_01.txt'],
+    'PostgreSQL' => ['http://www.postgresql.org/', '/^\d+$/D', '18', 'PostgreSQL License', 'http://www.postgresql.org/about/licence'],
+];
 $lock = json_decode(file_get_contents(__DIR__ . '/../composer.lock'), true);
 if (!is_array($lock) || count($lock['packages']) < 1) {
     fail_test('composer.lock: no runtime packages');
 }
 foreach ($lock['packages'] as $package) {
     $licenses = $package['license'];
-    $expectedRows[$package['name']] = array(
+    $expectedRows[$package['name']] = [
         isset($package['homepage']) ? $package['homepage'] : preg_replace('/\.git$/', '', $package['source']['url']),
         null, '–', implode(', ', $licenses), count($licenses) === 1 ? 'https://spdx.org/licenses/' . $licenses[0] . '.html' : null,
-    );
+    ];
 }
 // The bundled software exists, so its rows are not stale.
-foreach (array('js/chart.umd.min.js', 'icons/accept.png') as $bundled) {
+foreach (['js/chart.umd.min.js', 'icons/accept.png'] as $bundled) {
     if (!is_file(__DIR__ . '/../' . $bundled)) {
         fail_test("Impressum: $bundled no longer exists; update the software table");
     }
 }
-$expectedRows['Chart.js'] = array('https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html');
-$expectedRows['Silk Icons von Mark James'] = array('http://www.famfamfam.com/lab/icons/silk/', null, '–', 'CC BY 2.5', 'https://creativecommons.org/licenses/by/2.5/');
+$expectedRows['Chart.js'] = ['https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html'];
+$expectedRows['Silk Icons von Mark James'] = ['http://www.famfamfam.com/lab/icons/silk/', null, '–', 'CC BY 2.5', 'https://creativecommons.org/licenses/by/2.5/'];
 
 if (preg_match('#<table class="ui_list impressum_list">.*?<tbody class="ui_list_body">(.*?)</tbody></table>#s', $impressum, $softwareTable) !== 1) {
     fail_test('Impressum: no software table');
@@ -281,19 +281,19 @@ if ($actualNames !== array_keys($expectedRows)) {
 }
 foreach ($rows as $index => $row) {
     $expected = $expectedRows[$actualNames[$index]];
-    $actual = array(html_entity_decode($row[1], ENT_QUOTES, 'UTF-8'), $row[3], html_entity_decode($row[5], ENT_QUOTES, 'UTF-8'), html_entity_decode($row[4], ENT_QUOTES, 'UTF-8'));
-    $wanted = array($expected[0], $expected[2], $expected[3], $expected[4] === null ? '' : $expected[4]);
+    $actual = [html_entity_decode($row[1], ENT_QUOTES, 'UTF-8'), $row[3], html_entity_decode($row[5], ENT_QUOTES, 'UTF-8'), html_entity_decode($row[4], ENT_QUOTES, 'UTF-8')];
+    $wanted = [$expected[0], $expected[2], $expected[3], $expected[4] === null ? '' : $expected[4]];
     if ($actual !== $wanted || ($expected[1] !== null && preg_match($expected[1], $row[3]) !== 1)) {
         fail_test("Impressum: row {$actualNames[$index]} " . var_export($actual, true) . ', expected ' . var_export($wanted, true));
     }
 }
 
 // Requests without X-Forwarded-Proto: https are redirected to https.
-$plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
-    'http' => array('header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10),
-)));
+$plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create([
+    'http' => ['header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10],
+]));
 $plainHeaders = http_get_last_response_headers();
-$plainResponse = array('status' => 0, 'headers' => is_array($plainHeaders) ? $plainHeaders : array(), 'body' => $plain);
+$plainResponse = ['status' => 0, 'headers' => is_array($plainHeaders) ? $plainHeaders : [], 'body' => $plain];
 if (is_array($plainHeaders) && preg_match('/^HTTP\/\S+ (\d{3})/', $plainHeaders[0], $status) === 1) {
     $plainResponse['status'] = intval($status[1]);
 }

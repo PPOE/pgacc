@@ -1,7 +1,7 @@
 <?php
 
 $coverage = simplexml_load_file($argv[1]);
-$uncovered = array();
+$uncovered = [];
 $statementCount = 0;
 $coverageFileFound = false;
 
@@ -29,7 +29,7 @@ if (!$coverageFileFound || $statementCount === 0) {
 }
 
 sort($uncovered);
-$unexpectedUncovered = array_values(array_diff($uncovered, array(71)));
+$unexpectedUncovered = array_values(array_diff($uncovered, [71]));
 if (count($unexpectedUncovered) > 0) {
     fwrite(STDERR, 'Unexpected uncovered functions.php lines: ' . implode(', ', $unexpectedUncovered) . PHP_EOL);
     exit(1);

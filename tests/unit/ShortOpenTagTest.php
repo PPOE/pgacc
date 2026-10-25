@@ -10,10 +10,10 @@ final class ShortOpenTagTest extends FunctionsTestCase
 {
     public static function fileProvider()
     {
-        return array(
-            'file.php' => array('file.php', 'download_file'),
-            'getusers.php' => array('getusers.php', 'getUsers'),
-        );
+        return [
+            'file.php' => ['file.php', 'download_file'],
+            'getusers.php' => ['getusers.php', 'getUsers'],
+        ];
     }
 
     /**
@@ -27,6 +27,6 @@ final class ShortOpenTagTest extends FunctionsTestCase
         $command = escapeshellarg(PHP_BINARY) . ' -n -d short_open_tag=0 -r ' . escapeshellarg($code);
         exec($command, $lines, $status);
         self::assertSame(0, $status);
-        self::assertSame(array('0,defined'), $lines);
+        self::assertSame(['0,defined'], $lines);
     }
 }

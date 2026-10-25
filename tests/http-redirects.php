@@ -10,7 +10,7 @@
  */
 require __DIR__ . '/http-test-helpers.php';
 
-$problems = array();
+$problems = [];
 
 function check($label, $checkProblems)
 {
@@ -26,7 +26,7 @@ function check($label, $checkProblems)
 // Protected pages answer visitors who are not logged in with the login
 // redirect only. Merge and recovery use voucher IDs that do not exist, so a
 // page that ran anyway could not change the fixtures.
-$protectedUris = array(
+$protectedUris = [
     '/index.php?action=all&filter_date=2024',
     '/index.php?action=mb',
     '/index.php?action=open',
@@ -45,13 +45,13 @@ $protectedUris = array(
     '/index.php?action=deleted&format=csv',
     // Hiding a column needs a logged-in user as well.
     '/index.php?action=all&hide=3',
-);
+];
 
 function protected_page_problems($uris, $baseUrl)
 {
-    $problems = array();
+    $problems = [];
     foreach ($uris as $uri) {
-        $response = http_request($uri, 'GET', array(), array(), $baseUrl);
+        $response = http_request($uri, 'GET', [], [], $baseUrl);
         foreach (redirect_problems($response, login_redirect_location($uri)) as $problem) {
             $problems[] = "$uri: $problem";
         }
@@ -66,9 +66,9 @@ function import_page_problems($baseUrl, $earlierProblems)
 {
     $uri = '/index.php?action=import';
     if (count($earlierProblems) > 0) {
-        return array("$uri: not requested, because other protected pages are not redirected first");
+        return ["$uri: not requested, because other protected pages are not redirected first"];
     }
-    $response = http_request($uri, 'GET', array(), array(), $baseUrl);
+    $response = http_request($uri, 'GET', [], [], $baseUrl);
     return redirect_problems($response, login_redirect_location($uri));
 }
 
@@ -80,13 +80,13 @@ $adminCookies = login_user('synthetic-admin', 'correct-password');
 
 function search_problems($cookies, $searchLocation, $baseUrl)
 {
-    $problems = array();
-    foreach (array(
-        'logged in' => array('/index.php?action=search&member=5', $cookies),
-        'logged in, CSV' => array('/index.php?action=search&member=5&format=csv', $cookies),
-        'not logged in' => array('/index.php?action=search&member=5', array()),
-    ) as $label => $request) {
-        $response = http_request($request[0], 'GET', array(), $request[1], $baseUrl);
+    $problems = [];
+    foreach ([
+        'logged in' => ['/index.php?action=search&member=5', $cookies],
+        'logged in, CSV' => ['/index.php?action=search&member=5&format=csv', $cookies],
+        'not logged in' => ['/index.php?action=search&member=5', []],
+    ] as $label => $request) {
+        $response = http_request($request[0], 'GET', [], $request[1], $baseUrl);
         foreach (redirect_problems($response, $searchLocation) as $problem) {
             $problems[] = "$label: $problem";
         }
@@ -95,7 +95,7 @@ function search_problems($cookies, $searchLocation, $baseUrl)
 }
 
 $unbufferedUrl = start_unbuffered_server(8082);
-foreach (array('' => null, ' with output_buffering=0' => $unbufferedUrl) as $suffix => $baseUrl) {
+foreach (['' => null, ' with output_buffering=0' => $unbufferedUrl] as $suffix => $baseUrl) {
     $pageProblems = protected_page_problems($protectedUris, $baseUrl);
     check("protected pages when not logged in$suffix", $pageProblems);
     check("import page when not logged in$suffix", import_page_problems($baseUrl, $pageProblems));

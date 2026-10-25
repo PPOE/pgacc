@@ -13,8 +13,8 @@ require_once __DIR__ . '/ShortReadStream.php';
 
 final class ReceiptStorageTest extends FunctionsTestCase
 {
-    const TEST_KEY = 'synthetic-test-only-encryption-key';
-    const OTHER_KEY = 'another-synthetic-receipt-key';
+    public const TEST_KEY = 'synthetic-test-only-encryption-key';
+    public const OTHER_KEY = 'another-synthetic-receipt-key';
 
     private $directory;
     private $hadKey;
@@ -47,7 +47,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
     private static function removeTree($path)
     {
         if (is_dir($path)) {
-            foreach (array_diff(scandir($path), array('.', '..')) as $name) {
+            foreach (array_diff(scandir($path), ['.', '..']) as $name) {
                 self::removeTree($path . '/' . $name);
             }
             rmdir($path);
@@ -64,9 +64,9 @@ final class ReceiptStorageTest extends FunctionsTestCase
     public static function v2Provider()
     {
         $fixture = self::fixture();
-        $cases = array();
+        $cases = [];
         foreach ($fixture['vectors'] as $vector) {
-            $cases[$vector['name']] = array($vector);
+            $cases[$vector['name']] = [$vector];
         }
         return $cases;
     }
@@ -98,9 +98,9 @@ final class ReceiptStorageTest extends FunctionsTestCase
             self::assertSame($vector['file'], bin2hex($file), $label);
         } else {
             self::assertSame(
-                array($vector['file_length'], $vector['file_sha256']),
-                array(strlen($file), hash('sha256', $file)),
-                $label
+                [$vector['file_length'], $vector['file_sha256']],
+                [strlen($file), hash('sha256', $file)],
+                $label,
             );
         }
     }
@@ -115,7 +115,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
 
     private function names()
     {
-        $names = array_values(array_diff(scandir($this->directory), array('.', '..')));
+        $names = array_values(array_diff(scandir($this->directory), ['.', '..']));
         sort($names);
         return $names;
     }
@@ -128,7 +128,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
     {
         $log = tempnam(sys_get_temp_dir(), 'pgacc-log-');
         $previous = ini_set('error_log', $log);
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message) use (&$diagnostics) {
             if (error_reporting() & $type) {
                 $diagnostics[] = $message;
@@ -147,7 +147,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         ini_set('error_log', $previous);
         $text = file_get_contents($log);
         unlink($log);
-        return array($result, $text, $diagnostics);
+        return [$result, $text, $diagnostics];
     }
 
     public function testKeyValidation()
@@ -160,7 +160,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertFalse(receipt_key_is_valid('CHANGE-ME-CHANGE-ME-CHANGE-ME'));
         self::assertFalse(receipt_key_is_valid('our-key-CHANGE-ME-later'));
         self::assertFalse(receipt_key_is_valid(1234567890123456));
-        self::assertFalse(receipt_key_is_valid(array(self::TEST_KEY)));
+        self::assertFalse(receipt_key_is_valid([self::TEST_KEY]));
         self::assertFalse(receipt_key_is_valid(null));
     }
 
@@ -170,7 +170,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         // runs inside functions, so it must read $GLOBALS['key'].
         $GLOBALS['key'] = self::TEST_KEY;
         self::assertSame(self::TEST_KEY, receipt_configured_key());
-        foreach (array('', 'CHANGE-ME', 'too-short-key', 1234567890123456789) as $key) {
+        foreach (['', 'CHANGE-ME', 'too-short-key', 1234567890123456789] as $key) {
             $GLOBALS['key'] = $key;
             self::assertSame('', receipt_configured_key(), var_export($key, true));
         }
@@ -198,7 +198,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame('application/pdf', receipt_content_type('%PDF'));
         self::assertSame('image/jpeg', receipt_content_type("\xFF\xD8\xFF\xE0\x00\x10JFIF"));
         self::assertSame('image/jpeg', receipt_content_type("\xFF\xD8\xFF"));
-        foreach (array('%PD', "\xFF\xD8", "\xFF\xD8\xFE", ' %PDF', "\x89PNG\r\n", '', str_repeat("\0", 32)) as $plain) {
+        foreach (['%PD', "\xFF\xD8", "\xFF\xD8\xFE", ' %PDF', "\x89PNG\r\n", '', str_repeat("\0", 32)] as $plain) {
             self::assertSame('application/octet-stream', receipt_content_type($plain), bin2hex($plain));
             self::assertFalse(receipt_has_known_type($plain), bin2hex($plain));
         }
@@ -208,7 +208,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
 
     public function testEquals()
     {
-        foreach (array('receipt_equals', 'receipt_equals_fallback') as $equals) {
+        foreach (['receipt_equals', 'receipt_equals_fallback'] as $equals) {
             self::assertTrue($equals('', ''), $equals);
             self::assertTrue($equals("a\0b", "a\0b"), $equals);
             self::assertFalse($equals('abc', 'abd'), $equals);
@@ -226,13 +226,13 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame('077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5', bin2hex($prk));
         self::assertSame(
             '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865',
-            bin2hex(receipt_hkdf_expand($prk, hex2bin('f0f1f2f3f4f5f6f7f8f9'), 42))
+            bin2hex(receipt_hkdf_expand($prk, hex2bin('f0f1f2f3f4f5f6f7f8f9'), 42)),
         );
         $prk = receipt_hkdf_extract('', $ikm);
         self::assertSame('19ef24a32c717b167f33a91d6f648bdf96596776afdb6377ac434c1c293ccb04', bin2hex($prk));
         self::assertSame(
             '8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8',
-            bin2hex(receipt_hkdf_expand($prk, '', 42))
+            bin2hex(receipt_hkdf_expand($prk, '', 42)),
         );
         self::assertSame(1, strlen(receipt_hkdf_expand($prk, '', 1)));
         self::assertSame(100, strlen(receipt_hkdf_expand($prk, 'x', 100)));
@@ -240,13 +240,13 @@ final class ReceiptStorageTest extends FunctionsTestCase
 
     public function testHkdfMatchesHashHkdf()
     {
-        foreach (array(1, 31, 32, 33, 64, 100) as $length) {
-            foreach (array('', 'pgacc-receipt-v2|enc|42') as $info) {
-                foreach (array('', 'salt') as $salt) {
+        foreach ([1, 31, 32, 33, 64, 100] as $length) {
+            foreach (['', 'pgacc-receipt-v2|enc|42'] as $info) {
+                foreach (['', 'salt'] as $salt) {
                     self::assertSame(
                         bin2hex(hash_hkdf('sha256', self::TEST_KEY, $length, $info, $salt)),
                         bin2hex(receipt_hkdf_expand(receipt_hkdf_extract($salt, self::TEST_KEY), $info, $length)),
-                        "$length/$info/$salt"
+                        "$length/$info/$salt",
                     );
                 }
             }
@@ -321,7 +321,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         // waits for the next read; the bytes are those of one-shot encryption.
         ShortReadStream::register();
         $iv = str_repeat("\x5a", 16);
-        foreach (array('pdf document', 'three chunks and a bit') as $name) {
+        foreach (['pdf document', 'three chunks and a bit'] as $name) {
             $plain = self::plain(self::vector($name));
             $path = $this->directory . '/upload.tmp';
             file_put_contents($path, $plain);
@@ -354,7 +354,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $vector = self::vector('three chunks and a bit');
         $file = self::file($vector);
         $path = $this->directory . '/42.v2.aes';
-        $cases = array(
+        $cases = [
             // Rewritten in place after the MAC pass (receipts are replaced by
             // rename, which the open file does not see).
             'truncated' => function ($path) {
@@ -365,7 +365,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
             'modified' => function ($path) {
                 touch($path, time() + 3600);
             },
-        );
+        ];
         foreach ($cases as $label => $change) {
             file_put_contents($path, $file);
             $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
@@ -389,7 +389,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
                 touch($path, time() + 7200);
             }
         });
-        self::assertSame(array(false, 3), array($complete, $chunks));
+        self::assertSame([false, 3], [$complete, $chunks]);
 
         // Short reads in the decrypt pass: stops at the first one.
         ShortReadStream::register();
@@ -454,7 +454,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $this->assertRejected(self::OTHER_KEY, '42', $file, 'other key');
         $this->assertRejected(self::TEST_KEY, '43', $file, 'other number');
         $this->assertRejected(self::TEST_KEY, '420', $file, 'longer number');
-        foreach (array(0, 3, 4, 19, 20, strlen($file) - 33, strlen($file) - 32, strlen($file) - 1) as $offset) {
+        foreach ([0, 3, 4, 19, 20, strlen($file) - 33, strlen($file) - 32, strlen($file) - 1] as $offset) {
             $modified = $file;
             $modified[$offset] = chr(ord($modified[$offset]) ^ 1);
             $this->assertRejected(self::TEST_KEY, '42', $modified, "byte $offset");
@@ -481,11 +481,11 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $this->assertRejected(self::TEST_KEY, '42', self::withMac('PGR3' . substr($empty, 4, 32)), 'other magic');
         $this->assertRejected(self::TEST_KEY, '42', self::withMac('PGR2' . $iv), 'no block');
         list($encryptionKey) = receipt_v2_keys(self::TEST_KEY, '42');
-        $blocks = array(
+        $blocks = [
             'padding 0' => str_repeat("\0", 16),
             'padding 17' => str_repeat("\x11", 16),
             'inconsistent padding' => str_repeat('a', 14) . "\x01\x02",
-        );
+        ];
         foreach ($blocks as $label => $block) {
             $ciphertext = receipt_v2_stream_cipher($encryptionKey, $iv)->encrypt($block);
             $path = $this->directory . '/padding.v2.aes';
@@ -496,14 +496,14 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $path = $this->directory . '/padding.v2.aes';
         file_put_contents($path, self::withMac('PGR2' . $iv . $ciphertext));
         $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
-        self::assertSame(array(15, str_repeat('a', 15)), array($receipt['length'], $receipt['head']));
+        self::assertSame([15, str_repeat('a', 15)], [$receipt['length'], $receipt['head']]);
         fclose($receipt['handle']);
     }
 
     public function testWriteFileReplacesTheTargetWithoutLeavingATemporaryFile()
     {
         $path = $this->directory . '/7.v2.aes';
-        $inodes = array();
+        $inodes = [];
         list($written, $log, $diagnostics) = self::logged(function () use ($path, &$inodes) {
             $first = receipt_write_file($path, 'first');
             clearstatcache();
@@ -517,9 +517,9 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame('second', file_get_contents($path));
         // A new file was renamed into place; the old one was not rewritten.
         self::assertNotSame($inodes[0], $inodes[1]);
-        self::assertSame(array('7.v2.aes'), $this->names());
+        self::assertSame(['7.v2.aes'], $this->names());
         self::assertSame('', $log);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
     }
 
     public function testWriteFileFailures()
@@ -532,13 +532,13 @@ final class ReceiptStorageTest extends FunctionsTestCase
         file_put_contents($this->directory . '/9.v2.aes/content', 'kept');
         $directory = $this->directory . '/9.v2.aes';
         list($results, $log, $diagnostics) = self::logged(function () use ($missing, $directory) {
-            return array(receipt_write_file($missing, 'data'), receipt_write_file($directory, 'data'));
+            return [receipt_write_file($missing, 'data'), receipt_write_file($directory, 'data')];
         });
-        self::assertSame(array(false, false), $results);
-        self::assertSame(array('9.v2.aes'), $this->names());
+        self::assertSame([false, false], $results);
+        self::assertSame(['9.v2.aes'], $this->names());
         self::assertSame('kept', file_get_contents($this->directory . '/9.v2.aes/content'));
         self::assertSame('', $log);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
     }
 
     // The receipt directory and an uploaded file with $content.
@@ -560,21 +560,21 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $longSource = $this->directory . '/long.tmp';
         file_put_contents($longSource, $long);
         list($results, $log, $diagnostics) = self::logged(function () use ($directory, $source, $longSource) {
-            return array(receipt_store($directory, '11', $source), receipt_store($directory, 12, $longSource));
+            return [receipt_store($directory, '11', $source), receipt_store($directory, 12, $longSource)];
         });
-        self::assertSame(array(true, true), $results);
-        self::assertSame(array('11.v2.aes', '12.v2.aes'), array_values(array_diff(scandir($directory), array('.', '..'))));
+        self::assertSame([true, true], $results);
+        self::assertSame(['11.v2.aes', '12.v2.aes'], array_values(array_diff(scandir($directory), ['.', '..'])));
         self::assertSame($pdf, receipt_v2_decrypt(self::TEST_KEY, '11', file_get_contents($directory . '/11.v2.aes')));
         self::assertSame($long, receipt_v2_decrypt(self::TEST_KEY, '12', file_get_contents($directory . '/12.v2.aes')));
         self::assertSame('', $log);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
     }
 
     public function testStoreRefusesWithoutAValidKey()
     {
         $source = $this->upload('%PDF synthetic');
         $directory = $this->directory . '/files';
-        foreach (array(null, '', 'CHANGE-ME', 'short-key', 4711) as $key) {
+        foreach ([null, '', 'CHANGE-ME', 'short-key', 4711] as $key) {
             if ($key === null) {
                 unset($GLOBALS['key']);
             } else {
@@ -584,9 +584,9 @@ final class ReceiptStorageTest extends FunctionsTestCase
                 return receipt_store($directory, '13', $source);
             });
             self::assertFalse($stored);
-            self::assertSame(array('.', '..'), scandir($directory));
+            self::assertSame(['.', '..'], scandir($directory));
             self::assertStringContainsString('pgacc: receipt not stored: no valid receipt key ($key) configured', $log);
-            self::assertSame(array(), $diagnostics);
+            self::assertSame([], $diagnostics);
         }
     }
 
@@ -596,11 +596,11 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $source = $this->upload('%PDF');
         $directory = $this->directory . '/files';
         mkdir($directory . '/16.v2.aes');
-        $cases = array(
-            'no upload' => array($directory, '14', $this->directory . '/missing.tmp'),
-            'no directory' => array($this->directory . '/missing', '15', $source),
-            'target is a directory' => array($directory, '16', $source),
-        );
+        $cases = [
+            'no upload' => [$directory, '14', $this->directory . '/missing.tmp'],
+            'no directory' => [$this->directory . '/missing', '15', $source],
+            'target is a directory' => [$directory, '16', $source],
+        ];
         foreach ($cases as $label => $case) {
             list($stored, $log, $diagnostics) = self::logged(function () use ($case) {
                 return receipt_store($case[0], $case[1], $case[2]);
@@ -608,11 +608,11 @@ final class ReceiptStorageTest extends FunctionsTestCase
             self::assertFalse($stored, $label);
             self::assertStringContainsString("pgacc: receipt {$case[1]}.v2.aes could not be written", $log, $label);
             self::assertStringNotContainsString(self::TEST_KEY, $log, $label);
-            self::assertSame(array(), $diagnostics, $label);
+            self::assertSame([], $diagnostics, $label);
         }
         // Only the directory that was in the way is left.
-        self::assertSame(array('16.v2.aes'), array_values(array_diff(scandir($directory), array('.', '..'))));
-        self::assertSame(array('.', '..'), scandir($directory . '/16.v2.aes'));
+        self::assertSame(['16.v2.aes'], array_values(array_diff(scandir($directory), ['.', '..'])));
+        self::assertSame(['.', '..'], scandir($directory . '/16.v2.aes'));
     }
 
     public function testOpenV2()
@@ -657,7 +657,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         });
         self::assertFalse($receipt);
         self::assertStringContainsString('pgacc: receipt 44.v2.aes could not be decrypted', $log);
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
 
         $GLOBALS['key'] = 'CHANGE-ME';
         list($receipt, $log) = self::logged(function () use ($path) {
@@ -674,12 +674,12 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $binary = defined('PHP_BINARY') ? PHP_BINARY : 'php';
         $script = dirname(__DIR__) . '/receipt-memory.php';
         $process = proc_open(escapeshellarg($binary) . ' -d memory_limit=40M ' . escapeshellarg($script) . ' '
-            . escapeshellarg($this->directory), array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes);
+            . escapeshellarg($this->directory), [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         $output = stream_get_contents($pipes[1]);
         $errors = stream_get_contents($pipes[2]);
         fclose($pipes[1]);
         fclose($pipes[2]);
-        self::assertSame(array(0, ''), array(proc_close($process), $errors), $output);
+        self::assertSame([0, ''], [proc_close($process), $errors], $output);
         self::assertStringStartsWith("20971520 bytes stored and sent; peak memory ", $output);
     }
 }

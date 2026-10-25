@@ -45,7 +45,7 @@ function phpcs_list($report, $prefix)
     if (!isset($data['files']) || !is_array($data['files'])) {
         fail("PHP_CodeSniffer report $report has no file list");
     }
-    $lines = array();
+    $lines = [];
     foreach ($data['files'] as $file => $result) {
         foreach ($result['messages'] as $message) {
             $lines[] = relative_path($file, $prefix) . "\t" . $message['source'] . "\t" . one_line($message['message']);
@@ -57,7 +57,7 @@ function phpcs_list($report, $prefix)
 
 function read_list($path)
 {
-    $lines = array();
+    $lines = [];
     foreach (file($path, FILE_IGNORE_NEW_LINES) as $line) {
         if ($line === '' || $line[0] === '#') {
             continue;
@@ -70,7 +70,7 @@ function read_list($path)
 function multiset_difference($left, $right)
 {
     $counts = array_count_values($right);
-    $difference = array();
+    $difference = [];
     foreach ($left as $line) {
         if (!empty($counts[$line])) {
             $counts[$line]--;
@@ -108,17 +108,17 @@ if ($command === 'compare' && $argc === 4) {
 
 if ($command === 'canaries' && $argc === 6) {
     $prefix = $argv[5];
-    $reported = array();
+    $reported = [];
     foreach (read_json($argv[3])['files'] as $file => $result) {
         foreach ($result['messages'] as $message) {
-            $reported[] = implode("\t", array('phpcs', basename(relative_path($file, $prefix)), $message['line'], $message['source']));
+            $reported[] = implode("\t", ['phpcs', basename(relative_path($file, $prefix)), $message['line'], $message['source']]);
         }
     }
     $phpstan = read_json($argv[4]);
     foreach ($phpstan['files'] as $file => $result) {
         foreach ($result['messages'] as $message) {
             $identifier = isset($message['identifier']) ? $message['identifier'] : '(none)';
-            $reported[] = implode("\t", array('phpstan', basename(relative_path($file, $prefix)), $message['line'], $identifier));
+            $reported[] = implode("\t", ['phpstan', basename(relative_path($file, $prefix)), $message['line'], $identifier]);
         }
     }
     $missing = 0;

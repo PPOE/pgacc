@@ -53,12 +53,12 @@ if ($http === false) {
 $modeFile = '/tmp/pgacc-membership-stub-mode';
 $bodyFile = '/tmp/pgacc-membership-stub-body';
 $listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
-$modes = array('ok', 'short', 'garbage', 'empty', 'flow', 'overflow', 'body', 'redirect', 'redirect-http',
-    'selfsigned', 'wrongname', 'error');
-$certificates = array(
+$modes = ['ok', 'short', 'garbage', 'empty', 'flow', 'overflow', 'body', 'redirect', 'redirect-http',
+    'selfsigned', 'wrongname', 'error'];
+$certificates = [
     'selfsigned' => '/etc/pgacc-test-tls/selfsigned.pem',
     'wrongname' => '/etc/pgacc-test-tls/wrongname.pem',
-);
+];
 
 // As membership_encrypt() of functions.php: Rijndael-256/CBC, key
 // md5($datakey), IV md5(md5($datakey)), zero padding.
@@ -85,49 +85,49 @@ function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bod
     global $listRequestsFile;
     $path = parse_url($uri, PHP_URL_PATH);
     if ($path === '/__stub/health') {
-        return array('200 OK', "ok\n");
+        return ['200 OK', "ok\n"];
     }
     if ($path === '/__stub/list') {
         file_put_contents($listRequestsFile, "x", FILE_APPEND);
-        return array('200 OK', file_get_contents(__DIR__ . '/adm_names.b64'));
+        return ['200 OK', file_get_contents(__DIR__ . '/adm_names.b64')];
     }
     if (!$secure) {
         if ($path === '/__stub/mode') {
             parse_str((string) parse_url($uri, PHP_URL_QUERY), $query);
             $mode = isset($query['set']) ? $query['set'] : '';
             if (!in_array($mode, $modes, true)) {
-                return array('400 Bad Request', "unknown mode\n");
+                return ['400 Bad Request', "unknown mode\n"];
             }
             file_put_contents($modeFile, $mode);
             @unlink($listRequestsFile);
-            return array('200 OK', "mode $mode\n");
+            return ['200 OK', "mode $mode\n"];
         }
         if ($path === '/__stub/list-requests') {
             clearstatcache();
-            return array('200 OK', (is_file($listRequestsFile) ? filesize($listRequestsFile) : 0) . "\n");
+            return ['200 OK', (is_file($listRequestsFile) ? filesize($listRequestsFile) : 0) . "\n"];
         }
         if ($path === '/__stub/body' && $method === 'POST') {
             file_put_contents($bodyFile, $body);
             file_put_contents($modeFile, 'body');
-            return array('200 OK', "mode body\n");
+            return ['200 OK', "mode body\n"];
         }
-        return array('404 Not Found', "not found\n");
+        return ['404 Not Found', "not found\n"];
     }
     if ($path !== '/adm_api/adm_names.php') {
-        return array('404 Not Found', "not found\n");
+        return ['404 Not Found', "not found\n"];
     }
     $list = file_get_contents(__DIR__ . '/adm_names.b64');
     switch (membership_stub_mode($modeFile)) {
         case 'short':
-            return array('200 OK', substr($list, 0, 200));
+            return ['200 OK', substr($list, 0, 200)];
         case 'garbage':
             $bytes = '';
             for ($i = 0; strlen($bytes) < 1536; $i++) {
                 $bytes .= hash('sha256', "pgacc synthetic garbage $i", true);
             }
-            return array('200 OK', base64_encode($bytes));
+            return ['200 OK', base64_encode($bytes)];
         case 'empty':
-            return array('200 OK', membership_stub_encrypt(str_repeat("abc\n", 300)));
+            return ['200 OK', membership_stub_encrypt(str_repeat("abc\n", 300))];
         case 'flow':
         case 'overflow':
             // flow.tsv is UTF-8; the membership system sends ISO-8859-15.
@@ -135,22 +135,22 @@ function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bod
             if (membership_stub_mode($modeFile) === 'overflow') {
                 $plain .= "99\t99999999999\tSynthetic Overflow Member\t40\t0\n";
             }
-            return array('200 OK', membership_stub_encrypt($plain));
+            return ['200 OK', membership_stub_encrypt($plain)];
         case 'body':
-            return array('200 OK', (string) @file_get_contents($bodyFile));
+            return ['200 OK', (string) @file_get_contents($bodyFile)];
         case 'redirect':
-            return array("302 Found\r\nLocation: https://mitglieder.piratenpartei.at/__stub/list", "moved\n");
+            return ["302 Found\r\nLocation: https://mitglieder.piratenpartei.at/__stub/list", "moved\n"];
         case 'redirect-http':
-            return array("302 Found\r\nLocation: http://mitglieder.piratenpartei.at/__stub/list", "moved\n");
+            return ["302 Found\r\nLocation: http://mitglieder.piratenpartei.at/__stub/list", "moved\n"];
         case 'error':
-            return array('500 Internal Server Error', "synthetic failure\n");
+            return ['500 Internal Server Error', "synthetic failure\n"];
         default:
-            return array('200 OK', $list);
+            return ['200 OK', $list];
     }
 }
 
 while (true) {
-    $read = array($https, $http);
+    $read = [$https, $http];
     $write = null;
     $except = null;
     if (@stream_select($read, $write, $except, null) < 1) {

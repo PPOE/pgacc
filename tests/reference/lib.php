@@ -69,14 +69,14 @@ function ref_write($path, $content)
  */
 function ref_http($requestId, $method, $path, $form, $files, $cookies)
 {
-    $headers = array(
+    $headers = [
         'X-Forwarded-Proto: https',
         'Host: pgacc.test',
         'Connection: close',
         'X-Pgacc-Test-Request: ' . $requestId,
-    );
+    ];
     if (count($cookies) > 0) {
-        $parts = array();
+        $parts = [];
         foreach ($cookies as $name => $value) {
             $parts[] = $name . '=' . $value;
         }
@@ -101,16 +101,16 @@ function ref_http($requestId, $method, $path, $form, $files, $cookies)
         }
         $headers[] = 'Content-Length: ' . strlen($content);
     }
-    $context = stream_context_create(array(
-        'http' => array(
+    $context = stream_context_create([
+        'http' => [
             'method' => $method,
             'header' => implode("\r\n", $headers),
             'content' => $content,
             'ignore_errors' => true,
             'follow_location' => 0,
             'timeout' => 60,
-        ),
-    ));
+        ],
+    ]);
     $url = rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . $path;
     $body = @file_get_contents($url, false, $context);
     $responseHeaders = http_get_last_response_headers();
@@ -120,18 +120,18 @@ function ref_http($requestId, $method, $path, $form, $files, $cookies)
     if (!preg_match('/^HTTP\/\S+ (\d{3})/', $responseHeaders[0], $matches)) {
         ref_fail("could not parse the status of $requestId");
     }
-    return array('status' => intval($matches[1]), 'headers' => array_slice($responseHeaders, 1), 'body' => $body);
+    return ['status' => intval($matches[1]), 'headers' => array_slice($responseHeaders, 1), 'body' => $body];
 }
 
 function ref_form_pairs($form, $prefix)
 {
-    $pairs = array();
+    $pairs = [];
     foreach ($form as $key => $value) {
         $name = $prefix === '' ? $key : $prefix . '[' . $key . ']';
         if (is_array($value)) {
             $pairs = array_merge($pairs, ref_form_pairs($value, $name));
         } else {
-            $pairs[] = array($name, (string) $value);
+            $pairs[] = [$name, (string) $value];
         }
     }
     return $pairs;
@@ -139,7 +139,7 @@ function ref_form_pairs($form, $prefix)
 
 function ref_response_cookies($response)
 {
-    $cookies = array();
+    $cookies = [];
     foreach ($response['headers'] as $header) {
         if (stripos($header, 'Set-Cookie:') !== 0) {
             continue;
@@ -163,7 +163,7 @@ function ref_normalize_set_cookie($value)
 // $bodyLength: length of the received body (drops a Content-Length equal to it).
 function ref_relevant_headers($headers, $bodyLength = null)
 {
-    $kept = array();
+    $kept = [];
     foreach ($headers as $header) {
         $parts = explode(':', $header, 2);
         if (count($parts) !== 2) {
@@ -172,7 +172,7 @@ function ref_relevant_headers($headers, $bodyLength = null)
         }
         $name = trim($parts[0]);
         $value = trim($parts[1]);
-        if (in_array(strtolower($name), array('date', 'host', 'connection', 'x-powered-by', 'server'), true)) {
+        if (in_array(strtolower($name), ['date', 'host', 'connection', 'x-powered-by', 'server'], true)) {
             continue;
         }
         if (strtolower($name) === 'content-length' && $bodyLength !== null && $value === strval($bodyLength)) {
@@ -205,7 +205,7 @@ function ref_normalize_body($body)
         $body = str_replace(
             $matches[0],
             'value="{{captcha-c=' . ($consistent ? 'a+b-37' : 'INCONSISTENT') . '}}" name="captcha"',
-            $body
+            $body,
         );
     }
     return $body;
@@ -244,7 +244,7 @@ function ref_http_snapshot($step, $response)
 function ref_request_diagnostics($requestId)
 {
     $path = rtrim(getenv('PGACC_TEST_DIAGNOSTICS_DIR'), '/') . '/' . $requestId . '.jsonl';
-    $lines = array();
+    $lines = [];
     $completed = false;
     if (is_file($path)) {
         foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -277,7 +277,7 @@ function ref_database()
         getenv('PGPORT'),
         getenv('PGDATABASE'),
         getenv('PGUSER'),
-        getenv('PGPASSWORD')
+        getenv('PGPASSWORD'),
     ));
     if ($connection === false) {
         ref_fail('could not connect to the reference database');
@@ -291,7 +291,7 @@ function ref_query($database, $query)
     if ($result === false) {
         ref_fail("query failed: $query: " . pg_last_error($database));
     }
-    $rows = array();
+    $rows = [];
     while (($row = pg_fetch_row($result)) !== false) {
         $rows[] = $row;
     }
@@ -319,7 +319,7 @@ function ref_statement_log_until_marker($database, &$offset, $marker)
             $stream = fopen('php://temp', 'w+');
             fwrite($stream, $data);
             rewind($stream);
-            $records = array();
+            $records = [];
             // PostgreSQL's CSV log escapes quotes by doubling only; chr(1)
             // never occurs, so PHP's backslash escape does not interfere.
             while (($row = fgetcsv($stream, 0, ',', '"', "\x01")) !== false) {
@@ -331,7 +331,7 @@ function ref_statement_log_until_marker($database, &$offset, $marker)
                     fclose($stream);
                     return $records;
                 }
-                $records[] = array($row[22], $row[11], $row[12], $row[13], $row[19]);
+                $records[] = [$row[22], $row[11], $row[12], $row[13], $row[19]];
             }
             fclose($stream);
         }
@@ -348,7 +348,7 @@ function ref_normalize_sql($sql)
 // The statements and errors of one request, normalized, one block each.
 function ref_request_statements($records, $requestId)
 {
-    $lines = array();
+    $lines = [];
     foreach ($records as $record) {
         if ($record[0] !== 'ref:' . $requestId) {
             continue;
@@ -366,7 +366,7 @@ function ref_request_statements($records, $requestId)
 // Tables (and the sequences pseudo-table) that a request's statements write.
 function ref_written_tables($statements)
 {
-    $tables = array();
+    $tables = [];
     foreach ($statements as $statement) {
         if (preg_match_all('/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+TABLE|DROP\s+TABLE(?:\s+IF\s+EXISTS)?|TRUNCATE(?:\s+TABLE)?)\s+"?([A-Za-z_][A-Za-z0-9_]*)/i', $statement, $matches)) {
             foreach ($matches[1] as $table) {
@@ -388,7 +388,7 @@ function ref_escape_cell($value)
     if ($value === null) {
         return '\\N';
     }
-    return str_replace(array('\\', "\t", "\n", "\r"), array('\\\\', '\\t', '\\n', '\\r'), $value);
+    return str_replace(['\\', "\t", "\n", "\r"], ['\\\\', '\\t', '\\n', '\\r'], $value);
 }
 
 function ref_normalize_cell($table, $column, $value)
@@ -416,7 +416,7 @@ function ref_normalize_cell($table, $column, $value)
 function ref_dump_table($database, $table)
 {
     if ($table === '(sequences)') {
-        $lines = array("sequence\tlast_value\tis_called");
+        $lines = ["sequence\tlast_value\tis_called"];
         foreach (ref_query($database, "SELECT relname FROM pg_class WHERE relkind = 'S' ORDER BY relname") as $row) {
             $state = ref_query($database, 'SELECT last_value, is_called FROM "' . $row[0] . '"');
             $lines[] = $row[0] . "\t" . $state[0][0] . "\t" . $state[0][1];
@@ -429,13 +429,13 @@ function ref_dump_table($database, $table)
     if (count($columns) === 0) {
         return null;
     }
-    $names = array();
+    $names = [];
     foreach ($columns as $column) {
         $names[] = $column[0];
     }
-    $lines = array();
+    $lines = [];
     foreach (ref_query($database, 'SELECT * FROM "' . $table . '"') as $row) {
-        $cells = array();
+        $cells = [];
         foreach ($row as $index => $value) {
             $cells[] = ref_escape_cell(ref_normalize_cell($table, $names[$index], $value));
         }
@@ -450,31 +450,31 @@ function ref_dump_table($database, $table)
 function ref_dump_delta($before, $after)
 {
     if ($before === null && $after === null) {
-        return array('(absent before and after)');
+        return ['(absent before and after)'];
     }
     if ($before === null) {
-        return array_merge(array('(created) ' . $after[0]), ref_prefix_lines('+ ', array_slice($after, 1)));
+        return array_merge(['(created) ' . $after[0]], ref_prefix_lines('+ ', array_slice($after, 1)));
     }
     if ($after === null) {
-        return array_merge(array('(dropped) ' . $before[0]), ref_prefix_lines('- ', array_slice($before, 1)));
+        return array_merge(['(dropped) ' . $before[0]], ref_prefix_lines('- ', array_slice($before, 1)));
     }
-    $lines = array();
+    $lines = [];
     if ($before[0] !== $after[0]) {
         $lines[] = '(columns changed) ' . $before[0] . ' -> ' . $after[0];
     }
     $old = array_count_values(array_slice($before, 1));
     $new = array_count_values(array_slice($after, 1));
-    $changes = array();
+    $changes = [];
     foreach ($old as $row => $count) {
         $remaining = isset($new[$row]) ? $count - $new[$row] : $count;
         for ($i = 0; $i < $remaining; $i++) {
-            $changes[] = array($row, '- ');
+            $changes[] = [$row, '- '];
         }
     }
     foreach ($new as $row => $count) {
         $remaining = isset($old[$row]) ? $count - $old[$row] : $count;
         for ($i = 0; $i < $remaining; $i++) {
-            $changes[] = array($row, '+ ');
+            $changes[] = [$row, '+ '];
         }
     }
     usort($changes, 'ref_compare_change');
@@ -495,7 +495,7 @@ function ref_compare_change($a, $b)
 
 function ref_prefix_lines($prefix, $lines)
 {
-    $result = array();
+    $result = [];
     foreach ($lines as $line) {
         $result[] = $prefix . $line;
     }
@@ -533,7 +533,7 @@ function ref_export($value)
         return 'string(' . strlen($value) . ') "' . addcslashes($value, "\0..\37\"\\\177..\377") . '"';
     }
     if (is_array($value)) {
-        $parts = array();
+        $parts = [];
         foreach ($value as $key => $item) {
             $parts[] = ref_export($key) . ' => ' . ref_export($item);
         }
@@ -553,9 +553,9 @@ function ref_export($value)
  */
 function ref_changed_lines($referencePath, $actualPath)
 {
-    $output = array();
+    $output = [];
     exec('diff -U0 ' . escapeshellarg($referencePath) . ' ' . escapeshellarg($actualPath) . ' 2>&1', $output);
-    $changed = array();
+    $changed = [];
     foreach ($output as $line) {
         if (strpos($line, '---') === 0 || strpos($line, '+++') === 0 || strpos($line, '@@') === 0) {
             continue;
@@ -572,15 +572,15 @@ function ref_changed_lines($referencePath, $actualPath)
 // Problems of the allowlist itself (missing fields, invalid patterns).
 function ref_allowlist_problems($entries)
 {
-    $problems = array();
-    $ids = array();
+    $problems = [];
+    $ids = [];
     foreach ($entries as $index => $entry) {
-        $fields = array('id', 'php', 'files', 'lines', 'reason', 'category');
+        $fields = ['id', 'php', 'files', 'lines', 'reason', 'category'];
         foreach (array_diff(array_keys($entry), $fields) as $field) {
             $problems[] = "entry $index: unknown field $field";
         }
         foreach ($fields as $field) {
-            if (!isset($entry[$field]) || $entry[$field] === '' || $entry[$field] === array()) {
+            if (!isset($entry[$field]) || $entry[$field] === '' || $entry[$field] === []) {
                 $problems[] = "entry $index: missing $field";
             }
         }
@@ -597,7 +597,7 @@ function ref_allowlist_problems($entries)
             $problems[] = "entry $index: invalid lines pattern";
         }
         if (isset($entry['category']) && $entry['category'] !== ''
-            && !in_array($entry['category'], array('accepted', 'todo'), true)) {
+            && !in_array($entry['category'], ['accepted', 'todo'], true)) {
             $problems[] = "entry $index: category must be 'accepted' or 'todo'";
         }
     }
@@ -612,8 +612,8 @@ function ref_allowlist_problems($entries)
  */
 function ref_classify_changes($php, $file, $changedLines, $entries)
 {
-    $used = array();
-    $unmatched = array();
+    $used = [];
+    $unmatched = [];
     foreach ($changedLines as $line) {
         $matched = false;
         foreach ($entries as $entry) {
@@ -630,7 +630,7 @@ function ref_classify_changes($php, $file, $changedLines, $entries)
             $unmatched[] = $line;
         }
     }
-    return array($used, $unmatched);
+    return [$used, $unmatched];
 }
 
 // Whether $file matches the fnmatch() glob $files, or one glob of the list.
@@ -648,7 +648,7 @@ function ref_files_match($files, $file)
 // line counts, for the comparison summary.
 function ref_category_summary($entries, $usedIds)
 {
-    $summary = array('accepted' => array(), 'todo' => array());
+    $summary = ['accepted' => [], 'todo' => []];
     foreach ($entries as $entry) {
         if (isset($usedIds[$entry['id']])) {
             $summary[$entry['category']][$entry['id']] = $usedIds[$entry['id']];
@@ -660,7 +660,7 @@ function ref_category_summary($entries, $usedIds)
 // Entries for this PHP version that accepted nothing in a whole comparison.
 function ref_stale_entries($php, $entries, $usedIds)
 {
-    $stale = array();
+    $stale = [];
     foreach ($entries as $entry) {
         if (in_array($php, $entry['php'], true) && !isset($usedIds[$entry['id']])) {
             $stale[] = $entry['id'];
@@ -672,7 +672,7 @@ function ref_stale_entries($php, $entries, $usedIds)
 // Recorded files below $directory, relative, sorted.
 function ref_list_files($directory, $prefix = '')
 {
-    $files = array();
+    $files = [];
     if (!is_dir($directory)) {
         return $files;
     }

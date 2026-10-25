@@ -65,7 +65,7 @@ foreach ($vectors['mbapi'] as $vector) {
 foreach ($vectors['getusers'] as $vector) {
     $params = membership_cipher_params($vector['datakey']);
     $plain = rtrim(rijndael256_cbc($params[0], $params[1])->decrypt(
-        rijndael256_zero_pad(base64_decode($vector['sData']))
+        rijndael256_zero_pad(base64_decode($vector['sData'])),
     ), "\0");
     if (bin2hex($plain) !== $vector['decrypted']) {
         pgacc_vendor_check_fail("getusers vector '{$vector['name']}' differs");
@@ -76,15 +76,15 @@ echo "vendor: phpseclib: $checked mcrypt contract vectors match\n";
 
 // The calls of import2.php on a one-page statement with one text line.
 $stream = 'BT /F1 12 Tf 72 712 Td (Buchung AB/123456789 vom 15.09.2024) Tj ET';
-$objects = array(
+$objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
     '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . "\nendstream",
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-);
+];
 $statement = "%PDF-1.4\n";
-$offsets = array();
+$offsets = [];
 foreach ($objects as $index => $object) {
     $offsets[] = strlen($statement);
     $statement .= ($index + 1) . " 0 obj\n" . $object . "\nendobj\n";

@@ -33,7 +33,7 @@ function pgacc_coverage_start()
         xdebug_set_filter(
             XDEBUG_FILTER_CODE_COVERAGE,
             XDEBUG_PATH_EXCLUDE,
-            array('/app/vendor/', '/app/tests/')
+            ['/app/vendor/', '/app/tests/'],
         );
     }
 
@@ -66,7 +66,7 @@ function pgacc_coverage_write($directory)
     foreach ($data as $file => $fileData) {
         if (isset($fileData['functions'])) {
             foreach ($fileData['functions'] as $function => $functionData) {
-                $data[$file]['functions'][$function]['paths'] = array();
+                $data[$file]['functions'][$function]['paths'] = [];
             }
         }
     }
@@ -81,12 +81,12 @@ function pgacc_coverage_write($directory)
         $directory,
         str_replace('.', '', sprintf('%.6F', microtime(true))),
         getmypid(),
-        bin2hex(random_bytes(4))
+        bin2hex(random_bytes(4)),
     );
     $request = isset($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'])
         ? $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI']
         : 'unknown request';
-    $payload = serialize(array('request' => $request, 'coverage' => $data));
+    $payload = serialize(['request' => $request, 'coverage' => $data]);
 
     if (@file_put_contents($name . '.tmp', $payload) === false || !@rename($name . '.tmp', $name . '.ser')) {
         error_log("pgacc coverage: cannot write $name.ser");

@@ -28,7 +28,7 @@ function pgacc_test_diagnostics_log_path()
 
 function pgacc_test_diagnostics_type_name($type)
 {
-    $names = array(
+    $names = [
         E_ERROR => 'E_ERROR',
         E_WARNING => 'E_WARNING',
         E_PARSE => 'E_PARSE',
@@ -43,7 +43,7 @@ function pgacc_test_diagnostics_type_name($type)
         E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
         E_DEPRECATED => 'E_DEPRECATED',
         E_USER_DEPRECATED => 'E_USER_DEPRECATED',
-    );
+    ];
     // E_STRICT is deprecated as a constant on PHP 8.4+; its value is 2048.
     if ($type === 2048) {
         return 'E_STRICT';
@@ -69,7 +69,7 @@ function pgacc_test_diagnostics_record($type, $message, $file, $line, $reported)
     if ($path === null) {
         return;
     }
-    $record = array(
+    $record = [
         'uri' => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
         'php' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
         'type' => pgacc_test_diagnostics_type_name($type),
@@ -79,7 +79,7 @@ function pgacc_test_diagnostics_record($type, $message, $file, $line, $reported)
         // Whether the runtime's error_reporting (including "@") lets PHP's
         // own handler report it, i.e. whether it was displayed/logged.
         'reported' => $reported,
-    );
+    ];
     $json = json_encode($record);
     if ($json === false) {
         $record['message'] = 'non-UTF-8 message, hex: ' . bin2hex($message);
@@ -96,7 +96,7 @@ function pgacc_test_diagnostics_handler($type, $message, $file, $line)
         $message,
         $file,
         $line,
-        (error_reporting() & $type) !== 0
+        (error_reporting() & $type) !== 0,
     );
     // Continue with PHP's standard error handling, unchanged.
     return false;
@@ -114,7 +114,7 @@ function pgacc_test_diagnostics_shutdown()
             $error['message'],
             $error['file'],
             $error['line'],
-            true
+            true,
         );
     }
     // Completion marker: lets the tests prove the recorder ran for a request

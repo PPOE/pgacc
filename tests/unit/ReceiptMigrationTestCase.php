@@ -10,8 +10,8 @@ require_once dirname(dirname(__DIR__)) . '/migrate-receipt-key.php';
 
 abstract class ReceiptMigrationTestCase extends FunctionsTestCase
 {
-    const TEST_KEY = 'synthetic-test-only-encryption-key';
-    const OTHER_KEY = 'another-synthetic-receipt-key';
+    public const TEST_KEY = 'synthetic-test-only-encryption-key';
+    public const OTHER_KEY = 'another-synthetic-receipt-key';
 
     protected $directory;
     protected $connection;
@@ -31,11 +31,11 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         // PDF or JPEG), 905 has no row, 906 (4711, too large), 908 belongs to
         // two vouchers and was encrypted for the second, 909-911 (4711), 912
         // (4711, a PDF that does not end like one).
-        $rows = array(
-            array(9401, 4711, 901), array(9402, 815, 902), array(9403, 4712, 903), array(9404, 4711, 904),
-            array(9405, 4711, 906), array(9406, 815, 908), array(9407, 4711, 908), array(9408, 4711, 909),
-            array(9409, 4711, 910), array(9410, 4711, 911), array(9411, 4711, 912),
-        );
+        $rows = [
+            [9401, 4711, 901], [9402, 815, 902], [9403, 4712, 903], [9404, 4711, 904],
+            [9405, 4711, 906], [9406, 815, 908], [9407, 4711, 908], [9408, 4711, 909],
+            [9409, 4711, 910], [9410, 4711, 911], [9411, 4711, 912],
+        ];
         foreach ($rows as $row) {
             pg_query_params($this->connection, "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file)
                 VALUES ($1, $2, 20, 2, 'Synthetic migration receipt', timestamp '2024-09-15 00:00:00', $3)", $row);
@@ -54,7 +54,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     protected static function removeTree($path)
     {
         if (is_dir($path)) {
-            foreach (array_diff(scandir($path), array('.', '..')) as $name) {
+            foreach (array_diff(scandir($path), ['.', '..']) as $name) {
                 self::removeTree($path . '/' . $name);
             }
             rmdir($path);
@@ -93,8 +93,8 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     // Name => bytes ('directory' for a directory) of the receipt directory.
     protected function files()
     {
-        $files = array();
-        foreach (array_diff(scandir($this->directory . '/files'), array('.', '..')) as $name) {
+        $files = [];
+        foreach (array_diff(scandir($this->directory . '/files'), ['.', '..']) as $name) {
             $path = $this->directory . '/files/' . $name;
             $files[$name] = is_dir($path) ? 'directory' : file_get_contents($path);
         }
@@ -111,15 +111,15 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     protected function migrate($arguments, $defaults = true)
     {
         if ($defaults) {
-            $arguments = array_merge(array(
+            $arguments = array_merge([
                 '--files=' . $this->directory . '/files',
                 '--constants=' . $this->directory . '/constants.php',
                 '--database=' . pgacc_test_connection_string(),
-            ), $arguments);
+            ], $arguments);
         }
         $out = fopen('php://memory', 'w+');
         $err = fopen('php://memory', 'w+');
-        $diagnostics = array();
+        $diagnostics = [];
         set_error_handler(function ($type, $message) use (&$diagnostics) {
             if ((error_reporting() & $type) && $type !== E_DEPRECATED) {
                 $diagnostics[] = $message;
@@ -133,10 +133,10 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
             throw $exception;
         }
         restore_error_handler();
-        self::assertSame(array(), $diagnostics);
+        self::assertSame([], $diagnostics);
         rewind($out);
         rewind($err);
-        $result = array($status, stream_get_contents($out), stream_get_contents($err));
+        $result = [$status, stream_get_contents($out), stream_get_contents($err)];
         self::assertStringNotContainsString(self::TEST_KEY, $result[1] . $result[2]);
         return $result;
     }
@@ -152,7 +152,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     protected function legacyPdf()
     {
         $vector = self::legacyVector('pdf document');
-        self::assertSame(array('4711', ''), array($vector['id'], $vector['key']));
+        self::assertSame(['4711', ''], [$vector['id'], $vector['key']]);
         return hex2bin($vector['cipher']);
     }
 

@@ -23,8 +23,8 @@ if ($coverageDir !== false && $coverageDir !== '') {
 }
 $server = proc_open(
     'exec env ' . $environment . ' php' . $settings . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__)),
-    array(0 => array('file', '/dev/null', 'r'), 1 => array('file', $log, 'a'), 2 => array('file', $log, 'a')),
-    $pipes
+    [0 => ['file', '/dev/null', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+    $pipes,
 );
 if (!is_resource($server)) {
     fail_test('could not start the connection-failure server');
@@ -38,12 +38,12 @@ if ($socket === false) {
 }
 fclose($socket);
 
-foreach (array('/index.php', '/check.php?kto=SYNTHETIC0&max=2', '/mbapi.php') as $path) {
-    $context = stream_context_create(array('http' => array(
+foreach (['/index.php', '/check.php?kto=SYNTHETIC0&max=2', '/mbapi.php'] as $path) {
+    $context = stream_context_create(['http' => [
         'header' => "X-Forwarded-Proto: https\r\n",
         'ignore_errors' => true,
         'timeout' => 20,
-    )));
+    ]]);
     $body = @file_get_contents('http://127.0.0.1:' . $port . $path, false, $context);
     if ($body !== 'Verbindungsaufbau fehlgeschlagen') {
         fail_test("$path with an unreachable database answered " . var_export($body, true));

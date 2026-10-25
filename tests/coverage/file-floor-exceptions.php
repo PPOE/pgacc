@@ -6,10 +6,10 @@
  * documented as unreachable; each change is reviewed. floor: the file's
  * current line coverage in percent (one decimal, as in summary.txt).
  */
-return array(
-    'donations.php' => array(
+return [
+    'donations.php' => [
         'floor' => 84.4,
         'reason' => 'umlaute() (lines 12-21) is called by no page; it stays because the reference helper '
             . 'recordings (tests/reference/helpers.php) characterize it.',
-    ),
-);
+    ],
+];
