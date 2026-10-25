@@ -38,11 +38,13 @@ function getUsers()
         error_log('getusers: ' . ($sData === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
         die('Mitgliederliste konnte nicht abgerufen werden!');
     }
-    if (strlen($datakey) == 0)
+    if (strlen($datakey) == 0) {
         die('Kein Passwort!');
+    }
 
-    if (strlen($sData) < 1000)
+    if (strlen($sData) < 1000) {
         die('Daten von Mitgliederverwaltung zu kurz!');
+    }
 
     $decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
     $query = 'INSERT INTO ppmembers (id, name, lo, paid) VALUES ';
@@ -54,8 +56,9 @@ function getUsers()
         }
         $values = explode("\t", $line);
         // A line without the five fields means a damaged or undecryptable list.
-        if (count($values) < 5)
+        if (count($values) < 5) {
             die('Daten von Mitgliederverwaltung ungültig!');
+        }
         $id = intval($values[1]);
         $name = stripslashes(iconv('ISO-8859-15', 'UTF-8', $values[2]));
         $lo = $values[3];
@@ -83,13 +86,15 @@ function getUsers()
                 break;
         }
         //echo "insert: id=$id, name=$name, lo=$lo_num\n";
-        if ($count > 0)
+        if ($count > 0) {
             $query .= ',';
+        }
         $query .= "($id,'" . pg_escape_string($dbconn, $name) . "',$lo_num,$paid)";
         $count++;
     }
-    if ($count == 0)
+    if ($count == 0) {
         die('Daten von Mitgliederverwaltung ungültig!');
+    }
     $query .= ';';
 
     // Inside a caller's transaction (the unit tests) a savepoint, so that the
@@ -108,12 +113,12 @@ function getUsers()
     foreach ($queries as $query) {
         $error = getusers_query($query);
         if ($error !== null) {
-            if ($started)
+            if ($started) {
                 getusers_query($nested ? 'ROLLBACK TO SAVEPOINT getusers;' : 'ROLLBACK;');
+            }
             die('Abfrage fehlgeschlagen: ' . $error);
         }
         $started = true;
     }
 
 }
-?>

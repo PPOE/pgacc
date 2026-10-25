@@ -8,10 +8,12 @@ function tiny_report($konto, $date_begin, $date_end)
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND account IN ($konto)";
     }
-    if ($date_begin)
+    if ($date_begin) {
         $cond .= " AND date >= '$date_begin' ";
-    if ($date_end)
+    }
+    if ($date_end) {
         $cond .= " AND date <= '$date_end' ";
+    }
     echo '
 <table><tr><td>
 <h3>Einnahmen</h3>
@@ -87,16 +89,18 @@ function page_tinyreport($rights)
     $konto = "";
     $date_begin = "";
     $date_end = "";
-    if (isset($_GET["konto"]) && preg_match('/^[ A-Z0-9-,]+$/i', $_GET["konto"]) == 1)
+    if (isset($_GET["konto"]) && preg_match('/^[ A-Z0-9-,]+$/i', $_GET["konto"]) == 1) {
         $konto = $_GET["konto"];
-    if (isset($_GET["date_begin"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_begin"]) == 1)
+    }
+    if (isset($_GET["date_begin"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_begin"]) == 1) {
         $date_begin = $_GET["date_begin"];
-    if (isset($_GET["date_end"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_end"]) == 1)
+    }
+    if (isset($_GET["date_end"]) && preg_match('/^[0-9]+-[0-9]+-[0-9]+$/i', $_GET["date_end"]) == 1) {
         $date_end = $_GET["date_end"];
+    }
     echo "<h1>Bericht Konto $konto</h1><br>";
     block_start();
     tiny_report($konto, $date_begin, $date_end);
     block_end();
 
 }
-?>

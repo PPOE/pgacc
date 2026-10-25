@@ -18,15 +18,17 @@ function page_accounts($rights)
             $pass = isset($_POST["password$id"]) ? pg_escape_string($dbconn, $_POST["password$id"]) : '';
             $name = isset($_POST["name$id"]) ? pg_escape_string($dbconn, $_POST["name$id"]) : '';
             $nrights = isset($_POST["rights$id"]) ? pg_escape_string($dbconn, $_POST["rights$id"]) : '';
-            if (has_right($rights, 'root') && $id == -1)
-                if ($pass != "******")
+            if (has_right($rights, 'root') && $id == -1) {
+                if ($pass != "******") {
                     $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('md5')), '$nrights');";
-                else $query = "SELECT 1";
-            else if (!has_right($rights, 'root') && $pass != "******")
+                } else {
+                    $query = "SELECT 1";
+                }
+            } elseif (!has_right($rights, 'root') && $pass != "******") {
                 $query = "UPDATE users SET hash = crypt('$pass', gen_salt('md5')), cookie = NULL WHERE id = $id";
-            else if (has_right($rights, 'root'))
+            } elseif (has_right($rights, 'root')) {
                 $query = "UPDATE users SET rights = '$nrights'" . ($pass != "******" ? ", hash = crypt('$pass', gen_salt('md5')), cookie = NULL" : "") . " WHERE id = $id";
-            else {
+            } else {
                 echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
                 return;
             }
@@ -59,12 +61,12 @@ function page_accounts($rights)
         echo '<tr><td>' . html_escape($line['name']) . '</td><td><input type="password" name="password' . $i . '" value="******"></td>' . (has_right($rights, 'root') ? '<td><input type="text" name="rights' . $i . '" value="' . html_escape($line['rights']) . '" /></td>' : '') . '<td><input type="submit" name="submit" value="Benutzer ' . $i . ' aktualisieren" /></td></tr>' . "\n";
     }
     pg_free_result($result);
-    if (has_right($rights, 'root'))
+    if (has_right($rights, 'root')) {
         echo '<tr><td><input type="text" name="name-1" value="" /></td><td><input type="password" name="password-1" value="******"></td><td><input type="text" name="rights-1" value="" /></td><td><input type="submit" name="submit" value="Benutzer -1 erstellen" /></td></tr>' . "\n";
+    }
     echo '
 </table></form>
 ';
     block_end();
 
 }
-?>

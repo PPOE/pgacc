@@ -26,9 +26,11 @@ function login($user, $pass)
             header(login_cookie_header("pp_pgacc_login", $token, 86400), false);
             header(login_cookie_header("pp_pgacc_id", $id, 86400), false);
             pg_free_result($data);
-            if (isset($_POST['target']))
+            if (isset($_POST['target'])) {
                 header("Location: " . login_target($_POST['target']));
-            else header("Location: index.php");
+            } else {
+                header("Location: index.php");
+            }
             return $id;
         }
     }
@@ -81,27 +83,30 @@ function checklogin($get = 'name', $redir = true)
     $csrf_token = false;
     if (isset($_COOKIE["pp_pgacc_login"]) && isset($_COOKIE["pp_pgacc_id"]) && preg_match('/^-?\d+$/', $_COOKIE["pp_pgacc_id"]) == 1) {
         $data = pg_query($dbconn, "SELECT * FROM users WHERE id = {$_COOKIE["pp_pgacc_id"]} AND login > now() - '24 hours'::interval");
-        if (!$data)
+        if (!$data) {
             return $get == 'id' ? 0 : '';
+        }
         $line = pg_fetch_array($data, null, PGSQL_ASSOC);
         do {
             // Compare once even without a row; the result is used by the same
             // guard. A missing row or cleared nonce can never authenticate.
             $token = $line ? login_session_token($line['id'], $line['cookie'], $line['login']) : login_session_token(0, 0, '');
             $tokenMatches = login_token_equals($token, $_COOKIE["pp_pgacc_login"]);
-            if (!$tokenMatches || !$line || strval($line['cookie']) === '')
+            if (!$tokenMatches || !$line || strval($line['cookie']) === '') {
                 continue;
+            }
             $user_id = $line['id'];
             $csrf_token = csrf_session_token($line['id'], $line['cookie'], $line['login']);
             $hide_cols = explode(",", $line['hide'] ?? '');
             foreach ($hide_cols as $col) {
-                if (intval($col) > 0)
+                if (intval($col) > 0) {
                     $user_prefs_hide[$col] = 1;
+                }
             }
             if ($get == 'name') {
                 pg_free_result($data);
                 return $line['name'];
-            } else if ($get == 'id') {
+            } elseif ($get == 'id') {
                 pg_free_result($data);
                 return $line['id'];
             } else {
@@ -111,15 +116,18 @@ function checklogin($get = 'name', $redir = true)
         } while ($line && ($line = pg_fetch_array($data, null, PGSQL_ASSOC)));
         pg_free_result($data);
     }
-    if ($redir)
+    if ($redir) {
         header("Location: index.php?action=login&target=" . ascii2hex($_SERVER["REQUEST_URI"]));
+    }
 }
 
 $page = "index";
 if (isset($_GET["action"])) {
-    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
+    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"])) {
         $page = $_GET["action"];
-    else $page = "report";
+    } else {
+        $page = "report";
+    }
 
 }
 
@@ -181,10 +189,11 @@ if (isset($_POST["hide"]) && !$csrf_exempt) {
     global $user_prefs_hide;
     $id = checklogin('id');
     $col = intval($_POST["hide"]);
-    if ($col > 0)
+    if ($col > 0) {
         $user_prefs_hide[$col] = 1;
-    elseif ($col < 0)
+    } elseif ($col < 0) {
         $user_prefs_hide[-$col] = 0;
+    }
     $cols_array = [];
     foreach ($user_prefs_hide as $hide_col => $state) {
         if (intval($hide_col) > 0 && $state == 1) {
@@ -198,8 +207,9 @@ if (isset($_POST["hide"]) && !$csrf_exempt) {
 
 // relocate() (edit.php) answers edit and merge requests with a redirect
 // instead of the page: buffer the page so that it can be discarded.
-if ($page == "edit" || $page == "merge")
+if ($page == "edit" || $page == "merge") {
     ob_start();
+}
 
 // Login and logout send cookies and redirects: answer them before
 // acc_header() starts the page.
@@ -207,8 +217,9 @@ if ($page == "logout" && request_is_post()) {
     // Ends the session on the server too: its cookies stop working even if
     // a copy was kept. Wrong or missing cookies end nothing.
     $logoutId = checklogin('id', false);
-    if ($logoutId > 0)
+    if ($logoutId > 0) {
         pg_query($dbconn, "UPDATE users SET cookie = NULL WHERE id = $logoutId");
+    }
     header(login_cookie_header("pp_pgacc_login", "deleted", 0), false);
     header(login_cookie_header("pp_pgacc_id", "deleted", 0), false);
     header("Location: index.php");
@@ -222,8 +233,9 @@ if ($page == "login" && login_redirect()) {
 
 $year = date('Y');
 
-if (!$make_csv)
+if (!$make_csv) {
     acc_header($dbconn, $page, $year);
+}
 
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
     $year = intval($_GET["year"]);
@@ -232,84 +244,93 @@ if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
 if ($page == "all") {
     $rights = checklogin('rights');
     page_all($rights);
-} else if ($page == "mb") {
+} elseif ($page == "mb") {
     $rights = checklogin('rights');
     page_mb($rights);
-} else if ($page == "open") {
+} elseif ($page == "open") {
     $rights = checklogin('rights');
     page_open($rights);
-} else if ($page == "merge") {
+} elseif ($page == "merge") {
     $rights = checklogin('rights');
     page_edit_merge($rights);
-} else if ($page == "edit") {
+} elseif ($page == "edit") {
     $rights = checklogin('rights');
-    if (isset($_POST["fileupload"]) && $_POST["fileupload"] == "PDF Hochladen (OHNE SPEICHERN)")
+    if (isset($_POST["fileupload"]) && $_POST["fileupload"] == "PDF Hochladen (OHNE SPEICHERN)") {
         page_new_file($rights);
-    else if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
+    } elseif (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern") {
         page_edit_save($rights);
-    else if (isset($_POST["ack"]))
+    } elseif (isset($_POST["ack"])) {
         page_edit_ack($rights);
-    else if (isset($_POST["belegfehler"]))
+    } elseif (isset($_POST["belegfehler"])) {
         page_edit_drop_acks($rights);
-    else page_edit($rights);
-} else if ($page == "new") {
+    } else {
+        page_edit($rights);
+    }
+} elseif ($page == "new") {
     $rights = checklogin('rights');
-    if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
+    if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern") {
         page_new_save($rights);
-    else page_new($rights);
-} else if ($page == "transactions") {
+    } else {
+        page_new($rights);
+    }
+} elseif ($page == "transactions") {
     page_transactions();
-} else if ($page == "closed") {
+} elseif ($page == "closed") {
     $rights = checklogin('rights');
     page_closed($rights);
-} else if ($page == "spendings") {
+} elseif ($page == "spendings") {
     page_spendings();
-} else if ($page == "kdonations") {
+} elseif ($page == "kdonations") {
     page_kdonations();
-} else if ($page == "donations") {
+} elseif ($page == "donations") {
     page_donations(intval($_GET["year"] ?? 0));
-} else if ($page == "deleted") {
+} elseif ($page == "deleted") {
     $rights = checklogin('rights');
     page_deleted($rights);
-} else if ($page == "impressum") {
+} elseif ($page == "impressum") {
     page_impressum();
-} else if ($page == "recover") {
+} elseif ($page == "recover") {
     $rights = checklogin('rights');
     page_recover($rights);
-} else if ($page == "accounts") {
+} elseif ($page == "accounts") {
     $rights = checklogin('rights');
     page_accounts($rights);
-} else if ($page == "login") {
+} elseif ($page == "login") {
     page_login();
-} else if ($page == "logout") {
+} elseif ($page == "logout") {
     // A GET request (old link or bookmark) ends no session.
     echo '<div class="slot_notice" id="slot_notice"><h1>Abmelden mit der Schaltfläche „Logout“.</h1></div>';
-} else if ($page == "import") {
+} elseif ($page == "import") {
     $rights = checklogin('rights');
-    if (write_rights($rights) === false)
+    if (write_rights($rights) === false) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
-    else page_import($rights);
-} else if ($page == "import2") {
+    } else {
+        page_import($rights);
+    }
+} elseif ($page == "import2") {
     $rights = checklogin('rights');
-    if (write_rights($rights) === false)
+    if (write_rights($rights) === false) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
-    else page_import2(write_rights($rights));
-} else if ($page == "statistics") {
+    } else {
+        page_import2(write_rights($rights));
+    }
+} elseif ($page == "statistics") {
     page_statistics();
-} else if ($page == "wk") {
+} elseif ($page == "wk") {
     page_wk();
-} else if ($page == "tinyreport") {
+} elseif ($page == "tinyreport") {
     $rights = checklogin('rights', false);
     page_tinyreport($rights);
-} else if ($page == "vreport") {
+} elseif ($page == "vreport") {
     $rights = checklogin('rights', false);
     page_vreport($rights);
 } else {
     page_report($year);
 }
 
-if (!$make_csv)
+if (!$make_csv) {
     acc_footer();
+}
 
 pg_close($dbconn);
 ?>

@@ -2,8 +2,9 @@
 
 function convif($do, $data)
 {
-    if (!$do)
+    if (!$do) {
         return $data;
+    }
     return iconv('ISO-8859-15', 'UTF-8', $data ?? '');
 }
 // Reports a line that cannot be imported; the import stops there.
@@ -21,8 +22,9 @@ function import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacs
 // through).
 function import_date_valid($date)
 {
-    if (!is_string($date) || preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/D', $date, $parts) != 1)
+    if (!is_string($date) || preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/D', $date, $parts) != 1) {
         return false;
+    }
     return checkdate(intval($parts[2]), intval($parts[3]), intval($parts[1]));
 }
 function page_import($rights)
@@ -42,7 +44,7 @@ function page_import($rights)
         'text/anytext',
         'application/octet-stream',
         'application/txt',
-        'application/x-csv'
+        'application/x-csv',
     ];
 
     for ($i = 0; isset($_FILES['uploadcsv']['name']) && $i < count($_FILES['uploadcsv']['name']); $i++) {
@@ -62,37 +64,43 @@ function page_import($rights)
             continue;
         }
         $csvformat = 'BAWAG';
-        if (($handle = fopen($_FILES['uploadcsv']['tmp_name'][$i], "r")) !== FALSE) {
+        if (($handle = fopen($_FILES['uploadcsv']['tmp_name'][$i], "r")) !== false) {
             echo "<h2>Importiere " . html_escape($_FILES['uploadcsv']['name'][$i]) . "</h2>\n";
             $voucher_number = 0;
             $lineno = 0;
             $skipped = [];
-            while (($data = fgetcsv($handle, 0, ";", '"', "\\")) !== FALSE) {
+            while (($data = fgetcsv($handle, 0, ";", '"', "\\")) !== false) {
                 $lineno++;
                 $voucher2 = [];
                 $dovoucher2 = false;
                 $csvline = implode(";", $data);
                 $convert = false;
-                if (mb_detect_encoding($csvline, 'UTF-8', true) === false)
+                if (mb_detect_encoding($csvline, 'UTF-8', true) === false) {
                     $convert = true;
+                }
                 $rawcsvline = $csvline;
                 $csvline = pg_escape_string($dbconn, str_replace(['|',' ',"\n","\t","\r"], ['','','','',''], convif($convert, $csvline)));
                 $sparkassecsvline = 'Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile2;Ersterfassungsreferenz;AuftraggeberKontonr./IBAN;AuftraggeberBLZ/BIC;Partnername;PartnerKontonr./IBAN;PartnerBLZ/BIC';
-                if ($csvline == $sparkassecsvline)
+                if ($csvline == $sparkassecsvline) {
                     $csvformat = 'Sparkasse';
+                }
                 $paypalcsvline = 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,';
-                if ($csvline == $paypalcsvline)
+                if ($csvline == $paypalcsvline) {
                     $csvformat = 'Paypal';
+                }
                 $handkassacsvline = 'Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt';
-                if ($csvline == $handkassacsvline)
+                if ($csvline == $handkassacsvline) {
                     $csvformat = 'Handkassa';
+                }
                 // Header lines and blank lines (empty fields only) are not
                 // imported (before, their amount counted as 0, and in BAWAG
                 // files a blank line stopped the import as an invalid line).
-                if (in_array($csvline, [$sparkassecsvline, $paypalcsvline, $handkassacsvline], true))
+                if (in_array($csvline, [$sparkassecsvline, $paypalcsvline, $handkassacsvline], true)) {
                     continue;
-                if (trim($csvline, ';,') === '')
+                }
+                if (trim($csvline, ';,') === '') {
                     continue;
+                }
                 $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
                 $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
                 if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -143,13 +151,15 @@ function page_import($rights)
                     // decimals, the other one grouping thousands ("7", "-3.5",
                     // "12,50", "1.234,56", "1,234.56"; not "1.234").
                     $amount = trim($data[1] ?? '', " \t\r\n");
-                    if (preg_match('/^[+-]?\d+$/D', $amount) == 1)
+                    if (preg_match('/^[+-]?\d+$/D', $amount) == 1) {
                         $amount .= ',00';
-                    elseif (preg_match('/[.,]\d$/D', $amount) == 1)
+                    } elseif (preg_match('/[.,]\d$/D', $amount) == 1) {
                         $amount .= '0';
+                    }
                     $voucher['amount'] = amount_cents($amount, ',.', ',.', true);
-                    if ($voucher['amount'] === 0)
+                    if ($voucher['amount'] === 0) {
                         continue;
+                    }
                     $voucher['date'] = format_date($data[0]);
                     $voucher['konto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[2])));
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[3])));
@@ -169,8 +179,9 @@ function page_import($rights)
                     $voucher['plz'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[12])));
                 } elseif ($csvformat == 'Sparkasse') {
                     $voucher['amount'] = amount_cents($data[2], ',.', ',.', true);
-                    if ($voucher['amount'] === 0)
+                    if ($voucher['amount'] === 0) {
                         continue;
+                    }
                     $voucher['lo'] = 6;
                     $voucher['konto'] = '20815 6659403';
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[5] . "; " . $data[6] . "; " . $data[7])));
@@ -180,13 +191,15 @@ function page_import($rights)
                 } elseif ($csvformat == 'Paypal') {
                     $data = str_getcsv($data[0], ",", '"', "\\");
                     $voucher['amount'] = amount_cents($data[7], ',.', ',.', true);
-                    if ($voucher['amount'] === 0)
+                    if ($voucher['amount'] === 0) {
                         continue;
+                    }
                     $voucher['lo'] = 10;
                     $voucher['konto'] = 'spende@piratenpartei.at';
                     $cmt = "";
-                    if ($data[15] != '')
+                    if ($data[15] != '') {
                         $cmt .= convif($convert, $data[15]) . "; ";
+                    }
                     $cmt .= "Transaktion: " . convif($convert, $data[12]) . "; ";
                     $cmt .= "Brutto: " . convif($convert, $data[7]) . "€; ";
                     $cmt .= "Gebühr: " . convif($convert, $data[8]) . "€; ";
@@ -267,8 +280,8 @@ function page_import($rights)
                         }
                     }
                 }
-                if (str_contains($voucher['comment'], 'MB') ||
-                    str_contains($voucher['comment'], 'Mitgliedsbeitrag')) {
+                if (str_contains($voucher['comment'], 'MB')
+                    || str_contains($voucher['comment'], 'Mitgliedsbeitrag')) {
                     $voucher['type'] = 1;
                     $voucher['member'] = 'true';
                     $voucher['person_type'] = 2;
@@ -280,12 +293,14 @@ function page_import($rights)
                     $nt2 = explode(" ", $n2, 2);
                     $queries = [];
                     $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n');";
-                    if (count($nt) == 2)
+                    if (count($nt) == 2) {
                         $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt[1]} {$nt[0]}');";
+                    }
                     if ($n != $n2) {
                         $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n2');";
-                        if (count($nt2) == 2)
+                        if (count($nt2) == 2) {
                             $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt2[1]} {$nt2[0]}');";
+                        }
                     }
                     $found = false;
                     foreach ($queries as $query) {
@@ -334,8 +349,9 @@ function page_import($rights)
                 pg_free_result($result);
             }
             fclose($handle);
-            if (count($skipped) > 0)
+            if (count($skipped) > 0) {
                 echo "Datei " . ($i + 1) . " (" . html_escape($_FILES['uploadcsv']['name'][$i]) . "): " . count($skipped) . " Buchungszeilen übersprungen (Zeilen " . implode(", ", $skipped) . ")<br />\n";
+            }
             echo "Datei " . ($i + 1) . " (" . html_escape($_FILES['uploadcsv']['name'][$i]) . ") wurde erfolgreich importiert<br />\n";
         }
     }
@@ -354,4 +370,3 @@ function page_import($rights)
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     pg_free_result($result);
 }
-?>

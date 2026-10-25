@@ -5,11 +5,14 @@
 // matches nothing instead of building invalid SQL.
 function date_condition($year, $begin = 1)
 {
-    if (!(is_int($year) || is_string($year) && preg_match('/^\d+$/D', $year) == 1) || intval($year) < 1 || intval($year) > 9999)
+    if (!(is_int($year) || is_string($year) && preg_match('/^\d+$/D', $year) == 1) || intval($year) < 1 || intval($year) > 9999) {
         return ' AND false';
-    if ($begin == 0)
+    }
+    if ($begin == 0) {
         return sprintf("AND date < '%04d-01-01'", intval($year) + 1);
-    else return sprintf(" AND date >= '%04d-01-01' AND date < '%04d-01-01'", intval($year), intval($year) + 1);
+    } else {
+        return sprintf(" AND date >= '%04d-01-01' AND date < '%04d-01-01'", intval($year), intval($year) + 1);
+    }
 }
 // from http://www.php.net/manual/de/function.htmlspecialchars.php
 function umlaute($text)
@@ -108,7 +111,7 @@ function base64_decode (data) {
         pg_free_result($result);
         echo '</table>';
         block_end();
-    } else if ($captcha_check) {
+    } elseif ($captcha_check) {
         block_start();
         $a = rand(1, 50);
         $b = rand(1, 50);
@@ -121,4 +124,3 @@ END;
     }
     echo "<br /><br /><br />";
 }
-?>

@@ -4,23 +4,25 @@ function transactions_page_listing_header($action)
 {
     global $make_csv;
     block_start();
-    if (!$make_csv)
+    if (!$make_csv) {
         echo '<table>';
+    }
     echo tag(
         "tr",
-        tag("td", tag("b", sortlink($action, 'datea', 'Datum'))) .
-tag("td", tag("b", sortlink($action, 'typea', 'Art'))) .
-tag("td", tag("b", sortlink($action, 'loa', 'LO'))) .
-tag("td", tag("b", sortlink($action, 'ka', 'Konto'))) .
-tag("td", tag("b", sortlink($action, 'ama', 'Betrag')))
+        tag("td", tag("b", sortlink($action, 'datea', 'Datum')))
+. tag("td", tag("b", sortlink($action, 'typea', 'Art')))
+. tag("td", tag("b", sortlink($action, 'loa', 'LO')))
+. tag("td", tag("b", sortlink($action, 'ka', 'Konto')))
+. tag("td", tag("b", sortlink($action, 'ama', 'Betrag'))),
     );
 }
 
 function transactions_page_listing_line($line, $action = "edit")
 {
     global $make_csv,$dbconn;
-    if (!$make_csv)
+    if (!$make_csv) {
         echo "<tr>";
+    }
     echo tag("td", format_date($line["date"]));
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
@@ -49,7 +51,7 @@ function transactions_page_listing_line($line, $action = "edit")
         '20815 6659403',
         '58990',
         'AT87 1200 0100 0072 2081',
-        '50110117385'
+        '50110117385',
     ], [
         'Piratenpartei Steiermark',
         'Piratenpartei Wien',
@@ -65,12 +67,14 @@ function transactions_page_listing_line($line, $action = "edit")
         'Piratenpartei Graz',
         'Sachspenden Kärnten',
         'Piratenpartei Österreichs (Bank Austria)',
-        'Piratenpartei Österreichs (Altes BAWAG Konto)'
+        'Piratenpartei Österreichs (Altes BAWAG Konto)',
     ], $line["account"] ?? '')));
     echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
-    if ($make_csv)
+    if ($make_csv) {
         echo "\n";
-    else echo "</tr>";
+    } else {
+        echo "</tr>";
+    }
 }
 
 function page_transactions()
@@ -85,9 +89,9 @@ function page_transactions()
         transactions_page_listing_line($line);
     }
     pg_free_result($result);
-    if (!$make_csv)
+    if (!$make_csv) {
         echo '</table>';
+    }
     block_end();
     csv_download_link();
 }
-?>

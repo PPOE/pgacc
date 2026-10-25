@@ -26,4 +26,3 @@ $encrypted = base64_encode(membership_encrypt($datakey, $text));
 echo $encrypted;
 pg_free_result($result);
 pg_close($dbconn);
-?>

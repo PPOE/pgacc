@@ -3,15 +3,17 @@
 function get_param($part, $name, $default, $regex)
 {
     $value = $default;
-    if (is_string($_POST[$name . $part] ?? null) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+    if (is_string($_POST[$name . $part] ?? null) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1)) {
         $value = $_POST[$name . $part];
+    }
     return $value;
 }
 function get_param_bool($part, $name, $default, $regex, $default_if_true)
 {
     $value = $default;
-    if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1))
+    if (isset($_POST[$name . $part]) && (!$regex || preg_match($regex, $_POST[$name . $part]) == 1)) {
         $value = $default_if_true;
+    }
     return $value;
 }
 // The organization of a voucher part that posts none: the user's single
@@ -30,8 +32,9 @@ function default_organization($rights)
 function voucher_text($value, $escape)
 {
     global $dbconn;
-    if ($escape)
+    if ($escape) {
         return pg_escape_string($dbconn, $value);
+    }
     return $value;
 }
 function get_voucher($part, $rights, $escape = true)
@@ -42,16 +45,17 @@ function get_voucher($part, $rights, $escape = true)
     $voucher['in_type'] = get_param($part, 'in_type', 0, '/^\d+$/');
     $voucher['out_type'] = get_param($part, 'out_type', 0, '/^\d+$/');
     $voucher['wk_type'] = get_param($part, 'wk_type', 0, '/^\d+$/');
-    if ($voucher['dir'] == 'wk')
+    if ($voucher['dir'] == 'wk') {
         $voucher['type'] = $voucher['wk_type'];
-    else if ($voucher['dir'] == 'out')
+    } elseif ($voucher['dir'] == 'out') {
         $voucher['type'] = $voucher['out_type'];
-    else if ($voucher['dir'] == 'in')
+    } elseif ($voucher['dir'] == 'in') {
         $voucher['type'] = $voucher['in_type'];
-    else if ($voucher['dir'] == 'bel') {
+    } elseif ($voucher['dir'] == 'bel') {
         $voucher['type'] = 45;
-        if ($part > 0)
+        if ($part > 0) {
             $part = $part - 1;
+        }
     }
 
     $voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
@@ -63,8 +67,9 @@ function get_voucher($part, $rights, $escape = true)
     // the save). A Beleg part always has 0.00.
     $voucher['amount_input'] = get_param($part, 'amount', null, null);
     $voucher['amount'] = amount_cents($voucher['amount_input'], ',.', '', false);
-    if ($voucher['type'] == 45)
+    if ($voucher['type'] == 45) {
         $voucher['amount'] = "0.00";
+    }
     $voucher['gegenkonto'] = voucher_text(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'), $escape);
     $voucher['konto'] = voucher_text(get_param($part, 'konto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
     $voucher['vkonto'] = voucher_text(get_param($part, 'vkonto', '', '/^( |\d|@|\.|[A-Z]|[ÄÖÜäöü])+$/i'), $escape);
@@ -88,8 +93,9 @@ function posted_organizations_allowed($parts, $rights)
 {
     for ($part = 0; $part < $parts; $part++) {
         $lo = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
-        if (!organization_allowed($lo, $rights))
+        if (!organization_allowed($lo, $rights)) {
             return false;
+        }
     }
     return true;
 }
@@ -98,8 +104,9 @@ function posted_organizations_allowed($parts, $rights)
 function posted_amounts_valid($parts, $rights)
 {
     for ($part = 0; $part < $parts; $part++) {
-        if (get_voucher($part, $rights, false)['amount'] === null)
+        if (get_voucher($part, $rights, false)['amount'] === null) {
             return false;
+        }
     }
     return true;
 }
@@ -145,12 +152,14 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
                 $nt = explode(" ", $n, 2);
                 $nt2 = explode(" ", $n2, 2);
                 $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n');";
-                if (count($nt) == 2)
+                if (count($nt) == 2) {
                     $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt[1]} {$nt[0]}');";
+                }
                 if ($n != $n2) {
                     $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('$n2');";
-                    if (count($nt2) == 2)
+                    if (count($nt2) == 2) {
                         $queries[] = "SELECT * FROM ppmembers WHERE lower(name) = lower('{$nt2[1]} {$nt2[0]}');";
+                    }
                 }
             }
             $found = false;
@@ -182,8 +191,9 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
         $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         pg_free_result($result);
     }
-    if ($voucher['file'] == -1)
+    if ($voucher['file'] == -1) {
         $voucher['file'] = 0;
+    }
     $query = "
 INSERT INTO vouchers
 (voucher_id, date, type, person_type, orga, member,
@@ -191,17 +201,17 @@ member_id, contra_account, name, street, plz, city,
 amount, account, vaccount, comment, commentgf,
 committed, file, refund, ack1_old, ack2_old)
 VALUES
-($voucher_number, '{$voucher['date']}', " .
-      ($voucher['dir'] == "in" ? $voucher['in_type'] : ($voucher['dir'] == "out" ? $voucher['out_type'] : ($voucher['dir'] == "wk" ? $voucher['wk_type'] : $voucher['type']))) .
-      ",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},
+($voucher_number, '{$voucher['date']}', "
+      . ($voucher['dir'] == "in" ? $voucher['in_type'] : ($voucher['dir'] == "out" ? $voucher['out_type'] : ($voucher['dir'] == "wk" ? $voucher['wk_type'] : $voucher['type'])))
+      . ",{$voucher['person_type']},{$voucher['lo']},{$voucher['member']},
   {$voucher['mitgliedsnummer']},'{$voucher['gegenkonto']}',
   '{$voucher['name']}','{$voucher['street']}','{$voucher['plz']}',
   '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
   '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
-  {$voucher['purpose']},{$voucher['file']},{$voucher['refund']}," .
-      ($ack1_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack1_old) . "'") . "," .
-      ($ack2_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack2_old) . "'") .
-      ");";
+  {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},"
+      . ($ack1_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack1_old) . "'") . ","
+      . ($ack2_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack2_old) . "'")
+      . ");";
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     }
@@ -218,8 +228,9 @@ function page_new_save($rights)
         return;
     }
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
+    }
 
     if (!posted_organizations_allowed($parts, $rights)) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -252,8 +263,9 @@ function page_new_file($rights)
         return;
     }
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = intval($_POST["parts"]);
+    }
 
     $bid = -1;
     $file = -1;
@@ -339,16 +351,19 @@ function page_edit_form($part, $voucher, $rights)
 {
     global $dbconn;
     block_start();
-    if (intval($voucher['bid']) == 0)
+    if (intval($voucher['bid']) == 0) {
         echo '<h3>Neue Buchungszeile</h3>';
-    else echo '<h3>Buchungszeile ' . $voucher['bid'] . '</h3>';
+    } else {
+        echo '<h3>Buchungszeile ' . $voucher['bid'] . '</h3>';
+    }
     // An invalid entered amount is shown again as entered, with the error; a
     // missing one (a new form, a NULL amount in the database) as 0.00.
     $amount_invalid = $voucher['amount'] === null && isset($voucher['amount_input']);
     $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : sprintf("%1.2f", ($voucher['amount'] ?? 0) / 100.0);
     $amount_error = $amount_invalid ? ' <span class="slot_error">FEHLER: Ungültiger Betrag</span>' : '';
-    if ($voucher['dir'] == 'bel' && $part == 0)
+    if ($voucher['dir'] == 'bel' && $part == 0) {
         $voucher['dir'] = 'in';
+    }
     echo '
 <input type="hidden" name="bid' . $part . '" value="' . $voucher['bid'] . '" />
 <div id="date_block' . $part . '">
@@ -433,9 +448,10 @@ function page_edit_form($part, $voucher, $rights)
         $query = "SELECT id,name FROM lo ORDER BY id ASC";
         $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-            if (organization_allowed($line['id'], $rights))
+            if (organization_allowed($line['id'], $rights)) {
                 echo '<option value="' . ($line['id'] == $voucher['lo'] ? $line['id'] . '" selected="selected"' : $line['id'] . '"') . '>' . html_escape($line['name']) . '</option>
 ';
+            }
         }
         pg_free_result($result);
     }
@@ -491,7 +507,7 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="file' . $part . '">Beleg</label>';
     if (intval($voucher['file']) > 0) {
         echo '<a href="?action=file&id=' . $voucher['bid'] . '" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file' . $part . '" value="' . $voucher['file'] . '" />';
-    } else if (intval($voucher['file']) == 0) {
+    } elseif (intval($voucher['file']) == 0) {
         echo '
 <input type="hidden" name="MAX_FILE_SIZE" value="100000000" />
 <input name="file' . $part . '" type="file"  onchange="clicked();" accept="application/pdf"/><br />
@@ -516,11 +532,13 @@ function page_edit_form($part, $voucher, $rights)
 
 function page_new_buchung($part, $part_to_remove, $rights, $add)
 {
-    if ($part_to_remove != -1 && $part >= $part_to_remove)
+    if ($part_to_remove != -1 && $part >= $part_to_remove) {
         $voucher = get_voucher($part + 1, $rights, false);
-    else if ($add)
+    } elseif ($add) {
         $voucher = get_voucher($part - 1, $rights, false);
-    else $voucher = get_voucher($part, $rights, false);
+    } else {
+        $voucher = get_voucher($part, $rights, false);
+    }
 
     if ($add == 2) {
         $voucher['amount'] = 0;
@@ -650,10 +668,12 @@ function clicked(init)
 function page_new($rights)
 {
     $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1)
+    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
         $parts = $_POST["parts"];
-    if (isset($_POST["add"]) || isset($_POST["addB"]))
+    }
+    if (isset($_POST["add"]) || isset($_POST["addB"])) {
         $parts++;
+    }
     $part_to_remove = -1;
     if (isset($_POST["remove"]) && intval($_POST["remove"]) >= 0 && intval($_POST["remove"]) < $parts) {
         $parts--;
@@ -667,10 +687,11 @@ function page_new($rights)
 
     $add = 0;
     for ($i = 0; $i < $parts; $i++) {
-        if (isset($_POST["add"]) && $i == $parts - 1)
+        if (isset($_POST["add"]) && $i == $parts - 1) {
             $add = 1;
-        else if (isset($_POST["addB"]) && $i == $parts - 1)
+        } elseif (isset($_POST["addB"]) && $i == $parts - 1) {
             $add = 2;
+        }
         page_new_buchung($i, $part_to_remove, $rights, $add);
     }
 
@@ -700,8 +721,9 @@ Wurde die Buchung fehlerhaft durchgeführt und muss korrigiert werden?
                 block_start();
                 echo '<input name="speichern" id="speichern" value="Speichern" type="submit" />';
                 //if (strpos($rights,'bgf') !== false && $ack)
-                if ($ack)
+                if ($ack) {
                     echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/>';
+                }
                 echo '<input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/>';
                 echo '<input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>';
 
@@ -715,5 +737,3 @@ Wurde die Buchung fehlerhaft durchgeführt und muss korrigiert werden?
     echo "</form>";
     echo '<script type="text/javascript">clicked(true);</script>';
 }
-
-?>
