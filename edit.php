@@ -260,11 +260,16 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
 
+$voucher_warnings = array();
 for ($i = 0; $i < $parts; $i++)
 {
-        page_save_buchung($id, $rights, $i, $ack1, $ack2);
+        page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings);
 }
-relocate("index.php?action=edit&id=$id&hint=5");
+// Corrected values are named in the redirect (warn=) for the edit page.
+$warn = '';
+if (count($voucher_warnings) > 0)
+  $warn = '&warn=' . implode(',', array_unique($voucher_warnings));
+relocate("index.php?action=edit&id=$id&hint=5$warn");
 }
 function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = 0)
 {
@@ -374,6 +379,21 @@ switch ($hint)
   case 6:
     echo '<div class="slot_notice" id="slot_notice"><h1>Buchungen zusammengeführt - Buchung Nr. '.$id.'</h1></div>';
     break;
+}
+// Values that the revision corrected (warn= of its redirect): fixed notes,
+// only for the known codes.
+$warn_notes = array(
+  'date' => 'Gespeichert, aber: kein Datum angegeben – das Datum wurde auf 1800-01-01 gesetzt.',
+  'refund' => 'Gespeichert, aber: eine Kostenrückerstattung ist nur bei einer Ausgabe möglich – die Kostenrückerstattung wurde entfernt.',
+  'purpose' => 'Gespeichert, aber: eine Zweckwidmung ist nur bei einer Spende möglich – die Zweckwidmung wurde entfernt.',
+);
+$warn_codes = array();
+if (isset($_GET["warn"]) && is_string($_GET["warn"]))
+  $warn_codes = explode(',', $_GET["warn"]);
+foreach ($warn_notes as $code => $note)
+{
+  if (in_array($code, $warn_codes, true))
+    echo '<div class="slot_error" id="slot_error">' . $note . '</div><br />';
 }
 $rightssql = rights2orgasql($rights);
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = " . intval($id) . " $rightssql ORDER BY id ASC;";
