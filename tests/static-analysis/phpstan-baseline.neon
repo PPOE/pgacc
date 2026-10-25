@@ -13,12 +13,6 @@ parameters:
 			path: ../../check.php
 
 		-
-			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: ../../functions.php
-
-		-
 			message: '#^Regex pattern is invalid\: Compilation failed\: quantifier does not follow a repeatable item at offset 1 in pattern\: /\^\*\-\?\\d\+\(\(\\\.\|,\)\(\\d\\d\)\?\)\?\$/$#'
 			identifier: regexp.pattern
 			count: 1
@@ -33,12 +27,6 @@ parameters:
 		-
 			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
 			identifier: whitespace.fileEnd
-			count: 1
-			path: ../../index.php
-
-		-
-			message: '#^Function page_kdonations invoked with 1 parameter, 0 required\.$#'
-			identifier: arguments.count
 			count: 1
 			path: ../../index.php
 
