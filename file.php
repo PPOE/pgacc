@@ -25,11 +25,12 @@ function download_file($rights)
         // <n>.v2.aes: keyed on the file number and the configured key; checked
         // and sent in chunks (receipt_v2_open()/receipt_v2_send()).
         $receipt = receipt_v2_open($path, $file);
-        if ($receipt === false && !file_exists(receipt_legacy_path($directory, $file))) {
-            header('Content-Type: text/plain; charset=UTF-8', true, 500);
-            echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
-            return true;
-        }
+    }
+    // No usable <n>.v2.aes and no readable <n>.aes (also neither file at all).
+    if ($receipt === false && !is_readable(receipt_legacy_path($directory, $file))) {
+        header('Content-Type: text/plain; charset=UTF-8', true, 500);
+        echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
+        return true;
     }
     $v2 = $receipt !== false;
     if ($v2) {
