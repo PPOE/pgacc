@@ -6,20 +6,6 @@ function date_condition($year, $begin = 1)
         return "AND date < '" . (intval($year) + 1) . "-01-01'";
     else return " AND date >= '" . $year . "-01-01' AND date < '" . (intval($year) + 1) . "-01-01'";
 }
-// from http://www.php.net/manual/de/function.htmlspecialchars.php
-function umlaute($text)
-{
-    $returnvalue = "";
-    for ($i = 0;$i < strlen($text);$i++) {
-        $teil = hexdec(rawurlencode(substr($text, $i, 1)));
-        if ($teil < 32 || $teil > 1114111) {
-            $returnvalue .= substr($text, $i, 1);
-        } else {
-            $returnvalue .= "&#" . $teil . ";";
-        }
-    }
-    return $returnvalue;
-}
 function page_donations($year)
 {
     global $dbconn;
@@ -99,39 +85,8 @@ function base64_decode (data) {
         $donation_condition = "AND type = 8";
         $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE " . eyes() . " $donation_condition " . date_condition($year) . " GROUP BY name;";
         $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
-        $count = 0;
-        $donations = [];
-        while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-            if ($line['sum'] <= 10000) {
-                continue;
-            }
-            //if ($year == 2012 && $line['sum'] <= 0) { continue; }
-
-            // disabled for legal reasons.
-            //$donations[] = $line;
-            $count++;
-        }
+        // The donor list is not published for legal reasons; no row is shown.
         pg_free_result($result);
-
-        if ($count > 0) {
-            $sort_sum = [];
-            $sort_name = [];
-            foreach ($donations as $d) {
-                $sort_sum[] = $d['sum'];
-                $sort_name[] = $d['name'];
-            }
-
-            array_multisort($sort_sum, SORT_DESC, $sort_name, SORT_ASC, $donations);
-            $i = 0;
-            foreach ($donations as $line) {
-                echo "<tr>";
-                echo '<td id="s' . $i . '"></td>';
-                echo '<script type="text/javascript">document.getElementById("s' . $i . '").innerHTML = base64_decode("' . base64_encode(htmlentities($line["name"], ENT_COMPAT, 'UTF-8')) . '");</script>';
-                echo tag("td", sprintf("%1.2f", $line["sum"] / 100.0) . '€');
-                echo "</tr>";
-                $i++;
-            }
-        }
         echo '</table>';
         block_end();
     } else if ($captcha_check) {

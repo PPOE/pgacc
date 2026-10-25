@@ -13,12 +13,6 @@ parameters:
 			path: ../../check.php
 
 		-
-			message: '#^Empty array passed to foreach\.$#'
-			identifier: foreach.emptyArray
-			count: 2
-			path: ../../donations.php
-
-		-
 			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
