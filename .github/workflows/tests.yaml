@@ -99,6 +99,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Run static analysis against the reviewed baselines
         run: sh tests/static-analysis.sh
+      - name: Self-test of the token-equivalence check (changed-line gates)
+        run: sh tests/coverage/token-equivalence.sh --self-test
 
   docker-harness:
     name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }} characterization harness

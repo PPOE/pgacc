@@ -4,11 +4,16 @@
 #
 # Usage: sh tests/coverage/changed-lines.sh <base> [<pathspec>...]
 #   <base>      commit to compare against (merge base is used), e.g. origin/main
-#   <pathspec>  defaults to '*.php'
+#   <pathspec>  relative to the repository root; defaults to '*.php'
 #
 # Compares the merge base with the working tree, so uncommitted changes count.
 # Untracked files matching the pathspec count as entirely new. Pure deletions
 # add no range.
+#
+# A modified or renamed PHP file whose token stream is unchanged
+# (tests/coverage/token-equivalence.php: a whitespace-only change) adds no
+# range either; every other change is listed in full. If that check cannot
+# run (no PHP 8.5 runtime), every changed file is listed, with a warning.
 set -eu
 
 if [ $# -lt 1 ]; then
@@ -22,9 +27,24 @@ if [ $# -eq 0 ]; then
   set -- '*.php'
 fi
 
+script_dir=$(cd "$(dirname "$0")" && pwd -P)
+# Paths and pathspecs are relative to the repository root, from any directory.
+cd "$(git rev-parse --show-toplevel)"
 merge_base=$(git merge-base "$base" HEAD)
 
-git diff --no-color --no-ext-diff --unified=0 --diff-filter=AMR "$merge_base" -- "$@" |
+# Token-equivalent files become ":(top,exclude,literal)<path>" pathspecs. If
+# the check cannot run (exit 2), nothing is excluded.
+if excludes=$(sh "$script_dir/token-equivalence.sh" --exclude-pathspecs "$merge_base"); then
+  for path in $excludes; do
+    echo "token-equivalent, not gated: ${path#:(top,exclude,literal)}" >&2
+  done
+else
+  echo "warning: token-equivalence check unavailable: every changed file is gated" >&2
+  excludes=
+fi
+
+# shellcheck disable=SC2086 # $excludes: one plain pathspec per line
+git diff --no-color --no-ext-diff --unified=0 --diff-filter=AMR "$merge_base" -- "$@" $excludes |
   awk '
     /^\+\+\+ / {
       file = substr($0, 5)
