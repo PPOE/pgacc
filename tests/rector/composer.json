@@ -1,0 +1,16 @@
+{
+  "name": "ppoe/pgacc-rector-tools",
+  "description": "Pinned Rector for mechanical syntax modernization (tests/rector/run.sh); not an application dependency.",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.5",
+    "rector/rector": "2.7.0"
+  },
+  "config": {
+    "platform": {
+      "php": "8.5.0"
+    },
+    "sort-packages": true
+  }
+}
