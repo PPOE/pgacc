@@ -57,12 +57,12 @@ function get_voucher($part, $rights, $escape = true)
     $voucher['date'] = format_date(get_param($part, 'date', null, '/^(((\d|(0|1|2)\d|3(0|1))\.(\d|0\d|1(0|1|2))\.20\d\d)|(20\d\d-(\d|0\d|1(0|1|2))-(\d|(0|1|2)\d|3(0|1))))$/'));
     $voucher['person_type'] = get_param($part, 'person_type', 2, '/^\d+$/');
     $voucher['lo'] = get_param($part, 'lo', default_organization($rights), '/^\d+$/');
-    // The amount as posted (shown again when it is invalid) and in cents
-    // (amount_cents(): euros with at most two decimals after "," or "."; null
-    // when invalid).
-    $amount = get_param($part, 'amount', '0.00', null);
-    $voucher['amount_input'] = is_string($amount) ? $amount : '';
-    $voucher['amount'] = amount_cents($amount, ',.', '', false);
+    // The amount as posted (null if missing or not a string; shown again
+    // when it is invalid) and in cents (amount_cents(): euros with at most two
+    // decimals after "," or "."; null when invalid or missing, which refuses
+    // the save). A Beleg part always has 0.00.
+    $voucher['amount_input'] = get_param($part, 'amount', null, null);
+    $voucher['amount'] = amount_cents($voucher['amount_input'], ',.', '', false);
     if ($voucher['type'] == 45)
         $voucher['amount'] = "0.00";
     $voucher['gegenkonto'] = voucher_text(get_param($part, 'gegenkonto', '', '/^( |\d|@|\.|[A-Z]|[@ÄÖÜäöü])+$/i'), $escape);
@@ -342,6 +342,11 @@ function page_edit_form($part, $voucher, $rights)
     if (intval($voucher['bid']) == 0)
         echo '<h3>Neue Buchungszeile</h3>';
     else echo '<h3>Buchungszeile ' . $voucher['bid'] . '</h3>';
+    // An invalid entered amount is shown again as entered, with the error; a
+    // missing one (a new form, a NULL amount in the database) as 0.00.
+    $amount_invalid = $voucher['amount'] === null && isset($voucher['amount_input']);
+    $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : sprintf("%1.2f", ($voucher['amount'] ?? 0) / 100.0);
+    $amount_error = $amount_invalid ? ' <span class="slot_error">FEHLER: Ungültiger Betrag</span>' : '';
     if ($voucher['dir'] == 'bel' && $part == 0)
         $voucher['dir'] = 'in';
     echo '
@@ -447,7 +452,7 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="gegenkonto' . $part . '">Fremdkonto</label><input type="text" name="gegenkonto' . $part . '" value="' . html_escape($voucher['gegenkonto']) . '" onchange="clicked();" />
 </div>
 <div>
-<label class="ui_field_label" for="amount' . $part . '">Betrag (in €)</label><input type="text" id="amount' . $part . '" name="amount' . $part . '" value="' . ($voucher['amount'] === null ? html_escape($voucher['amount_input']) . '" onchange="clicked();" /> <span class="slot_error">FEHLER: Ungültiger Betrag</span>' : sprintf("%1.2f", $voucher['amount'] / 100.0) . '" onchange="clicked();" />') . '
+<label class="ui_field_label" for="amount' . $part . '">Betrag (in €)</label><input type="text" id="amount' . $part . '" name="amount' . $part . '" value="' . $amount_value . '" onchange="clicked();" />' . $amount_error . '
 </div>
 <div>
 <label class="ui_field_label" for="konto' . $part . '">Konto</label><input type="text" id="konto' . $part . '" name="konto' . $part . '" value="' . html_escape($voucher['konto']) . '" onchange="clicked();" />

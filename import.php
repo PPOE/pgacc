@@ -86,9 +86,11 @@ function page_import($rights)
                 $handkassacsvline = 'Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt';
                 if ($csvline == $handkassacsvline)
                     $csvformat = 'Handkassa';
-                // Header lines are not imported (before, their amount column
-                // name counted as an amount of 0).
+                // Header lines and, after a header, blank lines (empty fields
+                // only) are not imported (before, their amount counted as 0).
                 if (in_array($csvline, [$sparkassecsvline, $paypalcsvline, $handkassacsvline], true))
+                    continue;
+                if ($csvformat != 'BAWAG' && trim($csvline, ';,') === '')
                     continue;
                 $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
                 $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
@@ -136,8 +138,15 @@ function page_import($rights)
                     $voucher['gegenkonto'] = '';
                     $voucher['name'] = '';
                 } elseif ($csvformat == 'Handkassa') {
-                    // Whole euros or up to two decimals after "," or ".".
-                    $voucher['amount'] = amount_cents($data[1], ',.', '', false);
+                    // Whole euros, or the last "," or "." before one or two
+                    // decimals, the other one grouping thousands ("7", "-3.5",
+                    // "12,50", "1.234,56", "1,234.56"; not "1.234").
+                    $amount = trim($data[1] ?? '', " \t\r\n");
+                    if (preg_match('/^[+-]?\d+$/D', $amount) == 1)
+                        $amount .= ',00';
+                    elseif (preg_match('/[.,]\d$/D', $amount) == 1)
+                        $amount .= '0';
+                    $voucher['amount'] = amount_cents($amount, ',.', ',.', true);
                     if ($voucher['amount'] === 0)
                         continue;
                     $voucher['date'] = format_date($data[0]);

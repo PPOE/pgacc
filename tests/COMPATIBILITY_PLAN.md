@@ -1028,14 +1028,17 @@ integer size. Any other value is null.
   convention, `1.234,56` or `1,234.56`, the last separator being the decimal
   one (the old code accepted both, and German Paypal exports use a decimal
   comma while the fixture uses a point); all three with exactly two decimals;
-  Handkassa whole euros or up to two decimals after `,` or `.`, without
-  thousands separators (`1.234` would be ambiguous; such lines are reported,
-  not skipped silently). Before, the Handkassa
+  Handkassa whole euros or the same rule as Sparkasse with one or two
+  decimals (`1.234,56` imports as before; `12,5` and the fixture's `-3.5`,
+  read as 125 and -35 cents before, are now 1250 and -350; `1.234`, read as
+  1234 cents before, is ambiguous and reported). Before, the Handkassa
   format read `12,5` as 125 cents. An invalid amount (including a Paypal
   fee) makes the line invalid: it is reported ("Ungültige Buchungszeile …,
   Zeile N") and skipped. A zero amount still skips a Handkassa, Sparkasse
-  or Paypal line silently. Header lines are skipped explicitly (before,
-  their column name counted as zero).
+  or Paypal line silently. Header lines and, in those formats, blank lines
+  (empty fields only, Excel's trailing `;;;;`) are skipped explicitly
+  (before, their amount counted as zero); a line with other fields and an
+  empty amount is reported.
 - [x] Validate the import amount range: `"9223372036854775808"` saturates to
   `PHP_INT_MAX` cents (`import.php:118`); out-of-range years make
   `date_condition(PHP_INT_MAX)` build invalid SQL (`'9.2233720368548E+18-01-01'`)
@@ -1055,8 +1058,11 @@ integer size. Any other value is null.
   and a revision, any invalid part refuses the whole voucher (multi-part
   too). Nothing is written: no voucher number, no revision, no approval
   reset. The form is shown again with the entered text and "FEHLER:
-  Ungültiger Betrag" next to the field. The redirect and the warn codes stay
-  for a successful save. A form shown again without saving (adding or
+  Ungültiger Betrag" next to the field, without the approval and approval
+  reset buttons (they act on the stored rows). A missing or non-string
+  amount is invalid too, except in a Beleg part (always 0.00). A NULL amount
+  in the database is still shown as 0.00. The redirect and the warn codes
+  stay for a successful save. A form shown again without saving (adding or
   removing a part) also keeps an invalid amount as entered. The
   `sprintf('%1.2f', .../100)` display of non-numeric sums is unchanged
   (open).

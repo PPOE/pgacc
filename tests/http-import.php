@@ -225,12 +225,13 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
 
 // Amounts of every format are parsed exactly (amount_cents()), each in its
 // own style: BAWAG "+1.234,56", Sparkasse and Paypal "1.234,56" or "1,234.56"
-// (the last separator is the decimal one; all with exactly two decimals),
-// Handkassa whole euros or up to two decimals after "," or ".". An exponent, another style or an out-of-range amount makes the line
-// invalid: reported with its number and skipped. A zero amount skips a
-// Handkassa, Sparkasse or Paypal line silently, as before (expected rows:
-// none); a BAWAG line with zero is imported. Each case: the amount (Paypal:
-// gross and fee), and the stored amounts or null for an invalid line.
+// (the last separator is the decimal one; exactly two decimals), Handkassa
+// whole euros or as Sparkasse with one or two decimals. An exponent, another
+// style or an out-of-range amount makes the line invalid: reported with its
+// number and skipped. A zero amount skips a Handkassa, Sparkasse or Paypal
+// line silently, as before (expected rows: none); a BAWAG line with zero is
+// imported. Each case: the amount (Paypal: gross and fee), and the stored
+// amounts or null for an invalid line.
 function import_amount_cases($database, $cookies, $name, $header, $cases, $line, $like)
 {
     $content = $header;
@@ -280,6 +281,7 @@ import_amount_cases($database, $adminCookies, 'handkassa-amounts.csv', $handkass
     array('12,50', array('1250')),
     array('7', array('700')),
     array('12,5', array('1250')),
+    array('-3.5', array('-350')),
     array('-3.10', array('-310')),
     array(' 3,00 ', array('300')),
     array('0', array()),
@@ -287,7 +289,9 @@ import_amount_cases($database, $adminCookies, 'handkassa-amounts.csv', $handkass
     array('abc', null),
     array('', null),
     array('1,005', null),
-    array('1.234,56', null),
+    array('1.234,56', array('123456')),
+    array('1,234.56', array('123456')),
+    array('1.234', null),
 ), function ($index, $amount) {
     return "08.04.2024;$amount;Handkassa;Synthetic Handkassa amount $index;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n";
 }, function ($index) {
@@ -325,6 +329,18 @@ import_amount_cases($database, $adminCookies, 'paypal-amounts.csv', $paypalLines
 }, function ($index) {
     return "Synthetic Paypal amount $index; %";
 });
+
+// Blank lines (empty fields only, or nothing) after a header are skipped
+// silently, as before; a line with an empty amount is reported.
+$blankLines = $handkassaHeader . ";;;;;;;;;;;;;\r\n" . "\r\n"
+    . "09.04.2024;4,00;Handkassa;Synthetic Handkassa line after blank lines;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n"
+    . "09.04.2024;;Handkassa;Synthetic Handkassa line without an amount;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n";
+$blankImport = import_csv('blank-lines.csv', $blankLines, $adminCookies);
+assert_contains($blankImport['body'], 'Ungültige Buchungszeile in Datei 1 (blank-lines.csv), Zeile 5 <br />', 'blank lines');
+assert_contains($blankImport['body'], 'Datei 1 (blank-lines.csv): 1 Buchungszeilen übersprungen (Zeilen 5)', 'blank lines');
+if (import_count($database, 'Synthetic Handkassa line after blank lines') !== 1 || import_count($database, 'Synthetic Handkassa line without an amount') !== 0) {
+    fail_test('blank lines: wrong lines imported');
+}
 
 // getusers() replaces the member list (ppmembers) only with a complete,
 // valid response of the membership stub (HTTPS, compose.test.yaml). A failed

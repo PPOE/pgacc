@@ -44,13 +44,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   around them are ignored. A voucher with an invalid amount (empty, text, an
   exponent, more decimals, out of range) is no longer saved silently with
   0.00 or rejected by the database. Nothing is saved: the form is shown again
-  with the entered amount and "FEHLER: Ungültiger Betrag" next to it. This
-  applies to new vouchers and revisions, and to every part of a voucher.
+  with the entered amount and "FEHLER: Ungültiger Betrag" next to it, and
+  without the approval button. This applies to new vouchers and revisions, to
+  every part of a voucher, and to a missing amount.
 - Bank import (BAWAG, Sparkasse, Paypal, Handkassa): an amount with an
   exponent, in another format or out of range is reported as an invalid line
-  and skipped, instead of being imported with a wrong value. Paypal and
-  Sparkasse amounts are accepted with a decimal comma or a decimal point. Handkassa amounts
-  with one decimal (12,5) are imported as 12.50 instead of 1.25.
+  and skipped, instead of being imported with a wrong value. Paypal,
+  Sparkasse and Handkassa amounts are accepted with a decimal comma or a
+  decimal point; Handkassa amounts with one decimal (12,5) are imported as
+  12.50 instead of 1.25. Blank lines are still skipped.
 - The donations page and the report no longer build invalid SQL for years
   outside 1 to 9999 and match nothing for them; years are written with four
   digits. The donations page treats a year after 9999 like one before 2012.

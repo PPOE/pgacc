@@ -1706,6 +1706,50 @@ assert_redirect(edit_request($amountDraftId, revision_form($amountDraftId, 'Synt
 $amountRevised = database_row($database, 'SELECT amount FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($amountDraftId), 'revision with a valid amount');
 assert_database_field($amountRevised, 'amount', '105', 'revision with a valid amount');
 
+// A missing or non-string amount is invalid too (only a Beleg part has none).
+$missingAmountForm = two_organization_form('Synthetic voucher without a second amount', 0);
+unset($missingAmountForm['amount1']);
+$missingAmount = http_request('/index.php?action=new', 'POST', $missingAmountForm, $adminCookies);
+assert_contains($missingAmount['body'], 'Die Buchung wurde nicht gespeichert.', 'second part without an amount');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic voucher without a second amount'), 0, 'second part without an amount');
+$arrayAmountForm = voucher_form('Synthetic voucher with an array amount', '', 0);
+unset($arrayAmountForm['amount0']);
+$arrayAmountForm['amount0[]'] = '12';
+$arrayAmount = http_request('/index.php?action=new', 'POST', $arrayAmountForm, $adminCookies);
+assert_contains($arrayAmount['body'], 'Die Buchung wurde nicht gespeichert.', 'array amount');
+assert_contains($arrayAmount['body'], 'name="amount0" value="0.00" onchange="clicked();" />' . "\n", 'array amount');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic voucher with an array amount'), 0, 'array amount');
+// The refused revision shows unsaved values: no approval and no approval
+// reset, which would act on the stored rows.
+$amountAckPage = http_request('/index.php?action=edit&id=' . $amountDraftId, 'GET', array(), $adminCookies);
+assert_contains($amountAckPage['body'], 'name="ack" id="ack"', 'edit page with the approval button');
+assert_not_contains($amountRevision['body'], 'name="ack" id="ack"', 'revision with an invalid amount');
+assert_not_contains($amountRevision['body'], 'name="belegfehler"', 'revision with an invalid amount');
+assert_contains($amountRevision['body'], 'name="speichern" id="speichern"', 'revision with an invalid amount');
+// A refused revision of a voucher with rows of two organizations leaves
+// every row and its approvals untouched.
+$twoOrgAmountId = create_voucher_from_form($database, two_organization_form('Synthetic two-organization amount draft', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-reviewer', ack2 = 'synthetic-reviewer-2' WHERE voucher_id = $1", array($twoOrgAmountId));
+$twoOrgRowsBefore = voucher_rows($database, $twoOrgAmountId, 'two-organization voucher before the refused revision');
+$twoOrgRevisionForm = array_merge(revision_form($twoOrgAmountId, 'Synthetic two-organization amount revision', '-1.00'), two_organization_form('Synthetic two-organization amount revision', 0));
+$twoOrgRevisionForm['id'] = $twoOrgAmountId;
+$twoOrgRevisionForm['amount1'] = '1e3';
+$twoOrgRevision = http_request('/index.php?action=edit&id=' . $twoOrgAmountId, 'POST', $twoOrgRevisionForm, $adminCookies);
+assert_status($twoOrgRevision, 200, 'refused revision of two organizations');
+assert_contains($twoOrgRevision['body'], 'Die Buchung wurde nicht gespeichert.', 'refused revision of two organizations');
+assert_voucher_rows($database, $twoOrgAmountId, $twoOrgRowsBefore, 'refused revision of two organizations');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1', array($twoOrgAmountId), 2, 'refused revision of two organizations');
+if (count($twoOrgRowsBefore) !== 2 || $twoOrgRowsBefore[0]['ack2'] !== 'synthetic-reviewer-2') {
+    fail_test('two-organization voucher rows: ' . var_export($twoOrgRowsBefore, true));
+}
+// A legacy row without an amount (NULL) is shown as 0.00, without an error.
+pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+     VALUES (4795, 20, 2, false, NULL, 'TEST-ACCOUNT-2', 'Synthetic row without an amount', timestamp '2024-09-15 00:00:00', 1, 0, '')");
+$nullAmountPage = http_request('/index.php?action=edit&id=4795', 'GET', array(), $adminCookies);
+assert_status($nullAmountPage, 200, 'edit page of a row without an amount');
+assert_contains($nullAmountPage['body'], 'name="amount0" value="0.00" onchange="clicked();" />' . "\n", 'edit page of a row without an amount');
+assert_not_contains($nullAmountPage['body'], 'Ungültiger Betrag', 'edit page of a row without an amount');
+
 // Password/session regressions run independently in http-session-lifecycle.php.
 
 // The account form's empty row with the unchanged password placeholder
