@@ -90,23 +90,28 @@ Next steps, in order:
 
 Found while covering the changed lines (owner decisions, not fixed):
 
-- [ ] Known failure `KF-CLOSED-MISSING-COLUMNS`: `page_closed()`
-  (`closed.php`, `action=closed`) selects no `vaccount`, `ack1_old` and
+- [x] Known failure `KF-CLOSED-MISSING-COLUMNS`: `page_closed()`
+  (`closed.php`, `action=closed`) selected no `vaccount`, `ack1_old` and
   `ack2_old`, which `page_listing_line()` reads: "Undefined array key"
-  warnings, and those cells stay empty in the closed listing. Fix: add the
-  three columns to the query (changes the listing's output).
-  `http-output-escaping.php` attributes the warnings to the KF id.
-- [ ] Known failure `KF-NEW-ACK-UNDEFINED-FUNCTION` (found while raising
-  per-file coverage): a POST with `ack` to `?action=new` calls
-  `page_new_ack()`, which is defined nowhere (see the "Undefined functions"
-  finding): a fatal error, nothing is saved. `write-workflows.php` attributes
-  it to the KF id. Fix: remove the dispatch branch or show the form (owner).
-- [ ] Known failure `KF-REPORT-YEAR-SUFFIX` (same): `index.php` accepts
-  `?year=2024-1` and passes the string to `page_report()`, whose arithmetic
-  (`$year - 1`) warns "A non-numeric value encountered" on PHP 8 and uses
-  2024. `http-page-views.php` attributes it to the KF id. Fix: drop the
-  variant or parse it (owner; the PHP 5 recording `report-year-variant-anon`
-  pins its output).
+  warnings, and those cells stayed empty in the closed listing. **Fixed**:
+  the query selects the three columns (the listing now shows them).
+  `http-output-escaping.php` checks the escaped cells, mutation target
+  `edge-requests`.
+- [x] Known failure `KF-NEW-ACK-UNDEFINED-FUNCTION` (found while raising
+  per-file coverage): a POST with `ack` to `?action=new` called
+  `page_new_ack()`, which was never defined (git history: the call came with
+  84b9634 in 2013; the creation form passes `$ack = false` to `end_of_form()`
+  and offers no such button, approvals are made on the edit page): a fatal
+  error, nothing saved. **Fixed**: the dispatch branch is removed, so the POST
+  shows the form again (`page_new()`), nothing is saved
+  (`write-workflows.php`, mutation target `edge-requests`).
+- [x] Known failure `KF-REPORT-YEAR-SUFFIX` (same): `index.php` accepted
+  `?year=2024-1` and passed the string to `page_report()`, whose arithmetic
+  (`$year - 1`) warned "A non-numeric value encountered" on PHP 8, and the
+  first query failed on the date `'2024-1-01-01'`. **Fixed**: the variant is
+  dropped; only four digits are a year, other input gives the current year
+  like a missing one (`http-page-views.php`, reference
+  `report-year-variant-anon`, mutation target `edge-requests`).
 - [x] Plain page views (`tests/http-page-views.php`, every dispatched page
   and menu link without parameters): `?action=import`/`import2` died with a
   `count(null)` `TypeError`; `search` without `member`, `donations` and
@@ -1012,13 +1017,23 @@ Class (c) follow-ups (owner decisions, not fixed here):
   is a `TypeError` (HTTP 500) (`RD-PHP8-NONNUMERIC-ARITHMETIC`).
 - [ ] `new.php:46`: PHP 8.4 `round()` stores 1,005 EUR as 100 cents; decide
   the intended rounding (`RD-PHP84-ROUND`).
-- [ ] `getfilter()`/`get_param()`: array request parameters give HTTP 500
-  (`RD-PHP8-ARRAY-ARG-GET`).
-- [ ] `index.php:98`: `explode()` of a NULL `users.hide` is deprecated on
-  PHP 8.1+.
-- [ ] Null and out-of-range helper input: `getoppsort(null)` (`substr()` of
-  null), `convif(true, null)` (`iconv()` of null), `date_condition(1.5E+300)`
-  (float not representable as an int).
+- [x] `getfilter()`/`get_param()`: array request parameters gave HTTP 500
+  (`RD-PHP8-ARRAY-ARG-GET`). **Fixed**: a non-string value counts as absent
+  (`is_string(... ?? null)` instead of `isset()`), so the filter or the
+  default applies (`FunctionsTest`, `http-page-views.php` CSV listing,
+  `write-workflows.php`, mutation target `edge-requests`).
+- [ ] Follow-up: the HTML listings still fail with HTTP 500 on an array
+  filter value, because `sortlink()` and the filter inputs (`closed.php`)
+  reflect `$_GET['filter_*']` with `strlen()`/`rawurlencode()`.
+- [x] `index.php:98`: `explode()` of a NULL `users.hide` was deprecated on
+  PHP 8.1+. **Fixed**: NULL is read as `''` (no hidden column, as before;
+  `http-listing-prefs.php`, mutation target `edge-requests`).
+- [x] Null helper input: `getoppsort(null)` (`substr()` of null) and
+  `convif(true, null)` (`iconv()` of null). **Fixed**: null is read as `''`,
+  same return values (`FunctionsTest`, `ImportMemberMatchTest`, mutation
+  target `edge-requests`).
+- [ ] Out-of-range helper input: `date_condition(1.5E+300)` (float not
+  representable as an int).
 - [ ] Review the application's non-strict `in_array()`/`array_search()`/`==`
   and sorts that can see ties under PHP 8 semantics (e.g. `new.php:656`,
   `functions.php:321`; konto2lo, rights, filters). The former `todo` entries
@@ -1038,7 +1053,7 @@ above): `accepted` (environment) or `todo` (to fix; the
 |---|---|---|
 | `import.php:252` | When a CSV line without a parsed name matches exactly one member through the `ILIKE` lookup, `break` leaves the `fgetcsv()` loop: that line and all later lines of the file are not imported, yet the page reports "wurde erfolgreich importiert" (`http/import-bawag.txt`). All versions. | Owner decision: the `break` probably meant to end only the lookup. Test a match on a middle line first. |
 | `import2.php:103`, `:133` | `page_import2_process_multi_ids()` strips all bytes `\x80-\xFF` before matching `Entgeltf.+r(Kontof.+hrung\|...)`, so "Entgelt für Kontoführung" becomes `EntgeltfrKontofhrung` and can never match (`.+` needs a character between `f` and `r`). All versions. | Match with the umlauts removed (or before stripping); add a PDF fixture for the fee rows. |
-| `index.php:283-285` (`?action=transfer`) | Listed in the allowed actions, but `page_transfer()` is defined nowhere: fatal error on every version, also for visitors (`diagnostics/transfer-anon.txt`). `tests/http-page-views.php` attributes it to known failure `KF-TRANSFER-UNDEFINED-FUNCTION`. | Remove the action or restore the page (owner). |
+| `index.php:283-285` (`?action=transfer`) | Listed in the allowed actions, but `page_transfer()` was defined nowhere: fatal error on every version, also for visitors (`diagnostics/transfer-anon.txt`), known failure `KF-TRANSFER-UNDEFINED-FUNCTION`. Git history: `transfer.php` (an "Offene Umbuchungen" placeholder table with 0 € sums, 0dedc0a, 2012) was deleted in 2e1bf8c (2014) without the dispatch entry. | **Fixed**: the action is removed from the dispatch, so it shows the report like any unknown action (`tests/http-page-views.php`, mutation target `edge-requests`). |
 | `import.php:118`, `donations.php:4-6`, `sprintf('%1.2f', ...)` sums | Numeric strings differ between 5.6 and 7.x: `intval('1e3')` is 1 on 5.6 and 1000 on 7.1+ (an import amount `1e3,2` becomes `PHP_INT_MAX` on 7.4); hex strings such as `'0x1A'` are numeric (26) on 5.6 only (`helpers/idioms-values.txt`, `helpers/page-helpers.txt`). | Validate amount and year formats before `intval()`. Allowlisted as `todo`: `RD-INTVAL-EXPONENT-VALUES`, `RD-INTVAL-EXPONENT-DATES`, `RD-HEX-NUMERIC-STRING` (7.4+). |
 | `functions.php:275` `konto2lo()`, `switch`/`==` idioms | PHP 8 string-number comparison: an account number with a trailing space (`'50110117300 '`) maps to organization 2 on PHP 8 but falls through on 5.6/7.4; `0 == 'abc'` is no longer true; `sort()` already orders mixed values differently on 7.4 than on 5.6 (`helpers/konto2lo.txt`, `helpers/idioms-*.txt`). | Normalize (trim) account numbers and compare strictly where the input is a string. Allowlisted as `todo`: `RD-PHP8-KONTO2LO-WHITESPACE`, `RD-PHP8-STRING-NUMBER-*`, `RD-SORT-ORDER`. |
 | `edit.php:348`; `new.php:46`; `getfilter()`/`get_param()`/`hex2ascii()`/`rights2orgasql()` | PHP 8 `TypeError`s: `count(null)` (unknown or foreign voucher; the import forms without an upload are fixed) gives HTTP 500; arithmetic on non-numeric amount strings; array request parameters. PHP 8.4 `round()`: an amount of 1,005 EUR is stored as 100 instead of 101 cents. | PHP 8 track. Allowlisted as `todo`: `RD-PHP8-NONNUMERIC-ARITHMETIC`, `RD-PHP8-ARRAY-ARG-*`, `RD-PHP84-ROUND`. |
@@ -1580,9 +1595,9 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321` (fixed: `page_import()` takes the rights for the import checks); `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
-| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths died with a fatal error instead of their message: **fixed** (`pg_last_error($dbconn)`, PHP 8.5-only migration review fixes). |
+| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **Fixed.** The `ack` POST on the new-voucher form and `?action=transfer` caused a fatal error on every PHP version; both dispatch branches are removed (`KF-NEW-ACK-UNDEFINED-FUNCTION`, `KF-TRANSFER-UNDEFINED-FUNCTION`), baseline entries removed. The report error paths died with a fatal error instead of their message: **fixed** (`pg_last_error($dbconn)`, PHP 8.5-only migration review fixes). |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`, fixed), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7, fixed) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` (`$bgfandack`) is observed by `tests/http-output-escaping.php` (re-rendered new-voucher form) as the former known failure `KF-NEW-UNDEFINED-BGFANDACK` (fixed: `page_new()` passes `false`, the value the undefined variable had); `wk.php` as the former `KF-WK-UNDEFINED-YEAR` (fixed: `page_wk()` sets `$year = null`, which `wk_unit_report()` does not use). Each site warns on PHP 8 before headers. |
-| Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; the former known failure `KF-REPORT-UNDEFINED-UNIT`, fixed: set to -1, the unused `$unit_s` is not part of the queries; PHPStan now baselines the dead `$unit == -1` conditions, `equal.alwaysTrue`, 4 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
+| Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`; fixed: initialized before the name check, a member part without number and name raised "Undefined variable" and a `foreach()` warning), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; the former known failure `KF-REPORT-UNDEFINED-UNIT`, fixed: set to -1, the unused `$unit_s` is not part of the queries; PHPStan now baselines the dead `$unit == -1` conditions, `equal.alwaysTrue`, 4 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **Removed** with the dead voucher-ID check it guarded (see "PHP 8.5-only migration"); formerly known failure `KF-IMPORT-REGEX-G`. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |

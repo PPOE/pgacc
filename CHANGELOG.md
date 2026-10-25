@@ -20,6 +20,21 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Plain views of the new-voucher, search, donations, in-kind donations,
   campaign, account and virtual account pages and of a receipt link without ID
   no longer raise PHP warnings.
+- `?action=transfer` (a page removed in 2014) shows the report like any
+  unknown action instead of a fatal error.
+- An `ack` POST on the new-voucher form shows the form again instead of a
+  fatal error; nothing is saved.
+- A year that is not four digits (`?year=2024-1`) shows the report of the
+  current year instead of a warning and a failed query.
+- The voucher form and the listing filters of the CSV export ignore array
+  request parameters (`bid0[]=1`, `?filter_id[]=1`) like other invalid values
+  instead of failing with HTTP 500.
+- The closed-voucher listing shows the virtual account and the old
+  approvals again.
+- Saving a member voucher part without a member number and without a name no
+  longer raises PHP warnings.
+- Users without stored column preferences, an empty sort parameter and a
+  missing import CSV field no longer raise PHP 8.5 deprecations.
 
 ## [2.0.0] - 2026-10-25
 

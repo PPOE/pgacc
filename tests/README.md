@@ -91,11 +91,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
   vreport) these pages offer, as a `root,bgf`, a `bgf` and a suborganization
   user and anonymously. Any PHP diagnostic, fatal error or HTTP status other
   than 200 or a redirect fails; the account reports must show both tables.
-  `?action=transfer` and `?action=closed` are attributed to the known failures
-  `KF-TRANSFER-UNDEFINED-FUNCTION` and `KF-CLOSED-MISSING-COLUMNS`. Also the
-  listing and account-report filters, a numeric virtual account for
-  visitors, an organization balance in the report, an unknown action, the
-  https redirect and `?year=2024-1` (known failure `KF-REPORT-YEAR-SUFFIX`).
+  Also the listing and account-report filters, a numeric virtual account for
+  visitors, an organization balance in the report, an unknown action and the
+  removed `?action=transfer` (both the report), array filter values (CSV
+  listing), the https redirect and `?year=2024-1` (the current year).
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line
