@@ -9,9 +9,7 @@ set -eu
 # --changed-since=<base> (Git revision; its merge base with HEAD is used, as
 # for PGACC_COVERAGE_BASE) runs only the mutations whose search region
 # overlaps a line changed since then in the working tree, untracked files
-# included; with none, the target passes without running anything. Files
-# whose token stream is unchanged (tests/coverage/token-equivalence.php)
-# count as unchanged.
+# included; with none, the target passes without running anything.
 #
 # Runs tests/mutation/runner.php in a one-off container of the lane's
 # application image, on the lane's isolated database and internal network.
@@ -89,8 +87,11 @@ for option; do
   shift
   case "$option" in
     --changed-since=*)
-      # Whitespace-only changes select nothing (tests/mutation/changed-diff.sh).
-      sh tests/mutation/changed-diff.sh "${option#--changed-since=}" >"$host_dir/changed.diff"
+      merge_base=$(git merge-base "${option#--changed-since=}" HEAD)
+      git diff --no-color --no-ext-diff --unified=0 "$merge_base" >"$host_dir/changed.diff"
+      git ls-files --others --exclude-standard | while IFS= read -r file; do
+        git diff --no-color --no-ext-diff --unified=0 --no-index /dev/null "$file" || true
+      done >>"$host_dir/changed.diff"
       set -- "$@" --changed-diff=/results/changed.diff
       ;;
     *) set -- "$@" "$option" ;;

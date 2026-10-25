@@ -373,25 +373,20 @@ changed top-level PHP file missing from the report is an error. Uncovered
 branches on changed lines are warnings (`PGACC_COVERAGE_STRICT_BRANCHES=1`
 makes them fail).
 
-Whitespace-only changes are not gated. `changed-lines.sh` (and the mutation
-runner's `--changed-since`, `tests/mutation/changed-diff.sh`) leave out every
-PHP file modified in place that `tests/coverage/token-equivalence.sh` proves
-token-equivalent to the merge base (`token-equivalence.php`): the same
+Every changed line counts, whitespace-only changes included: format code
+before or with the change that needs it (`sh scripts/format.sh`). To prove
+that a diff changes only whitespace (for example a reformat), use the
+standalone `sh tests/coverage/token-equivalence.sh --check <base>`
+(`token-equivalence.php`): files modified in place with the same
 `token_get_all()` stream apart from `T_WHITESPACE`, the blanks around
 `<?php`/`?>` and the indentation of `//`/`#`/`/* */` comment lines, under both
-`short_open_tag=0` and `=1` (the application enables short tags). Inline
-HTML, string literals, heredoc/nowdoc content and doc comments are compared
-byte for byte; files using `__LINE__` are never equivalent; renamed, copied,
-added and deleted files are always gated. The checker runs only on PHP 8.5+
-with the tokenizer (host `php8.5`, else the pinned `php:8.5-cli` image); if it
-cannot run, every changed file is gated, with a warning.
-`--allow-crlf-to-lf` (or `PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF=1`) additionally
-accepts CRLF becoming LF inside strings and inline HTML; it exists for the
-one-time line-ending conversion of the formatting pull request and is not
-used otherwise. Prove a whole diff with
-`sh tests/coverage/token-equivalence.sh --check <base>`; its self-test,
-`sh tests/coverage/token-equivalence.sh --self-test`, runs in CI's
-static-analysis job.
+`short_open_tag=0` and `=1`, with inline HTML, string literals,
+heredoc/nowdoc content and doc comments byte for byte (files using `__LINE__`
+never qualify). It runs only on PHP 8.5+ with the tokenizer (host `php8.5`,
+else the pinned `php:8.5-cli` image); `--allow-crlf-to-lf` also accepts CRLF
+becoming LF in output tokens (line-ending conversions). Self-test:
+`sh tests/coverage/token-equivalence.sh --self-test`. No gate uses it.
+
 
 Check the log: each changed file must print
 `<file>: N changed executable lines, all covered`. An exit status of 0 without
@@ -537,20 +532,35 @@ PHP_CodeSniffer has no data flow; the missing-upload `count()` crashes in
 
 ```bash
 sh scripts/format.sh [files...]          # format the tree (or the given files)
-sh scripts/format.sh --check [files...]  # dry run with diff
+sh scripts/format.sh --check [files...]  # dry run with diff (CI: --check --ci)
+sh scripts/format.sh --stop              # stop the warm container
 ```
 
 PER Coding Style 3.0, whitespace rules only (`.php-cs-fixer.dist.php`):
 indentation (4 spaces), brace placement, spacing, blank lines, trailing
-whitespace and LF line endings. PHP-CS-Fixer 3.95.27 is pinned in
-`tests/style/composer.lock` and runs in its own image (`tests/style/Dockerfile`,
-pinned `php:8.5-cli`, no network). Token-changing rules of the set (array
-syntax, `elseif`, visibility, closing tags, imports, ...) are left out; the
-config lists them. Inline HTML, strings and heredocs are never touched; after
-formatting existing code, prove that with
-`sh tests/coverage/token-equivalence.sh --check <base>`. Not formatted:
-`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`,
-`tests/static-analysis/canaries/`, `vendor/`.
+whitespace and LF line endings, with PHP-CS-Fixer 3.95.27 pinned in
+`tests/style/composer.lock`. Token-changing rules of the set (array syntax,
+`elseif`, visibility, closing tags, imports, ...) are left out; the config
+lists them. Not formatted: `tests/fixtures/`, `tests/reference/fixtures/`,
+`tests/reference/php5/`, `tests/static-analysis/canaries/`, `vendor/`.
+
+`format.sh` always runs the fixer on PHP 8.5 with `short_open_tag=0`, the
+first of: a host PHP 8.5 (`php8.5`, or `php` if it is 8.5+) with the fixer
+from `composer install -d tests/style`; otherwise a warm container
+(`pgacc-style-<hash of the checkout path>`, started once, then `docker exec`,
+about 0.3 s per file; `--stop` removes it); with `--ci` or `CI=true` a
+one-off `docker run --rm` (about 0.6 s per file). The containers have no
+network, a read-only root, no capabilities, no-new-privileges where the Docker
+host allows it, and `.git` read-only; the image (`tests/style/Dockerfile`,
+build context `tests/style/`) is built once per Dockerfile/lock content. The
+fixer cache is `build/php-cs-fixer/`.
+
+CI runs `sh scripts/format.sh --check --ci` in the static-analysis job. A
+Claude Code hook (`.claude/settings.json`, `scripts/claude-format-hook.sh`)
+formats every PHP file an agent edits; it always exits 0 and prints at most
+one line. `.githooks/pre-commit` (opt-in: `git config core.hooksPath
+.githooks`) checks the staged content of the staged PHP files: exit 1 with the
+diff when one needs formatting, exit 2 when the check cannot run.
 
 ## Open test work
 

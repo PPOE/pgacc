@@ -88,12 +88,23 @@ The test harness runs in Docker with synthetic data only.
 sh tests/run.sh                         # the PHP 8.5 / PostgreSQL 18 lane, with coverage
 PGACC_TEST_ID=mine sh tests/run.sh      # isolate concurrent runs
 sh tests/static-analysis.sh             # PHPCompatibility + PHPStan
+sh scripts/format.sh [files...]         # format (PER-CS 3.0, whitespace only)
+sh scripts/format.sh --check            # formatting check (CI: --check --ci)
 sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 8.5      # Infection
 ```
 
 PHP files follow PER Coding Style 3.0, whitespace rules only
-(`.php-cs-fixer.dist.php`, `sh scripts/format.sh`). The whitespace-only
+(`.php-cs-fixer.dist.php`, `sh scripts/format.sh`), checked in CI. Agents in
+Claude Code format every edited PHP file through a hook
+(`.claude/settings.json`). An opt-in Git pre-commit hook checks the staged PHP
+files:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The whitespace-only
 formatting commit is listed in `.git-blame-ignore-revs`; let `git blame`
 skip it with:
 

@@ -4,11 +4,8 @@
  * Proves that a changed PHP file has the same token stream as before, apart
  * from whitespace that cannot change behaviour or output. A whitespace-only
  * change (re-indentation, brace placement, spacing, blank lines, trailing
- * whitespace, line endings of the code) is "equivalent"; such a file counts
- * as unchanged for the changed-line coverage gate
- * (tests/coverage/changed-lines.sh) and the mutation changed-line selection
- * (tests/mutation/run.sh --changed-since). Every other change is a real
- * change and stays fully gated.
+ * whitespace, line endings of the code) is "equivalent". A standalone review
+ * tool (tests/coverage/token-equivalence.sh): no gate uses it.
  *
  * Normally run through tests/coverage/token-equivalence.sh, which collects
  * the changed files from Git, picks a PHP 8.5 runtime and runs this script
@@ -42,8 +39,8 @@
  * - Everything else is compared byte for byte, in particular T_INLINE_HTML
  *   (page output), T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE,
  *   heredoc/nowdoc markers and content, casts and keywords.
- * - --allow-crlf-to-lf (one-time, for the formatting pull request that
- *   converted the CRLF files to LF; see token-equivalence.sh): a CRLF in an
+ * - --allow-crlf-to-lf (for line-ending conversions such as the one of the
+ *   formatting pull request; see token-equivalence.sh): a CRLF in an
  *   old token may be an LF in the new one (never the reverse). The verdict
  *   names such files. Without the flag that is a token change.
  */
