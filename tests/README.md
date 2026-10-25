@@ -40,11 +40,43 @@ The lane:
    `tests/known-diagnostics.php`. Every group is attempted; the lane fails
    if any failed. It also collects [coverage](#coverage).
 
+### Development loop
+
+The default local loop while editing: a long-running stack
+(`compose.test.yaml` + `compose.dev.yaml`) with the checkout bind-mounted
+read-only, so an edit is live on the next request without a rebuild.
+
+```sh
+sh tests/dev.sh up                    # start (or update) the stack
+sh tests/dev.sh test http-import      # one or more HTTP files; no name: all of them
+sh tests/dev.sh unit --filter ReceiptStorageTest   # PHPUnit, arguments passed through
+sh tests/dev.sh down                  # stop, remove volumes (clean: also the image)
+```
+
+- Before each HTTP file and before PHPUnit, `tests/dev/reset.php` recreates
+  the database from a template database (built from the same fixtures as
+  `database-smoke.sh`, rebuilt when one of them changes) and empties the
+  receipt files and the diagnostics. The files therefore run independently,
+  as in the mutation runner.
+- No coverage and no Xdebug, no lint, no database characterization, no
+  coverage gates: run `sh tests/run.sh` when you need those (readiness
+  batch); CI runs everything.
+- The image is rebuilt by `up` only when `tests/php-runtime.Dockerfile`,
+  `composer.json` or `composer.lock` change (`test` warns until then).
+  `vendor/` comes from the image. `up` creates the empty mount points
+  `vendor/` and `files/` in the checkout when missing; neither is tracked.
+  `constants.php` resolves to `tests/runtime/test-constants.php`
+  (`tests/dev/php.ini`); a local `constants.php` is never read.
+- Same isolation as the lane: internal network only, no published ports,
+  synthetic data. `PGACC_TEST_ID` (default: your user name) names the
+  project `pgacc-dev-<id>` and the image `pgacc-test-application-dev-<id>`.
+
 ### Focused tests
 
-While developing a red test or a fix, run only the affected PHPUnit method or
-HTTP script against a warm setup instead of a whole lane. Example on the
-PHP 8.5 / PostgreSQL 18 configuration (pick your own ID and test):
+Prefer the [development loop](#development-loop). Without it, run only the
+affected PHPUnit method or HTTP script against a warm setup instead of a
+whole lane. Example on the PHP 8.5 / PostgreSQL 18 configuration (pick your
+own ID and test):
 
 ```sh
 export PGACC_TEST_ID=focus-receipt

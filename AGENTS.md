@@ -34,8 +34,10 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 - One fix track by default; with the owner's approval at most two agents, in separate worktrees. Run only
   one expensive Docker batch (lane, coverage, mutation, Infection) at a time on the shared host.
 - Before editing, record the branch, the starting commit and the real PR base (the branch the PR targets).
-- While editing, run only the focused test (`tests/README.md`, "Focused tests"); explicit mutants
-  (`--only=`) are welcome but not required on every iteration. Rebuild the application image after every edit. Review the finished patch once and fix
+- While editing, run only the focused test with the development loop (`sh tests/dev.sh up`, then
+  `sh tests/dev.sh test <http-file>` or `sh tests/dev.sh unit --filter <test>`; `tests/README.md`,
+  "Development loop"): the checkout is bind-mounted, so no rebuild is needed. Explicit mutants
+  (`--only=`) are welcome but not required on every iteration. Full `tests/run.sh` only for the readiness batch. Review the finished patch once and fix
   related findings together; unrelated findings go to the plan.
 - Readiness batch, editing stopped, in this order: (1) `sh tests/static-analysis.sh` if application code
   changed; (2) `PGACC_COVERAGE_BRANCHES=0 PGACC_COVERAGE_BASE=<real PR base> sh tests/run.sh`, and
@@ -69,7 +71,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 ## Running tests
 
-- Docker only, synthetic data, internal networks, no published ports. `sh tests/run.sh` (same as
+- Docker only, synthetic data, internal networks, no published ports. Local default while editing:
+  `sh tests/dev.sh` (development loop, no coverage). `sh tests/run.sh` (same as
   `sh tests/run.sh 8.5`) runs the PHP 8.5 x PG 18 lane with coverage (`build/coverage/`).
   `sh tests/static-analysis.sh --report` lists every finding.
 - Always set a unique `PGACC_TEST_ID=<a-z0-9_->` when another run could be active (worktrees, parallel agents).
@@ -129,6 +132,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `table-schema.txt`, `tests/fixtures/` | Schema notes; test schema and synthetic data |
 | `tests/run.sh`, `compose.test.yaml`, `compose.coverage.yaml`, `tests/php-runtime.Dockerfile` | Harness entry point, Compose files, PHP 8.5 image |
+| `tests/dev.sh`, `compose.dev.yaml`, `tests/dev/` | Local development loop (bind-mounted checkout, per-file state reset, no coverage) |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
 | `tests/reference/` | Golden master `php85/` (recorded on PHP 8.5 x PG 18, diagnostics included), `run.sh record` / `run.sh compare 8.5`, `allowlist.php` (empty; only for real nondeterminism) |

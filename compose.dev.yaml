@@ -1,0 +1,53 @@
+# Local development loop (tests/dev.sh, tests/README.md "Development loop"),
+# added on top of compose.test.yaml. Not used by tests/run.sh or CI.
+#
+# The checkout is bind-mounted read-only at /app, so an edit is live on the
+# next request without rebuilding the image. The image (built by tests/dev.sh
+# only when tests/php-runtime.Dockerfile or the composer files change) still
+# provides PHP, the synthetic TLS files and vendor/. Nested mounts need their
+# mount points in the checkout: tests/dev.sh creates the empty, ignored
+# directories vendor/ and files/ when they are missing. constants.php is not
+# mounted (its mount point would be an empty file in the checkout): the
+# include_path of tests/dev/php.ini resolves "constants.php" to the test
+# constants first, so a local constants.php is never read.
+services:
+  # Copies the image's vendor/ into the dev-vendor volume on every
+  # "tests/dev.sh up", so it always matches the image.
+  vendor:
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
+    pull_policy: never
+    command: ["sh", "-c", "find /vendor -mindepth 1 -delete && cp -a /app/vendor/. /vendor/"]
+    init: true
+    network_mode: none
+    read_only: true
+    volumes:
+      - dev-vendor:/vendor
+
+  # The stub reads /app/constants.php and /app/vendor/ of the image; only its
+  # own directory comes from the checkout.
+  membership:
+    volumes:
+      - ./tests/reference/membership:/app/tests/reference/membership:ro
+
+  application:
+    depends_on:
+      vendor:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app:ro
+      - dev-vendor:/app/vendor:ro
+      - ./tests/dev/php.ini:/usr/local/etc/php/conf.d/zz-pgacc-dev.ini:ro
+      - ./tests/runtime/test-constants.php:/opt/pgacc-dev/constants.php:ro
+
+  # Long-running test client: tests/dev.sh runs the tests in it with
+  # "docker compose exec" (no container start per test).
+  application-test:
+    command: ["sleep", "infinity"]
+    volumes:
+      - .:/app:ro
+      - dev-vendor:/app/vendor:ro
+      - ./tests/dev/php.ini:/usr/local/etc/php/conf.d/zz-pgacc-dev.ini:ro
+      - ./tests/runtime/test-constants.php:/opt/pgacc-dev/constants.php:ro
+
+volumes:
+  dev-vendor: {}
