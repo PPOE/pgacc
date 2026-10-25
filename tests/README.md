@@ -249,8 +249,9 @@ files) and `ShortOpenTagTest.php`. Tests that pass null capture
 every diagnostic with their own error handler, because PHPUnit 9 only prints
 deprecations. The suite also passes in random order, as Infection runs it.
 
-`functions.php:71` is unreachable: the regular expression on line 70 (`^*...`)
-is malformed and cannot match; a test records that behaviour. PHPUnit 9 and Xdebug are test tools, not
+The third amount branch of `getfilter()` in `functions.php` is unreachable: its
+regular expression (`^*...`) is malformed and cannot match; a test records that
+behaviour (`tests/show-uncovered-functions.php` finds the line by its text). PHPUnit 9 and Xdebug are test tools, not
 production dependencies.
 
 `http-output-escaping.php` runs last and covers the output encoding: it

@@ -244,10 +244,7 @@ function receipt_migration_file($connection, $options, $key, $number)
     }
     // Read back. One statement: a written file cannot be made to differ in the
     // tests. The file is this run's own, so it may be removed.
-    if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) {
-        return @unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"];
-    }
-    return ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy"];
+    return receipt_v2_read_with($key, $number, $v2Path) !== $plain ? (@unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"]) : ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id); $number.aes kept until --delete-legacy"];
 }
 
 // Migrates the listed files; returns the exit status.

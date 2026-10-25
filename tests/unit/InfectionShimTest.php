@@ -73,8 +73,10 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         self::assertGreaterThan(15, count($lines));
         self::assertSame($lines, self::functionLines($wrapped));
         self::assertSame(array_keys($lines), PgaccInfectionShim::functionNames($wrapped));
+        // functions.php has no closing tag: the class is closed on two
+        // added lines after the last one, then one delegate per function.
         self::assertSame(
-            substr_count($original, "\n") + count($lines),
+            substr_count($original, "\n") + 2 + count($lines),
             substr_count($wrapped, "\n"),
         );
         list($status, $output) = self::php(['-l', self::write($wrapped)]);
