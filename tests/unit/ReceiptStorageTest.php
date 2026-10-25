@@ -208,14 +208,12 @@ final class ReceiptStorageTest extends FunctionsTestCase
 
     public function testEquals()
     {
-        foreach (['receipt_equals', 'receipt_equals_fallback'] as $equals) {
-            self::assertTrue($equals('', ''), $equals);
-            self::assertTrue($equals("a\0b", "a\0b"), $equals);
-            self::assertFalse($equals('abc', 'abd'), $equals);
-            self::assertFalse($equals('abc', 'xbc'), $equals);
-            self::assertFalse($equals('abc', 'ab'), $equals);
-            self::assertFalse($equals('ab', 'abc'), $equals);
-        }
+        self::assertTrue(receipt_equals('', ''));
+        self::assertTrue(receipt_equals("a\0b", "a\0b"));
+        self::assertFalse(receipt_equals('abc', 'abd'));
+        self::assertFalse(receipt_equals('abc', 'xbc'));
+        self::assertFalse(receipt_equals('abc', 'ab'));
+        self::assertFalse(receipt_equals('ab', 'abc'));
     }
 
     public function testHkdfMatchesRfc5869()

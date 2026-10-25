@@ -795,23 +795,10 @@ function receipt_v2_stream_cipher($encryptionKey, $iv)
     return $cipher;
 }
 
-// Byte strings compared in constant time: hash_equals() (PHP 5.6+), else
-// receipt_equals_fallback().
+// Byte strings compared in constant time.
 function receipt_equals($known, $given)
 {
-    return function_exists('hash_equals') ? hash_equals($known, $given) : receipt_equals_fallback($known, $given);
-}
-
-function receipt_equals_fallback($known, $given)
-{
-    if (strlen($known) !== strlen($given)) {
-        return false;
-    }
-    $difference = 0;
-    for ($i = 0; $i < strlen($known); $i++) {
-        $difference |= ord($known[$i]) ^ ord($given[$i]);
-    }
-    return $difference === 0;
+    return hash_equals($known, $given);
 }
 
 /*
@@ -1104,10 +1091,11 @@ function membership_decrypt($datakey, $data)
 function login_random_bytes($length, $random = 'random_bytes')
 {
     try {
-        return $random($length);
-    } catch (\Random\RandomException) {
+        $bytes = $random($length);
+    } catch (Exception) {
         return false;
     }
+    return strlen($bytes) === $length ? $bytes : false;
 }
 
 // The session key, or false without a valid $key: the same key and check
@@ -1134,14 +1122,15 @@ function login_nonce($bytes)
 // Starts a session of user $id: stores a new nonce and the login time and
 // returns the pp_pgacc_login token. Fails closed (false, logged without key
 // material) without a valid $key or a random source, or when the session
-// cannot be stored. $bytes: the random bytes of the nonce (for the tests).
-function login_start_session($connection, $id, $bytes = null)
+// cannot be stored. $bytes: the random bytes of the nonce, $random: their
+// source (both for the tests).
+function login_start_session($connection, $id, $bytes = null, $random = 'random_bytes')
 {
     if (login_session_key() === false) {
         error_log('pgacc: login refused: no valid session key ($key in constants.php)');
         return false;
     }
-    $nonce = login_nonce($bytes ?? login_random_bytes(4));
+    $nonce = login_nonce($bytes ?? login_random_bytes(4, $random));
     if ($nonce === false) {
         error_log('pgacc: login refused: no secure random source');
         return false;
