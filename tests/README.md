@@ -551,7 +551,7 @@ sh tests/static-analysis.sh --update-baselines  # rewrite both baselines
 It runs in its own image (`tests/static-analysis/Dockerfile`): pinned
 `php:8.5-cli` with tools from `tests/static-analysis/composer.lock`
 (PHP_CodeSniffer 4.0.4, PHPCompatibility 10.0.0-alpha2, PHPCSUtils 1.2.3,
-PHPStan 2.3.1, its PHAR SHA-256 checked). Only the build needs network; the
+PHPStan 2.3.2, its PHAR SHA-256 checked). Only the build needs network; the
 analysis has no network, a read-only repository mount and root filesystem. It
 analyses a copy of the 30 tracked top-level application files (no `vendor/`,
 `tests/`, `files/`, `proxy/`), with `tests/runtime/test-constants.php` as

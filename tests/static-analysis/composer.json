@@ -9,7 +9,7 @@
     "phpcsstandards/phpcsutils": "1.2.3",
     "squizlabs/php_codesniffer": "4.0.4",
     "dealerdirect/phpcodesniffer-composer-installer": "1.2.1",
-    "phpstan/phpstan": "2.3.1"
+    "phpstan/phpstan": "2.3.2"
   },
   "minimum-stability": "alpha",
   "prefer-stable": true,

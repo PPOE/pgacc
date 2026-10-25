@@ -21,7 +21,7 @@ COPY --from=tools /tools /tools
 COPY --from=application-dependencies /dependencies/vendor /dependencies/vendor
 # PHPStan ships as a PHAR inside its Composer package; the lock file pins the
 # package commit and this digest pins the executable itself.
-RUN echo '85157dba3d95d77ca603d2b7303aa78a538f9e3b56ccad07dd794c53aa96d1ae  /tools/vendor/phpstan/phpstan/phpstan.phar' \
+RUN echo '0ded687c44b1f9d0346f7f00fa505212b018efe532b2b18e3a72f6e16feb32be  /tools/vendor/phpstan/phpstan/phpstan.phar' \
       | sha256sum -c - \
     && printf 'memory_limit=1G\ndate.timezone=UTC\n' \
       >/usr/local/etc/php/conf.d/static-analysis.ini \
