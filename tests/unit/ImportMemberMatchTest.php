@@ -115,9 +115,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         );
     }
 
-    /**
-     * @dataProvider wildcardMemberProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('wildcardMemberProvider')]
     public function testMemberNamesAreNoPatterns($memberName, $text)
     {
         self::assertSame(

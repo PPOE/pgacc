@@ -40,9 +40,7 @@ final class LoginSessionTest extends FunctionsTestCase
     private $hadKey;
     private $previousKey;
 
-    /**
-     * @before
-     */
+    #[PHPUnit\Framework\Attributes\Before]
     public function rememberKey()
     {
         $this->hadKey = array_key_exists('key', $GLOBALS);
@@ -50,9 +48,7 @@ final class LoginSessionTest extends FunctionsTestCase
         $GLOBALS['key'] = self::TEST_KEY;
     }
 
-    /**
-     * @after
-     */
+    #[PHPUnit\Framework\Attributes\After]
     public function restoreKey()
     {
         if ($this->hadKey) {

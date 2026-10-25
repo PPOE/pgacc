@@ -20,9 +20,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
     private $hadKey;
     private $previousKey;
 
-    /**
-     * @before
-     */
+    #[PHPUnit\Framework\Attributes\Before]
     public function createDirectory()
     {
         $this->directory = sys_get_temp_dir() . '/pgacc-receipt-storage-' . uniqid('', true);
@@ -31,9 +29,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $this->previousKey = $this->hadKey ? $GLOBALS['key'] : null;
     }
 
-    /**
-     * @after
-     */
+    #[PHPUnit\Framework\Attributes\After]
     public function removeDirectory()
     {
         if ($this->hadKey) {
@@ -254,9 +250,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame(hash_hkdf('sha256', self::TEST_KEY, 32, 'pgacc-receipt-v2|mac|42'), $macKey);
     }
 
-    /**
-     * @dataProvider v2Provider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('v2Provider')]
     public function testV2FormatMatchesTheVectors(array $vector)
     {
         $plain = self::plain($vector);

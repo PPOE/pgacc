@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/phpunit-bootstrap.php" colors="true" beStrictAboutTestsThatDoNotTestAnything="true">
+<!-- failOnNotice/failOnWarning: PHPUnit 10+ reports notices and warnings
+     instead of failing the test; they still fail the run, as in PHPUnit 9. -->
+<phpunit bootstrap="tests/phpunit-bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         failOnNotice="true"
+         failOnWarning="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true">
   <php>
     <!-- E_ALL, independent of php.ini. -->
     <ini name="error_reporting" value="-1"/>
@@ -21,7 +31,12 @@
       <file>tests/unit/AmountParsingTest.php</file>
     </testsuite>
   </testsuites>
-  <coverage processUncoveredFiles="true">
+  <coverage>
+    <report>
+      <clover outputFile="/tmp/functions-clover.xml"/>
+    </report>
+  </coverage>
+  <source>
     <include>
       <file>functions.php</file>
       <file>getusers.php</file>
@@ -33,8 +48,5 @@
       <file>new.php</file>
       <file>wk.php</file>
     </include>
-    <report>
-      <clover outputFile="/tmp/functions-clover.xml"/>
-    </report>
-  </coverage>
+  </source>
 </phpunit>

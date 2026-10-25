@@ -145,7 +145,7 @@ case "$command" in
     require_stack
     reset_state
     in_tester env XDEBUG_MODE=off php vendor/bin/phpunit --configuration phpunit.xml \
-      --do-not-cache-result --no-coverage "$@"
+      --do-not-record-test-run-history --no-coverage "$@"
     ;;
   down)
     [ $# -eq 0 ] || usage

@@ -234,8 +234,9 @@ the test container.
 
 ### PHPUnit
 
-`tests/unit/` runs on PHPUnit 9.6 (PHP 8.5). Every configuration sets
-`error_reporting=-1`, so notices fail tests. The suite covers `functions.php` (utility,
+`tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets
+`error_reporting=-1`, `failOnNotice` and `failOnWarning`, so notices and
+warnings fail the run (PHPUnit 13 reports them per test instead of throwing). The suite covers `functions.php` (utility,
 rendering and the two PostgreSQL helpers), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
 (vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
@@ -246,12 +247,12 @@ short reads via `ShortReadStream.php`, and the 20 MB memory check
 `tests/receipt-memory.php`), `ReceiptMigrationTest.php` and
 `ReceiptMigrationCommandTest.php` (`migrate-receipt-key.php` on synthetic
 files) and `ShortOpenTagTest.php`. Tests that pass null capture
-every diagnostic with their own error handler, because PHPUnit 9 only prints
+every diagnostic with their own error handler, because PHPUnit only reports
 deprecations. The suite also passes in random order, as Infection runs it.
 
 The third amount branch of `getfilter()` in `functions.php` is unreachable: its
 regular expression (`^*...`) is malformed and cannot match; a test records that
-behaviour (`tests/show-uncovered-functions.php` finds the line by its text). PHPUnit 9 and Xdebug are test tools, not
+behaviour (`tests/show-uncovered-functions.php` finds the line by its text). PHPUnit and Xdebug are test tools, not
 production dependencies.
 
 `http-output-escaping.php` runs last and covers the output encoding: it
@@ -353,10 +354,10 @@ application files:
   line and branch coverage and, after the application and its shutdown
   functions, writes the raw data to a project-scoped volume. It prints
   nothing, sends no headers and defines no globals.
-- PHPUnit writes its coverage (with branch data, `--path-coverage`) in
+- PHPUnit writes its coverage (with branch data, `--branch-coverage`) in
   php-code-coverage's serialized format.
 - `tests/coverage/merge.php` merges both with the locked php-code-coverage
-  9.2, prints a per-file line/branch table, and writes `build/coverage/`
+  14, prints a per-file line/branch table, and writes `build/coverage/`
   (override with `PGACC_COVERAGE_HOST_DIR`): `summary.txt`, `clover.xml`,
   `html/index.html`, `coverage.cov` and `uncovered-branches.txt`. Unreached
   files count with zero coverage; the test-only `constants.php` and `tests/`
@@ -648,8 +649,8 @@ Open harness items:
   of whole files.
 - [ ] Document the `mbapi.php` output contract and verify it against the
   membership system's consumer or an agreed sample.
-- [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit 9 only prints
-  deprecations; the implicit-connection ones are gone).
+- [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit only reports
+  deprecations, `failOnDeprecation` is off; the implicit-connection ones are gone).
 - [ ] Report unused `tests/known-diagnostics.php` entries as failures.
 - [ ] Resolve the PHP 8 failures, then extend the matrix to newer PHP 8
   releases.

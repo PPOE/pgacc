@@ -16,9 +16,7 @@ final class ShortOpenTagTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider fileProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('fileProvider')]
     public function testFileWorksWithShortOpenTagDisabled($file, $function)
     {
         $path = dirname(dirname(__DIR__)) . '/' . $file;

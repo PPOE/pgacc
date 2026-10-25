@@ -203,7 +203,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $this->put('901.aes', $this->legacyPdf());
         $this->put('902.aes', hex2bin($jpeg['cipher']));
         $this->put('908.aes', $this->legacyPdf());
-        self::assertSame(0, $this->status(['--limit=2']));
+        self::assertSame(0, $this->migrationStatus(['--limit=2']));
         // 908 is not migrated yet; 902.v2.aes is replaced by other content.
         $this->put('902.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '902', '%PDF other content'));
         $before = $this->files();
@@ -237,7 +237,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
 
         // With another key nothing verifies, so nothing is deleted.
         unlink($this->directory . '/files/902.v2.aes');
-        self::assertSame(0, $this->status([]));
+        self::assertSame(0, $this->migrationStatus([]));
         $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
         list($status, $output) = $this->migrate(['--delete-legacy']);
         self::assertSame(1, $status);
@@ -301,7 +301,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
     public function testDeleteLegacyFlushesFirst()
     {
         $this->put('901.aes', $this->legacyPdf());
-        self::assertSame(0, $this->status([]));
+        self::assertSame(0, $this->migrationStatus([]));
         $before = $this->files();
         self::assertSame(
             [2, '', "Could not flush the receipt files to disk with `false`; nothing was deleted.\n"],
@@ -309,7 +309,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         );
         self::assertSame($before, $this->files());
         // A dry run deletes nothing, so it does not flush.
-        self::assertSame(0, $this->status(['--delete-legacy', '--sync=false', '--dry-run']));
+        self::assertSame(0, $this->migrationStatus(['--delete-legacy', '--sync=false', '--dry-run']));
         list($status, $output) = $this->migrate(['--delete-legacy', '--sync=sync']);
         self::assertSame(0, $status);
         self::assertStringEndsWith("901.aes: verified; deleted 901.aes\n" . self::summary([0, 0, 1, 0, 0, 0]), $output);
@@ -372,14 +372,14 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame([2, '', $message], $this->migrate([]));
         self::assertSame([2, '', $message], $this->migrate(['--delete-legacy']));
         // A dry run does not lock.
-        self::assertSame(0, $this->status(['--dry-run']));
+        self::assertSame(0, $this->migrationStatus(['--dry-run']));
         fclose($lock);
         self::assertFalse(is_file($this->directory . '/files/901.v2.aes'));
 
         // The lock is released after each run, also after a refused one.
-        self::assertSame(2, $this->status(['--database=host=/nonexistent-socket-directory connect_timeout=2']));
-        self::assertSame(0, $this->status([]));
-        self::assertSame(0, $this->status([]));
+        self::assertSame(2, $this->migrationStatus(['--database=host=/nonexistent-socket-directory connect_timeout=2']));
+        self::assertSame(0, $this->migrationStatus([]));
+        self::assertSame(0, $this->migrationStatus([]));
 
         unlink($lockPath);
         mkdir($lockPath);

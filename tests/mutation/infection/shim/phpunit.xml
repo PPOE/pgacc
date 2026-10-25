@@ -3,7 +3,17 @@
      `PGACC_INFECTION_TARGET=shim sh tests/mutation/infection.sh 8.5`
      (tests/mutation/infection-shim.json) and for its line coverage
      (tests/mutation/README.md, "Testing the wrapper"). -->
-<phpunit bootstrap="/app/vendor/autoload.php" colors="false" beStrictAboutTestsThatDoNotTestAnything="true">
+<!-- failOnNotice/failOnWarning: PHPUnit 10+ reports notices and warnings
+     instead of failing the test; they still fail the run, as in PHPUnit 9. -->
+<phpunit bootstrap="/app/vendor/autoload.php"
+         colors="false"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         failOnNotice="true"
+         failOnWarning="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true">
   <php>
     <ini name="error_reporting" value="-1"/>
   </php>
@@ -12,10 +22,10 @@
       <file>/app/tests/unit/InfectionShimTest.php</file>
     </testsuite>
   </testsuites>
-  <coverage processUncoveredFiles="true">
+  <source>
     <include>
       <file>/app/tests/mutation/InfectionShim.php</file>
       <file>/app/tests/mutation/infection-shim.php</file>
     </include>
-  </coverage>
+  </source>
 </phpunit>

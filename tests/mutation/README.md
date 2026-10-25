@@ -47,7 +47,7 @@ every edit.
 
 - The 0.35.8 PHAR was checked against its GPG signature
   (`C6D76C329EBADE2FB9C458CFC5095986493B4AA0`) before its SHA-256 was pinned.
-- It accepts the locked PHPUnit 9.6.38 and php-code-coverage 9.2.32.
+- It runs with the locked PHPUnit 13.4.3 and php-code-coverage 14.4.1.
 - 0.35 skips uncovered code unless `--with-uncovered`, which the script passes.
 - The base image's Xdebug stays off (`xdebug.mode=off`); PHPUnit uses PCOV.
 
@@ -85,7 +85,7 @@ docker run --rm --network none -v "$PWD/tests:/app/tests:ro" \
   pgacc-test-application sh -c 'cd /app && XDEBUG_MODE=coverage \
   php -d memory_limit=-1 vendor/bin/phpunit \
   --configuration tests/mutation/infection/shim/phpunit.xml \
-  --path-coverage --coverage-text'
+  --branch-coverage --coverage-text'
 ```
 
 `PGACC_INFECTION_TARGET=shim` mutates the wrapper against these tests
@@ -365,7 +365,7 @@ Changing a target definition makes `--changed-since` select the whole target
 `lib.php` holds target validation, mutation application, exact-match
 enforcement, outcome classification, summaries and the process runner;
 `runner.php` is the orchestration. `sh tests/mutation/run.sh 8.5 --self-test`
-runs their PHPUnit 9.6 tests (`tests/`), reports line and branch coverage of
+runs their PHPUnit tests (`tests/`), reports line and branch coverage of
 `lib.php` (Xdebug) and fails on anything uncovered, and loads every committed
 target and applies all its mutations to the current sources, so an application
 change that breaks a definition fails there first. `runner.php` is exercised
