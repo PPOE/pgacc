@@ -300,11 +300,16 @@ foreach ($failures as $mode => $message) {
         }
     };
     if ($mode === 'selfsigned' || $mode === 'wrongname') {
-        if (with_expected_diagnostics("refused $mode certificate", 'getusers.php', '/^file_get_contents\\(/', $requests) === 0) {
-            fail_test("the $mode certificate was not refused with a warning");
-        }
+        with_expected_diagnostics("refused $mode certificate", array(array('getusers.php', 'file_get_contents(')), $requests);
     } else {
         $requests();
+    }
+    // A followed redirect would reach the stub's /__stub/list.
+    if (strpos($mode, 'redirect') === 0) {
+        $followed = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/list-requests');
+        if ($followed !== "0\n") {
+            fail_test("$mode: the redirect was followed (" . var_export($followed, true) . ' requests to its target)');
+        }
     }
 }
 membership_stub_mode('ok');

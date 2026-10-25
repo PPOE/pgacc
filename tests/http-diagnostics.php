@@ -15,7 +15,6 @@
 $GLOBALS['pgacc_test_diagnostics'] = array();
 $GLOBALS['pgacc_test_request_counter'] = 0;
 $GLOBALS['pgacc_test_known_failure'] = null;
-$GLOBALS['pgacc_test_expected_diagnostic'] = null;
 $GLOBALS['pgacc_test_diagnostics_reported'] = false;
 $GLOBALS['pgacc_test_checked_requests'] = 0;
 
@@ -151,12 +150,6 @@ function collect_response_diagnostics($requestId, $label, $response)
     foreach ($records as $record) {
         $record['label'] = $label;
         $record['known_failure'] = $GLOBALS['pgacc_test_known_failure'];
-        $record['expected'] = null;
-        $expected = $GLOBALS['pgacc_test_expected_diagnostic'];
-        if ($expected !== null && $record['file'] === $expected['file'] && preg_match($expected['message'], $record['message']) === 1) {
-            $record['expected'] = $expected['id'];
-            $GLOBALS['pgacc_test_expected_diagnostic']['count']++;
-        }
         $record['known'] = known_diagnostic_reason($record);
         $GLOBALS['pgacc_test_diagnostics'][] = $record;
     }
@@ -166,9 +159,6 @@ function diagnostic_status($record)
 {
     if ($record['known_failure'] !== null) {
         return 'known failure ' . $record['known_failure'];
-    }
-    if (isset($record['expected']) && $record['expected'] !== null) {
-        return 'expected ' . $record['expected'];
     }
     if ($record['known'] !== null) {
         return 'known diagnostic ' . $record['known'];
@@ -253,17 +243,35 @@ function with_known_failure($id, $callback)
     return $result;
 }
 
-// Requests made inside $callback deliberately provoke a diagnostic (such as a
-// refused certificate): records of $file whose message matches the regular
-// expression $message are attributed to $id instead of failing the run; all
-// other diagnostics stay unexpected. Returns the number of matched records.
-function with_expected_diagnostics($id, $file, $message, $callback)
+// Requests that raise known, documented diagnostics (known failures of code
+// outside a test's scope, tests/COMPATIBILITY_PLAN.md, or a deliberately
+// provoked one such as a refused certificate): they are attributed to $id,
+// must all match $expected (file, message part), and must still occur.
+function with_expected_diagnostics($id, $expected, $callback)
 {
-    $GLOBALS['pgacc_test_expected_diagnostic'] = array('id' => $id, 'file' => $file, 'message' => $message, 'count' => 0);
-    call_user_func($callback);
-    $count = $GLOBALS['pgacc_test_expected_diagnostic']['count'];
-    $GLOBALS['pgacc_test_expected_diagnostic'] = null;
-    return $count;
+    $before = count($GLOBALS['pgacc_test_diagnostics']);
+    $result = with_known_failure($id, $callback);
+    $seen = 0;
+    for ($i = $before; $i < count($GLOBALS['pgacc_test_diagnostics']); $i++) {
+        $record = $GLOBALS['pgacc_test_diagnostics'][$i];
+        if ($record['known_failure'] !== $id) {
+            continue;
+        }
+        $matched = false;
+        foreach ($expected as $diagnostic) {
+            if ($record['file'] === $diagnostic[0] && strpos($record['message'], $diagnostic[1]) !== false) {
+                $matched = true;
+            }
+        }
+        if (!$matched) {
+            fail_test("$id: unexpected diagnostic {$record['file']}:{$record['line']} {$record['message']}");
+        }
+        $seen++;
+    }
+    if ($seen === 0) {
+        fail_test("$id no longer occurs: turn it into a regular check");
+    }
+    return $result;
 }
 
 function report_diagnostics_on_early_exit()

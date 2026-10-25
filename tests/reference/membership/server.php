@@ -29,8 +29,11 @@
  *   selfsigned    HTTPS with a self-signed certificate for the host
  *   wrongname     HTTPS with a test-CA certificate for another host name
  *   error         HTTP 500
- * /__stub/list serves the member list on both ports; /__stub/health answers
- * 200 for the health check; anything else is 404.
+ * /__stub/list serves the member list on both ports (the redirect targets)
+ * and counts its requests: GET http://.../__stub/list-requests answers the
+ * count since the last mode switch, so the tests can prove that no redirect
+ * was followed. /__stub/health answers 200 for the health check; anything
+ * else is 404.
  *
  * Response format, as getusers.php reads it (inferred from the code, never
  * from a real sample): base64 of Rijndael-256/CBC ciphertext, key
@@ -48,6 +51,7 @@ if ($http === false) {
 }
 $modeFile = '/tmp/pgacc-membership-stub-mode';
 $bodyFile = '/tmp/pgacc-membership-stub-body';
+$listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
 $modes = array('ok', 'short', 'garbage', 'empty', 'flow', 'overflow', 'body', 'redirect', 'redirect-http',
     'selfsigned', 'wrongname', 'error');
 $certificates = array(
@@ -77,11 +81,13 @@ function membership_stub_mode($modeFile)
 
 function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bodyFile, $modes)
 {
+    global $listRequestsFile;
     $path = parse_url($uri, PHP_URL_PATH);
     if ($path === '/__stub/health') {
         return array('200 OK', "ok\n");
     }
     if ($path === '/__stub/list') {
+        file_put_contents($listRequestsFile, "x", FILE_APPEND);
         return array('200 OK', file_get_contents(__DIR__ . '/adm_names.b64'));
     }
     if (!$secure) {
@@ -92,7 +98,12 @@ function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bod
                 return array('400 Bad Request', "unknown mode\n");
             }
             file_put_contents($modeFile, $mode);
+            @unlink($listRequestsFile);
             return array('200 OK', "mode $mode\n");
+        }
+        if ($path === '/__stub/list-requests') {
+            clearstatcache();
+            return array('200 OK', (is_file($listRequestsFile) ? filesize($listRequestsFile) : 0) . "\n");
         }
         if ($path === '/__stub/body' && $method === 'POST') {
             file_put_contents($bodyFile, $body);
