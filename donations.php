@@ -38,7 +38,7 @@ echo '</h2>';
   //echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
   echo 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.';
 echo'</div>';
-  if (isset($_POST['captcha_input']) && isset($_POST['captcha']) && intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37)
+  if (checklogin('id', false) > 0 || (isset($_POST['captcha_input']) && isset($_POST['captcha']) && intval($_POST['captcha_input']) == intval($_POST['captcha']) + 37))
 {
 echo '<script type="text/javascript">
 function base64_decode (data) {

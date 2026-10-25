@@ -12,7 +12,8 @@
  * donor (2024: "Synthetic Donor", 130.00 EUR in tests/fixtures/data.sql), the
  * table has only its header row, and no donor name appears in any form.
  * 2025 has a donation below the 100 EUR threshold; years before 2012 show
- * 2013 without a captcha.
+ * 2013 without a captcha. Logged-in users (a valid session per checklogin())
+ * see both lists without the captcha; a forged session cookie does not.
  *
  * Must stay compatible with PHP 5.6.
  */
@@ -166,6 +167,30 @@ assert_no_fatal_error($kdonations['body'], 'kdonations list');
 assert_not_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, 'kdonations list');
 assert_contains($kdonations['body'], '<table><tr><td><b><a href="index.php?action=kdonations&amp;sort=datea">Datum</a></b>', 'kdonations list header');
 assert_contains($kdonations['body'], DONATIONS_NOTICE . '</table>', 'kdonations list');
+
+// Logged-in users see both lists on a GET without the captcha; a forged
+// session cookie (valid id, wrong token) still gets the captcha.
+$admin = login_user('synthetic-admin', 'correct-password');
+$forged = array('pp_pgacc_id' => $admin['pp_pgacc_id'], 'pp_pgacc_login' => str_repeat('0', 64));
+$kheader = '<table><tr><td><b><a href="index.php?action=kdonations&amp;sort=datea">Datum</a></b>';
+foreach (array('logged-in' => $admin, 'forged cookie' => $forged) as $who => $cookies) {
+    $donations = http_request('/index.php?action=donations&year=2024', 'GET', array(), $cookies);
+    assert_status($donations, 200, "donations 2024 $who");
+    assert_no_fatal_error($donations['body'], "donations 2024 $who");
+    $kdonations = http_request('/index.php?action=kdonations&year=2024', 'GET', array(), $cookies);
+    assert_status($kdonations, 200, "kdonations $who");
+    assert_no_fatal_error($kdonations['body'], "kdonations $who");
+    if ($who === 'logged-in') {
+        assert_list_page($donations['body'], 2024, "donations 2024 $who");
+        assert_not_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, "kdonations $who");
+        assert_contains($kdonations['body'], $kheader, "kdonations $who header");
+        assert_contains($kdonations['body'], DONATIONS_NOTICE . '</table>', "kdonations $who");
+    } else {
+        assert_captcha_page($donations['body'], 2024, "donations 2024 $who");
+        assert_contains($kdonations['body'], DONATIONS_CAPTCHA_INTRO, "kdonations $who");
+        assert_not_contains($kdonations['body'], $kheader, "kdonations $who header");
+    }
+}
 
 assert_no_unexpected_diagnostics();
 echo "Donations HTTP characterization tests passed\n";
