@@ -3,6 +3,13 @@
 All notable changes to pgacc are documented in this file. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.1] - 2026-10-25
+
+### Fixed
+
+- Logging in without a login target no longer ends on a blank page (empty
+  redirect).
+
 ## [2.0.0] - 2026-10-25
 
 First release for PHP 8.5 and PostgreSQL 18. PHP 5 and 7 are no longer

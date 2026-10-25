@@ -318,7 +318,7 @@ final class LoginSessionTest extends FunctionsTestCase
 
     public static function allowedTargets()
     {
-        return array('', 'index.php', 'index.php?action=all&filter_date=2024', 'index.php#top', 'index.php?',
+        return array('index.php', 'index.php?action=all&filter_date=2024', 'index.php#top', 'index.php?',
             '/', '/index.php?action=all', '/a', '/.', '/~x/%2F', '/!', '/[x]', 'index.php?a=~&b=!');
     }
 
@@ -328,7 +328,7 @@ final class LoginSessionTest extends FunctionsTestCase
             '\\\\evil.example', '\\', 'javascript:alert(1)', 'index.php://evil.example', 'index.phpevil',
             'index.php/x', 'index_php', "index.php\r\nSet-Cookie: a=1", "index.php\n", "/x\n", "/\n", "\n",
             ' /x', 'index.php?a=1 b', '/a b', "/\tx", "/x\x7f", "/x\x00", "index.php?\x00", 'evil.php',
-            "/\xc3\xa4", "/x\\y", 'index.php?\\', 'index.php#\\x', 'x/index.php', '?a=1', '#x');
+            "/\xc3\xa4", "/x\\y", 'index.php?\\', 'index.php#\\x', 'x/index.php', '?a=1', '#x', '');
     }
 
     // Targets that are not hex are refused before hex2ascii(), whose hexdec()
@@ -372,6 +372,10 @@ final class LoginSessionTest extends FunctionsTestCase
         self::assertSame('index.php', login_target('2F x'));
         self::assertSame('index.php', login_target('"><script>'));
         self::assertSame('index.php', login_target(null));
+        // The login form posts an empty target by default: no empty Location.
+        self::assertFalse(login_target_decode(''));
+        self::assertSame('index.php', login_target(''));
+        self::assertSame('', login_form_target(''));
         self::assertSame('', login_form_target(null));
         // Not hex: refused before hex2ascii().
         self::assertSame('', login_form_target('2F x'));

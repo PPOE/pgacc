@@ -1178,12 +1178,12 @@ function login_cookie_header($name, $value, $maxAge)
 }
 
 // Login targets (hex, see ascii2hex()) must be pages of this application:
-// empty (the login form's default), index.php with an optional query or
-// fragment, or an absolute path (checklogin() sends the request URI). No
-// scheme or host ("//", backslashes), control characters or spaces.
+// index.php with an optional query or fragment, or an absolute path
+// (checklogin() sends the request URI). Never empty (the form's default:
+// blank page), no scheme or host ("//", backslashes), controls or spaces.
 function login_target_allowed($target)
 {
-  return preg_match('/^(index\.php([?#][\x21-\x5b\x5d-\x7e]*)?|\/([\x21-\x2e\x30-\x5b\x5d-\x7e][\x21-\x5b\x5d-\x7e]*)?)?$/D', $target) == 1;
+  return preg_match('/^(index\.php([?#][\x21-\x5b\x5d-\x7e]*)?|\/([\x21-\x2e\x30-\x5b\x5d-\x7e][\x21-\x5b\x5d-\x7e]*)?)$/D', $target) == 1;
 }
 
 // The decoded target if $hex is hex (digits and spaces, see hex2ascii()) of
