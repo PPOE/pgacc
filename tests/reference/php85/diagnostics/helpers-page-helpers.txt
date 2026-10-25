@@ -109,4 +109,3 @@ umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted c
 umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
 umlaute(string(5) "J\303\266rg"): 8192 Invalid characters passed for attempted conversion, these have been ignored
 umlaute(string(3) "a b"): 8192 Invalid characters passed for attempted conversion, these have been ignored
-convif(true, null): 8192 iconv(): Passing null to parameter #3 ($string) of type string is deprecated

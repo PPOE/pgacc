@@ -2,7 +2,7 @@
 # request: GET /index.php?action=closed&filter_date=2024 as unitone
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (12021 bytes) ---
+--- body (12049 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -80,7 +80,7 @@ header: Content-type: text/html; charset=UTF-8
 <td>Nein</td>
 <td>SYNTHETIC-001</td>
 <td>TEST-ACCOUNT-1</td>
-<td></td>
+<td>TEST-VIRTUAL-1</td>
 <td>120.00€</td>
 <td>Closed donation</td>
 <td></td>
@@ -98,7 +98,7 @@ header: Content-type: text/html; charset=UTF-8
 <td>Nein</td>
 <td>SYNTHETIC-007</td>
 <td>TEST-ACCOUNT-1</td>
-<td></td>
+<td>TEST-VIRTUAL-1</td>
 <td>0.00€</td>
 <td>Zero-value closed voucher</td>
 <td></td>
