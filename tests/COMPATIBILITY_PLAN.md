@@ -1236,11 +1236,13 @@ differences above are only visible for out-of-range input.
   empty or garbage `ppmembers` table. Now `https://` with PHP's default
   certificate verification (needs TLS 1.2, i.e. the new server; PHP 5.3 with
   OpenSSL 0.9.8 cannot fetch it). The response is decrypted and parsed
-  first; a failed fetch or HTTP error status ("Mitgliederliste konnte nicht
-  abgerufen werden!"), a short response (unchanged), a line of five or more
+  first; a failed fetch (refused certificate, timeout of 20 s), an HTTP error
+  status or any redirect (not followed: no other host, no plain HTTP;
+  "Mitgliederliste konnte nicht abgerufen werden!", the cause goes to the
+  error log), a short response (unchanged), a line of five or more
   characters without the five tab-separated fields, or a list without any
   member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
-  before the table is touched. After a redirect the last status line counts.
+  before the table is touched.
   Proposed behaviour change, not decided (owner review): before, such
   a line was imported as member 0 with PHP warnings, and a list without
   member lines left an empty table. Drop, create and insert run in one
@@ -1249,9 +1251,13 @@ differences above are only visible for out-of-range input.
   and voucher pages still drop `ppmembers` after each view, so a failed
   refresh shows the error instead of serving an older list. Tests:
   `tests/http-import.php` (stub modes `short`, `garbage`, `empty`, `error`,
-  `redirect`, a `ppmembers` view for the SQL error, a member match with the
-  `flow` list), `GetUsersTest` (exact rows of the `flow` list over HTTPS); the stub speaks
-  HTTPS with a per-build test CA (`tests/README.md`).
+  `redirect`, `redirect-http`, `selfsigned`, `wrongname`, `overflow` for a
+  failed INSERT after DROP and CREATE, a `ppmembers` view for the SQL error,
+  a member match with the `flow` list), `GetUsersTest` (exact rows of the
+  `flow` list over HTTPS); the stub speaks HTTPS with a per-build test CA
+  (`tests/README.md`).
+- [ ] Planned (not now): a per-connection `TEMP` table instead of the shared
+  `ppmembers`, so that concurrent requests do not drop each other's list.
 - [ ] Open follow-up (not changed with the HTTPS refresh): the member list is
   still fetched on every GET of the import and member-fee pages (`import.php`
   `page_import()`, `mb.php` `page_mb()`) and when a member voucher is saved

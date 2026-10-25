@@ -15,6 +15,7 @@
 $GLOBALS['pgacc_test_diagnostics'] = array();
 $GLOBALS['pgacc_test_request_counter'] = 0;
 $GLOBALS['pgacc_test_known_failure'] = null;
+$GLOBALS['pgacc_test_expected_diagnostic'] = null;
 $GLOBALS['pgacc_test_diagnostics_reported'] = false;
 $GLOBALS['pgacc_test_checked_requests'] = 0;
 
@@ -150,6 +151,12 @@ function collect_response_diagnostics($requestId, $label, $response)
     foreach ($records as $record) {
         $record['label'] = $label;
         $record['known_failure'] = $GLOBALS['pgacc_test_known_failure'];
+        $record['expected'] = null;
+        $expected = $GLOBALS['pgacc_test_expected_diagnostic'];
+        if ($expected !== null && $record['file'] === $expected['file'] && preg_match($expected['message'], $record['message']) === 1) {
+            $record['expected'] = $expected['id'];
+            $GLOBALS['pgacc_test_expected_diagnostic']['count']++;
+        }
         $record['known'] = known_diagnostic_reason($record);
         $GLOBALS['pgacc_test_diagnostics'][] = $record;
     }
@@ -159,6 +166,9 @@ function diagnostic_status($record)
 {
     if ($record['known_failure'] !== null) {
         return 'known failure ' . $record['known_failure'];
+    }
+    if (isset($record['expected']) && $record['expected'] !== null) {
+        return 'expected ' . $record['expected'];
     }
     if ($record['known'] !== null) {
         return 'known diagnostic ' . $record['known'];
@@ -241,6 +251,19 @@ function with_known_failure($id, $callback)
     $result = call_user_func($callback);
     $GLOBALS['pgacc_test_known_failure'] = $previous;
     return $result;
+}
+
+// Requests made inside $callback deliberately provoke a diagnostic (such as a
+// refused certificate): records of $file whose message matches the regular
+// expression $message are attributed to $id instead of failing the run; all
+// other diagnostics stay unexpected. Returns the number of matched records.
+function with_expected_diagnostics($id, $file, $message, $callback)
+{
+    $GLOBALS['pgacc_test_expected_diagnostic'] = array('id' => $id, 'file' => $file, 'message' => $message, 'count' => 0);
+    call_user_func($callback);
+    $count = $GLOBALS['pgacc_test_expected_diagnostic']['count'];
+    $GLOBALS['pgacc_test_expected_diagnostic'] = null;
+    return $count;
 }
 
 function report_diagnostics_on_early_exit()

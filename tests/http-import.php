@@ -224,13 +224,14 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
 
 // getusers() replaces the member list (ppmembers) only with a complete,
 // valid response of the membership stub (HTTPS, compose.test.yaml). A failed
-// fetch, a short or an undecryptable response stops the page with an error
-// and leaves the table as it was. The member-fee and import pages drop the
+// fetch (an HTTP error, a redirect, a refused certificate), a short or an
+// undecryptable response, or an SQL error stops the page with an error and
+// leaves the table as it was. The member-fee and import pages drop the
 // table after each view, so a table left in place (such as one of a
 // concurrent request) is planted here.
 function membership_stub_mode($mode)
 {
-    $answer = @file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=' . $mode);
+    $answer = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=' . $mode);
     if ($answer !== "mode $mode\n") {
         fail_test("membership stub mode $mode: " . var_export($answer, true));
     }
@@ -251,12 +252,6 @@ membership_stub_mode('ok');
 $memberPage = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
 assert_status($memberPage, 200, 'member-fee page');
 assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
-// A redirect is followed (with the same certificate verification) and the
-// status of the last response counts.
-membership_stub_mode('redirect');
-$redirected = http_request('/index.php?action=mb', 'GET', array(), $adminCookies);
-assert_contains($redirected['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page after a redirect');
-assert_not_contains($redirected['body'], 'Mitgliederliste konnte nicht abgerufen werden!', 'member-fee page after a redirect');
 // A bank import matches a line's name against the list it just fetched (the
 // stub's "flow" list; its rows are checked in GetUsersTest): the voucher
 // becomes a membership fee (type 1) of that member.
@@ -282,15 +277,34 @@ $failures = array(
     'garbage' => 'Daten von Mitgliederverwaltung ungültig!',
     'empty' => 'Daten von Mitgliederverwaltung ungültig!',
     'error' => 'Mitgliederliste konnte nicht abgerufen werden!',
+    // Redirects are not followed, also not to the same host over HTTPS.
+    'redirect' => 'Mitgliederliste konnte nicht abgerufen werden!',
+    'redirect-http' => 'Mitgliederliste konnte nicht abgerufen werden!',
+    // The INSERT fails (member id out of range) after DROP and CREATE: the
+    // transaction is rolled back.
+    'overflow' => 'Abfrage fehlgeschlagen: ',
+    // Certificate verification: PHP's warnings of the refused handshake
+    // (logged by getusers(), hidden from the page by "@") are expected.
+    'selfsigned' => 'Mitgliederliste konnte nicht abgerufen werden!',
+    'wrongname' => 'Mitgliederliste konnte nicht abgerufen werden!',
 );
 foreach ($failures as $mode => $message) {
     membership_stub_mode($mode);
-    foreach (array('mb', 'import') as $action) {
-        $failed = http_request("/index.php?action=$action", 'GET', array(), $adminCookies);
-        assert_contains($failed['body'], $message, "$action with a $mode member list");
-        if (member_rows($database) !== $members) {
-            fail_test("$action with a $mode member list changed ppmembers: " . var_export(array_slice(member_rows($database), 0, 2), true));
+    $requests = function () use ($mode, $message, $adminCookies, $database, $members) {
+        foreach (array('mb', 'import') as $action) {
+            $failed = http_request("/index.php?action=$action", 'GET', array(), $adminCookies);
+            assert_contains($failed['body'], $message, "$action with a $mode member list");
+            if (member_rows($database) !== $members) {
+                fail_test("$action with a $mode member list changed ppmembers: " . var_export(array_slice(member_rows($database), 0, 2), true));
+            }
         }
+    };
+    if ($mode === 'selfsigned' || $mode === 'wrongname') {
+        if (with_expected_diagnostics("refused $mode certificate", 'getusers.php', '/^file_get_contents\\(/', $requests) === 0) {
+            fail_test("the $mode certificate was not refused with a warning");
+        }
+    } else {
+        $requests();
     }
 }
 membership_stub_mode('ok');

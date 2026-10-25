@@ -1,8 +1,8 @@
 <?php
 /*
- * getUsers() (getusers.php) against a synthetic membership-system response.
- * The https:// stream wrapper is replaced for the duration of the test, so the
- * live membership system is never contacted. The ppmembers table is rebuilt
+ * getUsers() (getusers.php) against synthetic membership-system responses,
+ * served by the membership stub of compose.test.yaml over verified HTTPS
+ * (MembershipStub), so the live membership system is never contacted. The ppmembers table is rebuilt
  * inside a transaction that is rolled back.
  *
  * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
@@ -10,41 +10,7 @@
 
 require_once dirname(dirname(__DIR__)) . '/getusers.php';
 require_once __DIR__ . '/AppExitGuard.php';
-
-final class MembershipStubStream
-{
-    public static $response = '';
-    public static $requested = array();
-
-    /** @var resource|null */
-    public $context;
-
-    private $position = 0;
-
-    public function stream_open($path, $mode, $options, &$openedPath)
-    {
-        self::$requested[] = $path;
-        $this->position = 0;
-        return true;
-    }
-
-    public function stream_read($count)
-    {
-        $chunk = substr(self::$response, $this->position, $count);
-        $this->position += strlen($chunk);
-        return $chunk;
-    }
-
-    public function stream_eof()
-    {
-        return $this->position >= strlen(self::$response);
-    }
-
-    public function stream_stat()
-    {
-        return array();
-    }
-}
+require_once __DIR__ . '/MembershipStub.php';
 
 final class GetUsersTest extends FunctionsTestCase
 {
@@ -56,10 +22,7 @@ final class GetUsersTest extends FunctionsTestCase
 
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $vector['datakey'];
-        MembershipStubStream::$response = $vector['sData'];
-        MembershipStubStream::$requested = array();
-        stream_wrapper_unregister('https');
-        stream_wrapper_register('https', 'MembershipStubStream');
+        MembershipStub::serve($vector['sData']);
         // pg_connect() returns the default link that the application code uses.
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
@@ -76,13 +39,12 @@ final class GetUsersTest extends FunctionsTestCase
         } finally {
             // die() skips finally blocks, so this only runs when the call returned.
             AppExitGuard::leave();
-            stream_wrapper_restore('https');
+            MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
         }
 
         self::assertSame(PGSQL_TRANSACTION_INTRANS, $status);
-        self::assertSame(array('https://mitglieder.piratenpartei.at/adm_api/adm_names.php'), MembershipStubStream::$requested);
         self::assertCount(32, $rows);
         self::assertSame(array('id' => '2001', 'name' => 'Synthetic Member 00', 'lo' => '9', 'paid' => '0'), $rows[0]);
         $organizations = array();
@@ -100,14 +62,13 @@ final class GetUsersTest extends FunctionsTestCase
 
     public function testImportsTheStubListOverHttps()
     {
-        // The whole flow without a replaced stream wrapper: getUsers()
-        // fetches the stub's "flow" list (tests/reference/membership/flow.tsv,
+        // The whole flow: getUsers() fetches the stub's "flow" list (tests/reference/membership/flow.tsv,
         // format in server.php) over verified HTTPS, decrypts and parses it.
         // Needs the membership stub of compose.test.yaml.
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         // The stub's key (tests/runtime/test-constants.php).
         $GLOBALS['datakey'] = 'synthetic-reference-membership-key';
-        self::assertSame("mode flow\n", file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=flow'));
+        MembershipStub::mode('flow');
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         try {
@@ -119,7 +80,7 @@ final class GetUsersTest extends FunctionsTestCase
         } finally {
             AppExitGuard::leave();
             pg_query($connection, 'ROLLBACK');
-            file_get_contents('https://mitglieder.piratenpartei.at/__stub/mode?set=ok');
+            MembershipStub::reset();
             $GLOBALS['datakey'] = $datakey;
         }
         $expected = array(
@@ -167,10 +128,7 @@ final class GetUsersTest extends FunctionsTestCase
     {
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $key;
-        MembershipStubStream::$response = $response;
-        MembershipStubStream::$requested = array();
-        stream_wrapper_unregister('https');
-        stream_wrapper_register('https', 'MembershipStubStream');
+        MembershipStub::serve($response);
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         try {
@@ -181,7 +139,7 @@ final class GetUsersTest extends FunctionsTestCase
             pg_free_result($result);
         } finally {
             AppExitGuard::leave();
-            stream_wrapper_restore('https');
+            MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
         }

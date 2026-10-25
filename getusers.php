@@ -1,23 +1,38 @@
 <?php
+// One SQL statement without a PHP warning: null, or the error message.
+function getusers_query($query)
+{
+  global $dbconn;
+  if (!pg_send_query($dbconn, $query)) { return pg_last_error($dbconn); }
+  $result = pg_get_result($dbconn);
+  // One statement, one result: this ends the query.
+  while (pg_get_result($dbconn) !== false) { }
+  if ($result === false) { return pg_last_error($dbconn); }
+  $error = pg_result_status($result) == PGSQL_FATAL_ERROR ? pg_result_error($result) : null;
+  pg_free_result($result);
+  return $error;
+}
+
 function getUsers()
 {
 global $datakey,$dbconn;
 // Certificate verification stays on (PHP defaults). The member list is
 // replaced only by a complete, valid response, in one transaction; on any
-// error the previous ppmembers table stays as it was. ignore_errors: an HTTP
-// error status is checked here instead of raising a warning (a replaced
-// stream wrapper, as in the unit tests, sends no headers).
-$context = stream_context_create(array('http' => array('ignore_errors' => true)));
+// error the previous ppmembers table stays as it was. Redirects are not
+// followed (a 3xx is an error), so the list never comes from another host or
+// over plain HTTP. ignore_errors: an HTTP error status is checked here
+// instead of raising a warning.
+$context = stream_context_create(array('http' => array('ignore_errors' => true, 'follow_location' => 0, 'timeout' => 20)));
+http_clear_last_response_headers();
+error_clear_last();
 $sData = @file_get_contents("https://mitglieder.piratenpartei.at/adm_api/adm_names.php", false, $context);
 $headers = http_get_last_response_headers();
-// After a redirect (followed with the same verification) the headers hold
-// every response: the last status line counts.
-$status = '';
-foreach (is_array($headers) ? $headers : array() as $header)
-  if (strncmp($header, 'HTTP/', 5) == 0)
-    $status = $header;
-if ($sData === false || (is_array($headers) && !preg_match('#^HTTP/\S+ 200 #', $status)))
+if ($sData === false || !is_array($headers) || !preg_match('#^HTTP/\S+ 200( |$)#', $headers[0]))
+{
+  $error = error_get_last();
+  error_log('getusers: ' . ($sData === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
   die('Mitgliederliste konnte nicht abgerufen werden!');
+}
 if (strlen($datakey) == 0)
   die('Kein Passwort!');
 
@@ -72,21 +87,19 @@ $queries = array(
   $query,
   $nested ? 'RELEASE SAVEPOINT getusers;' : 'COMMIT;',
 );
-// pg_send_query(): an SQL error is reported with die() below, not as a
-// warning.
+// An error before the transaction or savepoint exists (such as an aborted
+// caller's transaction) has nothing to roll back.
+$started = false;
 foreach ($queries as $query)
 {
-  pg_send_query($dbconn, $query);
-  $result = pg_get_result($dbconn);
-  // One statement, one result: this ends the query.
-  pg_get_result($dbconn);
-  if (pg_result_status($result) == PGSQL_FATAL_ERROR)
+  $error = getusers_query($query);
+  if ($error !== null)
   {
-    $error = pg_result_error($result);
-    pg_query($dbconn, $nested ? 'ROLLBACK TO SAVEPOINT getusers;' : 'ROLLBACK;');
+    if ($started)
+      getusers_query($nested ? 'ROLLBACK TO SAVEPOINT getusers;' : 'ROLLBACK;');
     die('Abfrage fehlgeschlagen: ' . $error);
   }
-  pg_free_result($result);
+  $started = true;
 }
  
 }

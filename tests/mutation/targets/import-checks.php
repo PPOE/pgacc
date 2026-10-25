@@ -196,16 +196,16 @@ return array(
         array(
             'id' => 'members-error-status-accepted',
             'file' => 'getusers.php',
-            'search' => "if (\$sData === false || (is_array(\$headers) && !preg_match('#^HTTP/\\S+ 200 #', \$status)))",
+            'search' => "if (\$sData === false || !is_array(\$headers) || !preg_match('#^HTTP/\\S+ 200( |\$)#', \$headers[0]))",
             'replace' => 'if ($sData === false)',
-            'rationale' => 'A failed fetch (HTTP error status) stops with its own error.',
+            'rationale' => 'A failed fetch (HTTP error status, redirect) stops with its own error.',
         ),
         array(
-            'id' => 'members-first-status-line',
+            'id' => 'members-redirect-followed',
             'file' => 'getusers.php',
-            'search' => "    \$status = \$header;",
-            'replace' => "    \$status = \$status === '' ? \$header : \$status;",
-            'rationale' => 'After a redirect the status of the last response counts.',
+            'search' => "'follow_location' => 0",
+            'replace' => "'follow_location' => 1",
+            'rationale' => 'Redirects are not followed (no other host, no plain HTTP).',
         ),
         array(
             'id' => 'members-fields-unchecked',
@@ -238,9 +238,16 @@ return array(
         array(
             'id' => 'members-sql-error-ignored',
             'file' => 'getusers.php',
-            'search' => '  if (pg_result_status($result) == PGSQL_FATAL_ERROR)',
-            'replace' => '  if (false)',
+            'search' => '  $error = pg_result_status($result) == PGSQL_FATAL_ERROR ? pg_result_error($result) : null;',
+            'replace' => '  $error = null;',
             'rationale' => 'An SQL error in the refresh stops the page.',
+        ),
+        array(
+            'id' => 'members-without-transaction',
+            'file' => 'getusers.php',
+            'search' => "  \$nested ? 'SAVEPOINT getusers;' : 'BEGIN;',",
+            'replace' => "  \$nested ? 'SAVEPOINT getusers;' : 'SELECT 1;',",
+            'rationale' => 'Drop, create and insert run in one transaction: a failed INSERT keeps the old rows.',
         ),
     ),
 );
