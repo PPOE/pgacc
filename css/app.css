@@ -1,0 +1,396 @@
+/*
+ * pgacc stylesheet, source of style.css.
+ *
+ * Built with the Tailwind CSS standalone CLI: sh scripts/build-css.sh (CI
+ * checks that the committed style.css is the build of this file). The pages
+ * keep their HTML: this file styles the elements, classes and ids they use
+ * today with Tailwind's theme and @apply, so no utility classes are generated
+ * from the PHP files (source(none)).
+ *
+ * Browsers: Chrome/Edge 111+, Safari 16.4+, Firefox 128+ (Tailwind CSS v4:
+ * cascade layers, @property, color-mix(), :has()).
+ */
+@import "tailwindcss" source(none);
+
+/* The colour scheme of the former stylesheet, slightly softened. */
+@theme {
+  /* The platform's interface font (macOS, Windows, Android/ChromeOS), else the
+     narrow Arial metrics the pages were laid out with. Not system-ui: on Linux
+     desktops it is often a wide font that breaks the dense tables. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Liberation Sans", "Noto Sans", sans-serif;
+
+  /* Page background (light grey) and text. */
+  --color-page: #f6f6f7;
+  --color-ink: #1c1c1e;
+  --color-muted: #5f5f66;
+
+  /* The party purple: active navigation button, focus rings, link hover. */
+  --color-accent: #89408e;
+  --color-accent-dark: #6a2e6f;
+
+  /* Notice box (.motd): orange/peach. */
+  --color-motd: #ffdcaa;
+  --color-motd-border: #f3bd75;
+
+  /* Content panels (.use_terms): pale yellow, with zebra rows. */
+  --color-panel: #fffbd6;
+  --color-panel-border: #efdc6a;
+  --color-zebra: #fff4b8;
+  --color-row-hover: #ffe98a;
+
+  /* The finance overview's grey zebra rows. */
+  --color-overview-zebra: #e6e6e8;
+
+  /* Dark navigation buttons. */
+  --color-nav-top: #5a5a5f;
+  --color-nav-bottom: #1b1b1d;
+}
+
+/*************************************************************************
+ * Elements
+ */
+
+@layer base {
+  body {
+    @apply bg-page font-sans text-[13px]/[1.4] text-ink antialiased;
+  }
+
+  a {
+    @apply text-inherit underline decoration-1 underline-offset-2;
+
+    &:hover {
+      @apply text-accent;
+    }
+  }
+
+  /* One visible focus ring for keyboard users, everywhere. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+
+  h1 {
+    @apply mt-12 mb-4 text-[1.85rem]/tight font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply mt-2 mb-1 text-[1.1rem]/snug font-semibold;
+  }
+
+  h3 {
+    @apply font-semibold;
+  }
+
+  p {
+    @apply my-3;
+  }
+
+  ul {
+    @apply my-2 list-disc pl-10;
+  }
+
+  ol {
+    @apply my-2 list-decimal pl-10;
+  }
+
+  li {
+    @apply leading-normal;
+  }
+
+  /* Icons stay inline in the text (Tailwind's reset makes images blocks). */
+  img {
+    @apply inline-block align-middle;
+  }
+
+  /* Compact data tables. */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th,
+  td {
+    @apply py-1 pr-2 pl-1 text-left align-top font-normal;
+  }
+
+  th {
+    @apply align-bottom font-semibold;
+  }
+
+  /* Amounts: right-aligned, with digits of equal width. */
+  td {
+    min-width: 10px;
+    max-width: 400px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Zebra rows, and the row under the pointer (rows without nested tables). */
+  tr:nth-child(even) {
+    @apply bg-zebra/60;
+  }
+
+  tr:not(:has(tr)):hover {
+    @apply bg-row-hover/60;
+  }
+
+  /* Form controls: Tailwind's reset removes their borders. */
+  input[type="text"],
+  input[type="password"],
+  input[type="file"],
+  input:not([type]),
+  select,
+  textarea {
+    @apply rounded-md border border-neutral-400 bg-white px-1.5 py-0.5 shadow-xs transition-colors;
+
+    &:hover {
+      @apply border-neutral-500;
+    }
+
+    &:focus {
+      @apply border-accent outline-none ring-2 ring-accent/30;
+    }
+  }
+
+  input[type="file"] {
+    @apply border-dashed file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-neutral-200 file:px-2 file:py-0.5 file:font-semibold file:text-ink;
+  }
+
+  select {
+    @apply pr-6;
+    appearance: auto;
+  }
+
+  input[type="checkbox"] {
+    @apply size-3.5 align-middle accent-accent;
+  }
+
+  input[type="submit"],
+  button:not(.link) {
+    @apply cursor-pointer rounded-md bg-neutral-800 px-3 py-1 font-semibold text-white shadow-sm transition-colors;
+
+    &:hover {
+      @apply bg-neutral-700;
+    }
+
+    &:active {
+      @apply bg-neutral-900;
+    }
+  }
+}
+
+/*************************************************************************
+ * Layout
+ */
+
+@layer components {
+  /* Everything below the body: a gutter at phone width. */
+  #content {
+    @apply px-4;
+  }
+
+  .page {
+    @apply mx-auto max-w-[1000px];
+  }
+
+  /* The voucher listings are wider. */
+  .page.open,
+  .page.closed,
+  .page.all,
+  .page.deleted {
+    @apply lg:max-w-[95%] lg:min-w-[1000px];
+  }
+
+  .main {
+    @apply m-0;
+  }
+
+  .inline {
+    @apply inline;
+  }
+
+  /*************************************************************************
+   * Notices and errors
+   */
+
+  .slot_notice,
+  .slot_error {
+    @apply my-2 rounded-md border-l-4 px-3 py-1.5;
+  }
+
+  .slot_notice {
+    @apply border-green-600 bg-green-50 text-green-900;
+  }
+
+  .slot_error {
+    @apply border-red-600 bg-red-50 text-red-900;
+  }
+
+  /* The notice box at the top and the year selection. */
+  .motd {
+    @apply mx-auto mt-2 mb-4 max-w-[1000px] rounded-lg border border-motd-border bg-motd px-3 py-2 shadow-sm;
+  }
+
+  /* Content panels: tables and forms. Wide tables scroll inside the panel. */
+  .use_terms {
+    @apply overflow-x-auto rounded-lg border border-panel-border bg-panel p-3 shadow-sm;
+  }
+
+  /*************************************************************************
+   * Navigation buttons (.selected: the current page)
+   */
+
+  .ui_tabs_links {
+    @apply mx-auto mt-5 mb-2 max-w-[1000px] leading-[2.6];
+
+    & a,
+    & button.link {
+      @apply mr-1 inline-block rounded-md border border-black/40 bg-linear-to-b from-nav-top to-nav-bottom px-2.5 py-1 align-middle text-[0.95rem]/snug font-semibold whitespace-nowrap text-neutral-50 no-underline shadow-sm transition;
+
+      &:hover {
+        @apply from-neutral-500 to-neutral-800 text-white;
+      }
+    }
+
+    & a.selected {
+      @apply border-accent-dark from-accent to-accent-dark text-white ring-2 ring-accent/35;
+    }
+  }
+
+  /*************************************************************************
+   * Column header icons (sort, hide a column)
+   */
+
+  /* The icon stays next to its column title. */
+  td:has(> b > form.inline .icon) {
+    @apply whitespace-nowrap;
+  }
+
+  .icon {
+    @apply ml-0.5 size-3 align-[-1px] opacity-60 transition-opacity;
+
+    &:hover {
+      @apply opacity-100;
+    }
+  }
+
+  /*************************************************************************
+   * Forms: labels to the left of their fields, stacked at phone width
+   */
+
+  .vertical {
+    @apply mt-3;
+  }
+
+  .login,
+  .vertical {
+    & .ui_field_label {
+      @apply float-left clear-left block w-[29%] pr-2 text-right leading-[1.9] font-semibold text-muted;
+    }
+
+    & div {
+      @apply clear-left;
+    }
+
+    & input[type="text"],
+    & input[type="password"],
+    & select {
+      @apply mb-1.5 w-[68%];
+    }
+
+    & input[type="submit"] {
+      @apply ml-[29%];
+    }
+  }
+
+  .login {
+    & input[type="text"],
+    & input[type="password"] {
+      @apply w-48;
+    }
+  }
+
+  .vertical span {
+    @apply mb-1 block leading-[1.9];
+
+    &::after {
+      content: " ";
+    }
+
+    & span {
+      @apply mb-0 inline;
+    }
+  }
+
+  @media (width < 30rem) {
+    .login,
+    .vertical {
+      & .ui_field_label {
+        @apply w-full text-left;
+      }
+
+      & input[type="text"],
+      & input[type="password"],
+      & select,
+      & input[type="submit"] {
+        @apply ml-0 w-full;
+      }
+    }
+  }
+
+  /*************************************************************************
+   * Text pages
+   */
+
+  .wiki {
+    @apply leading-normal;
+
+    & h1 {
+      @apply text-2xl font-bold;
+    }
+
+    & h2 {
+      @apply text-xl font-bold;
+    }
+
+    & h2,
+    & h3 {
+      @apply my-1.5;
+    }
+
+    & h3 {
+      @apply text-lg font-semibold;
+    }
+
+    & h4 {
+      @apply text-base font-semibold;
+    }
+
+    & p {
+      @apply my-1.5;
+    }
+  }
+
+  /* The finance overview of the report; it scrolls at phone width. */
+  #financeOverview {
+    @apply mb-2.5 max-md:block max-md:overflow-x-auto;
+
+    & tr:nth-child(even) {
+      @apply bg-overview-zebra;
+    }
+  }
+
+  /* The Impressum's software table: text, not amounts. */
+  .impressum_list th,
+  .impressum_list td {
+    @apply text-left;
+  }
+
+  /* POST forms that look like links (logout, merge, listing columns). */
+  form.inline {
+    @apply m-0 inline;
+  }
+
+  button.link {
+    @apply cursor-pointer border-0 bg-transparent p-0 text-inherit underline;
+    font: inherit;
+  }
+}

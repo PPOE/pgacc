@@ -224,8 +224,8 @@ assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter
 // The Impressum names the provider and links to the party's legal notice. Its
 // software table lists pgacc (exact release version), PHP and PostgreSQL (major
 // versions only, no distribution suffix) and the third-party software without
-// versions: every runtime package of composer.lock, Chart.js (js/) and the Silk
-// icons (icons/, credit required by CC BY 2.5).
+// versions: every runtime package of composer.lock, Chart.js (js/), Tailwind CSS
+// (style.css) and the Silk icons (icons/, credit required by CC BY 2.5).
 $impressum = page_view('/index.php?action=impressum', [], 'anonymous')['body'];
 assert_contains($impressum, '<span style="font-weight: bold;">Diensteanbieter:</span></div><br />' . "\n"
     . 'Piratenpartei Österreichs<br />' . "\n"
@@ -266,7 +266,11 @@ foreach (['js/chart.umd.min.js', 'icons/accept.png'] as $bundled) {
         fail_test("Impressum: $bundled no longer exists; update the software table");
     }
 }
+if (strncmp((string) file_get_contents(__DIR__ . '/../style.css'), '/*! tailwindcss v', 17) !== 0) {
+    fail_test('Impressum: style.css is no longer built with Tailwind CSS; update the software table');
+}
 $expectedRows['Chart.js'] = ['https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html'];
+$expectedRows['Tailwind CSS'] = ['https://tailwindcss.com', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html'];
 $expectedRows['Silk Icons von Mark James'] = ['http://www.famfamfam.com/lab/icons/silk/', null, '–', 'CC BY 2.5', 'https://creativecommons.org/licenses/by/2.5/'];
 
 if (preg_match('#<table class="ui_list impressum_list">.*?<tbody class="ui_list_body">(.*?)</tbody></table>#s', $impressum, $softwareTable) !== 1) {

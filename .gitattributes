@@ -1,7 +1,7 @@
 # Paths left out of `git archive` (scripts/release.sh) and of GitHub's
 # automatic source archives. Only development files are listed here: every
-# top-level *.php page, css, js/, icons/, .htaccess, table-schema.txt, the
-# READMEs, CHANGELOG.md and composer.json/composer.lock stay in.
+# top-level *.php page, style.css, js/, icons/, .htaccess, table-schema.txt,
+# the READMEs, CHANGELOG.md and composer.json/composer.lock stay in.
 
 # Line endings: every text file of ours is LF, in the repository and in checkouts
 # (the formatting pull request converted the former CRLF files). Recorded and
@@ -24,6 +24,8 @@
 /phpunit.xml export-ignore
 /.github export-ignore
 /scripts export-ignore
+# The stylesheet source; the built style.css is committed and shipped.
+/css export-ignore
 /AGENTS.md export-ignore
 /.dockerignore export-ignore
 /.gitignore export-ignore

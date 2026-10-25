@@ -29,8 +29,10 @@ if (preg_match_all($rowPattern, $anlage, $rows) !== 4) {
 }
 // Amount cells (right-aligned td) use tabular digits. The static stylesheet
 // is read from the source tree: the diagnostics recorder only wraps PHP.
+// style.css is built from css/app.css (scripts/build-css.sh); the td rule is
+// indented inside its cascade layer.
 $css = file_get_contents(__DIR__ . '/../style.css');
-if (preg_match('/\ntd \{[^}]*text-align: right;[^}]*font-variant-numeric: tabular-nums;[^}]*\}/', $css) !== 1) {
+if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabular-nums;[^}]*\}/', $css) !== 1) {
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 

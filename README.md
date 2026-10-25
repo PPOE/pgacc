@@ -26,6 +26,9 @@ Core concepts:
 - PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
+- Browsers: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+ (the stylesheet
+  uses Tailwind CSS v4 features such as cascade layers; older browsers show
+  the pages unstyled).
 
 Tested on PHP 8.5 with PostgreSQL 18 only. The last release for PHP 5.3 and
 PostgreSQL 8.4 is 1.0.0 (tag `php5-last`). The PDF bank-statement import does
@@ -92,7 +95,16 @@ sh scripts/format.sh [files...]         # format (PER-CS 3.0, whitespace only)
 sh scripts/format.sh --check            # formatting check (CI: --check --ci)
 sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 8.5      # Infection
+sh scripts/build-css.sh                 # rebuild style.css from css/app.css
+sh scripts/build-css.sh --check         # style.css is up to date (CI)
 ```
+
+The stylesheet source is `css/app.css`: it styles the elements, classes and
+ids the pages use with Tailwind CSS (`@apply` and the theme), and
+`scripts/build-css.sh` builds it into the committed `style.css` with the
+pinned Tailwind CSS standalone CLI (no Node.js; the binary is downloaded once,
+checked against its SHA-256 and cached in `build/`). Edit `css/app.css`, never
+`style.css`, and commit both; CI fails when they differ.
 
 PHP files follow PER Coding Style 3.0, whitespace rules only
 (`.php-cs-fixer.dist.php`, `sh scripts/format.sh`), checked in CI. Agents in

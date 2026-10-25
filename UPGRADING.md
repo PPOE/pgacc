@@ -4,6 +4,14 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
+## Browsers
+
+From the release after 2.0.0 (the Tailwind CSS stylesheet, see
+[CHANGELOG.md](CHANGELOG.md), "Unreleased"), the pages need Chrome/Edge 111+,
+Safari 16.4+ or Firefox 128+. Older browsers still work but show the pages
+unstyled. The stylesheet is part of the release archive; nothing needs to be
+built on the server.
+
 ## Upgrade to 2.0.0
 
 2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for

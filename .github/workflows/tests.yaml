@@ -98,6 +98,8 @@ jobs:
         run: sh tests/static-analysis.sh
       - name: Check the formatting (PER-CS 3.0, whitespace rules only)
         run: sh scripts/format.sh --check --ci
+      - name: Check that style.css is the build of css/app.css (Tailwind CSS)
+        run: sh scripts/build-css.sh --check
 
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness
