@@ -9,8 +9,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Logged-in users see the donor lists without the arithmetic check.
 - The virtual-account chart uses Chart.js; jQuery and Flot are removed.
-- The Impressum links to the party's legal notice and to pgacc's LICENSE, and
-  shows the pgacc version but only the major versions of PHP and PostgreSQL.
+- The Impressum links to the party's legal notice and to pgacc's LICENSE,
+  shows the pgacc version but only the major versions of PHP and PostgreSQL,
+  and lists the third-party software (Composer packages, Chart.js, Silk icons)
+  with its licenses, left-aligned.
 
 ### Fixed
 

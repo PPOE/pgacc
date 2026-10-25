@@ -67,6 +67,11 @@ td {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* The Impressum's software table: text, not amounts. */
+.impressum_list th,
+.impressum_list td {
+  text-align: left;
+}
 .page,
 .topbar_content {
   max-width: 100%;
