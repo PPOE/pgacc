@@ -86,11 +86,12 @@ function page_import($rights)
                 $handkassacsvline = 'Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt';
                 if ($csvline == $handkassacsvline)
                     $csvformat = 'Handkassa';
-                // Header lines and, after a header, blank lines (empty fields
-                // only) are not imported (before, their amount counted as 0).
+                // Header lines and blank lines (empty fields only) are not
+                // imported (before, their amount counted as 0, and in BAWAG
+                // files a blank line stopped the import as an invalid line).
                 if (in_array($csvline, [$sparkassecsvline, $paypalcsvline, $handkassacsvline], true))
                     continue;
-                if ($csvformat != 'BAWAG' && trim($csvline, ';,') === '')
+                if (trim($csvline, ';,') === '')
                     continue;
                 $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
                 $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
