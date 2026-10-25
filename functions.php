@@ -288,6 +288,46 @@ function acc_footer()
 </html>
 ';
 }
+// The year selector of the report and the donations page: a link to the
+// previous year, a drop-down (<details>, no JavaScript) with every year from
+// the current one down to 2012 and a link to the next year. $urlForYear($year)
+// returns the (unescaped) link of a year; with $allowAll the list starts with
+// "Alle Jahre", linked as $urlForYear(null) and selected for $selected null.
+// The previous and next links stay within 2012 and the current year;
+// $selected is read as an integer.
+function year_nav($selected, $urlForYear, $allowAll = false)
+{
+    $first = 2012;
+    $last = intval(date('Y'));
+    $all = $allowAll && $selected === null;
+    $selected = intval($selected);
+    $label = $all ? 'Alle Jahre' : $selected;
+    $step = function ($class, $text, $label, $year) use ($urlForYear) {
+        if ($year === null) {
+            return "<span class=\"year_nav_step $class\" role=\"link\" aria-disabled=\"true\" aria-label=\"$label\">$text</span>";
+        }
+        $title = "$label: $year";
+        return "<a class=\"year_nav_step $class\" href=\"" . html_escape($urlForYear($year)) . "\" aria-label=\"$title\" title=\"$title\">$text</a>";
+    };
+    // With "Alle Jahre" selected, $selected is 0: no year is marked and there
+    // is no previous year.
+    $prev = $selected > $first ? min($selected - 1, $last) : null;
+    $next = !$all && $selected < $last ? max($selected + 1, $first) : null;
+    $items = [];
+    if ($allowAll) {
+        $items[] = [null, 'Alle Jahre', $all];
+    }
+    for ($i = $last; $i >= $first; $i--) {
+        $items[] = [$i, $i, $selected === $i];
+    }
+    $html = '<nav class="year_nav" aria-label="Jahr">' . $step('year_nav_prev', '&lsaquo;', 'Vorheriges Jahr', $prev)
+        . '<details class="year_nav_menu"><summary aria-label="Jahr wählen: ' . $label . '">' . $label . '</summary><ul>';
+    foreach ($items as $item) {
+        $current = $item[2] ? ' aria-current="page"' : '';
+        $html .= '<li><a href="' . html_escape($urlForYear($item[0])) . "\"$current>" . $item[1] . '</a></li>';
+    }
+    return $html . '</ul></details>' . $step('year_nav_next', '&rsaquo;', 'Nächstes Jahr', $next) . '</nav>';
+}
 // An amount in cents, parsed exactly as text (no float rounding) after
 // trimming spaces, tabs, CR and LF: an optional sign, the euros, then one of
 // the $decimal separators (one or more characters of ",.") and the decimals:

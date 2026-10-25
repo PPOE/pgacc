@@ -140,12 +140,9 @@ function page_report($year = 2012)
     if ($year == intval(date('Y'))) {
         $last = date('d.m.Y');
     }
-    echo '<div class="wiki motd">';
-    for ($i = 2012; $i <= intval(date('Y')); $i++) {
-        echo "<a href=\"index.php?year=$i\">$i</a> ";
-    }
-    echo'</div>';
-    echo '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . $months . '</h1><br>';
+    echo '<div class="page_title"><h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . $months . '</h1>';
+    echo year_nav($year, fn($y) => "index.php?year=$y");
+    echo '</div><br>';
     echo '<h2>F&uuml;r Piraten Steiermark & Graz <a href="https://transparenz.piraten-graz.at/">hier entlang</a>.</h2><br/>';
     echo '
 <h2>Finanzübersicht (ohne Sachspenden, ohne interne Umbuchungen)</h2>

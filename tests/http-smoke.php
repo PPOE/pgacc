@@ -11,6 +11,13 @@ assert_no_fatal_error($report['body'], '2024 report');
 // Every per-unit section and the appendices must render; a failing query
 // ends the page early with the "or die" message.
 assert_not_contains($report['body'], 'Abfrage fehlgeschlagen', '2024 report completeness');
+// The year selector to the right of the title (year_nav()), also at
+// its ends (2012, the current year) and for the default year.
+assert_contains($report['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs 2024</h1>" . expected_year_nav(2024, 'index.php?year=') . '</div><br>', '2024 report year selector');
+assert_contains(http_request('/index.php?year=2012')['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs 2012</h1>" . expected_year_nav(2012, 'index.php?year=') . '</div><br>', '2012 report year selector');
+$currentYear = intval(date('Y'));
+assert_contains(http_request("/index.php?year=$currentYear")['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'current report year selector');
+assert_contains(http_request('/index.php')['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'default report year selector');
 assert_contains($report['body'], 'Ausgaben für die Wahlwerbung Länder', '2024 report completeness');
 assert_contains($report['body'], 'Anlage B: Einnahmen aus Sponsoring', '2024 report completeness');
 // Issue #1: every amount has two decimals, also whole euros, so that the
