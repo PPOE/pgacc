@@ -13,7 +13,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   `phpVersion` 8.5.
 - PostgreSQL: schema in `tests/fixtures/schema.sql`; tests run on 18 (`compose.test.yaml`).
 - One lane (`tests/README.md`): PHP 8.5 x PG 18, with coverage, the changed-line gate, the mutation runner,
-  Infection and the PHP 5 reference comparison. Open migration steps: "PHP 8.5-only migration" in
+  Infection and the reference comparison (golden master `tests/reference/php85/`, recorded on 8.5). Open migration steps: "PHP 8.5-only migration" in
   `tests/COMPATIBILITY_PLAN.md`.
 
 ## Change workflow (owner's rules)
@@ -83,8 +83,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   PER brace placement and spacing). A hook formats edited PHP files (`.claude/settings.json`,
   `scripts/claude-format-hook.sh`); run `sh scripts/format.sh` manually otherwise. CI fails on unformatted code
   (`sh scripts/format.sh --check --ci`). Never change inline HTML or string contents to satisfy the formatter.
-- Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the PHP 5 recordings
-  and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`, `icons/`,
+- Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the reference recordings
+  and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php85/`, `icons/`,
   `js/`, `jquery.fileupload.js`) are byte-exact (`-text`): never convert them.
 - Token-changing modernization (array syntax, `elseif`, visibility, closing tags, imports) is a separate,
   planned change: don't mix it into fixes. The changed-line gates are strict (every changed line counts);

@@ -1,8 +1,0 @@
-## (sequences)
-- voucher_number	5000	t
-+ voucher_number	5001	t
-- vouchers_id_seq	1000	t
-+ vouchers_id_seq	1002	t
-## vouchers
-+ 1001	5001	8	1	f	9001	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	10050	TESTACCOUNT2	Reference two parts income	f	f	f	2024-09-15 00:00:00	\N	\N	2	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-+ 1002	5001	21	1	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-99	TESTACCOUNT2	Reference two parts campaign	f	f	f	2024-09-16 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N

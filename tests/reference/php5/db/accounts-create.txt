@@ -1,2 +1,0 @@
-## users
-+ 100	synthetic-created	{{md5-crypt}}	\N	\N	3	\N

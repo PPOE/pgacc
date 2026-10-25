@@ -1,6 +1,0 @@
-## (sequences)
-- file_number	101	t
-+ file_number	102	t
-## vouchers
-- 221	2021	28	2	f	\N		Bank				-50	AT606000050110117300	Zinsen BG/000000221	t	f	f	2024-03-31 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
-+ 221	2021	28	2	f	\N		Bank				-50	AT606000050110117300	Zinsen BG/000000221	t	f	f	2024-03-31 00:00:00	\N	\N	1	102	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N

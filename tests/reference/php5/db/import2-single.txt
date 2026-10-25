@@ -1,6 +1,0 @@
-## (sequences)
-- file_number	100	t
-+ file_number	101	t
-## vouchers
-- 220	2020	20	2	f	\N	SYNTHETIC-220	Synthetic Statement Supplier				-1234	AT606000050110117300	Lastschrift BG/000000220	t	f	f	2024-03-15 00:00:00	\N	\N	1	0	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N
-+ 220	2020	20	2	f	\N	SYNTHETIC-220	Synthetic Statement Supplier				-1234	AT606000050110117300	Lastschrift BG/000000220	t	f	f	2024-03-15 00:00:00	\N	\N	1	101	{{save_date}}	1		f		\N	\N	\N	\N	\N	\N

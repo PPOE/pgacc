@@ -80,9 +80,12 @@ Next steps, in order:
 - [ ] (c) phpseclib: 2.0.55 reproduces all 21 mcrypt contract vectors on PHP
   8.5 without diagnostics (release check) and `CryptoTest` passes, also after
   (a). Moving to v3 is optional.
-- [ ] (d) Re-baseline the reference on PHP 8.5 (a new recording next to
-  `tests/reference/php5/`, which stays the historical PHP 5 golden master),
-  once each `todo` difference from `php5/` is explained or fixed.
+- [x] (d) Re-baseline the reference on PHP 8.5: every difference from
+  `tests/reference/php5/` was classified ("Reference re-baseline on PHP 8.5"
+  below; the class (c) items are open follow-ups), `run.sh record` writes
+  `tests/reference/php85/` (two recordings byte-identical), the comparison
+  uses it with an empty allowlist (734 files identical), and `php5/` was
+  removed (git history, `v1.0.0`/`php5-last`).
 - [ ] (e) Later: receipt v3 with sodium `secretstream`.
 
 Found while covering the changed lines (owner decisions, not fixed):
@@ -153,8 +156,9 @@ Harness follow-ups found in the first step (not done there):
   PHP 5.x/7.x remarks and dead branches in the tests, the
   `$http_response_header` fallback and the CI lane matrix. PHPCompatibility
   stays: it reports deprecated functions, constants and casts that PHPStan
-  does not. The reference allowlist's `pg` key and `PGACC_TEST_PG` stay
-  until the reference is re-baselined.
+  does not. The reference allowlist's `pg` key and `PGACC_TEST_PG` stayed
+  until the re-baseline; with one PostgreSQL version and an empty allowlist
+  they can go (later, harness only).
 - [x] `csrf` added to the `ci.sh` list (all 14 targets).
 
 ## Completed and verified
@@ -1002,10 +1006,11 @@ Class (c) follow-ups (owner decisions, not fixed here):
 
 ## Found by the PHP 5 reference
 
-Pinned as current behaviour in `tests/reference/php5/` (recorded on the
+Pinned as current behaviour in the former `tests/reference/php5/` (recorded on the
 production-like PHP 5.3 lane); none is fixed. Behaviour changes are the owner's
-decision. The differences of the other lanes are reviewed entries in
-`tests/reference/allowlist.php`: `accepted` (environment) or `todo` (to fix; the
+decision. The differences of the other lanes were reviewed entries in
+`tests/reference/allowlist.php` (removed with the PHP 8.5 re-baseline, see
+above): `accepted` (environment) or `todo` (to fix; the
 `RD-*` IDs below).
 
 | Location | Finding | Follow-up |

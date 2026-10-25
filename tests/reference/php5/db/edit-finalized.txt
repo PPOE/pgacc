@@ -1,4 +1,0 @@
-## vouchers
-- 1000	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-1234	TESTACCOUNT2	Reference created expense	f	f	f	2024-09-15 00:00:00	synthetic-admin	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	\N	\N	\N	\N	\N	\N
-+ 1000	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-1234	TESTACCOUNT2	Reference created expense	f	f	t	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N
-+ 1005	5000	20	2	f	0	SYNTHETICREF	Synthetic Reference Supplier	Test Street 1	0000	Test City	-9999	TESTACCOUNT2	Reference blocked revision	f	f	f	2024-09-15 00:00:00	\N	\N	1	0	{{save_date}}	\N	Reference workflow	f	TESTVIRTUAL2	synthetic-admin	\N	\N	\N	\N	\N

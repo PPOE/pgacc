@@ -1,6 +1,6 @@
 # Reference (golden master) runtime: the lane's application image plus
 # libfaketime (a fixed "now" for the application server).
-# See tests/README.md, "PHP 5 reference recordings".
+# See tests/README.md, "Reference recordings".
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 # Pinned by tests/reference/run.sh for the lane image's Debian release.

@@ -1,5 +1,5 @@
-# PHP 5 reference recordings (golden master). Added on top of a lane's Compose
-# files by tests/reference/run.sh; see tests/README.md, "PHP 5 reference
+# Reference recordings (golden master). Added on top of a lane's Compose
+# files by tests/reference/run.sh; see tests/README.md, "Reference
 # recordings". PGACC_REFERENCE_* are set by run.sh.
 services:
   database:

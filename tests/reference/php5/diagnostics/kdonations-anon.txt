@@ -1,1 +1,0 @@
-E_NOTICE index.php:324: Undefined index: year

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * The HTTP scenario of the PHP 5 reference recordings. Every request is one
+ * The HTTP scenario of the reference recordings. Every request is one
  * step; for each step it records
  *   http/<step>.txt         status, relevant headers, normalized body
  *   sql/<step>.sql          the statements (and SQL errors) of that request

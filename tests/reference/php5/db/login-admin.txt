@@ -1,3 +1,0 @@
-## users
-- 1	synthetic-admin	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	
-+ 1	synthetic-admin	{{md5-crypt}}	{{now}}	{{cookie}}	root,bgf	

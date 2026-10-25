@@ -19,7 +19,7 @@ PostgreSQL 18 (owner decision, 2026-10-25):
 
 | Lane | Role |
 |---|---|
-| PHP 8.5 / PostgreSQL 18 (`compose.test.yaml` + `compose.coverage.yaml`) | The only lane: coverage and the changed-line gate, mutation runner, Infection, PHP 5 reference comparison. See [PHP 8.5 lane](#php-85-lane). |
+| PHP 8.5 / PostgreSQL 18 (`compose.test.yaml` + `compose.coverage.yaml`) | The only lane: coverage and the changed-line gate, mutation runner, Infection, reference comparison. See [PHP 8.5 lane](#php-85-lane). |
 
 The older PHP and PostgreSQL lanes were removed after 1.0.0; a 1.0.x hotfix
 needs the harness of the `php5-last` tag.
@@ -305,7 +305,7 @@ the coverage gate, the reference comparison and static analysis.
 | `Static analysis (PHPCompatibility, PHPStan)` | yes | yes |
 | `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
 | `Mutation tests (PHP 8.5 / PostgreSQL 18)` (`tests/mutation/ci.sh`, blocking) | only with the `mutation` label: changed lines (`--changed-since=<base>`); skipped otherwise | every target |
-| `PHP 5 reference comparison (PHP 8.5)` | yes | yes |
+| `Reference comparison (PHP 8.5)` | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 
 The coverage gate is off only on scheduled and manual runs, which have no
@@ -432,17 +432,21 @@ printf 'functions.php:12-40\nindex.php:27,31-33\n' |
   php tests/coverage/check-changed-lines.php build/coverage/clover.xml -
 ```
 
-## PHP 5 reference recordings
+## Reference recordings
 
-`tests/reference/php5/` pins PHP 5 behaviour as a golden master. It was
-recorded on the production pair, PHP 5.3 with PostgreSQL 8.4, before the
-`php5-last` tag and is kept as the **historical reference**: that lane no
-longer exists, so it cannot be re-recorded (`record.sh` was removed). The PHP
-8.5 / PostgreSQL 18 lane is compared against it with the existing allowlist:
+`tests/reference/php85/` is the golden master: the output of the scenario
+below, recorded on PHP 8.5 with PostgreSQL 18 (the lane itself), so every
+change of page output, SQL or stored data shows as a difference. Compare, or
+re-record after a reviewed behaviour change:
 
 ```bash
 PGACC_TEST_ID=ref sh tests/reference/run.sh compare 8.5
+PGACC_TEST_ID=ref sh tests/reference/run.sh record    # rewrites tests/reference/php85/
 ```
+
+A recording is deterministic: two `record` runs are byte-identical. Commit a
+re-recording on its own, after reviewing its diff, and say why the output
+changed.
 
 `run.sh` builds the lane's image plus a reference image (`runtime.Dockerfile`,
 libfaketime) and starts the lane's services and a membership stub
@@ -480,30 +484,23 @@ Nondeterminism is removed explicitly (`tests/reference/lib.php`): a fixed
 placeholders for cookie values and expiry times, captcha numbers, the
 impressum's versions, PostgreSQL timestamps (`users.login`,
 `vouchers.save_date`) and md5-crypt salts. `fixtures/extra.sql` adds
-reference-only rows. While the PHP 5.3 lane existed, a second run reproduced
-the recording byte for byte.
+reference-only rows.
 
 `compare.php` fails on every difference unless a reviewed entry in
 `tests/reference/allowlist.php` (ID, PHP versions, optional `pg`, file glob,
-line pattern, reason, category) accepts it; unused entries fail as stale.
-One entry, `RD-FORMAT-CRLF-TO-LF`, is a `transform` instead of a line
-pattern: the formatting pull request converted the CRLF source files to LF,
-which changed their HTML and SQL newlines, so the reference is read with CRLF
-as LF before the comparison: text/html bodies throughout, CSV downloads only
-in their final CRLF (appended by `index.php`), SQL text and the HTML helper
-output, never binary bodies or `db/` dumps, with the lengths recomputed. The
-lane's recording is not changed. `accepted` is an expected environment difference (`default_charset`, cookie
-`Max-Age`/expiry format, 32- vs 64-bit integers); `todo` is a defect to fix
-later (PDF import on 7.2+, PHP 8 TypeErrors, exponent and hex numeric
-strings). `todo` entries come first so they take precedence over the broad
-32-bit entry. `diagnostics/` differences are reported, not failed. Reports go
-to `build/reference/php<lane>/`; `selftest.php` tests the allowlist and
-normalizations first. CI compares PHP 8.5 (PostgreSQL 18). Entries that
-list `7.4` besides `8.5` are kept as reviewed; only the `8.5` part applies now.
+line pattern or `transform`, reason, category) accepts it; unused entries fail
+as stale. The allowlist is empty: the recording and the comparison run on the
+same runtime. `diagnostics/` differences are reported, not failed (gated by
+`tests/known-diagnostics.php`). Reports go to `build/reference/php85/`;
+`selftest.php` tests the allowlist and normalizations first. CI compares on
+every pull request push.
 
-Re-baselining the reference on PHP 8.5 is a later, separate step, once every
-difference from `php5/` is explained (`COMPATIBILITY_PLAN.md`, "PHP 8.5-only
-migration", step d).
+The former PHP 5 golden master (`tests/reference/php5/`, recorded on PHP 5.3
+with PostgreSQL 8.4) was replaced by the PHP 8.5 recording; it is in git
+history: `git show v1.0.0:tests/reference/php5/<file>` as released, or
+`git show a9d0ffe:tests/reference/php5/<file>` for its last state, with the
+audit of its 18 allowlist entries in `COMPATIBILITY_PLAN.md` ("Reference
+re-baseline on PHP 8.5").
 
 ## Static analysis
 
@@ -570,7 +567,7 @@ whitespace and LF line endings, with PHP-CS-Fixer 3.95.27 pinned in
 `tests/style/composer.lock`. Token-changing rules of the set (array syntax,
 `elseif`, visibility, closing tags, imports, ...) are left out; the config
 lists them. Not formatted: `tests/fixtures/`, `tests/reference/fixtures/`,
-`tests/reference/php5/`, `tests/static-analysis/canaries/`, `vendor/`.
+`tests/reference/php85/`, `tests/static-analysis/canaries/`, `vendor/`.
 
 `format.sh` always runs the fixer on PHP 8.5 with `short_open_tag=0`. Runtime,
 the first that applies: `--ci` or `CI=true`/`CI=1` (a one-off `docker run
