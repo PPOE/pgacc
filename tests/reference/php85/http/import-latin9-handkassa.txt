@@ -5,7 +5,7 @@
 # file: uploadcsv[] handkassa.csv (text/plain, 412 bytes)
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (3739 bytes) ---
+--- body (3664 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -14,7 +14,6 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
   <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
 <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
 </head>
 <body>

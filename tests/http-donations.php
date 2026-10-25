@@ -104,7 +104,7 @@ function assert_list_page($body, $year, $label)
 {
     assert_donations_heading($body, $year, $label);
     assert_not_contains($body, DONATIONS_CAPTCHA_INTRO, $label);
-    assert_contains($body, '<script type="text/javascript">' . "\nfunction base64_decode (data) {", $label);
+    assert_not_contains($body, 'function base64_decode', $label);
     if (substr_count($body, '<table id="donations"') !== 1) {
         fail_test("$label: expected exactly one donations table");
     }

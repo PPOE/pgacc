@@ -65,6 +65,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   imported completely; the empty line is skipped instead of stopping the
   import as an invalid line.
 
+### Removed
+
+- Unused stylesheet rules (leftovers from LiquidFeedback), `gregor.css` and an
+  unused JavaScript function on the donations page. Nothing changes visibly.
+
 ## [2.0.0] - 2026-10-25
 
 First release for PHP 8.5 and PostgreSQL 18. PHP 5 and 7 are no longer
