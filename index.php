@@ -95,7 +95,7 @@ function checklogin($get = 'name', $redir = true)
                 continue;
             $user_id = $line['id'];
             $csrf_token = csrf_session_token($line['id'], $line['cookie'], $line['login']);
-            $hide_cols = explode(",", $line['hide']);
+            $hide_cols = explode(",", $line['hide'] ?? '');
             foreach ($hide_cols as $col) {
                 if (intval($col) > 0)
                     $user_prefs_hide[$col] = 1;
