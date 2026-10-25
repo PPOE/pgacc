@@ -1,4 +1,5 @@
 <?php
+
 /*
  * page_report() in report.php: the $prevcond initialization that replaced
  * the undefined variable passed to unit_report() (KD-REPORT-PREVCOND).

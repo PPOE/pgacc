@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Helper golden master: runs the pure and near-pure helpers of functions.php
  * (and the few helpers defined in page files) plus probes of value-handling

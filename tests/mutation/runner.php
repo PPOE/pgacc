@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Target-driven mutation runner. Started by tests/mutation/run.sh inside a
  * one-off container of a lane's application image (see README.md):
@@ -252,8 +253,12 @@ function run_case($context, $mutation, $mutantSource, $index)
                 $arguments[] = str_replace('%APP%', $copy, $setting);
             }
             $arguments = array_merge($arguments, array('-S', '127.0.0.1:' . $port, '-t', $copy));
-            $server = pgacc_mutation_start($arguments, $environment, $copy,
-                $context['output'] . '/' . $id . '.server.log');
+            $server = pgacc_mutation_start(
+                $arguments,
+                $environment,
+                $copy,
+                $context['output'] . '/' . $id . '.server.log'
+            );
             if (!wait_for_port($port, 15)) {
                 pgacc_mutation_stop($server);
                 pgacc_mutation_fail("test server for $id did not start; see $id.server.log");
@@ -359,8 +364,12 @@ function main($argv)
             pgacc_mutation_fail('cannot read ' . $options['changed-diff']);
         }
         $targetFile = strpos($targetPath, $app . '/') === 0 ? substr($targetPath, strlen($app) + 1) : $targetPath;
-        $target['mutations'] = pgacc_mutation_select_changed($target['mutations'], $mutants,
-            pgacc_mutation_parse_diff($diff), $targetFile);
+        $target['mutations'] = pgacc_mutation_select_changed(
+            $target['mutations'],
+            $mutants,
+            pgacc_mutation_parse_diff($diff),
+            $targetFile
+        );
         out(sprintf('Changed lines select %d mutation(s)', count($target['mutations'])));
         if (count($target['mutations']) === 0 && !$options['check']) {
             if (isset($options['output'])) {
@@ -368,8 +377,10 @@ function main($argv)
                 if (!is_dir($output) && !mkdir($output, 0777, true)) {
                     pgacc_mutation_fail("cannot create $output");
                 }
-                file_put_contents($output . '/summary.txt',
-                    "Mutation target $name: no mutation's search region overlaps the changed lines\nResult: PASS\n");
+                file_put_contents(
+                    $output . '/summary.txt',
+                    "Mutation target $name: no mutation's search region overlaps the changed lines\nResult: PASS\n"
+                );
             }
             out('Nothing to run: no search region overlaps the changed lines.');
             return 0;

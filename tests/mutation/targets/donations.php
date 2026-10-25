@@ -1,4 +1,5 @@
 <?php
+
 /*
  * page_donations() in donations.php: the array initializations that keep the
  * donor list from passing undefined variables to foreach and

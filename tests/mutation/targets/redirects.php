@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Redirects answered before any output: the login redirect that index.php
  * sends visitors who are not logged in before the CSV byte order mark or

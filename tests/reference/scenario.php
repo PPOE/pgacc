@@ -1,4 +1,5 @@
 <?php
+
 /*
  * The HTTP scenario of the PHP 5 reference recordings. Every request is one
  * step; for each step it records
@@ -468,34 +469,76 @@ step('mb-anon', 'anon', 'GET', '/index.php?action=mb');
 
 step('import-form', 'admin', 'GET', '/index.php?action=import');
 step('import-form-unitone', 'unitone', 'GET', '/index.php?action=import');
-step('import-bawag', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'),
-    array(array('uploadcsv[]', 'bawag.csv', 'text/csv', fixture('bawag.csv'))));
-step('import-bawag-again', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'),
-    array(array('uploadcsv[]', 'bawag.csv', 'text/csv', fixture('bawag.csv'))));
+step(
+    'import-bawag',
+    'admin',
+    'POST',
+    '/index.php?action=import',
+    array('MAX_FILE_SIZE' => '1000000'),
+    array(array('uploadcsv[]', 'bawag.csv', 'text/csv', fixture('bawag.csv')))
+);
+step(
+    'import-bawag-again',
+    'admin',
+    'POST',
+    '/index.php?action=import',
+    array('MAX_FILE_SIZE' => '1000000'),
+    array(array('uploadcsv[]', 'bawag.csv', 'text/csv', fixture('bawag.csv')))
+);
 step('import-latin9-handkassa', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'), array(
     array('uploadcsv[]', 'bawag-latin9.csv', 'application/vnd.ms-excel', fixture('bawag-latin9.csv')),
     array('uploadcsv[]', 'handkassa.csv', 'text/plain', fixture('handkassa.csv')),
 ));
-step('import-sparkasse', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'),
-    array(array('uploadcsv[]', 'sparkasse.csv', 'text/csv', fixture('sparkasse.csv'))));
-step('import-paypal', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'),
-    array(array('uploadcsv[]', 'paypal.csv', 'text/csv', fixture('paypal.csv'))));
+step(
+    'import-sparkasse',
+    'admin',
+    'POST',
+    '/index.php?action=import',
+    array('MAX_FILE_SIZE' => '1000000'),
+    array(array('uploadcsv[]', 'sparkasse.csv', 'text/csv', fixture('sparkasse.csv')))
+);
+step(
+    'import-paypal',
+    'admin',
+    'POST',
+    '/index.php?action=import',
+    array('MAX_FILE_SIZE' => '1000000'),
+    array(array('uploadcsv[]', 'paypal.csv', 'text/csv', fixture('paypal.csv')))
+);
 step('import-rejected-files', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'), array(
     array('uploadcsv[]', 'page.html', 'text/html', '<html>not a csv</html>'),
     array('uploadcsv[]', 'tiny.csv', 'text/csv', 'a;b'),
 ));
-step('import-unknown-account', 'admin', 'POST', '/index.php?action=import', array('MAX_FILE_SIZE' => '1000000'),
-    array(array('uploadcsv[]', 'bawag-unknown-account.csv', 'text/csv', fixture('bawag-unknown-account.csv'))));
+step(
+    'import-unknown-account',
+    'admin',
+    'POST',
+    '/index.php?action=import',
+    array('MAX_FILE_SIZE' => '1000000'),
+    array(array('uploadcsv[]', 'bawag-unknown-account.csv', 'text/csv', fixture('bawag-unknown-account.csv')))
+);
 step('all-after-import', 'admin', 'GET', '/index.php?action=all&format=csv&sort=bida');
 step('report-2024-after-import', 'anon', 'GET', '/index.php?year=2024');
 
 step('import2-form', 'admin', 'GET', '/index.php?action=import2');
 foreach (array('single', 'cover', 'noid', 'twodates') as $statement) {
-    step("import2-$statement", 'admin', 'POST', '/index.php?action=import2', array('MAX_FILE_SIZE' => '10000000'),
-        array(array('upload[]', "statement-$statement.pdf", 'application/pdf', fixture("statement-$statement.pdf"))));
+    step(
+        "import2-$statement",
+        'admin',
+        'POST',
+        '/index.php?action=import2',
+        array('MAX_FILE_SIZE' => '10000000'),
+        array(array('upload[]', "statement-$statement.pdf", 'application/pdf', fixture("statement-$statement.pdf")))
+    );
 }
-step('import2-single-again', 'admin', 'POST', '/index.php?action=import2', array('MAX_FILE_SIZE' => '10000000'),
-    array(array('upload[]', 'statement-single.pdf', 'application/pdf', fixture('statement-single.pdf'))));
+step(
+    'import2-single-again',
+    'admin',
+    'POST',
+    '/index.php?action=import2',
+    array('MAX_FILE_SIZE' => '10000000'),
+    array(array('upload[]', 'statement-single.pdf', 'application/pdf', fixture('statement-single.pdf')))
+);
 step('import2-rejected', 'admin', 'POST', '/index.php?action=import2', array('MAX_FILE_SIZE' => '10000000'), array(
     array('upload[]', 'statement.txt', 'text/plain', 'not a pdf at all'),
     array('upload[]', 'tiny.pdf', 'application/pdf', '%PDF'),

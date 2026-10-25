@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Shared code of the PHP 5 reference recordings (golden master): HTTP client,
  * normalization, statement log, database dumps, value export, and the

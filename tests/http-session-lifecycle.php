@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Focused session lifecycle regressions. Run directly against a seeded lane:
  * php tests/http-session-lifecycle.php [all|logout|password]
@@ -22,9 +23,11 @@ function lifecycle_row($database, $userId)
 
 function lifecycle_user($database, $id, $name, $password, $rights)
 {
-    $result = pg_query_params($database,
+    $result = pg_query_params(
+        $database,
         "INSERT INTO users (id, name, hash, rights, hide) VALUES ($1, $2, crypt($3, gen_salt('md5')), $4, '')",
-        array($id, $name, $password, $rights));
+        array($id, $name, $password, $rights)
+    );
     if ($result === false) {
         fail_test('could not create synthetic session user ' . $id);
     }
@@ -93,8 +96,12 @@ if ($scenario === 'all' || $scenario === 'password') {
     $otherCookies = lifecycle_user($database, 56, 'synthetic-other-password', 'other-password', '2');
     $rightsCookies = lifecycle_user($database, 57, 'synthetic-rights-only', 'rights-only-password', '2');
 
-    $ownChange = http_request('/index.php?action=accounts', 'POST',
-        array('submit' => 'Benutzer 55 aktualisieren', 'password55' => 'own-password-changed'), $ownCookies);
+    $ownChange = http_request(
+        '/index.php?action=accounts',
+        'POST',
+        array('submit' => 'Benutzer 55 aktualisieren', 'password55' => 'own-password-changed'),
+        $ownCookies
+    );
     assert_status($ownChange, 200, 'own password change');
     assert_contains($ownChange['body'], 'synthetic-own-password', 'own account remains listed after password change');
     lifecycle_ended($database, 55, $ownCookies, 'own password change');
@@ -103,8 +110,12 @@ if ($scenario === 'all' || $scenario === 'password') {
     }
     login_user('synthetic-own-password', 'own-password-changed');
 
-    $otherChange = http_request('/index.php?action=accounts', 'POST',
-        array('submit' => 'Benutzer 56 aktualisieren', 'password56' => 'other-password-changed', 'rights56' => '2'), $adminCookies);
+    $otherChange = http_request(
+        '/index.php?action=accounts',
+        'POST',
+        array('submit' => 'Benutzer 56 aktualisieren', 'password56' => 'other-password-changed', 'rights56' => '2'),
+        $adminCookies
+    );
     assert_status($otherChange, 200, 'password change by root');
     lifecycle_ended($database, 56, $otherCookies, 'password change by root');
     login_user('synthetic-other-password', 'other-password-changed');
@@ -113,8 +124,12 @@ if ($scenario === 'all' || $scenario === 'password') {
     }
 
     $beforeRightsChange = lifecycle_row($database, 57);
-    $rightsChange = http_request('/index.php?action=accounts', 'POST',
-        array('submit' => 'Benutzer 57 aktualisieren', 'password57' => '******', 'rights57' => '2,1'), $adminCookies);
+    $rightsChange = http_request(
+        '/index.php?action=accounts',
+        'POST',
+        array('submit' => 'Benutzer 57 aktualisieren', 'password57' => '******', 'rights57' => '2,1'),
+        $adminCookies
+    );
     assert_status($rightsChange, 200, 'rights-only change');
     $afterRightsChange = lifecycle_row($database, 57);
     if ($afterRightsChange['rights'] !== '2,1' || $afterRightsChange['cookie'] !== $beforeRightsChange['cookie']

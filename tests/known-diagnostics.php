@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Reviewed list of PHP diagnostics that the HTTP tests tolerate for now.
  *

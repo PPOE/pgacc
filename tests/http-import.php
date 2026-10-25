@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Bank CSV import (import.php, ?action=import) with the synthetic CSV files of
  * tests/reference/fixtures/import/ and the membership stub of

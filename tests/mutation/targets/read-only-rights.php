@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Read-only bgf ("Rbgf", accounts.php): write_rights() and the checks of the
  * write actions (voucher creation, receipt upload, revision, approval,

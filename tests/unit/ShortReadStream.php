@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Test stream wrapper over a real file ("pgacc-short://<path>") whose reads
  * return at most ShortReadStream::$limit bytes. With $stall set, reads return

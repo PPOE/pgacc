@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Compares a lane's recording with the PHP 5 reference.
  *

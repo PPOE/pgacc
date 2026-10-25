@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Ledger listing (closed.php page_listing_header()/page_listing_line(), used
  * by action=all) with hidden columns from the users.hide preference.

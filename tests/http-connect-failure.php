@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Database connection failure: index.php, check.php and mbapi.php answer with
  * a fixed message and log the reason (pg_last_error() without a connection

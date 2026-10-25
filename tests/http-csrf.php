@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Form tokens (CSRF). Every POST request except the login form and the public
  * captcha forms must carry the form token of its session (csrf_field(),

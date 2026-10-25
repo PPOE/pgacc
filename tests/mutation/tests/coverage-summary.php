@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Prints line and branch coverage of tests/mutation/lib.php from a serialized
  * php-code-coverage file written by the self-test (PHP 7.4 lane only), and
@@ -33,8 +34,13 @@ foreach ($coverage->getData()->functionCoverage() as $file => $functions) {
     foreach ($functions as $function => $data) {
         foreach ($data['branches'] as $branch) {
             if (count($branch['hit']) === 0) {
-                $uncovered[] = sprintf('%s:%d-%d (branch in %s)', basename($file),
-                    $branch['line_start'], $branch['line_end'], $function);
+                $uncovered[] = sprintf(
+                    '%s:%d-%d (branch in %s)',
+                    basename($file),
+                    $branch['line_start'],
+                    $branch['line_end'],
+                    $function
+                );
             }
         }
     }

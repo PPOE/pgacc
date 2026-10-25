@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Ledger listing column preferences in closed.php: listing_column_hidden(),
  * which replaced the direct $user_prefs_hide[$n] reads (undefined offsets for

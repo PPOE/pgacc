@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Null guards in functions.php that keep PHP 8.1+ from reporting
  * "Passing null to parameter ... is deprecated" for strlen(), explode() and

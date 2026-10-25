@@ -1,4 +1,5 @@
 <?php
+
 /*
  * The member lookup of the bank import (import.php): a line without a name is
  * matched against the member list (getusers(), here a synthetic list served

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Plain page views: every page of the index.php dispatch and every link of the
  * public and the logged-in menu, plus the year and account links those pages

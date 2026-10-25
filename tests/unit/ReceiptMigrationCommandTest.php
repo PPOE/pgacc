@@ -1,4 +1,5 @@
 <?php
+
 /*
  * migrate-receipt-key.php as a command: the default constants.php (the test
  * images install tests/runtime/test-constants.php there) and database; the
@@ -20,8 +21,11 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         $this->put('42.aes', receipt_encrypt('1003', '', $receipt));
         $command = function ($arguments) use ($script) {
             $descriptors = array(1 => array('pipe', 'w'), 2 => array('pipe', 'w'));
-            $process = proc_open(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' ' . $arguments,
-                $descriptors, $pipes);
+            $process = proc_open(
+                escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' ' . $arguments,
+                $descriptors,
+                $pipes
+            );
             $output = stream_get_contents($pipes[1]);
             $errors = stream_get_contents($pipes[2]);
             fclose($pipes[1]);
@@ -30,8 +34,10 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         };
         $fingerprint = self::fingerprint(self::TEST_KEY);
 
-        self::assertSame(array(2, '', "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"),
-            $command('--files=' . escapeshellarg($this->directory . '/missing')));
+        self::assertSame(
+            array(2, '', "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"),
+            $command('--files=' . escapeshellarg($this->directory . '/missing'))
+        );
 
         self::assertSame(array(0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy\n"
             . "1 migrated, 0 already migrated, 0 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
@@ -61,9 +67,12 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         fclose($v2);
         unlink($source);
         $this->put('901.aes', 'legacy file, kept');
-        $process = proc_open(escapeshellarg(PHP_BINARY) . ' -d memory_limit=16M '
+        $process = proc_open(
+            escapeshellarg(PHP_BINARY) . ' -d memory_limit=16M '
             . escapeshellarg(dirname(dirname(__DIR__)) . '/migrate-receipt-key.php') . ' --dry-run --files=' . escapeshellarg($files),
-            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes);
+            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes
+        );
         $output = stream_get_contents($pipes[1]);
         $errors = stream_get_contents($pipes[2]);
         fclose($pipes[1]);

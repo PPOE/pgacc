@@ -1,4 +1,5 @@
 <?php
+
 // Helpers for analyse.sh. Runs only inside the static-analysis image.
 //
 //   php findings.php phpcs-list REPORT.json PREFIX
@@ -101,7 +102,7 @@ if ($command === 'compare' && $argc === 4) {
         echo "NO LONGER REPORTED (remove from baseline): $line\n";
     }
     echo count($current), ' finding(s), ', count($baseline), ' baseline entr', count($baseline) === 1 ? 'y' : 'ies',
-        ', ', count($new), ' new, ', count($fixed), " no longer reported\n";
+    ', ', count($new), ' new, ', count($fixed), " no longer reported\n";
     exit($new || $fixed ? 1 : 0);
 }
 

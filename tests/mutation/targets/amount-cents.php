@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Issue #1: amounts with two decimals, also whole euros, and tabular digits
  * in the right-aligned table cells. report.php Anlage A printed the donation

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Form tokens (CSRF) and POST-only writes: the central check in index.php,
  * the token that checklogin() derives for the session, the POST-only column

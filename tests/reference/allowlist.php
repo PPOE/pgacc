@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Reviewed differences from the PHP 5 reference (tests/reference/php5/) that
  * the comparison accepts. Every other difference fails tests/reference/run.sh

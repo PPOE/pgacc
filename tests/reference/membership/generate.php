@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Regenerates adm_names.b64, the synthetic member list served by the
  * membership stub (server.php) in place of the membership system's

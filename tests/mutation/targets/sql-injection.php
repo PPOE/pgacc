@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Request values used in SQL: the voucher ID of the edit actions (approval,
  * approval reset, revision, receipt upload) accepts digits

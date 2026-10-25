@@ -1,4 +1,5 @@
 <?php
+
 /*
  * With short_open_tag disabled, a file that starts with "<?" is plain text:
  * including it prints its source and defines nothing. Checked in a separate

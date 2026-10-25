@@ -1,15 +1,15 @@
 <?php
+
 include "constants.php";
 require "vendor/autoload.php";
 require "functions.php";
 
 $dbconn = pg_connect("dbname=accounting");
-if ($dbconn === false)
-{
-  // No connection: pg_last_error() would throw; log the reason, show a fixed message.
-  $pgacc_connect_error = error_get_last();
-  error_log('pgacc: pg_connect failed: ' . ($pgacc_connect_error === null ? 'no error message' : $pgacc_connect_error['message']));
-  die('Verbindungsaufbau fehlgeschlagen');
+if ($dbconn === false) {
+    // No connection: pg_last_error() would throw; log the reason, show a fixed message.
+    $pgacc_connect_error = error_get_last();
+    error_log('pgacc: pg_connect failed: ' . ($pgacc_connect_error === null ? 'no error message' : $pgacc_connect_error['message']));
+    die('Verbindungsaufbau fehlgeschlagen');
 }
 
 $paydate = (intval(date('Y')) - 1) . "-10-01";
@@ -18,10 +18,10 @@ $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_
 $i = 0;
 $text = "";
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-  $i++;
-  $text .= $line['member_id']."\t".$line['amount']."\t".date('Y')."-12-31\n";
+    $i++;
+    $text .= $line['member_id'] . "\t" . $line['amount'] . "\t" . date('Y') . "-12-31\n";
 }
-echo sha1($text)."\n";
+echo sha1($text) . "\n";
 $encrypted = base64_encode(membership_encrypt($datakey, $text));
 echo $encrypted;
 pg_free_result($result);

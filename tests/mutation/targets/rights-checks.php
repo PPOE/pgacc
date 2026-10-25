@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Organization scope of voucher writes: the rights that voucher creation and
  * revision pass to get_voucher() (default organization), the check of posted

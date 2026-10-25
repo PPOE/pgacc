@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Unit tests of tests/mutation/lib.php on PHPUnit 9.6 (PHP 7.4 and 8.5).
  * Run with: sh tests/mutation/run.sh <lane> --self-test
@@ -272,8 +273,10 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->assertSame(3, $inRegion['line']);
         $this->assertSame(array(2, 6), $inRegion['span']);
         $multiLineEnd = array('start' => 'function a(', 'end' => "}\nfunction c(");
-        $this->assertSame(array(2, 6), pgacc_mutation_apply($source,
-            self::mutation('a == 1', 'a != 1', $multiLineEnd))['span']);
+        $this->assertSame(array(2, 6), pgacc_mutation_apply(
+            $source,
+            self::mutation('a == 1', 'a != 1', $multiLineEnd)
+        )['span']);
         $crlf = pgacc_mutation_apply(str_replace("\n", "\r\n", $source), self::mutation('a == 1', 'a != 1', $region));
         $this->assertSame(array(2, 6), $crlf['span']);
     }
@@ -331,8 +334,10 @@ class LibTest extends PHPUnit\Framework\TestCase
             'new.txt' => array(array(1, 2)),
         ), pgacc_mutation_parse_diff($diff));
         $this->assertSame(array(), pgacc_mutation_parse_diff(''));
-        $this->assertSame(array('a.php' => array(array(2, 2))),
-            pgacc_mutation_parse_diff("diff --git a/a.php b/a.php\r\n--- a/a.php\r\n+++ b/a.php\r\n@@ -2 +2 @@\r\n-x\r\n+y\r\n"));
+        $this->assertSame(
+            array('a.php' => array(array(2, 2))),
+            pgacc_mutation_parse_diff("diff --git a/a.php b/a.php\r\n--- a/a.php\r\n+++ b/a.php\r\n@@ -2 +2 @@\r\n-x\r\n+y\r\n")
+        );
     }
 
     public function testLinesChangedChecksOverlapWithEveryRange()
@@ -364,10 +369,18 @@ class LibTest extends PHPUnit\Framework\TestCase
         $ranges = array('edit.php' => array(array(9, 12)), 'tests/write-workflows.php' => array(array(1, 500)));
         $selected = pgacc_mutation_select_changed($mutations, $applied, $ranges, 'tests/mutation/targets/t.php');
         $this->assertSame(array($mutations[0]), $selected);
-        $this->assertSame(array(), pgacc_mutation_select_changed($mutations, $applied,
-            array('tests/write-workflows.php' => array(array(1, 500))), 'tests/mutation/targets/t.php'));
-        $this->assertSame($mutations, pgacc_mutation_select_changed($mutations, $applied,
-            array('tests/mutation/targets/t.php' => array(array(3, 3))), 'tests/mutation/targets/t.php'));
+        $this->assertSame(array(), pgacc_mutation_select_changed(
+            $mutations,
+            $applied,
+            array('tests/write-workflows.php' => array(array(1, 500))),
+            'tests/mutation/targets/t.php'
+        ));
+        $this->assertSame($mutations, pgacc_mutation_select_changed(
+            $mutations,
+            $applied,
+            array('tests/mutation/targets/t.php' => array(array(3, 3))),
+            'tests/mutation/targets/t.php'
+        ));
         $this->assertSame(array(), pgacc_mutation_select_changed($mutations, $applied, array(), 'tests/mutation/targets/t.php'));
     }
 
@@ -387,23 +400,37 @@ class LibTest extends PHPUnit\Framework\TestCase
             pgacc_mutation_apply($source, LibTest::publicMutation('return 1;', 'return 2;'));
         }, 'found 2');
         $this->assertFails(function () use ($source) {
-            pgacc_mutation_apply($source, LibTest::publicMutation('function a', 'function x',
-                array('start' => 'function b(', 'end' => 'function c(')));
+            pgacc_mutation_apply($source, LibTest::publicMutation(
+                'function a',
+                'function x',
+                array('start' => 'function b(', 'end' => 'function c(')
+            ));
         }, 'not found in the region');
         $this->assertFails(function () use ($source) {
-            pgacc_mutation_apply($source, LibTest::publicMutation('return 1;', 'return 2;',
-                array('start' => 'function', 'end' => 'function c(')));
+            pgacc_mutation_apply($source, LibTest::publicMutation(
+                'return 1;',
+                'return 2;',
+                array('start' => 'function', 'end' => 'function c(')
+            ));
         }, 'region start marker must occur exactly once, found 3');
         $this->assertFails(function () use ($source) {
-            pgacc_mutation_apply($source, LibTest::publicMutation('return 1;', 'return 2;',
-                array('start' => 'function b(', 'end' => 'missing')));
+            pgacc_mutation_apply($source, LibTest::publicMutation(
+                'return 1;',
+                'return 2;',
+                array('start' => 'function b(', 'end' => 'missing')
+            ));
         }, 'region end marker must occur exactly once, found 0');
         $this->assertFails(function () use ($source) {
-            pgacc_mutation_apply($source, LibTest::publicMutation('return 1;', 'return 2;',
-                array('start' => 'function c(', 'end' => 'function b(')));
+            pgacc_mutation_apply($source, LibTest::publicMutation(
+                'return 1;',
+                'return 2;',
+                array('start' => 'function c(', 'end' => 'function b(')
+            ));
         }, 'end marker precedes the start marker');
-        $crlf = pgacc_mutation_apply(str_replace("\n", "\r\n", $source),
-            self::mutation('return 1;', 'return 2;', array('start' => "1; }\r\nfunction b(", 'end' => 'function c(')));
+        $crlf = pgacc_mutation_apply(
+            str_replace("\n", "\r\n", $source),
+            self::mutation('return 1;', 'return 2;', array('start' => "1; }\r\nfunction b(", 'end' => 'function c('))
+        );
         $this->assertSame(2, $crlf['line']);
     }
 

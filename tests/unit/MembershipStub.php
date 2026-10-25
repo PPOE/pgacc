@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Controls the membership stub of compose.test.yaml
  * (tests/reference/membership/server.php) from the unit tests: getUsers()

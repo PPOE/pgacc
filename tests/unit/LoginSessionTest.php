@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Login session helpers in functions.php: CSPRNG bytes with their fallback,
  * the session key derived from $key, the users.cookie nonce, the

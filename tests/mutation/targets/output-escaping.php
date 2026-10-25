@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Output encoding (security fix): html_escape() and listing_text() in
  * functions.php, the CSV cell serialization in tag() (formula and quote

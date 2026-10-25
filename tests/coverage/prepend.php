@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Test-only auto_prepend_file for the PHP 7.4 coverage lane.
  *

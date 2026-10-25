@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Encrypted receipts and the membership export over HTTP: receipt upload
  * (new.php), PDF import (import2.php), receipt download (file.php) and

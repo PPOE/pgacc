@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Login/logout response regressions: status, Location, authentication cookies
  * (values and attributes), the database login state, and the login form.
@@ -305,10 +306,12 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
 check('missing user rejects the dummy token', not_authenticated_problems(array(
     'pp_pgacc_id' => '999999', 'pp_pgacc_login' => expected_login_token(0, 0, ''),
 )));
-$duplicateSessions = pg_query(database_connection(),
+$duplicateSessions = pg_query(
+    database_connection(),
     "INSERT INTO users (id, name, login, cookie, rights, hide) VALUES
      (59, 'synthetic-session-decoy', now(), 101, '2', ''),
-     (59, 'synthetic-session-match', now(), 102, '2', '') RETURNING cookie, login");
+     (59, 'synthetic-session-match', now(), 102, '2', '') RETURNING cookie, login"
+);
 if ($duplicateSessions === false || pg_num_rows($duplicateSessions) !== 2) {
     fail_test('could not create the synthetic duplicate-id sessions');
 }

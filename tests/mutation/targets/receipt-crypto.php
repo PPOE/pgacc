@@ -1,4 +1,5 @@
 <?php
+
 /*
  * The mcrypt replacement in functions.php (Rijndael-256 CBC, zero padding)
  * and its five call sites: receipt upload (new.php), PDF import

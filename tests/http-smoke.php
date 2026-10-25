@@ -1,4 +1,5 @@
 <?php
+
 require __DIR__ . '/http-test-helpers.php';
 
 $report = http_request('/index.php?year=2024');

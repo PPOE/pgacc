@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Checks of every imported bank CSV line (import.php): the date must be a
  * date and the organization one the user may use (organization_allowed());

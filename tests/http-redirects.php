@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Redirects that must be answered before any output: the login redirect of
  * every protected page for visitors who are not logged in (CSV listings and

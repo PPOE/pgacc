@@ -1,4 +1,5 @@
 <?php
+
 /*
  * getUsers() (getusers.php) against synthetic membership-system responses,
  * served by the membership stub of compose.test.yaml over verified HTTPS

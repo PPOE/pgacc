@@ -1,4 +1,5 @@
 <?php
+
 /*
  * rights2orgasql() in functions.php: privilege checks, exact role matching,
  * numeric validation, single-organization handling, SQL restrictions, and

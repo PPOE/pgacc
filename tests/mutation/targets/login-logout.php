@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Login and logout handling: login() in index.php (password check, session
  * cookies, redirect target), the session check of checklogin(), the logout
