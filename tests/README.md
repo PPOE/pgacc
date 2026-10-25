@@ -88,6 +88,14 @@ constraints; no backup table, owners, permissions, credentials or rows).
   totals, report type mapping and review-progress counts.
 - `http-smoke.php`: public report, transactions, spendings, rejected and
   successful login, an authenticated ledger request.
+- `http-page-views.php`: a plain GET of every page in the `index.php`
+  `?action=` dispatch and of every link of the public and the logged-in menu,
+  plus the year links (report, donations) and account links (tinyreport,
+  vreport) these pages offer, as a `root,bgf`, a `bgf` and a suborganization
+  user and anonymously. Any PHP diagnostic, fatal error or HTTP status other
+  than 200 or a redirect fails; the account reports must show both tables.
+  `?action=transfer` and `?action=closed` are attributed to the known failures
+  `KF-TRANSFER-UNDEFINED-FUNCTION` and `KF-CLOSED-MISSING-COLUMNS`.
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line
@@ -229,9 +237,8 @@ the CSV export keeps the raw text, prefixes formula and quoted cells (`=`,
 breaks from splitting cells. Forms shown again from posted values keep
 quotes and backslashes as entered, and saving stores them unchanged. It removes its rows afterwards. Pages
 with known diagnostics outside its scope are attributed to the known
-failures `KF-AMOUNT-FILTER-REGEX`, `KF-WK-UNDEFINED-YEAR`, `KF-NEW-UNDEFINED-BGFANDACK`, `KF-ACCOUNTS-QUERY-ERROR` (the warning of the deliberately failing user query) and
-`KF-REPORT-UNDEFINED-UNIT` (see `COMPATIBILITY_PLAN.md`), which must still
-occur.
+failures `KF-CLOSED-MISSING-COLUMNS`, `KF-AMOUNT-FILTER-REGEX` and `KF-ACCOUNTS-QUERY-ERROR` (the warning of the deliberately failing user query)
+(see `COMPATIBILITY_PLAN.md`), which must still occur.
 
 ### PHP diagnostics are failures
 

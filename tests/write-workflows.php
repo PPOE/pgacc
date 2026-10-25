@@ -709,8 +709,7 @@ assert_database_field(
     'voucher without organization of trailing-space rights'
 );
 $spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
-// (The voucher form of the edit page; the new-voucher page raises the open
-// $bgfandack finding.)
+// (The voucher form of the edit page.)
 // The rights SQL trims the rights too: '1, bgf' reads every organization,
 // as it may write to every one.
 $optionsDraftId = create_voucher_from_form(

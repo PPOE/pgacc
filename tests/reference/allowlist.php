@@ -46,38 +46,6 @@ return array(
 
     // ---------------------------------------------------------------- todo
     array(
-        'id' => 'RD-PHP8-COUNT-NULL-IMPORT',
-        'php' => array('8.5'),
-        'files' => 'http/import*-form*.txt',
-        'lines' => '/^[-+]/',
-        'reason' => 'PHP 8 count() on null throws TypeError (import.php:27 and import2.php:24 without an upload): HTTP 500 instead of the page. Fix in the PHP 8 track.',
-        'category' => 'todo',
-    ),
-    array(
-        'id' => 'RD-PHP8-COUNT-NULL-IMPORT-SQL',
-        'php' => array('8.5'),
-        'files' => 'sql/import*-form*.sql',
-        'lines' => '/^-(DROP TABLE IF EXISTS ppmembers;|SELECT \\* FROM users WHERE id = \\d+ AND login > now\\(\\) - \\x2724 hours\\x27::interval)$/',
-        'reason' => 'PHP 8 count() on null throws TypeError (import.php:27 and import2.php:24 without an upload): HTTP 500 instead of the page. Fix in the PHP 8 track. import.php no longer drops ppmembers.',
-        'category' => 'todo',
-    ),
-    array(
-        'id' => 'RD-PHP8-COUNT-NULL-IMPORT-DB',
-        'php' => array('8.5'),
-        'files' => 'db/import-*.txt',
-        'lines' => '/^([-+]\\(absent before and after\\)|\\+\\((unchanged|dropped|created)\\)( id\\tname\\tlo\\tpaid)?|\\+[-+] 90\\d\\d\\t.*)$/',
-        'reason' => 'PHP 8 count() on null throws TypeError (import.php:27 and import2.php:24 without an upload): HTTP 500 instead of the page. Fix in the PHP 8 track. ppmembers is created/dropped at the next import instead.',
-        'category' => 'todo',
-    ),
-    array(
-        'id' => 'RD-PHP8-COUNT-NULL-MANIFEST',
-        'php' => array('8.5'),
-        'files' => 'manifest.txt',
-        'lines' => '/^[-+](import-form|import-form-unitone|import2-form)\\t\\w+\\tGET \\/index\\.php\\?action=import2?\\t(200|500)$/',
-        'reason' => 'PHP 8 count() on null throws TypeError (import.php:27 and import2.php:24 without an upload): HTTP 500 instead of the page. Fix in the PHP 8 track.',
-        'category' => 'todo',
-    ),
-    array(
         'id' => 'RD-INTVAL-EXPONENT-VALUES',
         'php' => array('7.4', '8.5'),
         'files' => 'helpers/idioms-values.txt',

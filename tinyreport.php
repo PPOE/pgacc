@@ -2,6 +2,7 @@
 function tiny_report($konto,$date_begin,$date_end)
 {
   global $realtype_req,$dbconn;
+  $unit = -1; // all units; $unit_s is not used in the queries
   $cond = " AND account LIKE '$konto%' ";
   if (strpos($konto,",") !== false)
   {
@@ -89,7 +90,7 @@ echo '
 function page_tinyreport($rights)
 {
   global $dbconn;
-  if (strlen($rights) > 0)
+  if (strlen($rights ?? '') > 0)
   {
 $query2 = "SELECT account FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY account ORDER BY account";
 $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));

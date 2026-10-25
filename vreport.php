@@ -87,6 +87,7 @@ function v_graph($konto, $date_begin, $date_end)
 function v_report($konto,$date_begin,$date_end)
 {
   global $realtype_req,$dbconn;
+  $unit = -1; // all units; $unit_s is not used in the queries
   $cond = " AND vaccount LIKE '$konto%' ";
   if (strpos($konto,",") !== false)
   {

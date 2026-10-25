@@ -44,7 +44,7 @@ function page_import($rights)
     'application/x-csv'
   );
 
-  for ($i = 0; $i < count($_FILES['uploadcsv']['name']); $i++)
+  for ($i = 0; isset($_FILES['uploadcsv']['name']) && $i < count($_FILES['uploadcsv']['name']); $i++)
   {
     if (strlen($_FILES['uploadcsv']['name'][$i]) <= 0)
     {
