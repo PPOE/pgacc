@@ -23,7 +23,7 @@ function page_import2_process($rights)
   );
 
   block_start();
-  for($i=0; $i < count($_FILES['upload']['name']); $i++)
+  for($i=0; isset($_FILES['upload']['name']) && $i < count($_FILES['upload']['name']); $i++)
   {
     echo "Datei ".($i+1)." (".html_escape($_FILES['upload']['name'][$i])."):<br />";
     if (strlen($_FILES['upload']['name'][$i]) <= 0)

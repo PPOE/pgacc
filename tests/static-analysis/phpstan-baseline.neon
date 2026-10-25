@@ -85,12 +85,6 @@ parameters:
 			path: ../../new.php
 
 		-
-			message: '#^Undefined variable\: \$bgfandack$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../new.php
-
-		-
 			message: '#^Variable \$file_number might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
@@ -109,19 +103,13 @@ parameters:
 			path: ../../new.php
 
 		-
-			message: '#^Variable \$unit might not be defined\.$#'
-			identifier: variable.undefined
-			count: 8
+			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 4
 			path: ../../tinyreport.php
 
 		-
-			message: '#^Variable \$unit might not be defined\.$#'
-			identifier: variable.undefined
-			count: 8
+			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 4
 			path: ../../vreport.php
-
-		-
-			message: '#^Undefined variable\: \$year$#'
-			identifier: variable.undefined
-			count: 7
-			path: ../../wk.php

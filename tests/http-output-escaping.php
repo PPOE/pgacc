@@ -216,20 +216,13 @@ foreach (array('ack1', 'ack2', 'ackold1', 'ackold2', 'contra', 'account', 'comme
     assert_escaped($edit, $field, 'edit');
 }
 
-// The new-voucher form reads the undefined $bgfandack (end_of_form()).
-function new_form($admin, $form)
-{
-    return with_expected_diagnostics('KF-NEW-UNDEFINED-BGFANDACK', array(array('new.php', 'Undefined variable')), function () use ($admin, $form) {
-        return page('/index.php?action=new', $admin, 'POST', $form);
-    });
-}
 // Forms re-rendered from the posted values show them as entered: a quote
 // and a backslash are not doubled by the SQL escaping of get_voucher().
 $entered = "O'Brien \\ Ö & <b>";
 $enteredHtml = 'O&#039;Brien \\ Ö &amp; &lt;b&gt;';
 $posted = array('parts' => '1', 'add' => 'Buchungszeile hinzufügen', 'name0' => $entered, 'street0' => $entered, 'plz0' => $entered,
     'city0' => $entered, 'comment0' => $entered, 'commentgf0' => $entered);
-$newForm = new_form($admin, $posted);
+$newForm = page('/index.php?action=new', $admin, 'POST', $posted);
 $editForm = page('/index.php?action=edit&id=9001', $admin, 'POST', array_merge($posted, array('changed' => '1', 'id' => '9001')));
 foreach (array('new' => $newForm, 'edit' => $editForm) as $label => $form) {
     foreach (array('name0', 'street0', 'plz0', 'city0', 'comment0', 'commentgf0') as $input) {
@@ -240,7 +233,7 @@ foreach (array('new' => $newForm, 'edit' => $editForm) as $label => $form) {
 
 // A removed part shows the next part's posted values.
 $removedPost = array('parts' => '2', 'remove' => '0', 'name1' => $entered);
-$newRemoved = new_form($admin, $removedPost);
+$newRemoved = page('/index.php?action=new', $admin, 'POST', $removedPost);
 $editRemoved = page('/index.php?action=edit&id=9001', $admin, 'POST', array_merge($removedPost, array('changed' => '1', 'id' => '9001')));
 foreach (array('new' => $newRemoved, 'edit' => $editRemoved) as $label => $form) {
     assert_contains($form, 'name="name0" value="' . $enteredHtml . '" onchange="clicked();" />', "$label form after removing a part");
@@ -301,9 +294,7 @@ assert_contains($campaign, '<h3><a name="Piratenpartei ' . escaped('oo') . '">Pi
 assert_contains($campaign, '<tr><td>' . escaped('type-wk') . '</td><td>', 'report campaign type');
 assert_contains($report, '<tr><td><b>' . escaped('ptdescription') . '</b></td>', 'report Anlage A');
 
-$wk = with_expected_diagnostics('KF-WK-UNDEFINED-YEAR', array(array('wk.php', 'Undefined variable')), function () {
-    return page('/index.php?action=wk&print_empty=1');
-});
+$wk = page('/index.php?action=wk&print_empty=1');
 foreach (array('type-in', 'type-out', 'type-wk', 'type11', 'lo', 'oo') as $field) {
     assert_escaped($wk, $field, 'wk');
 }
@@ -334,9 +325,7 @@ $spendingsCsv = page('/index.php?action=spendings&format=csv');
 assert_contains($spendingsCsv, "\n9002\t2024-07-02\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\t-2,00€\t" . payload('spendname') . "\t\n", 'spendings CSV row');
 assert_contains($spendingsCsv, "\n9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\t-4,00€\t'+cmd|x\t\n", 'spendings CSV formula');
 
-$vreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('vreport.php', 'Undefined variable')), function () {
-    return page('/index.php?action=vreport&konto=TEST');
-});
+$vreport = page('/index.php?action=vreport&konto=TEST');
 assert_contains($vreport, '<li><a href="vreport?konto=' . rawurlencode(payload('vaccount')) . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
 assert_contains($vreport, "<li><a href=\"vreport?konto=TEST-%C3%84%C3%96%C3%9C\">Konto 'TEST-ÄÖÜ'</a></li>", 'vreport account with umlauts');
 assert_contains($vreport, "<li><a href=\"vreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'vreport account with URL characters');
@@ -344,9 +333,7 @@ assert_contains($vreport, "<li><a href=\"vreport?konto=\">Konto ''</a></li>", 'v
 foreach (array('vaccount', 'type-in', 'type-out') as $field) {
     assert_escaped($vreport, $field, 'vreport');
 }
-$tinyreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('tinyreport.php', 'Undefined variable')), function () use ($admin) {
-    return page('/index.php?action=tinyreport&konto=TEST', $admin);
-});
+$tinyreport = page('/index.php?action=tinyreport&konto=TEST', $admin);
 assert_contains($tinyreport, '<li><a href="tinyreport?konto=' . rawurlencode(payload('account')) . '">Konto \'' . escaped('account') . '\'</a></li>', 'tinyreport account');
 assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'tinyreport account with URL characters');
 assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=\">Konto ''</a></li>", 'tinyreport line without account');

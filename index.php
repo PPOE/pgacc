@@ -327,11 +327,11 @@ else if ($page == "transfer")
 }
 else if ($page == "kdonations")
 {
-  page_kdonations(intval($_GET["year"]));
+  page_kdonations(intval($_GET["year"] ?? 0));
 }
 else if ($page == "donations")
 {
-  page_donations(intval($_GET["year"]));
+  page_donations(intval($_GET["year"] ?? 0));
 }
 else if ($page == "deleted")
 {

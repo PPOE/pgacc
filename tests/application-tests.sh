@@ -27,6 +27,7 @@ fi
 test_status=0
 php --version | head -n 1
 php tests/http-smoke.php || test_status=1
+php tests/http-page-views.php || test_status=1
 php tests/http-login.php || test_status=1
 php tests/http-session-lifecycle.php || test_status=1
 php tests/http-listing-prefs.php || test_status=1

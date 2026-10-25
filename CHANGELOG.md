@@ -9,6 +9,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Logging in without a login target no longer ends on a blank page (empty
   redirect).
+- The import pages (`?action=import`, `?action=import2`) show the upload form
+  again on PHP 8.5 instead of failing with a fatal error when no file was
+  uploaded.
+- Plain views of the new-voucher, search, donations, in-kind donations,
+  campaign, account and virtual account pages and of a receipt link without ID
+  no longer raise PHP warnings.
 
 ## [2.0.0] - 2026-10-25
 

@@ -689,7 +689,7 @@ for ($i = 0; $i < $parts; $i++)
 	page_new_buchung($i, $part_to_remove, $rights, $add);
 }
 
-end_of_form($parts,$rights,$bgfandack,$rights,true,false);
+end_of_form($parts,$rights,false,$rights,true,false);
 }
 
 function end_of_form($parts,$rights,$bgfandack,$lo,$open = true,$ack = true)

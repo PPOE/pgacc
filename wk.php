@@ -129,6 +129,7 @@ echo '
 function page_wk()
 {
 global $dbconn;
+$year = null; // wk_unit_report() does not use it
 echo '<h1>Vorläufige Wahlkampfabrechnungen</h1><br>';
 echo 'Bei den nachfolgenden Wahlkampfabrechnungen handelt es sich um vorläufige Wahlkampfabrechnungen die sich noch leicht verändern können bis 100% der Buchungen im betroffenen Zeitraum im 4-Augen-Prinzip bestätigt wurden.<br />
 <ul>
