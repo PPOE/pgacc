@@ -1400,6 +1400,12 @@ Recommendation (owner decision):
   line, break `git blame`, and shift the line numbers that the diagnostics
   baseline and mutation targets depend on.
 
+- [ ] `.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
+  changelog says short tags are no longer needed (the
+  `Generic.PHP.DisallowShortOpenTag` sniff keeps them out). Decide whether to
+  drop the line (a runtime configuration change, separate from tooling); until
+  then `tests/coverage/token-equivalence.sh` checks both settings.
+
 ### Deferred tooling improvements
 
 Proposals from the development-workflow review; not implemented.

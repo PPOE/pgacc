@@ -373,6 +373,26 @@ changed top-level PHP file missing from the report is an error. Uncovered
 branches on changed lines are warnings (`PGACC_COVERAGE_STRICT_BRANCHES=1`
 makes them fail).
 
+Whitespace-only changes are not gated. `changed-lines.sh` (and the mutation
+runner's `--changed-since`, `tests/mutation/changed-diff.sh`) leave out every
+PHP file modified in place that `tests/coverage/token-equivalence.sh` proves
+token-equivalent to the merge base (`token-equivalence.php`): the same
+`token_get_all()` stream apart from `T_WHITESPACE`, the blanks around
+`<?php`/`?>` and the indentation of `//`/`#`/`/* */` comment lines, under both
+`short_open_tag=0` and `=1` (the application enables short tags). Inline
+HTML, string literals, heredoc/nowdoc content and doc comments are compared
+byte for byte; files using `__LINE__` are never equivalent; renamed, copied,
+added and deleted files are always gated. The checker runs only on PHP 8.5+
+with the tokenizer (host `php8.5`, else the pinned `php:8.5-cli` image); if it
+cannot run, every changed file is gated, with a warning.
+`--allow-crlf-to-lf` (or `PGACC_TOKEN_EQUIVALENCE_ALLOW_CRLF=1`) additionally
+accepts CRLF becoming LF inside strings and inline HTML; it exists for the
+one-time line-ending conversion of the formatting pull request and is not
+used otherwise. Prove a whole diff with
+`sh tests/coverage/token-equivalence.sh --check <base>`; its self-test,
+`sh tests/coverage/token-equivalence.sh --self-test`, runs in CI's
+static-analysis job.
+
 Check the log: each changed file must print
 `<file>: N changed executable lines, all covered`. An exit status of 0 without
 that line means the gate did not run on your change.
