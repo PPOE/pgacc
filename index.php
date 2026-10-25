@@ -95,7 +95,7 @@ function checklogin($get = 'name', $redir = true)
                 continue;
             $user_id = $line['id'];
             $csrf_token = csrf_session_token($line['id'], $line['cookie'], $line['login']);
-            $hide_cols = explode(",", $line['hide']);
+            $hide_cols = explode(",", $line['hide'] ?? '');
             foreach ($hide_cols as $col) {
                 if (intval($col) > 0)
                     $user_prefs_hide[$col] = 1;
@@ -119,7 +119,7 @@ function checklogin($get = 'name', $redir = true)
 
 $page = "index";
 if (isset($_GET["action"])) {
-    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","transfer","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
+    if (in_array($_GET["action"], ["new","search","all","mb","open","transactions","spendings","closed","edit","kdonations","donations","deleted","impressum","recover","import","import2","accounts","login","logout","file","merge","statistics","wk","vreport","tinyreport"]))
         $page = $_GET["action"];
     else $page = "report";
 
@@ -229,8 +229,6 @@ if (!$make_csv)
 
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
     $year = intval($_GET["year"]);
-} else if (isset($_GET["year"]) && preg_match('/^\d\d\d\d-\d$/', $_GET["year"]) == 1) {
-    $year = $_GET["year"];
 }
 
 if ($page == "all") {
@@ -260,8 +258,6 @@ if ($page == "all") {
     $rights = checklogin('rights');
     if (isset($_POST["speichern"]) && $_POST["speichern"] == "Speichern")
         page_new_save($rights);
-    else if (isset($_POST["ack"]))
-        page_new_ack($rights);
     else page_new($rights);
 } else if ($page == "transactions") {
     page_transactions();
@@ -270,8 +266,6 @@ if ($page == "all") {
     page_closed($rights);
 } else if ($page == "spendings") {
     page_spendings();
-} else if ($page == "transfer") {
-    page_transfer();
 } else if ($page == "kdonations") {
     page_kdonations(intval($_GET["year"] ?? 0));
 } else if ($page == "donations") {

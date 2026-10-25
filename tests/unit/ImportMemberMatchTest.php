@@ -135,4 +135,26 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             'empty name' => array('', 'Spende Synthetic'),
         );
     }
+
+    /**
+     * A missing CSV field (null) converts to an empty string without a
+     * deprecation; other fields are converted from ISO-8859-15.
+     */
+    public function testConvifOfNullIsEmptyAndDiagnosticFree()
+    {
+        $diagnostics = array();
+        set_error_handler(function ($type, $message) use (&$diagnostics) {
+            $diagnostics[] = "$type $message";
+            return true;
+        });
+        try {
+            $converted = convif(true, null);
+            $umlaut = convif(true, "\xE4");
+        } finally {
+            restore_error_handler();
+        }
+        self::assertSame('', $converted);
+        self::assertSame("\xC3\xA4", $umlaut);
+        self::assertSame(array(), $diagnostics);
+    }
 }

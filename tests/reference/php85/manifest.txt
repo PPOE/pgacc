@@ -35,7 +35,7 @@ report-year-invalid-anon	anon	GET /index.php?year=24	200
 report-print-empty-anon	anon	GET /index.php?year=2024&print_empty=1	200
 report-noeyes-anon	anon	GET /index.php?year=2024&noeyes=1	200
 report-unknown-action-anon	anon	GET /index.php?action=unknown	200
-transfer-anon	anon	GET /index.php?action=transfer	500
+transfer-anon	anon	GET /index.php?action=transfer	200
 transactions-anon	anon	GET /index.php?action=transactions	200
 transactions-csv-anon	anon	GET /index.php?action=transactions&format=csv	200
 transactions-filtered-anon	anon	GET /index.php?action=transactions&filter_date=2024&sort=amd	200

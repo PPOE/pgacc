@@ -47,26 +47,6 @@ function page_view($path, $cookies, $label)
     return $response;
 }
 
-// Known failures (tests/COMPATIBILITY_PLAN.md, owner decisions): page_transfer()
-// is defined nowhere, and page_closed() selects three columns too few.
-function page_view_known($path, $cookies, $label)
-{
-    $known = array(
-        '/index.php?action=transfer' => array('KF-TRANSFER-UNDEFINED-FUNCTION', 'index.php', 'page_transfer()'),
-        '/index.php?action=closed' => array('KF-CLOSED-MISSING-COLUMNS', 'closed.php', 'Undefined array key'),
-    );
-    if (!isset($known[$path])) {
-        return page_view($path, $cookies, $label);
-    }
-    list($id, $file, $message) = $known[$path];
-    if ($id === 'KF-CLOSED-MISSING-COLUMNS' && $cookies === array()) {
-        return page_view($path, $cookies, $label); // login redirect
-    }
-    return with_expected_diagnostics($id, array(array($file, $message)), function () use ($path, $cookies) {
-        return http_request($path, 'GET', array(), $cookies);
-    });
-}
-
 $page_view_problems = array();
 $users = array(
     'root,bgf' => login_user('synthetic-admin', 'correct-password'),
@@ -91,7 +71,7 @@ foreach ($users as $label => $cookies) {
         $path = key($paths);
         unset($paths[$path]);
         $seen[$path] = true;
-        $response = page_view_known($path, $cookies, $label);
+        $response = page_view($path, $cookies, $label);
         preg_match_all('/<a href="([^"]*)"/', $response['body'], $links);
         foreach ($links[1] as $href) {
             $next = page_view_path($href, $actions);
@@ -217,18 +197,29 @@ pg_close($database);
 $unknown = page_view('/index.php?action=unknown', array(), 'anonymous')['body'];
 assert_contains($unknown, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'unknown action');
 
-// A year with a suffix ("2024-1", accepted by index.php) is passed to the
-// report as a string (known failure): the arithmetic on it warns on PHP 8,
-// and the first query fails on the date '2024-1-01-01', which ends the page.
-$suffixed = with_expected_diagnostics('KF-REPORT-YEAR-SUFFIX', array(
-    array('report.php', 'A non-numeric value'),
-    array('report.php', 'invalid input syntax for type timestamp'),
-), function () {
-    return http_request('/index.php?year=2024-1');
-});
-assert_status($suffixed, 200, 'report of 2024-1');
-assert_contains($suffixed['body'], '<h1>Rechenschaftsbericht der Piratenpartei Österreichs 2024-1</h1>', 'report of 2024-1');
-assert_contains($suffixed['body'], 'Abfrage fehlgeschlagen: ERROR:  invalid input syntax for type timestamp: "2024-1-01-01"', 'report of 2024-1');
+// The removed transfer page (transfer.php, deleted in 2014) is an unknown
+// action like any other: the report, for visitors and logged-in users.
+foreach (array('anonymous', 'root,bgf') as $label) {
+    $transfer = page_view('/index.php?action=transfer', $users[$label], $label)['body'];
+    assert_contains($transfer, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', "transfer action ($label)");
+}
+
+// A year that is not four digits (here with a suffix, "2024-1") is invalid
+// input: the report of the current year, like a missing year.
+$suffixed = page_view('/index.php?year=2024-1', array(), 'anonymous')['body'];
+assert_contains($suffixed, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'report of 2024-1');
+assert_not_contains($suffixed, 'Abfrage fehlgeschlagen', 'report of 2024-1');
+
+// Array filter values ("filter_id[]") are ignored by getfilter() like other
+// invalid filter values: the unfiltered listing (CSV; the HTML listing
+// reflects the filters in its links, an open follow-up in the plan).
+$arrayFilters = '';
+foreach (array('filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_amount',
+    'filter_k', 'filter_vk', 'filter_text', 'filter_comment', 'filter_ack', 'filter_ack_old', 'filter_name') as $filter) {
+    $arrayFilters .= '&' . $filter . '%5B%5D=1';
+}
+$arrayListing = page_view('/index.php?action=all&format=csv' . $arrayFilters, $admin, 'root,bgf')['body'];
+assert_contains($arrayListing, "\tClosed donation\t", 'listing with array filter values');
 
 // Requests without X-Forwarded-Proto: https are redirected to https.
 $plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(

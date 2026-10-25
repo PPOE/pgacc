@@ -1690,15 +1690,48 @@ $titleRow = database_row(
 assert_database_field($titleRow, 'name', 'Dr. Synthetisch Bernd', 'member voucher with a title');
 assert_database_field($titleRow, 'member_id', '9002', 'member voucher with a title');
 
-// "ack" on the creation form calls page_new_ack(), which is defined nowhere
-// (known failure, tests/COMPATIBILITY_PLAN.md): a fatal error, nothing saved.
+// A member part without a member number and without a name looks up no
+// member: the voucher is saved with member number 0.
+$noNameForm = voucher_form('Synthetic voucher of a member without a name', '-1.80', 0);
+$noNameForm['member0'] = '1';
+$noNameForm['name0'] = '';
+$noNameVoucher = http_request('/index.php?action=new', 'POST', $noNameForm, $adminCookies);
+assert_contains($noNameVoucher['body'], 'Buchung erfasst', 'member voucher without a name');
+$noNameRow = database_row(
+    $database,
+    'SELECT name, member, member_id FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher of a member without a name'),
+    'member voucher without a name'
+);
+assert_database_field($noNameRow, 'name', '', 'member voucher without a name');
+assert_database_field($noNameRow, 'member', 't', 'member voucher without a name');
+assert_database_field($noNameRow, 'member_id', '0', 'member voucher without a name');
+
+// Array values ("bid0[]", "street0[]") are invalid input like other
+// malformed values: the defaults are saved.
+$arrayForm = voucher_form('Synthetic voucher with array values', '-1.70', 0);
+$arrayForm['bid0'] = array('1');
+$arrayForm['street0'] = array('Array Street');
+$arrayVoucher = http_request('/index.php?action=new', 'POST', $arrayForm, $adminCookies);
+assert_status($arrayVoucher, 200, 'voucher with array values');
+assert_contains($arrayVoucher['body'], 'Buchung erfasst', 'voucher with array values');
+$arrayRow = database_row(
+    $database,
+    'SELECT street, city FROM vouchers WHERE comment = $1',
+    array('Synthetic voucher with array values'),
+    'voucher with array values'
+);
+assert_database_field($arrayRow, 'street', '', 'voucher with array values');
+assert_database_field($arrayRow, 'city', 'Test City', 'voucher with array values');
+
+// "ack" on the creation form (which offers no such button; approvals are
+// made on the edit page) shows the form again: nothing is saved.
 $newAckForm = voucher_form('Synthetic creation with ack', '-1.00', 0);
 unset($newAckForm['speichern']);
 $newAckForm['ack'] = '1';
-$newAck = with_expected_diagnostics('KF-NEW-ACK-UNDEFINED-FUNCTION', array(array('index.php', 'page_new_ack()')), function () use ($newAckForm, $adminCookies) {
-    return http_request('/index.php?action=new', 'POST', $newAckForm, $adminCookies);
-});
+$newAck = http_request('/index.php?action=new', 'POST', $newAckForm, $adminCookies);
 assert_status($newAck, 200, 'ack on the creation form');
+assert_contains($newAck['body'], '<h1>Buchung erfassen</h1>', 'ack on the creation form');
 assert_not_contains($newAck['body'], 'Buchung erfasst', 'ack on the creation form');
 assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic creation with ack'), 0, 'ack on the creation form');
 

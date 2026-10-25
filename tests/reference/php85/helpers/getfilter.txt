@@ -75,7 +75,7 @@
 [GET array(string(9) "filter_id" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_id" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_id" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(9) "filter_id" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(9) "filter_id" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(10) "filter_bid" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(10) "filter_bid" => string(1) "0")] getfilter() returns string(11) " AND id = 0"
 [GET array(string(10) "filter_bid" => string(2) "00")] getfilter() returns string(12) " AND id = 00"
@@ -153,7 +153,7 @@
 [GET array(string(10) "filter_bid" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(10) "filter_bid" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(10) "filter_bid" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(10) "filter_bid" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(10) "filter_bid" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(11) "filter_date" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_date" => string(1) "0")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_date" => string(2) "00")] getfilter() returns string(0) ""
@@ -231,7 +231,7 @@
 [GET array(string(11) "filter_date" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_date" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_date" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(11) "filter_date" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(11) "filter_date" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(11) "filter_type" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_type" => string(1) "0")] getfilter() returns string(13) " AND type = 0"
 [GET array(string(11) "filter_type" => string(2) "00")] getfilter() returns string(14) " AND type = 00"
@@ -309,7 +309,7 @@
 [GET array(string(11) "filter_type" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_type" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_type" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(11) "filter_type" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(11) "filter_type" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(9) "filter_lo" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_lo" => string(1) "0")] getfilter() returns string(50) " AND orga = 0 AND lower(lo.name) LIKE lower('%0%')"
 [GET array(string(9) "filter_lo" => string(2) "00")] getfilter() returns string(52) " AND orga = 00 AND lower(lo.name) LIKE lower('%00%')"
@@ -387,7 +387,7 @@
 [GET array(string(9) "filter_lo" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_lo" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_lo" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(9) "filter_lo" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(9) "filter_lo" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(13) "filter_member" => string(0) "")] getfilter() returns string(12) " AND member "
 [GET array(string(13) "filter_member" => string(1) "0")] getfilter() returns string(12) " AND member "
 [GET array(string(13) "filter_member" => string(2) "00")] getfilter() returns string(12) " AND member "
@@ -543,7 +543,7 @@
 [GET array(string(16) "filter_member_id" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(16) "filter_member_id" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(16) "filter_member_id" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(16) "filter_member_id" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(16) "filter_member_id" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(9) "filter_gk" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_gk" => string(1) "0")] getfilter() returns string(29) " AND contra_account LIKE '0%'"
 [GET array(string(9) "filter_gk" => string(2) "00")] getfilter() returns string(30) " AND contra_account LIKE '00%'"
@@ -621,7 +621,7 @@
 [GET array(string(9) "filter_gk" => string(2) "@x")] getfilter() returns string(30) " AND contra_account LIKE '@x%'"
 [GET array(string(9) "filter_gk" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_gk" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(9) "filter_gk" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(9) "filter_gk" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(13) "filter_amount" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(13) "filter_amount" => string(1) "0")] getfilter() returns string(0) ""
 [GET array(string(13) "filter_amount" => string(2) "00")] getfilter() returns string(0) ""
@@ -699,7 +699,7 @@
 [GET array(string(13) "filter_amount" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(13) "filter_amount" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(13) "filter_amount" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(13) "filter_amount" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(13) "filter_amount" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(8) "filter_k" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(8) "filter_k" => string(1) "0")] getfilter() returns string(22) " AND account LIKE '0%'"
 [GET array(string(8) "filter_k" => string(2) "00")] getfilter() returns string(23) " AND account LIKE '00%'"
@@ -777,7 +777,7 @@
 [GET array(string(8) "filter_k" => string(2) "@x")] getfilter() returns string(23) " AND account LIKE '@x%'"
 [GET array(string(8) "filter_k" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(8) "filter_k" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(8) "filter_k" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(8) "filter_k" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(9) "filter_vk" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_vk" => string(1) "0")] getfilter() returns string(23) " AND vaccount LIKE '0%'"
 [GET array(string(9) "filter_vk" => string(2) "00")] getfilter() returns string(24) " AND vaccount LIKE '00%'"
@@ -855,7 +855,7 @@
 [GET array(string(9) "filter_vk" => string(2) "@x")] getfilter() returns string(24) " AND vaccount LIKE '@x%'"
 [GET array(string(9) "filter_vk" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(9) "filter_vk" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(9) "filter_vk" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(9) "filter_vk" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(11) "filter_text" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_text" => string(1) "0")] getfilter() returns string(37) " AND lower(comment) LIKE lower('%0%')"
 [GET array(string(11) "filter_text" => string(2) "00")] getfilter() returns string(38) " AND lower(comment) LIKE lower('%00%')"
@@ -933,7 +933,7 @@
 [GET array(string(11) "filter_text" => string(2) "@x")] getfilter() returns string(38) " AND lower(comment) LIKE lower('%@x%')"
 [GET array(string(11) "filter_text" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_text" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(11) "filter_text" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(11) "filter_text" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(14) "filter_comment" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_comment" => string(1) "0")] getfilter() returns string(39) " AND lower(commentgf) LIKE lower('%0%')"
 [GET array(string(14) "filter_comment" => string(2) "00")] getfilter() returns string(40) " AND lower(commentgf) LIKE lower('%00%')"
@@ -1011,7 +1011,7 @@
 [GET array(string(14) "filter_comment" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_comment" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_comment" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(14) "filter_comment" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(14) "filter_comment" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(11) "filter_comm" => string(0) "")] getfilter() returns string(15) " AND committed "
 [GET array(string(11) "filter_comm" => string(1) "0")] getfilter() returns string(15) " AND committed "
 [GET array(string(11) "filter_comm" => string(2) "00")] getfilter() returns string(15) " AND committed "
@@ -1167,7 +1167,7 @@
 [GET array(string(10) "filter_ack" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(10) "filter_ack" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(10) "filter_ack" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(10) "filter_ack" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(10) "filter_ack" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(14) "filter_ack_old" => string(0) "")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_ack_old" => string(1) "0")] getfilter() returns string(50) " AND (ack1_old LIKE '%0%' OR ack2_old LIKE '%0%') "
 [GET array(string(14) "filter_ack_old" => string(2) "00")] getfilter() returns string(52) " AND (ack1_old LIKE '%00%' OR ack2_old LIKE '%00%') "
@@ -1245,7 +1245,7 @@
 [GET array(string(14) "filter_ack_old" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_ack_old" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(14) "filter_ack_old" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(14) "filter_ack_old" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(14) "filter_ack_old" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(13) "filter_refund" => string(0) "")] getfilter() returns string(12) " AND refund "
 [GET array(string(13) "filter_refund" => string(1) "0")] getfilter() returns string(12) " AND refund "
 [GET array(string(13) "filter_refund" => string(2) "00")] getfilter() returns string(12) " AND refund "
@@ -1479,6 +1479,6 @@
 [GET array(string(11) "filter_name" => string(2) "@x")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_name" => string(2) "a%")] getfilter() returns string(0) ""
 [GET array(string(11) "filter_name" => string(3) "o'r")] getfilter() returns string(0) ""
-[GET array(string(11) "filter_name" => array(int(0) => string(1) "1"))] getfilter() THROWS TypeError
+[GET array(string(11) "filter_name" => array(int(0) => string(1) "1"))] getfilter() returns string(0) ""
 [GET array(string(10) "filter_ack" => string(1) "x", string(14) "filter_ack_old" => string(1) "y")] getfilter() returns string(92) " AND (ack1 LIKE '%x%' OR ack2 LIKE '%x%')  AND (ack1_old LIKE '%y%' OR ack2_old LIKE '%y%') "
 [GET array(string(11) "filter_type" => string(6) "Spende", string(9) "filter_lo" => string(1) "2", string(11) "filter_date" => string(7) "2024-02", string(13) "filter_amount" => string(2) ">0")] getfilter() returns string(191) " AND date >= '2024-02-01' AND date < TIMESTAMP '2024-02-01' + INTERVAL '1 month'  AND lower(type.name) LIKE lower('%Spende%') AND orga = 2 AND lower(lo.name) LIKE lower('%2%') AND amount >000"

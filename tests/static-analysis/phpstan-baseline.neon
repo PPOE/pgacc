@@ -55,18 +55,6 @@ parameters:
 			path: ../../index.php
 
 		-
-			message: '#^Function page_new_ack not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: ../../index.php
-
-		-
-			message: '#^Function page_transfer not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: ../../index.php
-
-		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
@@ -88,12 +76,6 @@ parameters:
 			message: '#^Variable \$file_number might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
-			path: ../../new.php
-
-		-
-			message: '#^Variable \$queries might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
 			path: ../../new.php
 
 		-

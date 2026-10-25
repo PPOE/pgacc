@@ -240,5 +240,17 @@ assert_html_listing(hide_listing($evenCookies, '1'), $referenceHtml, $moreHidden
 assert_csv_listing(listing($evenCookies, '&format=csv'), $referenceCsv, $moreHidden, 'even-column listing, stored with 1');
 assert_html_listing(hide_listing($evenCookies, '-1'), $referenceHtml, $evenHidden, 'even-column listing after hide=-1');
 
+// A user whose preference was never stored (users.hide NULL) hides no
+// column, without a diagnostic.
+$database = @pg_connect(pgacc_test_connection_string());
+if ($database === false || @pg_query($database, 'UPDATE users SET hide = NULL WHERE id = 1') === false) {
+    fail_test('could not clear the hide preference of synthetic-admin');
+}
+assert_html_listing(listing($adminCookies), $referenceHtml, array(), 'listing without a stored preference');
+if (@pg_query($database, "UPDATE users SET hide = '' WHERE id = 1") === false) {
+    fail_test('could not restore the hide preference of synthetic-admin');
+}
+pg_close($database);
+
 assert_no_unexpected_diagnostics();
 echo "Listing column preference tests passed\n";

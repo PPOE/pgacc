@@ -4,7 +4,7 @@ function convif($do, $data)
 {
     if (!$do)
         return $data;
-    return iconv('ISO-8859-15', 'UTF-8', $data);
+    return iconv('ISO-8859-15', 'UTF-8', $data ?? '');
 }
 // Reports a line that cannot be imported; the import stops there.
 // With $lineno the line is skipped (its number is part of the report).

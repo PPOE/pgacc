@@ -36,11 +36,11 @@ function csv_download_link($i = -1)
 function getfilter()
 {
     $filter = "";
-    if (isset($_GET['filter_id']) && preg_match('/^\d+$/', $_GET['filter_id']) == 1)
+    if (is_string($_GET['filter_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_id']) == 1)
         $filter .= " AND voucher_id = " . $_GET['filter_id'];
-    if (isset($_GET['filter_bid']) && preg_match('/^\d+$/', $_GET['filter_bid']) == 1)
+    if (is_string($_GET['filter_bid'] ?? null) && preg_match('/^\d+$/', $_GET['filter_bid']) == 1)
         $filter .= " AND id = " . $_GET['filter_bid'];
-    if (isset($_GET['filter_date'])) {
+    if (is_string($_GET['filter_date'] ?? null)) {
         if (preg_match('/^\d\d\d\d$/', $_GET['filter_date']) == 1) {
             $filter .= " AND date >= '" . $_GET['filter_date'] . "-01-01' AND date <= '" . $_GET['filter_date'] . "-12-31' ";
         } else if (preg_match('/^\d\d\d\d-\d\d$/', $_GET['filter_date']) == 1) {
@@ -49,45 +49,45 @@ function getfilter()
             $filter .= " AND date = '" . $_GET['filter_date'] . "' ";
         }
     }
-    if (isset($_GET['filter_type']) && preg_match('/^\d+$/', $_GET['filter_type']) == 1)
+    if (is_string($_GET['filter_type'] ?? null) && preg_match('/^\d+$/', $_GET['filter_type']) == 1)
         $filter .= " AND type = " . $_GET['filter_type'];
-    else if (isset($_GET['filter_type']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_type']) == 1)
+    else if (is_string($_GET['filter_type'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_type']) == 1)
         $filter .= " AND lower(type.name) LIKE lower('%" . $_GET['filter_type'] . "%')";
-    if (isset($_GET['filter_lo']) && preg_match('/^\d+$/', $_GET['filter_lo']) == 1)
+    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^\d+$/', $_GET['filter_lo']) == 1)
         $filter .= " AND orga = " . $_GET['filter_lo'];
-    if (isset($_GET['filter_lo']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_lo']) == 1)
+    if (is_string($_GET['filter_lo'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_lo']) == 1)
         $filter .= " AND lower(lo.name) LIKE lower('%" . $_GET['filter_lo'] . "%')";
     if (isset($_GET['filter_member']))
         $filter .= " AND member ";
-    if (isset($_GET['filter_member_id']) && preg_match('/^\d+$/', $_GET['filter_member_id']) == 1)
+    if (is_string($_GET['filter_member_id'] ?? null) && preg_match('/^\d+$/', $_GET['filter_member_id']) == 1)
         $filter .= " AND member_id = " . $_GET['filter_member_id'];
-    if (isset($_GET['filter_gk']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_gk']) == 1)
+    if (is_string($_GET['filter_gk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_gk']) == 1)
         $filter .= " AND contra_account LIKE '" . $_GET['filter_gk'] . "%'";
-    if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/', $_GET['filter_amount']) == 1)
+    if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+?$/', $_GET['filter_amount']) == 1)
         $filter .= " AND amount " . $_GET['filter_amount'] . "00";
-    else if (isset($_GET['filter_amount']) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
+    else if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^(>|>=|=|<|<=) *-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
         $filter .= " AND amount " . str_replace([".",","], ["",""], $_GET['filter_amount']);
-    else if (isset($_GET['filter_amount']) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
+    else if (is_string($_GET['filter_amount'] ?? null) && preg_match('/^*-?\d+((\.|,)(\d\d)?)?$/', $_GET['filter_amount']) == 1)
         $filter .= " AND amount = " . str_replace([".",","], ["",""], $_GET['filter_amount']);
-    if (isset($_GET['filter_k']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_k']) == 1)
+    if (is_string($_GET['filter_k'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_k']) == 1)
         $filter .= " AND account LIKE '" . $_GET['filter_k'] . "%'";
-    if (isset($_GET['filter_vk']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_vk']) == 1)
+    if (is_string($_GET['filter_vk'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_vk']) == 1)
         $filter .= " AND vaccount LIKE '" . $_GET['filter_vk'] . "%'";
-    if (isset($_GET['filter_text']) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_text']) == 1)
+    if (is_string($_GET['filter_text'] ?? null) && preg_match('/^[@äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_text']) == 1)
         $filter .= " AND lower(comment) LIKE lower('%" . $_GET['filter_text'] . "%')";
-    if (isset($_GET['filter_comment']) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_comment']) == 1)
+    if (is_string($_GET['filter_comment'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9,. ]+$/i', $_GET['filter_comment']) == 1)
         $filter .= " AND lower(commentgf) LIKE lower('%" . $_GET['filter_comment'] . "%')";
     if (isset($_GET['filter_comm']))
         $filter .= " AND committed ";
-    if (isset($_GET['filter_ack']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack']) == 1)
+    if (is_string($_GET['filter_ack'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack']) == 1)
         $filter .= " AND (ack1 LIKE '%" . $_GET['filter_ack'] . "%' OR ack2 LIKE '%" . $_GET['filter_ack'] . "%') ";
-    if (isset($_GET['filter_ack_old']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack_old']) == 1)
+    if (is_string($_GET['filter_ack_old'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_ack_old']) == 1)
         $filter .= " AND (ack1_old LIKE '%" . $_GET['filter_ack_old'] . "%' OR ack2_old LIKE '%" . $_GET['filter_ack_old'] . "%') ";
     if (isset($_GET['filter_refund']))
         $filter .= " AND refund ";
     if (isset($_GET['filter_bel']))
         $filter .= " AND file != 0 ";
-    if (isset($_GET['filter_name']) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_name']) == 1)
+    if (is_string($_GET['filter_name'] ?? null) && preg_match('/^[äöüÄÖÜa-z0-9 ]+$/i', $_GET['filter_name']) == 1)
         $filter .= " AND lower(vouchers.name) LIKE lower('%" . $_GET['filter_name'] . "%')";
     return $filter;
 }
@@ -465,7 +465,7 @@ function getoppsort($sortn)
 {
     if (isset($_GET["sort"])) {
         if ($_GET["sort"] == $sortn) {
-            $sortdir = substr($sortn, -1, 1);
+            $sortdir = substr($sortn ?? '', -1, 1);
             switch ($sortdir) {
                 case 'a':
                     return substr($sortn, 0, -1) . 'd';

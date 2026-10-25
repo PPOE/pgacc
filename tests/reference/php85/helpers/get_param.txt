@@ -470,13 +470,13 @@
 [POST array(string(7) "amount0" => string(4) "true")] get_param_bool(int(0), string(6) "amount", string(5) "false", string(19) "/^(in|out|wk|bel)$/", string(4) "true") returns string(5) "false"
 [POST array(string(7) "amount0" => string(4) "true")] get_param(int(0), string(6) "amount", string(7) "default", string(23) "/^-?\\d+((\\.|,)\\d\\d?)?$/") returns string(7) "default"
 [POST array(string(7) "amount0" => string(4) "true")] get_param_bool(int(0), string(6) "amount", string(5) "false", string(23) "/^-?\\d+((\\.|,)\\d\\d?)?$/", string(4) "true") returns string(5) "false"
-[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", false) returns array(int(0) => string(1) "1")
+[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", false) returns string(7) "default"
 [POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param_bool(int(0), string(6) "amount", string(5) "false", false, string(4) "true") returns string(4) "true"
-[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(7) "/^\\d+$/") THROWS TypeError
+[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(7) "/^\\d+$/") returns string(7) "default"
 [POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param_bool(int(0), string(6) "amount", string(5) "false", string(7) "/^\\d+$/", string(4) "true") THROWS TypeError
-[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(19) "/^(in|out|wk|bel)$/") THROWS TypeError
+[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(19) "/^(in|out|wk|bel)$/") returns string(7) "default"
 [POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param_bool(int(0), string(6) "amount", string(5) "false", string(19) "/^(in|out|wk|bel)$/", string(4) "true") THROWS TypeError
-[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(23) "/^-?\\d+((\\.|,)\\d\\d?)?$/") THROWS TypeError
+[POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param(int(0), string(6) "amount", string(7) "default", string(23) "/^-?\\d+((\\.|,)\\d\\d?)?$/") returns string(7) "default"
 [POST array(string(7) "amount0" => array(int(0) => string(1) "1"))] get_param_bool(int(0), string(6) "amount", string(5) "false", string(23) "/^-?\\d+((\\.|,)\\d\\d?)?$/", string(4) "true") THROWS TypeError
 [POST array()] get_param(int(0), string(6) "amount", null, false) returns null
 [POST array()] get_param(string(0) "", string(6) "amount", int(1), false) returns int(1)
