@@ -21,11 +21,8 @@ PostgreSQL 18 (owner decision, 2026-10-25):
 |---|---|
 | PHP 8.5 / PostgreSQL 18 (`compose.test.yaml` + `compose.coverage.yaml`) | The only lane: coverage and the changed-line gate, mutation runner, Infection, PHP 5 reference comparison. See [PHP 8.5 lane](#php-85-lane). |
 
-The PHP 5.3 / PostgreSQL 8.4 production-pair lane, the PHP 7.4 lanes (on 18
-and 8.4), the PHP 5.6 client image and the PostgreSQL 8.4 image were removed
-after 1.0.0; a 1.0.x hotfix needs the harness of the `php5-last` tag. Static
-analysis (PHPCompatibility 8.5-) and the lane's `php -l` of every top-level
-file replace a separate syntax matrix.
+The older PHP and PostgreSQL lanes were removed after 1.0.0; a 1.0.x hotfix
+needs the harness of the `php5-last` tag.
 
 `PGACC_TEST_ID` (lowercase letters, digits, `_`, `-`) is appended to the
 Compose project names and image tags, so concurrent runs (worktrees, agents)
@@ -203,9 +200,7 @@ the test container.
 
 ### PHPUnit
 
-`tests/unit/` runs on PHPUnit 9.6 (PHP 8.5). Some tests still avoid
-`finally` and other PHP 5.4+ constructs from the time they also ran on PHPUnit
-4.8 / PHP 5.3; that is not a requirement any more. Every configuration sets
+`tests/unit/` runs on PHPUnit 9.6 (PHP 8.5). Every configuration sets
 `error_reporting=-1`, so notices fail tests. The suite covers `functions.php` (utility,
 rendering and the two PostgreSQL helpers), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
@@ -283,11 +278,10 @@ the [mutation README](mutation/README.md).
 ## PostgreSQL
 
 The lane runs `postgres:18-bookworm` (digest in `compose.test.yaml`), the only
-supported server; `PGACC_TEST_PG` and the PostgreSQL 8.4 image
-(`tests/postgres84/`) were removed after 1.0.0. `tests/database-smoke.sh`,
-`database-characterization.sql`, the mutation runner (`tests/mutation/lib.php`)
-and the reference statement log still carry inert pre-9.x branches selected by
-`server_version_num`; removing them is a later cleanup.
+supported server. `tests/database-smoke.sh` loads `tests/fixtures/pgcrypto.sql`,
+`schema.sql`, `data.sql` and `database-characterization.sql` in one
+transaction; the mutation runner builds its template from the same list
+(`pgacc_mutation_fixture_files()` in `tests/mutation/lib.php`).
 
 ## Continuous integration
 
@@ -390,7 +384,7 @@ Check the log: each changed file must print
 `<file>: N changed executable lines, all covered`. An exit status of 0 without
 that line means the gate did not run on your change.
 
-The checker also runs on its own (PHP 5.6+ with SimpleXML) on any ranges:
+The checker also runs on its own (PHP with SimpleXML) on any ranges:
 
 ```bash
 sh tests/coverage/changed-lines.sh origin/main >changes.txt
@@ -427,9 +421,7 @@ recording has:
   seven synthetic users. Binary bodies are base64.
 - `sql/<step>.sql`: the request's SQL statements and errors from PostgreSQL's
   CSV statement log. The server sets `application_name=ref:<request id>`
-  through `PGAPPNAME` (`runtime/prepend.php`). PostgreSQL 8.4 has no
-  `application_name`: there the recorder attributes statements by connection
-  from the application server (one request at a time).
+  through `PGAPPNAME` (`runtime/prepend.php`).
 - `db/<step>.txt`: row changes (`-`/`+`) of every written table and sequences;
   `db/initial.txt` and `db/final.txt` are full sorted dumps.
 - `helpers/*.txt`: `helpers.php` runs the `functions.php` and page helpers and
@@ -495,7 +487,9 @@ analyses a copy of the 30 tracked top-level application files (no `vendor/`,
 `PGACC_TEST_ID` suffixes the image name.
 
 - **PHPCompatibility** (`phpcs.xml`): `testVersion` 8.5- plus
-  `Generic.PHP.DisallowShortOpenTag`. No formatting rules.
+  `Generic.PHP.DisallowShortOpenTag`. No formatting rules. It reports
+  deprecated functions, constants and casts, which PHPStan (without
+  extensions) does not.
 - **PHPStan** level 5 (`phpstan-common.neon`): undefined and possibly undefined
   variables, unknown functions, argument counts and types, invalid regular
   expressions. `phpVersion` is 8.5. It reads the locked `smalot/pdfparser` and
@@ -513,8 +507,7 @@ every `--update-baselines` diff like code. Fixing a finding that is also a
 A canary self-test runs first. `tests/static-analysis/canaries/` holds minimal
 copies of the bug classes found so far (`$ascii{$i}`, an uninitialized array,
 result-loop arrays, `$key` without `global`, optional-before-required
-parameters, a short open tag; the `[]`/`??` canaries of the former 5.3
-floor were removed with it); `curly-string-offset.php` is checked by
+parameters, a short open tag); `curly-string-offset.php` is checked by
 PHPCompatibility only, because with `phpVersion` 8.5 it is a PHPStan parse
 error that would leave the canary run incomplete;
 `canaries/expected.txt` names the finding each tool must report. A weakened

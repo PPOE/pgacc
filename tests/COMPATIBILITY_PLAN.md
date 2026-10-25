@@ -135,11 +135,15 @@ Harness follow-ups found in the first step (not done there):
   the branch report is advisory (`PGACC_COVERAGE_STRICT_BRANCHES=0`).
   Candidate fix: `-d opcache.enable=0` for the coverage server, which also
   makes compile-time deprecations appear on every request (owner decision).
-- [ ] Remove the inert pre-9.x PostgreSQL branches (`tests/database-smoke.sh`,
+- [x] Remove the inert pre-9.x PostgreSQL branches (`tests/database-smoke.sh`,
   `pgacc_mutation_fixture_files()`/`pgacc_mutation_drop_database_sql()`,
   `tests/fixtures/plpgsql-*.sql`, the reference statement log and
-  `PGACC_REFERENCE_PGOPTIONS` in `tests/reference/runtime/prepend.php`) and
-  the PHP 5.x remarks in test comments.
+  `PGACC_REFERENCE_PGOPTIONS` in `tests/reference/runtime/prepend.php`), the
+  PHP 5.x/7.x remarks and dead branches in the tests, the
+  `$http_response_header` fallback and the CI lane matrix. PHPCompatibility
+  stays: it reports deprecated functions, constants and casts that PHPStan
+  does not. The reference allowlist's `pg` key and `PGACC_TEST_PG` stay
+  until the reference is re-baselined.
 - [x] `csrf` added to the `ci.sh` list (all 14 targets).
 
 ## Completed and verified

@@ -2,7 +2,8 @@
 <ruleset name="pgacc-compatibility">
   <description>Correctness and PHP-version compatibility checks for pgacc. No formatting rules.</description>
 
-  <!-- After php5-last the application supports PHP 8.5 only. -->
+  <!-- After php5-last the application supports PHP 8.5 only. PHPCompatibility
+       reports deprecated functions, constants and casts, which PHPStan does not. -->
   <config name="testVersion" value="8.5-"/>
 
   <arg name="extensions" value="php"/>
