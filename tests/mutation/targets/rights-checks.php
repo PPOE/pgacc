@@ -100,8 +100,8 @@ return array(
         array(
             'id' => 'rights-tokens-delimiter-changed',
             'file' => 'functions.php',
-            'search' => "return array_map('trim', explode(\",\",",
-            'replace' => "return array_map('trim', explode(\";\",",
+            'search' => "return array_map(trim(...), explode(\",\",",
+            'replace' => "return array_map(trim(...), explode(\";\",",
             'rationale' => 'Rights are comma-separated.',
         ),
         array(
@@ -128,8 +128,8 @@ return array(
         array(
             'id' => 'rights-tokens-untrimmed',
             'file' => 'functions.php',
-            'search' => "return array_map('trim', explode(",
-            'replace' => "return array_map('strval', explode(",
+            'search' => "return array_map(trim(...), explode(",
+            'replace' => "return array_map(strval(...), explode(",
             'rationale' => 'Spaces around rights do not count ("bgf, root" has root).',
         ),
         array(

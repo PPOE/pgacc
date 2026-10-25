@@ -265,7 +265,7 @@ if ($page == "all") {
 } else if ($page == "spendings") {
     page_spendings();
 } else if ($page == "kdonations") {
-    page_kdonations(intval($_GET["year"] ?? 0));
+    page_kdonations();
 } else if ($page == "donations") {
     page_donations(intval($_GET["year"] ?? 0));
 } else if ($page == "deleted") {

@@ -11,7 +11,7 @@ function v_graph($konto, $date_begin, $date_end)
     echo '<script src="js/vreport-chart.js"></script>' . "\n";
 
     $cond = " AND vaccount LIKE '$konto%' ";
-    if (strpos($konto, ",") !== false) {
+    if (str_contains($konto, ",")) {
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND vaccount IN ($konto) ";
     }
@@ -35,7 +35,7 @@ function v_report($konto, $date_begin, $date_end)
 {
     global $realtype_req,$dbconn;
     $cond = " AND vaccount LIKE '$konto%' ";
-    if (strpos($konto, ",") !== false) {
+    if (str_contains($konto, ",")) {
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND vaccount IN ($konto)";
     }
@@ -110,7 +110,7 @@ function page_vreport($rights)
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     echo "<ul>";
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        $k = $line2['vaccount'] === null ? '' : $line2['vaccount'];
+        $k = $line2['vaccount'] ?? '';
         if ($rights == '' && is_numeric(str_replace([" ","AT"], ["",""], $k))) {
             $k = substr($line2['vaccount'], -3, 3);
         }

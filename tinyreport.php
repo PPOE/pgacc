@@ -4,7 +4,7 @@ function tiny_report($konto, $date_begin, $date_end)
 {
     global $realtype_req,$dbconn;
     $cond = " AND account LIKE '$konto%' ";
-    if (strpos($konto, ",") !== false) {
+    if (str_contains($konto, ",")) {
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
         $cond = " AND account IN ($konto)";
     }
@@ -79,7 +79,7 @@ function page_tinyreport($rights)
         echo "<ul>";
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             $k = $line2['account'];
-            echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? '' : $k)) . "\">Konto '" . html_escape($k) . "'</a></li>";
+            echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k ?? '')) . "\">Konto '" . html_escape($k) . "'</a></li>";
         }
         echo "</ul>";
         pg_free_result($result2);
