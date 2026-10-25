@@ -390,12 +390,14 @@ values, heredoc bodies, quoting and number spelling stay significant; files
 using `__LINE__` or `__halt_compiler()` never qualify, nor do renamed, added
 or deleted files. Any error is exit 2. Runtime: a host PHP 8.5 with
 `composer install -d tests/ast`, else the image of `tests/ast/Dockerfile`.
-Self-test: `sh tests/coverage/ast-equivalence.sh --self-test`. While
-`PGACC_SYNTAX_ONLY=1` is set (CI of the short-array pull request only; to be
-removed after its merge), `changed-lines.sh` and
-`tests/mutation/run.sh --changed-since` treat AST-equivalent files as
-unchanged; without it every changed line counts. The rules themselves run
-with the pinned Rector: `sh tests/rector/run.sh` (rules in
+Self-test: `sh tests/coverage/ast-equivalence.sh --self-test`. No gate uses
+it: the changed-line coverage gate and the mutation selection count every
+changed line. Opting in for a future syntax-only pull request is an owner
+decision: that pull request (and only it) wires the exemption in again, as
+the short-array step did (a flag set by CI on its pull request events;
+AST-equivalent files leave `changed-lines.sh` and
+`tests/mutation/run.sh --changed-since`), and a follow-up removes it right
+after the merge. The rules themselves run with the pinned Rector: `sh tests/rector/run.sh` (rules in
 `tests/rector/rector.php`), then `sh scripts/format.sh`.
 
 
