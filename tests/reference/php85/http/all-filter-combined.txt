@@ -1,0 +1,9 @@
+# step: all-filter-combined
+# request: GET /index.php?action=all&format=csv&filter_date=2024&filter_lo=1&filter_amount=%3E0&filter_text=donation as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (155 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+

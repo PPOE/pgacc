@@ -1,0 +1,13 @@
+# step: all-filter-amount-space
+# request: GET /index.php?action=all&format=csv&filter_amount=%3E%20100 as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (1040 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+2009	209	2012-11-01	Synthetic donation	Synthetic Piratenpartei Six	Nein	SYNTHETIC-209	TEST-ACCOUNT-6	TEST-VIRTUAL-6	500,05€	Wahlkampfspende		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Campaign Donor   	
+2011	211	2013-08-01	Synthetic in-kind donation	Synthetic Piratenpartei Six	Nein	SYNTHETIC-211	TEST-ACCOUNT-6	TEST-VIRTUAL-6	21474836,47€	NRW 2013 Sachspende		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic In-Kind Donor   	
+1001	101	2024-02-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-001	TEST-ACCOUNT-1	TEST-VIRTUAL-1	120,00€	Closed donation		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
+2016	216	2024-12-01	Synthetic internal transfer in	Synthetic National Unit	Nein		TEST-ACCOUNT-1		1000,00€	Umbuchung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Intern   	
+

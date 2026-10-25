@@ -1,0 +1,218 @@
+# step: wk-anon
+# request: GET /index.php?action=wk as anon
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (7450 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Wahlkampfkosten - Piratenpartei Österreichs</title>
+  <meta name="description" content="Wahlkampfabrechnungen der Piratenpartei Österreichs" />
+  <meta name="keywords" content="wahlkampf, wahlkampfkosten, wahlkampfabrechnung" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page wk">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk" class="selected">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+</div><br />
+<h1>Vorläufige Wahlkampfabrechnungen</h1><br>Bei den nachfolgenden Wahlkampfabrechnungen handelt es sich um vorläufige Wahlkampfabrechnungen die sich noch leicht verändern können bis 100% der Buchungen im betroffenen Zeitraum im 4-Augen-Prinzip bestätigt wurden.<br />
+<ul>
+<li><a href="#g2012">Graz 2012</a></li>
+<li><a href="#k2013">Kärnten 2013</a></li>
+<li><a href="#n2013">Niederösterreich 2013</a></li>
+<li><a href="#nrw2013">Natonalratswahl 2013 (Gesamt)</a></li>
+<li><a href="#nrwb2013">Natonalratswahl 2013 (Bund)</a></li>
+<li><a href="#nrwl2013">Natonalratswahl 2013 (Länder)</a></li>
+</ul>
+<h1><a name="g2012">Graz 2012</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td>Synthetic donation</td><td>500.05&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>500.05&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><a href="index.php?action=spendings&type=20&from=2012-09-28&to=2013-01-29&unit=6">Synthetic expense</a></td><td>-1234.56&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>-1234.56&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+<h1><a name="k2013">Kärnten 2013</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+<h1><a name="n2013">Niederösterreich 2013</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+<h1><a name="nrw2013">Nationalratswahl 2013 (Gesamt)</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><a href="index.php?action=kdonations&type=11&from=2013-06-13&to=2013-11-01&unit=-1">Synthetic in-kind donation</a></td><td>21474836.47&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>21474836.47&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><a href="index.php?action=spendings&type=20&from=2013-06-13&to=2013-11-01&unit=-1">Synthetic expense</a></td><td>-21474836.47&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>-21474836.47&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+<h1><a name="nrwb2013">Nationalratswahl 2013 (Bund)</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><a href="index.php?action=spendings&type=20&from=2013-06-13&to=2013-11-01&unit=10">Synthetic expense</a></td><td>-21474836.47&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>-21474836.47&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+<h1><a name="nrwl2013">Nationalratswahl 2013 (Länder)</a></h1>
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<br /><h2><a name="nrwSynthetic Piratenpartei Six2013" href="#Synthetic Piratenpartei Six">Synthetic Piratenpartei Six</a></h2>
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><a href="index.php?action=kdonations&type=11&from=2013-06-13&to=2013-11-01&unit=6">Synthetic in-kind donation</a></td><td>21474836.47&nbsp;€</td></tr>
+<tr><td><b>Summe</b></td><td>21474836.47&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+<h3><a name="Synthetic Piratenpartei Local">Synthetic Piratenpartei Local</a></h3>
+
+<table><tr><td>
+<h3>Einnahmen *</h3>
+<font size=1>* Einnahmen im Wahlkampfzeitraum. Diese beinhalten alle Wahlkampfspenden und Sachleistungen für den Wahlkampf, aber auch alle sonstigen Einnahmen im Wahlkampfzeitraum</font>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+<td>
+<h3>Ausgaben</h3>
+<table>
+<tr><td><b>Summe</b></td><td>0.00&nbsp;€</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</div>
+
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<a href="index.php?action=login">Login</a>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+

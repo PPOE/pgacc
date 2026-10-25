@@ -1,0 +1,15 @@
+# step: all-filter-type-id
+# request: GET /index.php?action=all&format=csv&filter_type=20 as admin
+status: 200
+header: Content-Encoding: UTF-8
+header: Content-type: text/csv; charset=UTF-8
+header: Content-Disposition: attachment; filename=all.csv
+--- body (1464 bytes) ---
+﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
+2008	208	2012-10-15	Synthetic expense	Synthetic Piratenpartei Six	Nein	SYNTHETIC-208	TEST-ACCOUNT-6	TEST-VIRTUAL-6	-1234,56€	Plakate Graz		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Campaign Printer   	
+2007	207	2012-12-31	Synthetic expense	Synthetic National Unit	Nein	SYNTHETIC-207	TEST-ACCOUNT-1	TEST-VIRTUAL-1	-0,01€	Year 2012 c		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier 2012   	
+2020	220	2024-03-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-220	AT606000050110117300		-12,34€	Lastschrift BG/000000220		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Statement Supplier   	
+1003	103	2024-04-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-003	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-50,00€	Closed expense with attachment		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Ja	Synthetic Supplier   	
+1004	105	2024-05-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-005	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-25,00€	Unreviewed expense		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Draft   	
+2019	219	2026-05-31	Synthetic expense	Synthetic Ünit Vier	Nein	SYNTHETIC-219	TEST-ACCOUNT-4	TEST-VIRTUAL-4	-0,99€	Büromaterial		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Supplier   	
+

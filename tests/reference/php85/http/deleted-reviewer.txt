@@ -1,0 +1,93 @@
+# step: deleted-reviewer
+# request: GET /index.php?action=deleted&filter_date=2024 as reviewer
+status: 200
+header: Content-type: text/html; charset=UTF-8
+--- body (11302 bytes) ---
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Rechenschaftsbericht - Piratenpartei Österreichs</title>
+  <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
+  <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="stylesheet" type="text/css" media="screen" href="gregor.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+</head>
+<body>
+<div id="content">
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+
+<div class="page deleted">
+<div class="main" id="default">
+<div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
+<a href="/">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="kdonations">Sachspenden</a>
+<a href="spendings">Ausgaben</a>
+<a href="wk">Wahlkampf</a>
+<a href="transactions">Kontobeweg.</a>
+<a href="vreport">Virt. Konten</a>
+<br /><a href="index.php?action=new">Erfassen</a><a href="index.php?action=import">Import</a><a href="index.php?action=import2">Belege Import</a><a href="index.php?action=open&filter_date=2026">Offen</a><a href="index.php?action=closed&filter_date=2026">Abgeschlossen</a><a href="index.php?action=all&filter_date=2026">Alles</a><a href="index.php?action=mb">Mitgliedsbeiträge</a><a href="index.php?action=tinyreport">Konten</a><a href="index.php?action=deleted&filter_date=2026" class="selected">Alte Rev.</a><a href="index.php?action=accounts">Benutzer</a></div><br />
+
+<div class="wiki motd">Hier finden sich alte Revisionen von Buchungszeilen. Buchungszeilen können zwar nicht gelöscht werden jedoch geändert, sofern sie noch nicht mittels Bestätigungen abgeschlossen wurden. Da Änderungen aber nachvollziehbar sein müssen werden bei einer Änderung alte Revisionen nicht verworfen sondern nur als &quot;gelöscht&quot; markiert. Abgeschlossene Buchungen können nicht verändert oder gelöscht werden.</div>
+
+<br style="clear: both;" />
+<div class="wiki use_terms">
+<table><tr><td><b><a href="index.php?action=deleted&amp;sort=idd&amp;filter_date=2024">Buchung</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="1"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=bida&amp;filter_date=2024">Buchungszeile</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="2"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=datea&amp;filter_date=2024">Datum</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="3"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=typea&amp;filter_date=2024">Art</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="4"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=loa&amp;filter_date=2024">LO</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="5"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=membera&amp;filter_date=2024">Mitglied</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="6"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=gka&amp;filter_date=2024">Fremdkonto</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="7"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=ka&amp;filter_date=2024">Konto</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="8"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=vka&amp;filter_date=2024">Virt.Konto</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="9"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=ama&amp;filter_date=2024">Betrag</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="10"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=texta&amp;filter_date=2024">Text</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="11"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=commenta&amp;filter_date=2024">Kommentar</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="12"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=comma&amp;filter_date=2024">Gewidmet</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="13"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=acka&amp;filter_date=2024">Bestätigt</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="14"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=acka_old&amp;filter_date=2024">Best. alt</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="15"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=refunda&amp;filter_date=2024">Rück.</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="16"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=bela&amp;filter_date=2024">Datei</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="17"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+<td><b><a href="index.php?action=deleted&amp;sort=namea&amp;filter_date=2024">Name/Adresse</a><form class="inline" action="index.php?action=deleted" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit" name="hide" value="18"><img class="icon" src="icons/delete.png"></button></form></b>
+</td>
+</tr>
+<form action="index.php" method="GET"> <tr>
+<td><input type="hidden" name="action" value="deleted" />
+<input type="text" name="filter_id" value="" size="1" /></td><td><input type="text" name="filter_bid" value="" size="1" /></td><td><input type="text" name="filter_date" value="2024" size="4" /></td><td><input type="text" name="filter_type" value="" size="5" /></td><td><input type="text" name="filter_lo" value="" size="5" /></td><td><input type="text" name="filter_member_id" value="" size="1" /></td><td><select type="text" name="filter_gk" value="" size="1" /></td><td><input type="text" name="filter_k" value="" size="7" /></td><td><input type="text" name="filter_vk" value="" size="7" /></td><td><input type="text" name="filter_amount" value="" size="1" /></td><td><input type="text" name="filter_text" value="" size="15" /></td><td><input type="text" name="filter_comment" value="" size="15" /></td><td><input type="checkbox" name="filter_comm" value="" size="1" /></td><td><input type="text" name="filter_ack" value="" size="3" /></td><td><input type="text" name="filter_ack_old" value="" size="3" /></td><td><input type="checkbox" name="filter_refund" value="" size="1" /></td><td><input type="checkbox" name="filter_bel" value="" size="1" /></td><td><input type="text" name="filter_name" value="" size="1" /><input style="position: absolute; visibility: hidden;" value="Filtern" type="submit" />
+</td>
+</tr></form></table>
+</div>
+<br style="clear: both;" /><center><a href="/index.php?action=deleted&amp;filter_date=2024&amp;format=csv">Als CSV Datei herunterladen</a></center>
+</div></div>
+<div class="slot_default" id="slot_default"><div class="ui_tabs">
+<div class="ui_tabs"><div class="ui_tabs_links">
+      <a href="index.php?action=impressum">Impressum</a>
+<form class="inline" action="index.php?action=logout" method="post"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><button class="link" type="submit">Logout</button></form>      </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
+
