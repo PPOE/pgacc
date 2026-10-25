@@ -20,7 +20,7 @@ return array(
     'mutations' => array(
         array(
             'id' => 'array-initialization-removed',
-            'search' => array("        \$rights2 = array();\n", "    \$rights2 = [];\n"),
+            'search' => "        \$rights2 = [];\n",
             'replace' => "\n",
             // Formerly an accepted equivalent on PHP 5.6 (its E_NOTICE is hidden by
             // the default error_reporting); the null-rights test captures it.
@@ -70,7 +70,7 @@ return array(
             'rationale' => 'Rights without IDs must deny everything.'),
         array('id' => 'privileged-rights-denied', 'search' => 'return "";', 'replace' => 'return " AND false ";',
             'rationale' => 'Privileged rights must not be restricted.'),
-        array('id' => 'retain-only-last-organization', 'search' => '$rights2[] = "\'" . $right . "\'";', 'replace' => '$rights2 = array("\'".$right."\'");',
+        array('id' => 'retain-only-last-organization', 'search' => '$rights2[] = "\'" . $right . "\'";', 'replace' => '$rights2 = ["\'".$right."\'"];',
             'rationale' => 'All listed organizations are kept.'),
         array('id' => 'id-quotes-removed', 'search' => '$rights2[] = "\'" . $right . "\'";', 'replace' => '$rights2[] = $right;',
             'rationale' => 'IDs are quoted SQL literals.'),

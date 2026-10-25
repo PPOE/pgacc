@@ -19,8 +19,8 @@ $csvNumber = "preg_match('/^-?\\d+([.,]\\d+)?$/', \$text) != 1";
 $csvClass = "[=+\\-@\"]";
 $csvSpace = "[ \\t\\n\\r\\f\\x0B]*";
 $csvCheck = "        else if (\$tag == 'td' && preg_match('/^$csvSpace$csvClass/', \$text) == 1 && $csvNumber)\n            \$text = \"'\" . \$text;";
-$csvBreaks = "str_replace(array(\"\\r\\n\", \"\\n\", \"\\r\"), array(' / ', ' / ', ' / ')";
-$csvTab = "        if (\$tag == 'td')\n            \$text = str_replace(array(\"\\t\"), array(' '), \$text);";
+$csvBreaks = "str_replace([\"\\r\\n\", \"\\n\", \"\\r\"], [' / ', ' / ', ' / ']";
+$csvTab = "        if (\$tag == 'td')\n            \$text = str_replace([\"\\t\"], [' '], \$text);";
 $amount = "if (preg_match('/^-?\\d+(\\.\\d+)?€\$/', \$text) == 1)";
 $escape = "    if (\$escape)\n        return pg_escape_string(\$dbconn, \$value);\n    return \$value;";
 $mutations = array(
@@ -159,13 +159,13 @@ $mutations = array(
     array(
         'id' => 'csv-windows-line-break-split',
         'search' => $csvBreaks,
-        'replace' => "str_replace(array(\"\\n\", \"\\r\"),array(' / ', ' / ')",
+        'replace' => "str_replace([\"\\n\", \"\\r\"],[' / ', ' / ']",
         'rationale' => 'A Windows line break is one separator, not two.',
     ),
     array(
         'id' => 'csv-carriage-return-kept',
         'search' => $csvBreaks,
-        'replace' => "str_replace(array(\"\\r\\n\", \"\\n\"),array(' / ', ' / ')",
+        'replace' => "str_replace([\"\\r\\n\", \"\\n\"],[' / ', ' / ']",
         'rationale' => 'A lone carriage return inside a cell breaks the row.',
     ),
     array(
@@ -731,8 +731,8 @@ $callSites = array(
     array(
         'id' => 'kdonations-listing-text-str-replace-array-spenden-mit-ausnahme-der-von',
         'file' => 'kdonations.php',
-        'search' => '        echo tag("td", listing_text(str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
-        'replace' => '        echo tag("td", (str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
+        'search' => '        echo tag("td", listing_text(str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
+        'replace' => '        echo tag("td", (str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachs.',
     ),
     array(
@@ -745,8 +745,8 @@ $callSites = array(
     array(
         'id' => 'kdonations-listing-text-line-comment',
         'file' => 'kdonations.php',
-        'search' => '    echo tag("td", preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'), array(\'\'), preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'), array(" <i>Kontodaten</i> "), listing_text($line["comment"]))));',
-        'replace' => '    echo tag("td", preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'), array(\'\'), preg_replace(array(\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'), array(" <i>Kontodaten</i> "), ($line["comment"]))));',
+        'search' => '    echo tag("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));',
+        'replace' => '    echo tag("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" <i>Kontodaten</i> "], ($line["comment"]))));',
         'rationale' => 'Unescaped output: listing_text() removed around $line["comment"].',
     ),
     array(
@@ -1088,8 +1088,8 @@ $callSites = array(
     array(
         'id' => 'spendings-listing-text-str-replace-array-spenden-mit-ausnahme-der-von',
         'file' => 'spendings.php',
-        'search' => 'echo tag("td", listing_text(str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
-        'replace' => 'echo tag("td", (str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
+        'search' => 'echo tag("td", listing_text(str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
+        'replace' => 'echo tag("td", (str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachs.',
     ),
     array(
@@ -1145,8 +1145,8 @@ $callSites = array(
     array(
         'id' => 'transactions-listing-text-str-replace-array-spenden-mit-ausnahme-der-von',
         'file' => 'transactions.php',
-        'search' => 'echo tag("td", listing_text(str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
-        'replace' => 'echo tag("td", (str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'), array(\'Spenden\'), $line2["name"])));',
+        'search' => 'echo tag("td", listing_text(str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
+        'replace' => 'echo tag("td", (str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachs.',
     ),
     array(
@@ -1159,8 +1159,8 @@ $callSites = array(
     array(
         'id' => 'transactions-listing-text-str-replace-array-50110117369-10110123642-50110',
         'file' => 'transactions.php',
-        'search' => 'echo tag("td", listing_text(str_replace(array(' . "\n" . '        \'50110117369\',' . "\n" . '        \'10110123642\',' . "\n" . '        \'50110117318\',' . "\n" . '        \'50110110437\',' . "\n" . '        \'50110117393\',' . "\n" . '        \'50110117300\',' . "\n" . '        \'50110117326\',' . "\n" . '        \'50110117350\',' . "\n" . '        \'50110117377\',' . "\n" . '        \'50110117270\',' . "\n" . '        \'04500152105\',' . "\n" . '        \'20815 6659403\',' . "\n" . '        \'58990\',' . "\n" . '        \'AT87 1200 0100 0072 2081\',' . "\n" . '        \'50110117385\'' . "\n" . '    ), array(' . "\n" . '        \'Piratenpartei Steiermark\',' . "\n" . '        \'Piratenpartei Wien\',' . "\n" . '        \'Piratenpartei Niederösterreich\',' . "\n" . '        \'Piratenpartei Österreichs\',' . "\n" . '        \'Piratenpartei Vorarlberg\',' . "\n" . '        \'Piratenpartei Kärnten\',' . "\n" . '        \'Piratenpartei Oberösterreich\',' . "\n" . '        \'Piratenpartei Salzburg\',' . "\n" . '        \'Piratenpartei Tirol\',' . "\n" . '        \'Piratenpartei Burgenland\',' . "\n" . '        \'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '        \'Piratenpartei Graz\',' . "\n" . '        \'Sachspenden Kärnten\',' . "\n" . '        \'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '        \'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '    ), $line["account"] === null ? \'\' : $line["account"])));',
-        'replace' => 'echo tag("td", (str_replace(array(' . "\n" . '        \'50110117369\',' . "\n" . '        \'10110123642\',' . "\n" . '        \'50110117318\',' . "\n" . '        \'50110110437\',' . "\n" . '        \'50110117393\',' . "\n" . '        \'50110117300\',' . "\n" . '        \'50110117326\',' . "\n" . '        \'50110117350\',' . "\n" . '        \'50110117377\',' . "\n" . '        \'50110117270\',' . "\n" . '        \'04500152105\',' . "\n" . '        \'20815 6659403\',' . "\n" . '        \'58990\',' . "\n" . '        \'AT87 1200 0100 0072 2081\',' . "\n" . '        \'50110117385\'' . "\n" . '    ), array(' . "\n" . '        \'Piratenpartei Steiermark\',' . "\n" . '        \'Piratenpartei Wien\',' . "\n" . '        \'Piratenpartei Niederösterreich\',' . "\n" . '        \'Piratenpartei Österreichs\',' . "\n" . '        \'Piratenpartei Vorarlberg\',' . "\n" . '        \'Piratenpartei Kärnten\',' . "\n" . '        \'Piratenpartei Oberösterreich\',' . "\n" . '        \'Piratenpartei Salzburg\',' . "\n" . '        \'Piratenpartei Tirol\',' . "\n" . '        \'Piratenpartei Burgenland\',' . "\n" . '        \'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '        \'Piratenpartei Graz\',' . "\n" . '        \'Sachspenden Kärnten\',' . "\n" . '        \'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '        \'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '    ), $line["account"] === null ? \'\' : $line["account"])));',
+        'search' => 'echo tag("td", listing_text(str_replace([' . "\n" . '        \'50110117369\',' . "\n" . '        \'10110123642\',' . "\n" . '        \'50110117318\',' . "\n" . '        \'50110110437\',' . "\n" . '        \'50110117393\',' . "\n" . '        \'50110117300\',' . "\n" . '        \'50110117326\',' . "\n" . '        \'50110117350\',' . "\n" . '        \'50110117377\',' . "\n" . '        \'50110117270\',' . "\n" . '        \'04500152105\',' . "\n" . '        \'20815 6659403\',' . "\n" . '        \'58990\',' . "\n" . '        \'AT87 1200 0100 0072 2081\',' . "\n" . '        \'50110117385\'' . "\n" . '    ], [' . "\n" . '        \'Piratenpartei Steiermark\',' . "\n" . '        \'Piratenpartei Wien\',' . "\n" . '        \'Piratenpartei Niederösterreich\',' . "\n" . '        \'Piratenpartei Österreichs\',' . "\n" . '        \'Piratenpartei Vorarlberg\',' . "\n" . '        \'Piratenpartei Kärnten\',' . "\n" . '        \'Piratenpartei Oberösterreich\',' . "\n" . '        \'Piratenpartei Salzburg\',' . "\n" . '        \'Piratenpartei Tirol\',' . "\n" . '        \'Piratenpartei Burgenland\',' . "\n" . '        \'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '        \'Piratenpartei Graz\',' . "\n" . '        \'Sachspenden Kärnten\',' . "\n" . '        \'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '        \'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '    ], $line["account"] === null ? \'\' : $line["account"])));',
+        'replace' => 'echo tag("td", (str_replace([' . "\n" . '        \'50110117369\',' . "\n" . '        \'10110123642\',' . "\n" . '        \'50110117318\',' . "\n" . '        \'50110110437\',' . "\n" . '        \'50110117393\',' . "\n" . '        \'50110117300\',' . "\n" . '        \'50110117326\',' . "\n" . '        \'50110117350\',' . "\n" . '        \'50110117377\',' . "\n" . '        \'50110117270\',' . "\n" . '        \'04500152105\',' . "\n" . '        \'20815 6659403\',' . "\n" . '        \'58990\',' . "\n" . '        \'AT87 1200 0100 0072 2081\',' . "\n" . '        \'50110117385\'' . "\n" . '    ], [' . "\n" . '        \'Piratenpartei Steiermark\',' . "\n" . '        \'Piratenpartei Wien\',' . "\n" . '        \'Piratenpartei Niederösterreich\',' . "\n" . '        \'Piratenpartei Österreichs\',' . "\n" . '        \'Piratenpartei Vorarlberg\',' . "\n" . '        \'Piratenpartei Kärnten\',' . "\n" . '        \'Piratenpartei Oberösterreich\',' . "\n" . '        \'Piratenpartei Salzburg\',' . "\n" . '        \'Piratenpartei Tirol\',' . "\n" . '        \'Piratenpartei Burgenland\',' . "\n" . '        \'Piratenpartei Österreichs (Altes Konto)\',' . "\n" . '        \'Piratenpartei Graz\',' . "\n" . '        \'Sachspenden Kärnten\',' . "\n" . '        \'Piratenpartei Österreichs (Bank Austria)\',' . "\n" . '        \'Piratenpartei Österreichs (Altes BAWAG Konto)\'' . "\n" . '    ], $line["account"] === null ? \'\' : $line["account"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array( \'50110117369\', \'10110123642\', \'50110117318\', \'50110110437\', \'.',
     ),
     array(
@@ -1279,8 +1279,8 @@ $callSites = array(
     array(
         'id' => 'transactions-account-null-guard-removed',
         'file' => 'transactions.php',
-        'search' => '), $line["account"] === null ? \'\' : $line["account"])));',
-        'replace' => '), $line["account"])));',
+        'search' => '], $line["account"] === null ? \'\' : $line["account"])));',
+        'replace' => '], $line["account"])));',
         'rationale' => 'A transaction without an account must not raise the PHP 8.1+ str_replace() null deprecation.',
     ),
 );

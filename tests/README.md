@@ -379,6 +379,25 @@ else the pinned `php:8.5-cli` image); `--allow-crlf-to-lf` also accepts CRLF
 becoming LF in output tokens (line-ending conversions). Self-test:
 `sh tests/coverage/token-equivalence.sh --self-test`. No gate uses it.
 
+For mechanical syntax changes that keep the code's meaning (code only, such as
+`array()` -> `[]`), `sh tests/coverage/ast-equivalence.sh --check <base>`
+(`ast-equivalence.php`) proves that each file modified in place has the same
+syntax tree: it parses both versions with the pinned `nikic/php-parser`
+(`tests/ast/composer.lock`) under `short_open_tag=0` and `=1` and compares
+the serialized trees with only the positions, ordinary comments and the
+`kind` of arrays and `list()` removed. Doc comments, inline HTML, string
+values, heredoc bodies, quoting and number spelling stay significant; files
+using `__LINE__` or `__halt_compiler()` never qualify, nor do renamed, added
+or deleted files. Any error is exit 2. Runtime: a host PHP 8.5 with
+`composer install -d tests/ast`, else the image of `tests/ast/Dockerfile`.
+Self-test: `sh tests/coverage/ast-equivalence.sh --self-test`. While
+`PGACC_SYNTAX_ONLY=1` is set (CI of the short-array pull request only; to be
+removed after its merge), `changed-lines.sh` and
+`tests/mutation/run.sh --changed-since` treat AST-equivalent files as
+unchanged; without it every changed line counts. The rules themselves run
+with the pinned Rector: `sh tests/rector/run.sh` (rules in
+`tests/rector/rector.php`), then `sh scripts/format.sh`.
+
 
 Check the log: each changed file must print
 `<file>: N changed executable lines, all covered`. An exit status of 0 without

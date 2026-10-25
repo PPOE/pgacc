@@ -51,15 +51,15 @@ return array(
         array(
             'id' => 'csrf-exempt-merge',
             'region' => $csrfBlock,
-            'search' => 'array("login","donations","kdonations")',
-            'replace' => 'array("login","donations","kdonations","merge")',
+            'search' => '["login","donations","kdonations"]',
+            'replace' => '["login","donations","kdonations","merge"]',
             'rationale' => 'Only the login form and the public captcha forms are exempt.',
         ),
         array(
             'id' => 'csrf-exempt-nothing',
             'region' => $csrfBlock,
-            'search' => 'array("login","donations","kdonations")',
-            'replace' => 'array()',
+            'search' => '["login","donations","kdonations"]',
+            'replace' => '[]',
             'rationale' => 'The login form and the public captcha forms have no session and need no token.',
         ),
         array(
