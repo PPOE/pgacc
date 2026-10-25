@@ -130,6 +130,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `getusers.php`, `mbapi.php` | Membership-system interface (lookup and export API) |
 | `file.php` | Encrypted receipt download (helpers in `functions.php`, phpseclib): `files/<n>.v2.aes` (AES-256 + HMAC, keyed on `$key` and file number), legacy `files/<n>.aes` (mcrypt-compatible) |
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
+| `check.php` | Command-line voucher number check of one account, `php check.php <account> <max>` (404 over HTTP) |
 | `table-schema.txt`, `tests/fixtures/` | Schema notes; test schema and synthetic data |
 | `tests/run.sh`, `compose.test.yaml`, `compose.coverage.yaml`, `tests/php-runtime.Dockerfile` | Harness entry point, Compose files, PHP 8.5 image |
 | `tests/dev.sh`, `compose.dev.yaml`, `tests/dev/` | Local development loop (bind-mounted checkout, per-file state reset, no coverage) |

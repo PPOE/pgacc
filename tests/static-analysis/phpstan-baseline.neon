@@ -1,18 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
-			identifier: whitespace.fileEnd
-			count: 1
-			path: ../../check.php
-
-		-
-			message: '#^Variable \$i might not be defined\.$#'
-			identifier: variable.undefined
-			count: 3
-			path: ../../check.php
-
-		-
 			message: '#^Regex pattern is invalid\: Compilation failed\: quantifier does not follow a repeatable item at offset 1 in pattern\: /\^\*\-\?\\d\+\(\(\\\.\|,\)\(\\d\\d\)\?\)\?\$/$#'
 			identifier: regexp.pattern
 			count: 1

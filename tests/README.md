@@ -164,7 +164,7 @@ constraints; no backup table, owners, permissions, credentials or rows).
   form token) change the stored preference; the old GET `?hide=` does not.
 - `http-connect-failure.php`: with an unreachable database (a second server
   in the test container, `PGHOST=127.0.0.1 PGPORT=1`, coverage recorded),
-  `index.php`, `check.php` and `mbapi.php` answer "Verbindungsaufbau
+  `index.php` and `mbapi.php` answer "Verbindungsaufbau
   fehlgeschlagen" and log the `pg_connect()` reason.
 - `http-csrf.php` (last in every lane): form tokens. For every write action
   (voucher creation, revision, approval, approval reset, receipt upload,
@@ -246,7 +246,8 @@ key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
 short reads via `ShortReadStream.php`, and the 20 MB memory check
 `tests/receipt-memory.php`), `ReceiptMigrationTest.php` and
 `ReceiptMigrationCommandTest.php` (`migrate-receipt-key.php` on synthetic
-files) and `ShortOpenTagTest.php`. Tests that pass null capture
+files), `CheckCommandTest.php` (`check.php` in process and as a
+command) and `ShortOpenTagTest.php`. Tests that pass null capture
 every diagnostic with their own error handler, because PHPUnit only reports
 deprecations. The suite also passes in random order, as Infection runs it.
 

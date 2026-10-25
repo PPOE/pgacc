@@ -92,16 +92,13 @@ assert_no_fatal_error($report2025['body'], '2025 report');
 assert_not_contains($report2025['body'], 'Abfrage fehlgeschlagen', '2025 report');
 assert_contains($report2025['body'], '<td width="150px">Kontostand 31.12.2024</td>', '2025 report opening balance');
 
-// check.php: the ad-hoc voucher-number check (unlinked; export-ignored and
-// denied by production's web server, but served by the test server).
-// "SYNTHETIC0" has no vouchers, so numbers 2 and 3 are reported missing.
+// check.php, the voucher number check, is a command-line script
+// (tests/unit/CheckCommandTest.php); the web server must not run it.
 $check = http_request('/check.php?kto=SYNTHETIC0&max=3');
-assert_status($check, 200, 'check.php');
-assert_no_fatal_error($check['body'], 'check.php');
-assert_contains($check['body'], 'Habe 0 von 1 Buchungen gefunden.<br /><br />', 'check.php');
-assert_contains($check['body'], 'Habe insgesamt 0  Buchungen gefunden.<br /><br />', 'check.php');
-assert_contains($check['body'], 'Habe 0  Buchungen gefunden die ich nicht zuordnen konnte.<br /><br />', 'check.php');
-assert_contains($check['body'], "Buchung 2 FEHLT (0 results)<br />\nBuchung 3 FEHLT (0 results)<br />\n", 'check.php');
+assert_status($check, 404, 'check.php over HTTP');
+if ($check['body'] !== '') {
+    fail_test('check.php over HTTP answered ' . var_export($check['body'], true));
+}
 
 assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL HTTP characterization tests passed\n";

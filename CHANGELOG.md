@@ -22,6 +22,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   inside their panel). The Impressum lists Tailwind CSS (MIT). Requires a
   current browser: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+; older
   browsers show the pages unstyled.
+- The maintenance script `check.php` runs only on the command line
+  (`php check.php <account> <max>`), like the receipt migration; over HTTP it
+  answers 404. A failed query prints the database error and exits with status 1.
 
 ### Removed
 

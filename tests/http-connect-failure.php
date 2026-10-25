@@ -1,8 +1,8 @@
 <?php
 
 /*
- * Database connection failure: index.php, check.php and mbapi.php answer with
- * a fixed message and log the reason (pg_last_error() without a connection
+ * Database connection failure: index.php and mbapi.php answer with a fixed
+ * message and log the reason (pg_last_error() without a connection
  * throws on PHP 8). A second test server with an unreachable PostgreSQL
  * (PGHOST=127.0.0.1, PGPORT=1) runs in this container; with
  * compose.coverage.yaml it records coverage like the main server. Its
@@ -38,7 +38,7 @@ if ($socket === false) {
 }
 fclose($socket);
 
-foreach (['/index.php', '/check.php?kto=SYNTHETIC0&max=2', '/mbapi.php'] as $path) {
+foreach (['/index.php', '/mbapi.php'] as $path) {
     $context = stream_context_create(['http' => [
         'header' => "X-Forwarded-Proto: https\r\n",
         'ignore_errors' => true,
@@ -50,8 +50,8 @@ foreach (['/index.php', '/check.php?kto=SYNTHETIC0&max=2', '/mbapi.php'] as $pat
     }
 }
 $logged = substr_count((string) file_get_contents($log), 'pgacc: pg_connect failed: pg_connect(): Unable to connect to PostgreSQL server');
-if ($logged !== 3) {
-    fail_test("expected 3 logged connection failures, found $logged: " . file_get_contents($log));
+if ($logged !== 2) {
+    fail_test("expected 2 logged connection failures, found $logged: " . file_get_contents($log));
 }
 
 echo "Connection failure tests passed\n";
