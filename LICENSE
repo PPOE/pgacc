@@ -1,0 +1,36 @@
+pgacc licensing status
+======================
+
+1. Contributions by Peter Grassberger (PeterTheOne)
+
+   Copyright (C) 2013-2026 Peter Grassberger (PeterTheOne) <petertheone@gmail.com>
+
+   The contributions of Peter Grassberger (PeterTheOne) to this repository,
+   that is the changes in the commits he authored as recorded in its Git
+   history, are free software: you can redistribute them and/or modify them
+   under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or (at your
+   option) any later version.
+
+   They are distributed in the hope that they will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+   details. A copy of the license is in LICENSES/AGPL-3.0-or-later.txt.
+
+   SPDX-License-Identifier: AGPL-3.0-or-later
+
+2. Contributions by other authors
+
+   Parts of this repository were contributed by other authors. Those parts are
+   not licensed under the terms above, or under any other license, unless and
+   until their authors confirm otherwise; all rights in them remain with their
+   respective authors.
+
+   Because the repository as a whole still contains such parts, the terms in
+   section 1 apply only to the contributions listed there, not to the work as
+   a whole.
+
+3. Third-party components
+
+   Third-party code installed under vendor/ or bundled in js/ and icons/ keeps
+   its own license, as stated in its own files.

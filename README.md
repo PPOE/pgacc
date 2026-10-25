@@ -137,4 +137,7 @@ For testing only, `sh scripts/release.sh 1.0.0` builds the same files locally
 
 ## License
 
-No license file is included in this repository.
+See [LICENSE](LICENSE): the contributions of Peter Grassberger (PeterTheOne) are
+licensed under AGPL-3.0-or-later ([full text](LICENSES/AGPL-3.0-or-later.txt));
+contributions by other authors are not licensed until their authors confirm
+otherwise.
