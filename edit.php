@@ -168,6 +168,7 @@ function page_edit_ack($rights)
 function page_edit_save($rights)
 {
     global $dbconn;
+    $form_rights = $rights;
     $rights = write_rights($rights);
     if ($rights === false) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -212,6 +213,12 @@ function page_edit_save($rights)
 
     if (!posted_organizations_allowed($parts, $rights)) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        return;
+    }
+    // Nothing is written (no revision, no approval reset): the form again.
+    if (!posted_amounts_valid($parts, $rights)) {
+        amount_refused();
+        page_edit($form_rights);
         return;
     }
     echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";

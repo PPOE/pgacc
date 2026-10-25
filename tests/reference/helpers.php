@@ -291,14 +291,8 @@ finish_group('get_param');
 
 // ------------------------------------------------------------------ idiom probes
 
-// new.php:46: round(str_replace(",", ".", <validated amount>) * 100.0), then
-// interpolated into the INSERT statement.
-function idiom_new_amount($amount)
-{
-    $value = round(str_replace(',', '.', $amount) * 100.0);
-    return array($value, "$value");
-}
-// import.php:118 and friends: intval(str_replace(array('.', ','), ...)).
+// The former import.php amounts (now amount_cents()):
+// intval(str_replace(array('.', ','), ...)).
 function idiom_import_amount($amount)
 {
     return intval(str_replace(array('.', ','), array('', ''), $amount));
@@ -356,10 +350,12 @@ function idiom_switch($value)
 
 foreach (array('0', '1', '-1', '12,34', '-12,34', '12.3', '0.07', '1.005', '1,005', '2.675', '100.5', '-0,99', '99999999999.99',
     '12345678901234.56', '1e3', 'abc', '') as $amount) {
-    probe('new.php:46 amount ' . ref_export($amount), 'idiom_new_amount', array($amount));
+    probe('amount_cents(' . ref_export($amount) . ", ',.', '', false)", 'amount_cents', array($amount, ',.', '', false));
 }
 foreach (array_merge(corpus_strings(), array('+50,00', '-1.234,56', '+1.000.000,00', '-0,01', '25.00', '-0.78')) as $amount) {
     probe('import.php:118 amount ' . ref_export($amount), 'idiom_import_amount', array($amount));
+    probe('amount_cents(' . ref_export($amount) . ", ',', '.', true)", 'amount_cents', array($amount, ',', '.', true));
+    probe('amount_cents(' . ref_export($amount) . ", '.', ',', true)", 'amount_cents', array($amount, '.', ',', true));
 }
 foreach (array_merge(corpus_scalars(), array('-2147483647', '123456', '-5', '5', '50005', '-123456', '9999')) as $sum) {
     probe('sprintf money ' . ref_export($sum), 'idiom_money', array($sum));

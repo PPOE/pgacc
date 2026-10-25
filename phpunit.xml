@@ -18,12 +18,14 @@
       <file>tests/unit/ReceiptMigrationCommandTest.php</file>
       <file>tests/unit/ShortOpenTagTest.php</file>
       <file>tests/unit/UnusedOutputTest.php</file>
+      <file>tests/unit/AmountParsingTest.php</file>
     </testsuite>
   </testsuites>
   <coverage processUncoveredFiles="true">
     <include>
       <file>functions.php</file>
       <file>getusers.php</file>
+      <file>donations.php</file>
       <file>import.php</file>
       <file>import2.php</file>
       <file>kdonations.php</file>

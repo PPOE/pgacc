@@ -77,13 +77,19 @@ function page_import($rights)
                     $convert = true;
                 $rawcsvline = $csvline;
                 $csvline = pg_escape_string($dbconn, str_replace(['|',' ',"\n","\t","\r"], ['','','','',''], convif($convert, $csvline)));
-                if ($csvline == 'Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile2;Ersterfassungsreferenz;AuftraggeberKontonr./IBAN;AuftraggeberBLZ/BIC;Partnername;PartnerKontonr./IBAN;PartnerBLZ/BIC')
+                $sparkassecsvline = 'Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;Kundendaten/Zahlungsreferenz;Umsatzzeile2;Ersterfassungsreferenz;AuftraggeberKontonr./IBAN;AuftraggeberBLZ/BIC;Partnername;PartnerKontonr./IBAN;PartnerBLZ/BIC';
+                if ($csvline == $sparkassecsvline)
                     $csvformat = 'Sparkasse';
-                if ($csvline == 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,')
+                $paypalcsvline = 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,';
+                if ($csvline == $paypalcsvline)
                     $csvformat = 'Paypal';
                 $handkassacsvline = 'Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt';
                 if ($csvline == $handkassacsvline)
                     $csvformat = 'Handkassa';
+                // Header lines are not imported (before, their amount column
+                // name counted as an amount of 0).
+                if (in_array($csvline, [$sparkassecsvline, $paypalcsvline, $handkassacsvline], true))
+                    continue;
                 $query = "SELECT 1 FROM import WHERE line = '{$csvline}';";
                 $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
                 if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
@@ -126,16 +132,15 @@ function page_import($rights)
                     }
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[1])));
                     $voucher['date'] = format_date($data[2]);
-                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[4]));
+                    $voucher['amount'] = amount_cents($data[4], ',', '.', true);
                     $voucher['gegenkonto'] = '';
                     $voucher['name'] = '';
                 } elseif ($csvformat == 'Handkassa') {
-                    if (intval(str_replace(['.', ','], ['',''], $data[1])) == 0)
+                    // Whole euros or up to two decimals after "," or ".".
+                    $voucher['amount'] = amount_cents($data[1], ',.', '', false);
+                    if ($voucher['amount'] === 0)
                         continue;
                     $voucher['date'] = format_date($data[0]);
-                    if (strpos($data[1], ".") !== false || strpos($data[1], ",") !== false)
-                        $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[1]));
-                    else $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[1])) * 100;
                     $voucher['konto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[2])));
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[3])));
                     $voucher['commentgf'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[4])));
@@ -153,18 +158,19 @@ function page_import($rights)
                     $voucher['city'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                     $voucher['plz'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[12])));
                 } elseif ($csvformat == 'Sparkasse') {
-                    if (intval(str_replace(['.', ','], ['',''], $data[2])) == 0)
+                    $voucher['amount'] = amount_cents($data[2], ',', '.', true);
+                    if ($voucher['amount'] === 0)
                         continue;
                     $voucher['lo'] = 6;
                     $voucher['konto'] = '20815 6659403';
                     $voucher['comment'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[5] . "; " . $data[6] . "; " . $data[7])));
                     $voucher['date'] = format_date($data[4]);
-                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[2]));
                     $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[14] . " " . $data[15])));
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                 } elseif ($csvformat == 'Paypal') {
                     $data = str_getcsv($data[0], ",", '"', "\\");
-                    if (intval(str_replace(['.', ','], ['',''], $data[7])) == 0)
+                    $voucher['amount'] = amount_cents($data[7], '.', ',', true);
+                    if ($voucher['amount'] === 0)
                         continue;
                     $voucher['lo'] = 10;
                     $voucher['konto'] = 'spende@piratenpartei.at';
@@ -177,14 +183,13 @@ function page_import($rights)
                     $cmt .= convif($convert, $data[3]);
                     $voucher['comment'] = pg_escape_string($dbconn, $cmt);
                     $voucher['date'] = format_date($data[0]);
-                    $voucher['amount'] = intval(str_replace(['.', ','], ['',''], $data[7]));
                     $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, ($data[10] == 'spende@piratenpartei.at') ? $data[11] : $data[10])));
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[3])));
                     $voucher2['lo'] = 10;
                     $voucher2['konto'] = 'spende@piratenpartei.at';
                     $voucher2['comment'] = pg_escape_string($dbconn, $cmt);
                     $voucher2['date'] = format_date($data[0]);
-                    $voucher2['amount'] = intval(str_replace(['.', ','], ['',''], $data[8]));
+                    $voucher2['amount'] = amount_cents($data[8], '.', ',', true);
                     $voucher2['gegenkonto'] = "";
                     $voucher2['name'] = 'Paypal';
                     $voucher2['person_type'] = 1;
@@ -198,9 +203,9 @@ function page_import($rights)
                     $voucher2['receipt'] = 'false';
                     $dovoucher2 = true;
                 }
-                // Only dates, and organizations the user may use (organization_allowed()):
-                // other lines are reported and skipped.
-                if (!import_date_valid($voucher['date']) || !organization_allowed($voucher['lo'], $rights)) {
+                // Only dates, organizations the user may use (organization_allowed())
+                // and valid amounts: other lines are reported and skipped.
+                if (!import_date_valid($voucher['date']) || !organization_allowed($voucher['lo'], $rights) || $voucher['amount'] === null || ($dovoucher2 && $voucher2['amount'] === null)) {
                     import_invalid_line($i, $rawcsvline, $csvline, $csvformat, $handkassacsvline, $lineno);
                     $skipped[] = $lineno;
                     continue;

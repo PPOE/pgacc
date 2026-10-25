@@ -252,7 +252,7 @@ its baseline. `run.sh` takes the diff on the host
 ### CI (`ci.sh`)
 
 `sh tests/mutation/ci.sh 8.5 [--changed-since=<base>]` runs the self-test
-and the target list, attempting every target: all 15 committed targets. CI
+and the target list, attempting every target: all 16 committed targets. CI
 runs it in its own job, `Mutation tests (PHP 8.5 / PostgreSQL 18)`, blocking
 when it runs: with `--changed-since` on pull requests labelled `mutation`,
 every target on full runs (weekly, manual, `full-ci` pull requests). Other
@@ -391,6 +391,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `amount-cents` | two-decimal amounts in `report.php` Anlage A, tabular digits in the `style.css` `td` rule (issue #1) | `http-smoke.php` |
 | `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
+| `amount-parsing` | `amount_cents()` in `functions.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 
