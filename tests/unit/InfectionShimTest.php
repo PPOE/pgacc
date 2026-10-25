@@ -105,9 +105,7 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         self::assertSame("true\n" . $results, $output);
     }
 
-    /**
-     * @dataProvider refusalProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('refusalProvider')]
     public function testRefusesCodeItCannotWrapFaithfully($code, $message)
     {
         try {
@@ -202,9 +200,7 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         self::assertTrue(strpos($output, 'Unsupported top-level code: $x') !== false, $output);
     }
 
-    /**
-     * @dataProvider mainFailureProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('mainFailureProvider')]
     public function testMainFailures($arguments, $exceptionClass, $message)
     {
         try {

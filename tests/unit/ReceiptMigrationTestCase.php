@@ -16,9 +16,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     protected $directory;
     protected $connection;
 
-    /**
-     * @before
-     */
+    #[PHPUnit\Framework\Attributes\Before]
     public function prepare()
     {
         $this->directory = sys_get_temp_dir() . '/pgacc-receipt-migration-' . uniqid('', true);
@@ -42,9 +40,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         }
     }
 
-    /**
-     * @after
-     */
+    #[PHPUnit\Framework\Attributes\After]
     public function cleanUp()
     {
         pg_query($this->connection, 'ROLLBACK');
@@ -163,7 +159,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     }
 
     // The exit status of a migration run.
-    protected function status($arguments)
+    protected function migrationStatus($arguments)
     {
         $result = $this->migrate($arguments);
         return $result[0];

@@ -1563,7 +1563,7 @@ Recommendation (owner decision):
   and adding argument-type checks. Its levels 0/1 cover undefined variables,
   and level 5 adds function argument types; see
   [PHPStan rule levels](https://phpstan.org/user-guide/rule-levels).
-  PHPStan 2.3.1 runs at level 5 (34 findings at level 0, 84 at level 1, 91 at
+  PHPStan 2.3.2 runs at level 5 (34 findings at level 0, 84 at level 1, 91 at
   level 5, about 315 at level 6). It reports `edit.php:345` and
   `donations.php:116-124`, plus the pre-fix `$rights2`. It reports
   `import.php:27` and `import2.php:24` only at level 9.

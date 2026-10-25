@@ -2,7 +2,17 @@
 <!-- PHPUnit configuration used only by Infection (tests/mutation/infection.sh).
      It runs the normal functions.php suite against the class-wrapped copy that
      tests/mutation/infection-shim.php writes to /tmp/infection-src. -->
-<phpunit bootstrap="/app/tests/phpunit-bootstrap.php" colors="false" beStrictAboutTestsThatDoNotTestAnything="true">
+<!-- failOnNotice/failOnWarning: PHPUnit 10+ reports notices and warnings
+     instead of failing the test; they still fail the run, as in PHPUnit 9. -->
+<phpunit bootstrap="/app/tests/phpunit-bootstrap.php"
+         colors="false"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         failOnNotice="true"
+         failOnWarning="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true">
   <php>
     <!-- E_ALL, independent of php.ini. -->
     <ini name="error_reporting" value="-1"/>
@@ -15,9 +25,9 @@
       <file>/app/tests/unit/ReceiptStorageTest.php</file>
     </testsuite>
   </testsuites>
-  <coverage processUncoveredFiles="true">
+  <source>
     <include>
       <file>/tmp/infection-src/functions.php</file>
     </include>
-  </coverage>
+  </source>
 </phpunit>

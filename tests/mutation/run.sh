@@ -72,7 +72,7 @@ if [ "$target" = --self-test ]; then
   # Branch analysis needs more than the default memory_limit (PHPUnit only).
   command='XDEBUG_MODE=coverage php -d memory_limit=-1 vendor/bin/phpunit \
     --configuration tests/mutation/tests/phpunit.xml --coverage-php /tmp/lib.cov \
-    && php tests/mutation/tests/coverage-summary.php /tmp/lib.cov'
+    && XDEBUG_MODE=coverage php tests/mutation/tests/coverage-summary.php /tmp/lib.cov'
   compose run --rm --no-deps application sh -c "$command"
   exit
 fi

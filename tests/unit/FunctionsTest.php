@@ -37,9 +37,7 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertNull($result);
     }
 
-    /**
-     * @dataProvider csvDownloadLinkUriProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('csvDownloadLinkUriProvider')]
     public function testCsvDownloadLinkSeparator($uri, $expected)
     {
         $_SERVER['REQUEST_URI'] = $uri;
@@ -62,9 +60,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider filterProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('filterProvider')]
     public function testGetfilterBuildsExpectedConditions(array $get, $expected)
     {
         $_GET = $get;
@@ -149,9 +145,7 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertSame('', @getfilter());
     }
 
-    /**
-     * @dataProvider tagProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('tagProvider')]
     public function testTagRendersHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
     {
         list($tagName, $text) = $args;
@@ -236,9 +230,7 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertNull(listing_text(null));
     }
 
-    /**
-     * @dataProvider nullTextTagProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('nullTextTagProvider')]
     public function testTagRendersNullTextLikeEmptyTextWithoutDiagnostics($tagName, $expectedHtml, $expectedCsv)
     {
         // Listings pass nullable columns (for example vouchers.name or
@@ -268,9 +260,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider headerPageProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('headerPageProvider')]
     public function testAccHeaderRendersEachPageTitle($page, $title)
     {
         ob_start();
@@ -351,9 +341,7 @@ final class FunctionsTest extends FunctionsTestCase
         );
     }
 
-    /**
-     * @dataProvider organizationAllowedProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('organizationAllowedProvider')]
     public function testOrganizationAllowed($lo, $rights, $expected)
     {
         $result = self::callAndCaptureDiagnostics(function () use ($lo, $rights) {
@@ -391,9 +379,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider writeRightsProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('writeRightsProvider')]
     public function testWriteRights($rights, $expected)
     {
         $result = self::callAndCaptureDiagnostics(function () use ($rights) {
@@ -520,9 +506,7 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertSame($footer, self::callAndCaptureDiagnostics('acc_footer'));
     }
 
-    /**
-     * @dataProvider formatDateProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('formatDateProvider')]
     public function testFormatDate($input, $expected)
     {
         self::assertSame($expected, format_date($input));
@@ -538,9 +522,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider rightsProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('rightsProvider')]
     public function testRights2orgasql($rights, $expected)
     {
         self::assertSame($expected, rights2orgasql($rights));
@@ -590,9 +572,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider hasRightProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('hasRightProvider')]
     public function testHasRight($rights, $right, $expected)
     {
         $result = self::callAndCaptureDiagnostics(function () use ($rights, $right) {
@@ -621,9 +601,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider accountProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('accountProvider')]
     public function testKonto2lo($account, $expected)
     {
         self::assertSame($expected, konto2lo($account));
@@ -639,9 +617,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider sortProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('sortProvider')]
     public function testGetsort($sort, $expected)
     {
         $_GET['sort'] = $sort;
@@ -689,9 +665,7 @@ final class FunctionsTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider oppositeSortProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('oppositeSortProvider')]
     public function testGetoppsort($current, $requested, $expected)
     {
         $_GET['sort'] = $current;

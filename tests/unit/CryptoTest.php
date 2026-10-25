@@ -40,9 +40,7 @@ final class CryptoTest extends FunctionsTestCase
         return self::vectors('getusers');
     }
 
-    /**
-     * @dataProvider receiptProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('receiptProvider')]
     public function testReceiptEncryptionMatchesMcrypt(array $vector)
     {
         $plain = hex2bin($vector['plain']);
@@ -50,9 +48,7 @@ final class CryptoTest extends FunctionsTestCase
         self::assertSame($vector['decrypted'], bin2hex(receipt_decrypt($vector['id'], $vector['key'], hex2bin($vector['cipher']))));
     }
 
-    /**
-     * @dataProvider receiptDecryptProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('receiptDecryptProvider')]
     public function testReceiptDecryptionMatchesMcrypt(array $vector)
     {
         self::assertSame($vector['decrypted'], bin2hex(receipt_decrypt($vector['id'], $vector['key'], hex2bin($vector['cipher']))));
@@ -79,9 +75,7 @@ final class CryptoTest extends FunctionsTestCase
         self::assertSame($vector['decrypted'], bin2hex(receipt_decrypt($vector['id'], $vector['key'], false)));
     }
 
-    /**
-     * @dataProvider mbapiProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('mbapiProvider')]
     public function testMembershipExportFramingMatchesMcrypt(array $vector)
     {
         // mbapi.php: SHA-1 of the plain text, a newline, the base64 ciphertext.
@@ -92,9 +86,7 @@ final class CryptoTest extends FunctionsTestCase
         );
     }
 
-    /**
-     * @dataProvider getusersProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('getusersProvider')]
     public function testMembershipImportMatchesMcrypt(array $vector)
     {
         // getusers.php: base64 ciphertext in, zero padding stripped with rtrim().

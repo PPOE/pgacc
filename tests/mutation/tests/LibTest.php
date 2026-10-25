@@ -126,7 +126,7 @@ class LibTest extends PHPUnit\Framework\TestCase
         $this->assertSame(['', ''], $single['mutations'][0]['replace']);
     }
 
-    public function invalidTargets()
+    public static function invalidTargets()
     {
         $test = ['type' => 'http', 'script' => 'tests/x.php'];
         return [
@@ -167,9 +167,7 @@ class LibTest extends PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider invalidTargets
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('invalidTargets')]
     public function testInvalidTargetsFailLoudly($overrides, $mutation, $message)
     {
         $target = is_array($overrides) ? self::target($overrides, $mutation) : $overrides;

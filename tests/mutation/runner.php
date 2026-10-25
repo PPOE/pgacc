@@ -179,7 +179,8 @@ function phpunit_arguments($copy, $test)
     $runner = getenv('PGACC_MUTATION_PHPUNIT');
     $runner = $runner ? $runner : $copy . '/vendor/bin/phpunit';
     $arguments = [PHP_BINARY, $runner, '--no-configuration', '--no-coverage',
-        '--do-not-cache-result', '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php'];
+        '--do-not-record-test-run-history', '--fail-on-notice', '--fail-on-warning',
+        '--colors=never', '--bootstrap', $copy . '/tests/phpunit-bootstrap.php'];
     return array_merge($arguments, ['--filter', $test['filter'], $copy . '/' . $test['file']]);
 }
 

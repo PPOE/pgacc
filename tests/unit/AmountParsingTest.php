@@ -115,9 +115,7 @@ final class AmountParsingTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider amounts
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('amounts')]
     public function testAmountCents(array $options, $value, $expected)
     {
         $this->assertSame($expected, amount_cents($value, $options[0], $options[1], $options[2]));
@@ -147,9 +145,7 @@ final class AmountParsingTest extends FunctionsTestCase
         ];
     }
 
-    /**
-     * @dataProvider years
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('years')]
     public function testDateConditionYearRange($year, $begin, $expected)
     {
         $this->assertSame($expected, date_condition($year, $begin));

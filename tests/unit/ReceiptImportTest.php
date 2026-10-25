@@ -142,9 +142,7 @@ final class ReceiptImportTest extends FunctionsTestCase
         self::assertSame('', $log);
     }
 
-    /**
-     * @dataProvider refusedImportProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('refusedImportProvider')]
     public function testImportOfAnInaccessibleVoucherStoresNothing($rights, $setup)
     {
         // A voucher of another organization, or one with a finalized row (also
@@ -217,9 +215,7 @@ final class ReceiptImportTest extends FunctionsTestCase
         }
     }
 
-    /**
-     * @dataProvider refusedUploadProvider
-     */
+    #[PHPUnit\Framework\Attributes\DataProvider('refusedUploadProvider')]
     public function testUploadToAnInaccessibleRowChangesNothing($rights, $post)
     {
         // The posted row must be a current row of the posted voucher that the

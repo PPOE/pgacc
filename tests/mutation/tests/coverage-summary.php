@@ -5,11 +5,26 @@
  * php-code-coverage file written by the self-test, and
  * lists every uncovered line and branch. Exits nonzero if any remain.
  *
- *   php tests/mutation/tests/coverage-summary.php /tmp/lib.cov
+ *   XDEBUG_MODE=coverage php tests/mutation/tests/coverage-summary.php /tmp/lib.cov
+ *
+ * The report is rebuilt through php-code-coverage, which needs a coverage
+ * driver (Xdebug) even though nothing is measured.
  */
 require dirname(dirname(dirname(__DIR__))) . '/vendor/autoload.php';
 
-$coverage = include $argv[1];
+$serialized = (new SebastianBergmann\CodeCoverage\Serialization\Unserializer())->unserialize($argv[1]);
+$data = $serialized['codeCoverage'];
+// Paths are stored relative to the common directory; restore them.
+foreach ($data->coveredFiles() as $file) {
+    $data->renameFile($file, $serialized['basePath'] . '/' . $file);
+}
+$filter = new SebastianBergmann\CodeCoverage\Filter();
+$coverage = new SebastianBergmann\CodeCoverage\CodeCoverage(
+    (new SebastianBergmann\CodeCoverage\Driver\Selector())->forLineCoverage($filter),
+    $filter,
+);
+$coverage->setData($data);
+$coverage->setTests($serialized['testResults']);
 $report = $coverage->getReport();
 $uncovered = [];
 foreach ($report as $node) {
@@ -32,13 +47,13 @@ foreach ($report as $node) {
 }
 foreach ($coverage->getData()->functionCoverage() as $file => $functions) {
     foreach ($functions as $function => $data) {
-        foreach ($data['branches'] as $branch) {
-            if (count($branch['hit']) === 0) {
+        foreach ($data->branches as $branch) {
+            if (count($branch->hit) === 0) {
                 $uncovered[] = sprintf(
                     '%s:%d-%d (branch in %s)',
                     basename($file),
-                    $branch['line_start'],
-                    $branch['line_end'],
+                    $branch->line_start,
+                    $branch->line_end,
                     $function,
                 );
             }
