@@ -1409,11 +1409,12 @@ Recommendation (owner decision):
     file is proven AST-equivalent (`tests/coverage/ast-equivalence.sh`); the
     reference comparison shows no new difference. Only rules with an
     identical syntax tree may use the AST exemption of the gates
-    (`PGACC_SYNTAX_ONLY=1`, set by CI for that pull request only).
-  - [ ] After step 1 is merged: remove `PGACC_SYNTAX_ONLY` (CI, its handling in
-    `tests/coverage/changed-lines.sh` and `tests/mutation/run.sh`, the
-    `--exclude-pathspecs` mode and the CI self-test step); the AST check stays
-    a standalone review tool, like the token-equivalence check.
+    (a flag set by CI for that pull request only).
+  - [x] After step 1: the exemption is removed again (branch
+    `syntax/remove-ast-exemption`); the gates are strict and the AST check is
+    a standalone review tool, like the token-equivalence check. A future
+    syntax-only step opts in only by owner decision (`tests/README.md`,
+    "Coverage").
   - [ ] Later steps change the syntax tree (`elseif`, visibility, closing tags,
     imports, ...) and run with the strict gates.
 

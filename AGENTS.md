@@ -85,7 +85,9 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php5/`, `icons/`,
   `js/`, `jquery.fileupload.js`) are byte-exact (`-text`): never convert them.
 - Token-changing modernization (array syntax, `elseif`, visibility, closing tags, imports) is a separate,
-  planned change: don't mix it into fixes. The formatting commit is listed in `.git-blame-ignore-revs`.
+  planned change: don't mix it into fixes. The changed-line gates are strict (every changed line counts);
+  `tests/coverage/ast-equivalence.sh` and `token-equivalence.sh` are standalone review tools. Exempting
+  AST-equivalent files for a syntax-only pull request is an owner decision (`tests/README.md`, "Coverage"). The formatting commit is listed in `.git-blame-ignore-revs`.
 
 ## Safety
 

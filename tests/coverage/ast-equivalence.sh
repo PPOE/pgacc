@@ -3,15 +3,14 @@
 # (tests/coverage/ast-equivalence.php), in the repository of the current
 # directory. A review tool for mechanical syntax changes: it proves that a
 # diff (such as array() -> []) leaves every syntax tree unchanged apart from
-# positions, ordinary comments and the array/list spelling.
+# positions, ordinary comments and the array/list spelling. No gate uses it;
+# the changed-line coverage gate and the mutation selection count every
+# changed line (tests/README.md, "Coverage").
 #
 #   sh tests/coverage/ast-equivalence.sh --check <base>
 #       one verdict per modified PHP file; exit 1 if any differs
 #   sh tests/coverage/ast-equivalence.sh --list-equivalent <base>
 #       only the equivalent paths, relative to the repository root
-#   sh tests/coverage/ast-equivalence.sh --exclude-pathspecs <base>
-#       the same, as ":(top,exclude,literal)<path>" Git pathspecs (for the
-#       changed-line gates while PGACC_SYNTAX_ONLY=1, see changed-lines.sh)
 #   sh tests/coverage/ast-equivalence.sh --self-test
 #       ast-equivalence-test.php and ast-equivalence-test.sh
 #
@@ -139,9 +138,9 @@ if [ "${1:-}" = --self-test ]; then
 fi
 
 case "${1:-}" in
-  --check|--list-equivalent|--exclude-pathspecs) mode=$1 ;;
+  --check|--list-equivalent) mode=$1 ;;
   *)
-    echo "Usage: sh tests/coverage/ast-equivalence.sh --check|--list-equivalent|--exclude-pathspecs <base> | --self-test" >&2
+    echo "Usage: sh tests/coverage/ast-equivalence.sh --check|--list-equivalent <base> | --self-test" >&2
     exit 2
     ;;
 esac
@@ -210,8 +209,5 @@ case "$mode" in
     ;;
   --list-equivalent)
     sed -n 's/: equivalent$//p' "$work/verdicts" || exit 2
-    ;;
-  --exclude-pathspecs)
-    sed -n 's/^\(.*\): equivalent$/:(top,exclude,literal)\1/p' "$work/verdicts" || exit 2
     ;;
 esac
