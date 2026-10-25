@@ -465,7 +465,7 @@ function getoppsort($sortn)
 {
     if (isset($_GET["sort"])) {
         if ($_GET["sort"] == $sortn) {
-            $sortdir = substr($sortn, -1, 1);
+            $sortdir = substr($sortn ?? '', -1, 1);
             switch ($sortdir) {
                 case 'a':
                     return substr($sortn, 0, -1) . 'd';

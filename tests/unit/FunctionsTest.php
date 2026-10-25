@@ -709,6 +709,16 @@ final class FunctionsTest extends FunctionsTestCase
         );
     }
 
+    public function testGetoppsortOfNullWithAnEmptySortIsDiagnosticFree()
+    {
+        $_GET['sort'] = '';
+        $result = self::callAndCaptureDiagnostics(function () {
+            return getoppsort(null);
+        });
+        self::assertNull($result['return']);
+        self::assertSame(array(), $result['diagnostics']);
+    }
+
     public function testPercentOfBookingsUsesSyntheticDatabaseRows()
     {
         $text = percent_of_bookings();
