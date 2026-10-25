@@ -93,8 +93,8 @@ return [
         [
             'id' => 'import2-failed-store-keeps-file',
             'file' => 'import2.php',
-            'search' => '        $result = pg_query($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '        $result = pg_query($dbconn, "SELECT 1;")',
+            'search' => '        db_exec($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;");',
+            'replace' => '        db_exec($dbconn, "SELECT 1;");',
             'rationale' => 'A receipt that could not be stored leaves the voucher without a file number.',
         ],
         [
@@ -134,8 +134,8 @@ return [
         [
             'id' => 'upload-failed-store-keeps-file',
             'file' => 'new.php',
-            'search' => '        $result = pg_query($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '        $result = pg_query($dbconn, "SELECT 1;")',
+            'search' => '        db_exec($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;");',
+            'replace' => '        db_exec($dbconn, "SELECT 1;");',
             'rationale' => 'A receipt that could not be stored does not stay referenced: the row gets its '
                 . 'previous file number back.',
         ],
