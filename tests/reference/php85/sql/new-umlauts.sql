@@ -38,21 +38,14 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT nextval('voucher_number') AS num;
+SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
 -- next
-
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(5004, '2024-09-15', 20,1,2,false,
-  0,'SYNTHETICREF',
-  'Jörg Ä. Österreicher','Test Street 1','0000',
-  'Test City',0,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference Ümlaut "Zitat" O''Brien
-Zeile 2','Reference workflow',
-  false,0,false,NULL,NULL);
+SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM person_type ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM lo ORDER BY id ASC
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval

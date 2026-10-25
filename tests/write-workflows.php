@@ -1605,6 +1605,151 @@ assert_not_contains($substringMemberFees['body'], 'MB Zahlungen nach LO', 'membe
 // (The page itself is not requested for bgf: on the synthetic data it divides
 // by zero, an open finding in tests/COMPATIBILITY_PLAN.md.)
 
+// Placed after the checks of the fixture rows 101-110: new vouchers take ids
+// from 1 upwards (the fixture sets no sequence) and must not reach them before.
+// Amounts are parsed as text (amount_cents()): euros with up to two decimals
+// after a comma or a dot, within the integer column. A voucher with any other
+// amount is not saved: the form is shown again with the entered text and
+// "FEHLER: Ungültiger Betrag" next to it.
+$amountForms = array(
+    '0' => '0',
+    '0,00' => '0',
+    '12,5' => '1250',
+    '0,01' => '1',
+    '-12,50' => '-1250',
+    '+5' => '500',
+    '1.15' => '115',
+    ' 12,50' => '1250',
+    "12\n" => '1200',
+    '-21474836,48' => '-2147483648',
+    '1,005' => null,
+    '1.005' => null,
+    '1.234,56' => null,
+    '' => null,
+    'abc' => null,
+    '1e3' => null,
+    '1e3,2' => null,
+    '1e1000' => null,
+    '21474836,48' => null,
+    '9223372036854775808' => null,
+    '<b>1</b>' => null,
+);
+$amountIndex = 0;
+foreach ($amountForms as $amount => $stored) {
+    $amountIndex++;
+    $amount = (string) $amount;
+    $label = 'creation with the amount ' . var_export($amount, true);
+    $amountComment = "Synthetic amount voucher $amountIndex";
+    $amountCreation = http_request('/index.php?action=new', 'POST', voucher_form($amountComment, $amount, 0), $adminCookies);
+    assert_status($amountCreation, 200, $label);
+    assert_not_contains($amountCreation['body'], 'Abfrage fehlgeschlagen', $label);
+    if ($stored === null) {
+        assert_not_contains($amountCreation['body'], 'Buchung erfasst', $label);
+        assert_contains($amountCreation['body'], 'Die Buchung wurde nicht gespeichert.', $label);
+        assert_contains($amountCreation['body'], 'name="amount0" value="' . htmlspecialchars($amount, ENT_QUOTES) . '" onchange="clicked();" /> <span class="slot_error">FEHLER: Ungültiger Betrag</span>', $label);
+        assert_contains($amountCreation['body'], 'value="' . $amountComment . '"', $label);
+        assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array($amountComment), 0, $label);
+    } else {
+        assert_contains($amountCreation['body'], 'Buchung erfasst', $label);
+        assert_not_contains($amountCreation['body'], 'FEHLER', $label);
+        $amountRow = database_row($database, 'SELECT amount FROM vouchers WHERE comment = $1', array($amountComment), $label);
+        assert_database_field($amountRow, 'amount', $stored, $label);
+    }
+}
+// Two parts, only the second one invalid: nothing is saved.
+$twoAmountForm = two_organization_form('Synthetic two-part amount voucher', 0);
+$twoAmountForm['amount1'] = '1e3';
+$twoAmountCreation = http_request('/index.php?action=new', 'POST', $twoAmountForm, $adminCookies);
+assert_contains($twoAmountCreation['body'], 'Die Buchung wurde nicht gespeichert.', 'two parts, second amount invalid');
+assert_contains($twoAmountCreation['body'], 'name="amount0" value="-1.00" onchange="clicked();" />' . "\n", 'two parts, second amount invalid');
+assert_contains($twoAmountCreation['body'], 'name="amount1" value="1e3" onchange="clicked();" /> <span class="slot_error">FEHLER: Ungültiger Betrag</span>', 'two parts, second amount invalid');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic two-part amount voucher'), 0, 'two parts, second amount invalid');
+// A Beleg part has no amount of its own.
+$belegAmountForm = voucher_form('Synthetic Beleg with an invalid amount', 'abc', 0);
+$belegAmountForm['dir0'] = 'bel';
+$belegAmount = http_request('/index.php?action=new', 'POST', $belegAmountForm, $adminCookies);
+assert_contains($belegAmount['body'], 'Buchung erfasst', 'Beleg part with an invalid amount');
+assert_not_contains($belegAmount['body'], 'Ungültiger Betrag', 'Beleg part with an invalid amount');
+// The form shown again without saving (no "Speichern") keeps an invalid
+// amount as entered, with the error.
+foreach (array('12,5' => '12.50', 'abc' => null, '1e3' => null) as $amount => $shown) {
+    $amount = (string) $amount;
+    $amountForm = voucher_form('Synthetic amount form', $amount, 0);
+    unset($amountForm['speichern']);
+    $amountPage = http_request('/index.php?action=new', 'POST', $amountForm, $adminCookies);
+    assert_status($amountPage, 200, "form with the amount $amount");
+    if ($shown === null) {
+        assert_contains($amountPage['body'], 'name="amount0" value="' . $amount . '" onchange="clicked();" /> <span class="slot_error">FEHLER: Ungültiger Betrag</span>', "form with the amount $amount");
+    } else {
+        assert_contains($amountPage['body'], 'name="amount0" value="' . $shown . '" onchange="clicked();" />' . "\n", "form with the amount $amount");
+        assert_not_contains($amountPage['body'], 'FEHLER', "form with the amount $amount");
+    }
+}
+// A revision with an invalid amount writes nothing: no new revision, the
+// current row and its approvals stay; the edit form is shown again.
+$amountDraftId = create_voucher($database, 'Synthetic draft for an invalid revision amount', '-3.00', 0, $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-reviewer' WHERE voucher_id = $1", array($amountDraftId));
+$amountRevision = edit_request($amountDraftId, revision_form($amountDraftId, 'Synthetic invalid revision amount', '1,005'), $adminCookies);
+assert_status($amountRevision, 200, 'revision with an invalid amount');
+assert_contains($amountRevision['body'], 'Die Buchung wurde nicht gespeichert.', 'revision with an invalid amount');
+assert_not_contains($amountRevision['body'], 'Buchung aktualisiert', 'revision with an invalid amount');
+assert_contains($amountRevision['body'], '<h1>Buchung ' . $amountDraftId . ' bearbeiten</h1>', 'revision with an invalid amount');
+assert_contains($amountRevision['body'], 'name="amount0" value="1,005" onchange="clicked();" /> <span class="slot_error">FEHLER: Ungültiger Betrag</span>', 'revision with an invalid amount');
+assert_contains($amountRevision['body'], 'value="Synthetic invalid revision amount"', 'revision with an invalid amount');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1', array($amountDraftId), 1, 'revision with an invalid amount');
+$amountDraft = database_row($database, 'SELECT amount, deleted, ack1, comment FROM vouchers WHERE voucher_id = $1', array($amountDraftId), 'revision with an invalid amount');
+assert_database_field($amountDraft, 'amount', '-300', 'revision with an invalid amount');
+assert_database_field($amountDraft, 'deleted', 'f', 'revision with an invalid amount');
+assert_database_field($amountDraft, 'ack1', 'synthetic-reviewer', 'revision with an invalid amount');
+// The same revision with a valid amount saves and redirects.
+assert_redirect(edit_request($amountDraftId, revision_form($amountDraftId, 'Synthetic valid revision amount', '1,05'), $adminCookies), edit_location($amountDraftId, 5), 'revision with a valid amount');
+$amountRevised = database_row($database, 'SELECT amount FROM vouchers WHERE voucher_id = $1 AND NOT deleted', array($amountDraftId), 'revision with a valid amount');
+assert_database_field($amountRevised, 'amount', '105', 'revision with a valid amount');
+
+// A missing or non-string amount is invalid too (only a Beleg part has none).
+$missingAmountForm = two_organization_form('Synthetic voucher without a second amount', 0);
+unset($missingAmountForm['amount1']);
+$missingAmount = http_request('/index.php?action=new', 'POST', $missingAmountForm, $adminCookies);
+assert_contains($missingAmount['body'], 'Die Buchung wurde nicht gespeichert.', 'second part without an amount');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic voucher without a second amount'), 0, 'second part without an amount');
+$arrayAmountForm = voucher_form('Synthetic voucher with an array amount', '', 0);
+unset($arrayAmountForm['amount0']);
+$arrayAmountForm['amount0[]'] = '12';
+$arrayAmount = http_request('/index.php?action=new', 'POST', $arrayAmountForm, $adminCookies);
+assert_contains($arrayAmount['body'], 'Die Buchung wurde nicht gespeichert.', 'array amount');
+assert_contains($arrayAmount['body'], 'name="amount0" value="0.00" onchange="clicked();" />' . "\n", 'array amount');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE comment = $1', array('Synthetic voucher with an array amount'), 0, 'array amount');
+// The refused revision shows unsaved values: no approval and no approval
+// reset, which would act on the stored rows.
+$amountAckPage = http_request('/index.php?action=edit&id=' . $amountDraftId, 'GET', array(), $adminCookies);
+assert_contains($amountAckPage['body'], 'name="ack" id="ack"', 'edit page with the approval button');
+assert_not_contains($amountRevision['body'], 'name="ack" id="ack"', 'revision with an invalid amount');
+assert_not_contains($amountRevision['body'], 'name="belegfehler"', 'revision with an invalid amount');
+assert_contains($amountRevision['body'], 'name="speichern" id="speichern"', 'revision with an invalid amount');
+// A refused revision of a voucher with rows of two organizations leaves
+// every row and its approvals untouched.
+$twoOrgAmountId = create_voucher_from_form($database, two_organization_form('Synthetic two-organization amount draft', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-reviewer', ack2 = 'synthetic-reviewer-2' WHERE voucher_id = $1", array($twoOrgAmountId));
+$twoOrgRowsBefore = voucher_rows($database, $twoOrgAmountId, 'two-organization voucher before the refused revision');
+$twoOrgRevisionForm = array_merge(revision_form($twoOrgAmountId, 'Synthetic two-organization amount revision', '-1.00'), two_organization_form('Synthetic two-organization amount revision', 0));
+$twoOrgRevisionForm['id'] = $twoOrgAmountId;
+$twoOrgRevisionForm['amount1'] = '1e3';
+$twoOrgRevision = http_request('/index.php?action=edit&id=' . $twoOrgAmountId, 'POST', $twoOrgRevisionForm, $adminCookies);
+assert_status($twoOrgRevision, 200, 'refused revision of two organizations');
+assert_contains($twoOrgRevision['body'], 'Die Buchung wurde nicht gespeichert.', 'refused revision of two organizations');
+assert_voucher_rows($database, $twoOrgAmountId, $twoOrgRowsBefore, 'refused revision of two organizations');
+assert_database_count($database, 'SELECT COUNT(*) AS count FROM vouchers WHERE voucher_id = $1', array($twoOrgAmountId), 2, 'refused revision of two organizations');
+if (count($twoOrgRowsBefore) !== 2 || $twoOrgRowsBefore[0]['ack2'] !== 'synthetic-reviewer-2') {
+    fail_test('two-organization voucher rows: ' . var_export($twoOrgRowsBefore, true));
+}
+// A legacy row without an amount (NULL) is shown as 0.00, without an error.
+pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+     VALUES (4795, 20, 2, false, NULL, 'TEST-ACCOUNT-2', 'Synthetic row without an amount', timestamp '2024-09-15 00:00:00', 1, 0, '')");
+$nullAmountPage = http_request('/index.php?action=edit&id=4795', 'GET', array(), $adminCookies);
+assert_status($nullAmountPage, 200, 'edit page of a row without an amount');
+assert_contains($nullAmountPage['body'], 'name="amount0" value="0.00" onchange="clicked();" />' . "\n", 'edit page of a row without an amount');
+assert_not_contains($nullAmountPage['body'], 'Ungültiger Betrag', 'edit page of a row without an amount');
+
 // Password/session regressions run independently in http-session-lifecycle.php.
 
 // The account form's empty row with the unchanged password placeholder

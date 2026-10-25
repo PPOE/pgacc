@@ -168,6 +168,7 @@ function page_edit_ack($rights)
 function page_edit_save($rights)
 {
     global $dbconn;
+    $form_rights = $rights;
     $rights = write_rights($rights);
     if ($rights === false) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -212,6 +213,12 @@ function page_edit_save($rights)
 
     if (!posted_organizations_allowed($parts, $rights)) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        return;
+    }
+    // Nothing is written (no revision, no approval reset): the form again.
+    if (!posted_amounts_valid($parts, $rights)) {
+        amount_refused();
+        page_edit($form_rights, true);
         return;
     }
     echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
@@ -304,7 +311,10 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
     page_edit_form($part, $voucher, $rights);
 }
 
-function page_edit($rights)
+// $unsaved: the form shows posted values that were not saved (a refused
+// revision): no approval or approval reset, which would act on the stored
+// rows.
+function page_edit($rights, $unsaved = false)
 {
     global $dbconn;
     $id = -1;
@@ -443,6 +453,6 @@ function merge()
     $bgfandack = has_right($rights, 'bgf') && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 
 
-    end_of_form($parts, $rights, $bgfandack, $rights);
+    end_of_form($parts, $rights, $bgfandack && !$unsaved, $rights, true, !$unsaved);
 }
 ?>

@@ -223,6 +223,125 @@ if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
     fail_test('BAWAG voucher ID import: expected one voucher after importing the same line twice');
 }
 
+// Amounts of every format are parsed exactly (amount_cents()), each in its
+// own style: BAWAG "+1.234,56", Sparkasse and Paypal "1.234,56" or "1,234.56"
+// (the last separator is the decimal one; exactly two decimals), Handkassa
+// whole euros or as Sparkasse with one or two decimals. An exponent, another
+// style or an out-of-range amount makes the line invalid: reported with its
+// number and skipped. A zero amount skips a Handkassa, Sparkasse or Paypal
+// line silently, as before (expected rows: none); a BAWAG line with zero is
+// imported. Each case: the amount (Paypal: gross and fee), and the stored
+// amounts or null for an invalid line.
+function import_amount_cases($database, $cookies, $name, $header, $cases, $line, $like)
+{
+    $content = $header;
+    $lineno = $header === '' ? 0 : 1;
+    $skipped = array();
+    foreach ($cases as $index => $case) {
+        $lineno++;
+        $content .= $line($index, $case[0]);
+        if ($case[1] === null) {
+            $skipped[] = $lineno;
+        }
+    }
+    $response = import_csv($name, $content, $cookies);
+    assert_status($response, 200, $name);
+    assert_not_contains($response['body'], 'fehlgeschlagen', $name);
+    foreach ($skipped as $number) {
+        assert_contains($response['body'], "Ungültige Buchungszeile in Datei 1 ($name), Zeile $number <br />", $name);
+    }
+    assert_contains($response['body'], "Datei 1 ($name): " . count($skipped) . ' Buchungszeilen übersprungen (Zeilen ' . implode(', ', $skipped) . ')', $name);
+    foreach ($cases as $index => $case) {
+        $result = @pg_query_params($database, 'SELECT amount FROM vouchers WHERE comment LIKE $1 ORDER BY id', array($like($index)));
+        $rows = pg_fetch_all_columns($result, 0);
+        if ($rows !== ($case[1] === null ? array() : $case[1])) {
+            fail_test("$name amount " . var_export($case[0], true) . ': imported ' . var_export($rows, true));
+        }
+    }
+}
+import_amount_cases($database, $adminCookies, 'bawag-amounts.csv', '', array(
+    array('+5,00', array('500')),
+    array('+0,00', array('0')),
+    array('-1.234,56', array('-123456')),
+    array('+21.474.836,47', array('2147483647')),
+    array('1e3', null),
+    array('1e3,2', null),
+    array('1e1000', null),
+    array('9223372036854775808', null),
+    array('+21.474.836,48', null),
+    array('+5,5', null),
+    array('25.00', null),
+    array('1.234.56', null),
+), function ($index, $amount) {
+    return "AT606000050110117300;Synthetic BAWAG amount $index|BAWAATWW AT611904300234573201 Synthetic Spender;07.04.2024;07.04.2024;$amount;EUR\n";
+}, function ($index) {
+    return "Synthetic BAWAG amount $index\n%";
+});
+import_amount_cases($database, $adminCookies, 'handkassa-amounts.csv', $handkassaHeader, array(
+    array('12,50', array('1250')),
+    array('7', array('700')),
+    array('12,5', array('1250')),
+    array('-3.5', array('-350')),
+    array('-3.10', array('-310')),
+    array(' 3,00 ', array('300')),
+    array('0', array()),
+    array('1e3', null),
+    array('abc', null),
+    array('', null),
+    array('1,005', null),
+    array('1.234,56', array('123456')),
+    array('1,234.56', array('123456')),
+    array('1.234', null),
+), function ($index, $amount) {
+    return "08.04.2024;$amount;Handkassa;Synthetic Handkassa amount $index;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n";
+}, function ($index) {
+    return "Synthetic Handkassa amount $index";
+});
+import_amount_cases($database, $adminCookies, 'sparkasse-amounts.csv', "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"
+    . "Kundendaten/Zahlungsreferenz;Umsatzzeile 2;Ersterfassungsreferenz;Auftraggeber Kontonr./IBAN;"
+    . "Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC\r\n", array(
+        array('+99,99', array('9999')),
+        array('-1.234,56', array('-123456')),
+        array('0,00', array()),
+        array('1e3', null),
+        array('99,9', null),
+        array('12.34', array('1234')),
+        array('1,234.56', array('123456')),
+        array('1.234.56', null),
+    ), function ($index, $amount) {
+        return "Synthetic;16.05.2024;$amount;EUR;16.05.2024;Synthetic Sparkasse amount $index;Zusatz;Auftraggeber;;;;;;Synthetic Partner;AT00 0000;SYNTATWW\r\n";
+    }, function ($index) {
+        return "Synthetic Sparkasse amount $index; %";
+    });
+import_amount_cases($database, $adminCookies, 'paypal-amounts.csv', $paypalLines[0] . "\n", array(
+    array(array('25.00', '-0.78'), array('2500', '-78')),
+    array(array('"1,234.56"', '0.00'), array('123456', '0')),
+    array(array('"25,00"', '"-0,78"'), array('2500', '-78')),
+    array(array('"-1.234,56"', '"0,00"'), array('-123456', '0')),
+    array(array('"25,0"', '0.00'), null),
+    array(array('"1.234.56"', '0.00'), null),
+    array(array('0.00', '0.00'), array()),
+    array(array('1e3', '0.00'), null),
+    array(array('25', '0.00'), null),
+    array(array('25.00', 'x'), null),
+), function ($index, $amount) {
+    return "17.03.2024,10:00:00,CET,Synthetic PayPal Donor,Spende,Abgeschlossen,EUR,{$amount[0]},{$amount[1]},24.22,donor@example.invalid,spende@piratenpartei.at,SYNTH000000010$index,,,Synthetic Paypal amount $index,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,\n";
+}, function ($index) {
+    return "Synthetic Paypal amount $index; %";
+});
+
+// Blank lines (empty fields only, or nothing) after a header are skipped
+// silently, as before; a line with an empty amount is reported.
+$blankLines = $handkassaHeader . ";;;;;;;;;;;;;\r\n" . "\r\n"
+    . "09.04.2024;4,00;Handkassa;Synthetic Handkassa line after blank lines;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n"
+    . "09.04.2024;;Handkassa;Synthetic Handkassa line without an amount;;;Nein;Nein;Synthetic Importer;0;2;;;\r\n";
+$blankImport = import_csv('blank-lines.csv', $blankLines, $adminCookies);
+assert_contains($blankImport['body'], 'Ungültige Buchungszeile in Datei 1 (blank-lines.csv), Zeile 5 <br />', 'blank lines');
+assert_contains($blankImport['body'], 'Datei 1 (blank-lines.csv): 1 Buchungszeilen übersprungen (Zeilen 5)', 'blank lines');
+if (import_count($database, 'Synthetic Handkassa line after blank lines') !== 1 || import_count($database, 'Synthetic Handkassa line without an amount') !== 0) {
+    fail_test('blank lines: wrong lines imported');
+}
+
 // getusers() replaces the member list (ppmembers) only with a complete,
 // valid response of the membership stub (HTTPS, compose.test.yaml). A failed
 // fetch (an HTTP error, a redirect, a refused certificate), a short or an

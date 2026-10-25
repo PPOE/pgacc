@@ -49,12 +49,6 @@ parameters:
 			path: ../../mbapi.php
 
 		-
-			message: '#^Binary operation "\*" between \(array\<string\>\|string\) and 100\.0 results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: ../../new.php
-
-		-
 			message: '#^Variable \$file_number might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3

@@ -165,6 +165,11 @@ Harness follow-ups found in the first step (not done there):
   until the re-baseline and were removed with it, as was the `crlf-to-lf`
   transform.
 - [x] `csrf` added to the `ci.sh` list (all 14 targets).
+- [ ] The fixture inserts vouchers 101-110 with explicit ids but sets no
+  `vouchers_id_seq`, so the lane's new vouchers count up from 1 and reach
+  the fixture ids after about 100 creations (found by the amount tests,
+  which therefore run after `write-workflows.php`'s fixture-row checks).
+  Candidate fix: `setval()` in the fixture (changes recorded ids).
 
 ## Completed and verified
 
@@ -1006,17 +1011,71 @@ characters; b). New and suspicious (c):
 
 Class (c) follow-ups (owner decisions, not fixed here):
 
-- [ ] `import.php:118`: validate amounts before `intval()`: `1e3` imports
+Fixed by the exact amount parsing (owner decisions in the review of the pull
+request): one parser in `functions.php`, `amount_cents($value, $decimal,
+$thousands, $two_decimals)`. It trims spaces, tabs, CR and LF and parses the
+text without floats: an optional sign, the euros, the decimal separator
+exactly once followed by the decimals. A thousands separator may only stand
+before a group of exactly three digits (`1.234.56` and `1,234.567,89` are
+refused). The range is that of the integer column `vouchers.amount`
+(-2147483648 to 2147483647 cents), compared as text and independent of the
+integer size. Any other value is null.
+
+- [x] `import.php:118`: validate amounts before `intval()`: `1e3` imports
   1000 cents (PHP 5: 1), `1e1000` 0 and `1e3,2` `PHP_INT_MAX` cents
-  (`RD-INTVAL-EXPONENT-VALUES`).
-- [ ] Validate the import amount range: `"9223372036854775808"` saturates to
+  (`RD-INTVAL-EXPONENT-VALUES`). Fixed for every import format, each in its
+  own style: BAWAG `+1.234,56` (fixture); Sparkasse and Paypal in either
+  convention, `1.234,56` or `1,234.56`, the last separator being the decimal
+  one (the old code accepted both, and German Paypal exports use a decimal
+  comma while the fixture uses a point); all three with exactly two decimals;
+  Handkassa whole euros or the same rule as Sparkasse with one or two
+  decimals (`1.234,56` imports as before; `12,5` and the fixture's `-3.5`,
+  read as 125 and -35 cents before, are now 1250 and -350; `1.234`, read as
+  1234 cents before, is ambiguous and reported). Before, the Handkassa
+  format read `12,5` as 125 cents. An invalid amount (including a Paypal
+  fee) makes the line invalid: it is reported ("Ungültige Buchungszeile …,
+  Zeile N") and skipped. A zero amount still skips a Handkassa, Sparkasse
+  or Paypal line silently. Header lines and, in those formats, blank lines
+  (empty fields only, Excel's trailing `;;;;`) are skipped explicitly
+  (before, their amount counted as zero); a line with other fields and an
+  empty amount is reported.
+- [x] Validate the import amount range: `"9223372036854775808"` saturates to
   `PHP_INT_MAX` cents (`import.php:118`); out-of-range years make
-  `date_condition(PHP_INT_MAX)` build invalid SQL (`'9.2233720368548E+18-01-01'`);
-  the `sprintf` money idiom loses precision at `PHP_INT_MAX` (`RD-INT-32BIT`).
-- [ ] `new.php:46` and the money formatting: an empty or non-numeric amount
-  is a `TypeError` (HTTP 500) (`RD-PHP8-NONNUMERIC-ARITHMETIC`).
-- [ ] `new.php:46`: PHP 8.4 `round()` stores 1,005 EUR as 100 cents; decide
-  the intended rounding (`RD-PHP84-ROUND`).
+  `date_condition(PHP_INT_MAX)` build invalid SQL (`'9.2233720368548E+18-01-01'`)
+  (`RD-INT-32BIT`). Fixed: the range as above. `date_condition()` builds a
+  condition only for a year from 1 to 9999 (an int or its digits), with
+  four-digit years (`sprintf('%04d')`; PostgreSQL reads `1-01-01` as 2001 and
+  refuses `13-01-01`). Any other year fails closed (` AND false`, matches
+  nothing). `page_donations()` treats a year after 9999 like one before 2012
+  (the 2013 page).
+- [ ] The `sprintf` money idiom loses precision at `PHP_INT_MAX`
+  (`92233720368547760.00`, `RD-INT-32BIT`); display formatting unchanged.
+- [x] `new.php:46` and the money formatting: an empty or non-numeric amount
+  is a `TypeError` (HTTP 500) (`RD-PHP8-NONNUMERIC-ARITHMETIC`). Fixed for
+  the voucher form. The `TypeError` was only reachable through the idiom
+  probe: the form's regex silently replaced an invalid amount by `0.00`.
+  **Owner decision: an invalid amount refuses the save.** For a new voucher
+  and a revision, any invalid part refuses the whole voucher (multi-part
+  too). Nothing is written: no voucher number, no revision, no approval
+  reset. The form is shown again with the entered text and "FEHLER:
+  Ungültiger Betrag" next to the field, without the approval and approval
+  reset buttons (they act on the stored rows). A missing or non-string
+  amount is invalid too, except in a Beleg part (always 0.00). A NULL amount
+  in the database is still shown as 0.00. The redirect and the warn codes
+  stay for a successful save. A form shown again without saving (adding or
+  removing a part) also keeps an invalid amount as entered. The
+  `sprintf('%1.2f', .../100)` display of non-numeric sums is unchanged
+  (open).
+- [x] `new.php:46`: PHP 8.4 `round()` stores 1,005 EUR as 100 cents; decide
+  the intended rounding (`RD-PHP84-ROUND`). Fixed: no rounding. The form's
+  regex has always refused more than two decimals (PHP 5 too: 1,005 was
+  saved as 0 without a message; 101 and 100 cents were only results of the
+  idiom probe). The form takes euros and at most two decimals after `,` or
+  `.`, and more decimals are an invalid amount (save refused). Thousands
+  separators were not accepted and still are not. A leading `+` is accepted
+  now. `"12\n"` was stored as 1200 before and still is (trimmed); `" 12,50"`
+  is now 1250. Amounts outside the integer column made the `INSERT` fail
+  before ("Abfrage fehlgeschlagen"); they are now refused.
 - [x] `getfilter()`/`get_param()`: array request parameters gave HTTP 500
   (`RD-PHP8-ARRAY-ARG-GET`). **Fixed**: a non-string value counts as absent
   (`is_string(... ?? null)` instead of `isset()`), so the filter or the
@@ -1032,8 +1091,8 @@ Class (c) follow-ups (owner decisions, not fixed here):
   `convif(true, null)` (`iconv()` of null). **Fixed**: null is read as `''`,
   same return values (`FunctionsTest`, `ImportMemberMatchTest`, mutation
   target `edge-requests`).
-- [ ] Out-of-range helper input: `date_condition(1.5E+300)` (float not
-  representable as an int).
+- [x] Out-of-range helper input: `date_condition(1.5E+300)` (float not
+  representable as an int). **Fixed** with the year range above.
 - [ ] Review the application's non-strict `in_array()`/`array_search()`/`==`
   and sorts that can see ties under PHP 8 semantics (e.g. `new.php:656`,
   `functions.php:321`; konto2lo, rights, filters). The former `todo` entries
@@ -1089,8 +1148,9 @@ On 32-bit `intval()` saturates numeric strings at 2147483647 and wraps floats
   `recover.php`, `index.php:217`, `:289`, `:293`, `donations.php:5-7`): only
   values beyond 2147483647 differ (32-bit clamps them), e.g. `?id=9999999999`
   selects voucher 2147483647 instead of 9999999999; both find nothing.
-- `new.php:46` parses entered amounts with `round(... * 100.0)` (a float), so
-  32- and 64-bit agree there.
+- `new.php` parsed entered amounts with `round(... * 100.0)` (a float), so
+  32- and 64-bit agreed there; since the exact amount parsing it parses the
+  text and refuses amounts outside the integer column (compared as text).
 
 No change is needed for the `php5-last` hotfix; on a 64-bit host the
 differences above are only visible for out-of-range input.
@@ -1585,7 +1645,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | **Fixed**: the default enclosure and escape are passed explicitly (step a of the PHP 8.5-only migration) |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token, one fewer after the removal of the dead voucher-ID check, 12 fewer after the dead-code removal)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token, one fewer after the removal of the dead voucher-ID check, 12 fewer after the dead-code removal, one fewer after the exact amount parsing)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
@@ -1599,7 +1659,7 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`, fixed), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7, fixed) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` (`$bgfandack`) is observed by `tests/http-output-escaping.php` (re-rendered new-voucher form) as the former known failure `KF-NEW-UNDEFINED-BGFANDACK` (fixed: `page_new()` passes `false`, the value the undefined variable had); `wk.php` as the former `KF-WK-UNDEFINED-YEAR` (fixed: `page_wk()` sets `$year = null`, which `wk_unit_report()` does not use). Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`; fixed: initialized before the name check, a member part without number and name raised "Undefined variable" and a `foreach()` warning), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; the former known failure `KF-REPORT-UNDEFINED-UNIT`, fixed: set to -1, the unused `$unit_s` is not part of the queries; the dead `$unit` and `$unit_s` were later removed with their always-true `$unit == -1` conditions, `equal.alwaysTrue`, 4 each), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
 | Invalid regex modifier `/g` | `import.php:306` | **Removed** with the dead voucher-ID check it guarded (see "PHP 8.5-only migration"); formerly known failure `KF-IMPORT-REGEX-G`. |
-| Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
+| Arithmetic on a possible array | `new.php:46` | **Fixed** (exact amount parsing): `amount_cents()` parses the posted text; an array is an invalid amount, and the save is refused. Entry removed. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`; removed as dead code), `import.php:161` (`'Paypal' == 'Paypal'`; no longer reported since the unreachable "Unbekanntes CSV Format" else branch was removed), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | Resolved by the dead-code removal; entries removed. |
 | `setcookie()` value is an int | `index.php:27` | **Fixed** with the login session token (the cookie is a hex string now); baseline entry removed. |
 | Whitespace after the final `?>` | `check.php:64`, `index.php:356` | **New**, low. Emitted after page output. |

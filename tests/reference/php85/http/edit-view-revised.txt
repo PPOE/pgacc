@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=1004 as admin
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (15131 bytes) ---
+--- body (15122 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -16,7 +16,7 @@ header: Content-type: text/html; charset=UTF-8
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 21 Buchungszeilen, 9 (42.86 %) abgeschlossen, 3 (14.29 %) bearbeitet, 9 (42.86 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 20 Buchungszeilen, 9 (45 %) abgeschlossen, 3 (15 %) bearbeitet, 8 (40 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
 
 <div class="page edit">
 <div class="main" id="default">
@@ -168,8 +168,8 @@ function merge()
 <br /><h4>Bestätigt von:  </h4>
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<h3>Buchungszeile 1006</h3>
-<input type="hidden" name="bid0" value="1006" />
+<h3>Buchungszeile 1005</h3>
+<input type="hidden" name="bid0" value="1005" />
 <div id="date_block0">
 <label class="ui_field_label" for="date0">Datum</label><input type="text" id="date0" name="date0" value="2024-09-15" onchange="clicked();" />
 </div>

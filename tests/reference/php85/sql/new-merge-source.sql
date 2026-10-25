@@ -47,7 +47,7 @@ member_id, contra_account, name, street, plz, city,
 amount, account, vaccount, comment, commentgf,
 committed, file, refund, ack1_old, ack2_old)
 VALUES
-(5006, '2024-09-15', 20,1,2,false,
+(5004, '2024-09-15', 20,1,2,false,
   0,'SYNTHETICREF',
   'Synthetic Reference Supplier','Test Street 1','0000',
   'Test City',-200,'TESTACCOUNT2',

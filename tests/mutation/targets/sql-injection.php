@@ -90,7 +90,7 @@ $mutations[] = array(
     'rationale' => 'Both columns of the old-approval filter use its own value.',
 );
 
-$view = array('start' => 'function page_edit($rights)', 'end' => '$hint = 0;');
+$view = array('start' => 'function page_edit($rights, $unsaved = false)', 'end' => '$hint = 0;');
 foreach (array('$id = intval($_GET["id"]);' => 'view-get-id-raw', '$id = intval($_POST["id"]);' => 'view-post-id-raw',
     '$bid = intval($_GET["bid"]);' => 'view-get-bid-raw', '$bid = intval($_POST["bid"]);' => 'view-post-bid-raw') as $search => $id) {
     $mutations[] = array(

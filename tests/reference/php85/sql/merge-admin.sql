@@ -40,4 +40,4 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-UPDATE vouchers SET voucher_id = 5005 WHERE voucher_id = 5006 ;
+UPDATE vouchers SET voucher_id = 5003 WHERE voucher_id = 5004 ;

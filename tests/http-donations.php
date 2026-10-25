@@ -191,5 +191,19 @@ foreach (array('logged-in' => $admin, 'forged cookie' => $forged) as $who => $co
     }
 }
 
+// Years after 9999 (also beyond the integer range, which intval() saturates)
+// are handled like those before 2012: the 2013 page, no invalid SQL.
+foreach (array('10000', '99999999999999999999') as $year) {
+    $late = donations_page($year);
+    assert_donations_heading($late, 2013, "donations $year");
+    assert_not_contains($late, DONATIONS_CAPTCHA_INTRO, "donations $year");
+    assert_no_donor_data($late, "donations $year");
+    $lateList = http_request('/index.php?action=donations&year=' . $year, 'GET', array(), $admin);
+    assert_status($lateList, 200, "donations $year logged-in");
+    assert_not_contains($lateList['body'], 'Abfrage fehlgeschlagen', "donations $year logged-in");
+    assert_donations_heading($lateList['body'], 2013, "donations $year logged-in");
+    assert_contains($lateList['body'], '<table id="donations"', "donations $year logged-in");
+}
+
 assert_no_unexpected_diagnostics();
 echo "Donations HTTP characterization tests passed\n";

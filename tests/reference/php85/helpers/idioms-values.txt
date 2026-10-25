@@ -1,85 +1,215 @@
-new.php:46 amount string(1) "0" returns array(int(0) => float(0), int(1) => string(1) "0")
-new.php:46 amount string(1) "1" returns array(int(0) => float(100), int(1) => string(3) "100")
-new.php:46 amount string(2) "-1" returns array(int(0) => float(-100), int(1) => string(4) "-100")
-new.php:46 amount string(5) "12,34" returns array(int(0) => float(1234), int(1) => string(4) "1234")
-new.php:46 amount string(6) "-12,34" returns array(int(0) => float(-1234), int(1) => string(5) "-1234")
-new.php:46 amount string(4) "12.3" returns array(int(0) => float(1230), int(1) => string(4) "1230")
-new.php:46 amount string(4) "0.07" returns array(int(0) => float(7), int(1) => string(1) "7")
-new.php:46 amount string(5) "1.005" returns array(int(0) => float(100), int(1) => string(3) "100")
-new.php:46 amount string(5) "1,005" returns array(int(0) => float(100), int(1) => string(3) "100")
-new.php:46 amount string(5) "2.675" returns array(int(0) => float(268), int(1) => string(3) "268")
-new.php:46 amount string(5) "100.5" returns array(int(0) => float(10050), int(1) => string(5) "10050")
-new.php:46 amount string(5) "-0,99" returns array(int(0) => float(-99), int(1) => string(3) "-99")
-new.php:46 amount string(14) "99999999999.99" returns array(int(0) => float(9999999999999), int(1) => string(13) "9999999999999")
-new.php:46 amount string(17) "12345678901234.56" returns array(int(0) => float(1234567890123456), int(1) => string(19) "1.2345678901235E+15")
-new.php:46 amount string(3) "1e3" returns array(int(0) => float(100000), int(1) => string(6) "100000")
-new.php:46 amount string(3) "abc" THROWS TypeError
-new.php:46 amount string(0) "" THROWS TypeError
+amount_cents(string(1) "0", ',.', '', false) returns int(0)
+amount_cents(string(1) "1", ',.', '', false) returns int(100)
+amount_cents(string(2) "-1", ',.', '', false) returns int(-100)
+amount_cents(string(5) "12,34", ',.', '', false) returns int(1234)
+amount_cents(string(6) "-12,34", ',.', '', false) returns int(-1234)
+amount_cents(string(4) "12.3", ',.', '', false) returns int(1230)
+amount_cents(string(4) "0.07", ',.', '', false) returns int(7)
+amount_cents(string(5) "1.005", ',.', '', false) returns null
+amount_cents(string(5) "1,005", ',.', '', false) returns null
+amount_cents(string(5) "2.675", ',.', '', false) returns null
+amount_cents(string(5) "100.5", ',.', '', false) returns int(10050)
+amount_cents(string(5) "-0,99", ',.', '', false) returns int(-99)
+amount_cents(string(14) "99999999999.99", ',.', '', false) returns null
+amount_cents(string(17) "12345678901234.56", ',.', '', false) returns null
+amount_cents(string(3) "1e3", ',.', '', false) returns null
+amount_cents(string(3) "abc", ',.', '', false) returns null
+amount_cents(string(0) "", ',.', '', false) returns null
 import.php:118 amount string(0) "" returns int(0)
+amount_cents(string(0) "", ',', '.', true) returns null
+amount_cents(string(0) "", '.', ',', true) returns null
 import.php:118 amount string(1) "0" returns int(0)
+amount_cents(string(1) "0", ',', '.', true) returns null
+amount_cents(string(1) "0", '.', ',', true) returns null
 import.php:118 amount string(2) "00" returns int(0)
+amount_cents(string(2) "00", ',', '.', true) returns null
+amount_cents(string(2) "00", '.', ',', true) returns null
 import.php:118 amount string(3) "0.0" returns int(0)
+amount_cents(string(3) "0.0", ',', '.', true) returns null
+amount_cents(string(3) "0.0", '.', ',', true) returns null
 import.php:118 amount string(1) "1" returns int(1)
+amount_cents(string(1) "1", ',', '.', true) returns null
+amount_cents(string(1) "1", '.', ',', true) returns null
 import.php:118 amount string(2) "-1" returns int(-1)
+amount_cents(string(2) "-1", ',', '.', true) returns null
+amount_cents(string(2) "-1", '.', ',', true) returns null
 import.php:118 amount string(2) "+1" returns int(1)
+amount_cents(string(2) "+1", ',', '.', true) returns null
+amount_cents(string(2) "+1", '.', ',', true) returns null
 import.php:118 amount string(3) "1e3" returns int(1000)
+amount_cents(string(3) "1e3", ',', '.', true) returns null
+amount_cents(string(3) "1e3", '.', ',', true) returns null
 import.php:118 amount string(3) "1E3" returns int(1000)
+amount_cents(string(3) "1E3", ',', '.', true) returns null
+amount_cents(string(3) "1E3", '.', ',', true) returns null
 import.php:118 amount string(6) "1e1000" returns int(0)
+amount_cents(string(6) "1e1000", ',', '.', true) returns null
+amount_cents(string(6) "1e1000", '.', ',', true) returns null
 import.php:118 amount string(3) " 12" returns int(12)
+amount_cents(string(3) " 12", ',', '.', true) returns null
+amount_cents(string(3) " 12", '.', ',', true) returns null
 import.php:118 amount string(3) "12 " returns int(12)
+amount_cents(string(3) "12 ", ',', '.', true) returns null
+amount_cents(string(3) "12 ", '.', ',', true) returns null
 import.php:118 amount string(4) " 12 " returns int(12)
+amount_cents(string(4) " 12 ", ',', '.', true) returns null
+amount_cents(string(4) " 12 ", '.', ',', true) returns null
 import.php:118 amount string(3) "12\n" returns int(12)
+amount_cents(string(3) "12\n", ',', '.', true) returns null
+amount_cents(string(3) "12\n", '.', ',', true) returns null
 import.php:118 amount string(5) "12abc" returns int(12)
+amount_cents(string(5) "12abc", ',', '.', true) returns null
+amount_cents(string(5) "12abc", '.', ',', true) returns null
 import.php:118 amount string(3) "abc" returns int(0)
+amount_cents(string(3) "abc", ',', '.', true) returns null
+amount_cents(string(3) "abc", '.', ',', true) returns null
 import.php:118 amount string(4) "0x1A" returns int(0)
+amount_cents(string(4) "0x1A", ',', '.', true) returns null
+amount_cents(string(4) "0x1A", '.', ',', true) returns null
 import.php:118 amount string(4) "0b11" returns int(0)
+amount_cents(string(4) "0b11", ',', '.', true) returns null
+amount_cents(string(4) "0b11", '.', ',', true) returns null
 import.php:118 amount string(3) "012" returns int(12)
+amount_cents(string(3) "012", ',', '.', true) returns null
+amount_cents(string(3) "012", '.', ',', true) returns null
 import.php:118 amount string(3) "1.0" returns int(10)
+amount_cents(string(3) "1.0", ',', '.', true) returns null
+amount_cents(string(3) "1.0", '.', ',', true) returns null
 import.php:118 amount string(3) "1,5" returns int(15)
+amount_cents(string(3) "1,5", ',', '.', true) returns null
+amount_cents(string(3) "1,5", '.', ',', true) returns null
 import.php:118 amount string(2) "-0" returns int(0)
+amount_cents(string(2) "-0", ',', '.', true) returns null
+amount_cents(string(2) "-0", '.', ',', true) returns null
 import.php:118 amount string(2) ".5" returns int(5)
+amount_cents(string(2) ".5", ',', '.', true) returns null
+amount_cents(string(2) ".5", '.', ',', true) returns null
 import.php:118 amount string(2) "5." returns int(5)
+amount_cents(string(2) "5.", ',', '.', true) returns null
+amount_cents(string(2) "5.", '.', ',', true) returns null
 import.php:118 amount string(3) "NAN" returns int(0)
+amount_cents(string(3) "NAN", ',', '.', true) returns null
+amount_cents(string(3) "NAN", '.', ',', true) returns null
 import.php:118 amount string(3) "INF" returns int(0)
+amount_cents(string(3) "INF", ',', '.', true) returns null
+amount_cents(string(3) "INF", '.', ',', true) returns null
 import.php:118 amount string(5) "1.005" returns int(1005)
+amount_cents(string(5) "1.005", ',', '.', true) returns null
+amount_cents(string(5) "1.005", '.', ',', true) returns null
 import.php:118 amount string(3) "2.5" returns int(25)
+amount_cents(string(3) "2.5", ',', '.', true) returns null
+amount_cents(string(3) "2.5", '.', ',', true) returns null
 import.php:118 amount string(19) "9223372036854775807" returns int(9223372036854775807)
+amount_cents(string(19) "9223372036854775807", ',', '.', true) returns null
+amount_cents(string(19) "9223372036854775807", '.', ',', true) returns null
 import.php:118 amount string(19) "9223372036854775808" returns int(9223372036854775807)
+amount_cents(string(19) "9223372036854775808", ',', '.', true) returns null
+amount_cents(string(19) "9223372036854775808", '.', ',', true) returns null
 import.php:118 amount string(20) "-9223372036854775809" returns int(-9223372036854775808)
+amount_cents(string(20) "-9223372036854775809", ',', '.', true) returns null
+amount_cents(string(20) "-9223372036854775809", '.', ',', true) returns null
 import.php:118 amount string(10) "2147483648" returns int(2147483648)
+amount_cents(string(10) "2147483648", ',', '.', true) returns null
+amount_cents(string(10) "2147483648", '.', ',', true) returns null
 import.php:118 amount string(10) "4294967296" returns int(4294967296)
+amount_cents(string(10) "4294967296", ',', '.', true) returns null
+amount_cents(string(10) "4294967296", '.', ',', true) returns null
 import.php:118 amount string(2) "\303\244" returns int(0)
+amount_cents(string(2) "\303\244", ',', '.', true) returns null
+amount_cents(string(2) "\303\244", '.', ',', true) returns null
 import.php:118 amount string(11) "\303\226sterreich" returns int(0)
+amount_cents(string(11) "\303\226sterreich", ',', '.', true) returns null
+amount_cents(string(11) "\303\226sterreich", '.', ',', true) returns null
 import.php:118 amount string(12) "\303\274\303\266\303\204\303\226\303\234\303\237" returns int(0)
+amount_cents(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237", ',', '.', true) returns null
+amount_cents(string(12) "\303\274\303\266\303\204\303\226\303\234\303\237", '.', ',', true) returns null
 import.php:118 amount string(1) "\374" returns int(0)
+amount_cents(string(1) "\374", ',', '.', true) returns null
+amount_cents(string(1) "\374", '.', ',', true) returns null
 import.php:118 amount string(2) "\344\366" returns int(0)
+amount_cents(string(2) "\344\366", ',', '.', true) returns null
+amount_cents(string(2) "\344\366", '.', ',', true) returns null
 import.php:118 amount string(3) "\342\202\254" returns int(0)
+amount_cents(string(3) "\342\202\254", ',', '.', true) returns null
+amount_cents(string(3) "\342\202\254", '.', ',', true) returns null
 import.php:118 amount string(1) "\244" returns int(0)
+amount_cents(string(1) "\244", ',', '.', true) returns null
+amount_cents(string(1) "\244", '.', ',', true) returns null
 import.php:118 amount string(3) "a\nb" returns int(0)
+amount_cents(string(3) "a\nb", ',', '.', true) returns null
+amount_cents(string(3) "a\nb", '.', ',', true) returns null
 import.php:118 amount string(5) "tab\tx" returns int(0)
+amount_cents(string(5) "tab\tx", ',', '.', true) returns null
+amount_cents(string(5) "tab\tx", '.', ',', true) returns null
 import.php:118 amount string(6) "quote'" returns int(0)
+amount_cents(string(6) "quote'", ',', '.', true) returns null
+amount_cents(string(6) "quote'", '.', ',', true) returns null
 import.php:118 amount string(3) "dq\"" returns int(0)
+amount_cents(string(3) "dq\"", ',', '.', true) returns null
+amount_cents(string(3) "dq\"", '.', ',', true) returns null
 import.php:118 amount string(8) "<b>x</b>" returns int(0)
+amount_cents(string(8) "<b>x</b>", ',', '.', true) returns null
+amount_cents(string(8) "<b>x</b>", '.', ',', true) returns null
 import.php:118 amount string(5) "&amp;" returns int(0)
+amount_cents(string(5) "&amp;", ',', '.', true) returns null
+amount_cents(string(5) "&amp;", '.', ',', true) returns null
 import.php:118 amount string(12) "BG/123456789" returns int(0)
+amount_cents(string(12) "BG/123456789", ',', '.', true) returns null
+amount_cents(string(12) "BG/123456789", '.', ',', true) returns null
 import.php:118 amount string(20) "AT606000050110117300" returns int(0)
+amount_cents(string(20) "AT606000050110117300", ',', '.', true) returns null
+amount_cents(string(20) "AT606000050110117300", '.', ',', true) returns null
 import.php:118 amount string(11) "50110117300" returns int(50110117300)
+amount_cents(string(11) "50110117300", ',', '.', true) returns null
+amount_cents(string(11) "50110117300", '.', ',', true) returns null
 import.php:118 amount string(10) "31.12.2024" returns int(31122024)
+amount_cents(string(10) "31.12.2024", ',', '.', true) returns null
+amount_cents(string(10) "31.12.2024", '.', ',', true) returns null
 import.php:118 amount string(8) "1.1.2024" returns int(112024)
+amount_cents(string(8) "1.1.2024", ',', '.', true) returns null
+amount_cents(string(8) "1.1.2024", '.', ',', true) returns null
 import.php:118 amount string(19) "2024-01-01 12:00:00" returns int(2024)
+amount_cents(string(19) "2024-01-01 12:00:00", ',', '.', true) returns null
+amount_cents(string(19) "2024-01-01 12:00:00", '.', ',', true) returns null
 import.php:118 amount string(8) "root,bgf" returns int(0)
+amount_cents(string(8) "root,bgf", ',', '.', true) returns null
+amount_cents(string(8) "root,bgf", '.', ',', true) returns null
 import.php:118 amount string(3) "1,2" returns int(12)
+amount_cents(string(3) "1,2", ',', '.', true) returns null
+amount_cents(string(3) "1,2", '.', ',', true) returns null
 import.php:118 amount string(4) "Rbgf" returns int(0)
+amount_cents(string(4) "Rbgf", ',', '.', true) returns null
+amount_cents(string(4) "Rbgf", '.', ',', true) returns null
 import.php:118 amount string(5) " 1,2 " returns int(12)
+amount_cents(string(5) " 1,2 ", ',', '.', true) returns null
+amount_cents(string(5) " 1,2 ", '.', ',', true) returns null
 import.php:118 amount string(5) "1e3,2" returns int(9223372036854775807)
+amount_cents(string(5) "1e3,2", ',', '.', true) returns null
+amount_cents(string(5) "1e3,2", '.', ',', true) returns null
 import.php:118 amount string(4) "null" returns int(0)
+amount_cents(string(4) "null", ',', '.', true) returns null
+amount_cents(string(4) "null", '.', ',', true) returns null
 import.php:118 amount string(4) "true" returns int(0)
+amount_cents(string(4) "true", ',', '.', true) returns null
+amount_cents(string(4) "true", '.', ',', true) returns null
 import.php:118 amount string(6) "+50,00" returns int(5000)
+amount_cents(string(6) "+50,00", ',', '.', true) returns int(5000)
+amount_cents(string(6) "+50,00", '.', ',', true) returns null
 import.php:118 amount string(9) "-1.234,56" returns int(-123456)
+amount_cents(string(9) "-1.234,56", ',', '.', true) returns int(-123456)
+amount_cents(string(9) "-1.234,56", '.', ',', true) returns null
 import.php:118 amount string(13) "+1.000.000,00" returns int(100000000)
+amount_cents(string(13) "+1.000.000,00", ',', '.', true) returns int(100000000)
+amount_cents(string(13) "+1.000.000,00", '.', ',', true) returns null
 import.php:118 amount string(5) "-0,01" returns int(-1)
+amount_cents(string(5) "-0,01", ',', '.', true) returns int(-1)
+amount_cents(string(5) "-0,01", '.', ',', true) returns null
 import.php:118 amount string(5) "25.00" returns int(2500)
+amount_cents(string(5) "25.00", ',', '.', true) returns null
+amount_cents(string(5) "25.00", '.', ',', true) returns int(2500)
 import.php:118 amount string(5) "-0.78" returns int(-78)
+amount_cents(string(5) "-0.78", ',', '.', true) returns null
+amount_cents(string(5) "-0.78", '.', ',', true) returns int(-78)
 sprintf money null returns string(4) "0.00"
 sprintf money true returns string(4) "0.01"
 sprintf money false returns string(4) "0.00"

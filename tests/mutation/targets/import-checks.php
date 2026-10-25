@@ -30,14 +30,14 @@ return array(
         ),
         array(
             'id' => 'import-date-unchecked',
-            'search' => 'if (!import_date_valid($voucher[\'date\']) || !organization_allowed($voucher[\'lo\'], $rights))',
-            'replace' => 'if (!organization_allowed($voucher[\'lo\'], $rights))',
+            'search' => 'if (!import_date_valid($voucher[\'date\']) || !organization_allowed($voucher[\'lo\'], $rights) ||',
+            'replace' => 'if (!organization_allowed($voucher[\'lo\'], $rights) ||',
             'rationale' => 'Fail-open: an imported date that is not a date reaches the SQL.',
         ),
         array(
             'id' => 'import-organization-unchecked',
-            'search' => 'if (!import_date_valid($voucher[\'date\']) || !organization_allowed($voucher[\'lo\'], $rights))',
-            'replace' => 'if (!import_date_valid($voucher[\'date\']))',
+            'search' => 'if (!import_date_valid($voucher[\'date\']) || !organization_allowed($voucher[\'lo\'], $rights) ||',
+            'replace' => 'if (!import_date_valid($voucher[\'date\']) ||',
             'rationale' => 'Fail-open: an imported line is saved in an organization the user may not use.',
         ),
         array(

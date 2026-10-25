@@ -1,7 +1,7 @@
 # step: merge-admin
 # request: POST /index.php?action=merge as admin
-# form: bid1=5005&bid2=5006&csrf_token=%7B%7Bcsrf-token%7D%7D
+# form: bid1=5003&bid2=5004&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 302
-header: Location: index.php?action=edit&id=5005&hint=6
+header: Location: index.php?action=edit&id=5003&hint=6
 header: Content-type: text/html; charset=UTF-8
 --- body (0 bytes) ---

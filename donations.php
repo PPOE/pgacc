@@ -1,10 +1,15 @@
 <?php
 
+// Only a year from 1 to 9999 (an int or its digits) builds a condition, with
+// four-digit years (PostgreSQL reads '1-01-01' as 2001); any other value
+// matches nothing instead of building invalid SQL.
 function date_condition($year, $begin = 1)
 {
+    if (!(is_int($year) || is_string($year) && preg_match('/^\d+$/D', $year) == 1) || intval($year) < 1 || intval($year) > 9999)
+        return ' AND false';
     if ($begin == 0)
-        return "AND date < '" . (intval($year) + 1) . "-01-01'";
-    else return " AND date >= '" . $year . "-01-01' AND date < '" . (intval($year) + 1) . "-01-01'";
+        return sprintf("AND date < '%04d-01-01'", intval($year) + 1);
+    else return sprintf(" AND date >= '%04d-01-01' AND date < '%04d-01-01'", intval($year), intval($year) + 1);
 }
 // from http://www.php.net/manual/de/function.htmlspecialchars.php
 function umlaute($text)
@@ -24,7 +29,7 @@ function page_donations($year)
 {
     global $dbconn;
     $captcha_check = true;
-    if ($year < 2012) {
+    if ($year < 2012 || $year > 9999) {
         $captcha_check = false;
         $year = 2013;
     }
