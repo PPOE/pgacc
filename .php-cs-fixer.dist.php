@@ -43,6 +43,7 @@ $finder = PhpCsFixer\Finder::create()
         'tests/mutation/results',
         'tests/reference/fixtures',
         'tests/reference/php5',
+        'tests/reference/php85',
         'tests/static-analysis/canaries',
         'tests/style/vendor',
     ]);

@@ -1,8 +1,12 @@
 #!/bin/sh
 set -eu
 
-# PHP 5 reference recordings (golden master); see tests/README.md.
+# Reference recordings (golden master); see tests/README.md.
 #
+#   sh tests/reference/run.sh record [8.5]    record the scenario on the PHP 8.5 /
+#                                             PostgreSQL 18 lane into
+#                                             tests/reference/php85/ (review the
+#                                             diff before committing it)
 #   sh tests/reference/run.sh compare [8.5]   run the scenario on the PHP 8.5 /
 #                                             PostgreSQL 18 lane and compare it
 #                                             with tests/reference/php5/
@@ -11,18 +15,18 @@ set -eu
 # PostgreSQL 8.4) before php5-last and is kept as the historical golden
 # master; that lane no longer exists, so it cannot be re-recorded. Differences
 # must match reviewed tests/reference/allowlist.php entries. PGACC_TEST_ID works
-# as for tests/run.sh. Results go to build/reference/php85/ (report.txt,
-# diffs/ and the actual recording).
+# as for tests/run.sh. Compare results go to build/reference/php85/
+# (report.txt, diffs/ and the actual recording).
 
 usage()
 {
-  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh compare [8.5]" >&2
+  echo "Usage: [PGACC_TEST_ID=<id>] sh tests/reference/run.sh record|compare [8.5]" >&2
   exit 2
 }
 
 mode=${1:-}
 case "$mode" in
-  compare) lane=${2:-8.5} ;;
+  record|compare) lane=${2:-8.5} ;;
   *) usage ;;
 esac
 case "$lane" in
@@ -55,7 +59,11 @@ PGACC_REFERENCE_FAKETIME=0.9.10+2024-06-05+gba9ed5b2-0.6
 PGACC_REFERENCE_MODE=$mode
 PGACC_REFERENCE_LANE=$lane
 PGACC_REFERENCE_OWNER=$(id -u):$(id -g)
-PGACC_REFERENCE_OUT=$repo_root/build/reference/$lane_tag
+if [ "$mode" = record ]; then
+  PGACC_REFERENCE_OUT=$repo_root/tests/reference/$lane_tag
+else
+  PGACC_REFERENCE_OUT=$repo_root/build/reference/$lane_tag
+fi
 export PGACC_REFERENCE_BASE_IMAGE PGACC_REFERENCE_IMAGE PGACC_REFERENCE_FAKETIME \
   PGACC_REFERENCE_MODE PGACC_REFERENCE_LANE PGACC_REFERENCE_OWNER PGACC_REFERENCE_OUT
 
@@ -79,7 +87,7 @@ cleanup()
 }
 trap cleanup EXIT INT TERM
 
-echo "PHP 5 reference: $mode on PHP $lane with PostgreSQL 18"
+echo "Reference: $mode on PHP $lane with PostgreSQL 18"
 # The lane's own image first; the reference image is built on top of it.
 lane_compose build application
 compose build application

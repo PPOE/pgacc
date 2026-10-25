@@ -12,6 +12,7 @@
 /tests/fixtures/** -text
 /tests/reference/fixtures/** -text
 /tests/reference/php5/** -text
+/tests/reference/php85/** -text
 # Third-party files stay exactly as shipped (icons/readme.* are CRLF).
 /icons/** -text
 /js/** -text
