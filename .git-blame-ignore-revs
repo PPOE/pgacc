@@ -1,0 +1,5 @@
+# Revisions that git blame skips (whitespace-only reformats).
+# Enable once per clone: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Format the code with PER-CS 3.0 (whitespace only)
+6a230349cbb3ceb018952e9867a7170529d4244a
