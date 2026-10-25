@@ -7,8 +7,6 @@
  * HTTP is in tests/http-smoke.php.
  */
 
-require_once dirname(dirname(__DIR__)) . '/check.php';
-
 final class CheckCommandTest extends FunctionsTestCase
 {
     private $connection;
@@ -16,6 +14,9 @@ final class CheckCommandTest extends FunctionsTestCase
     #[PHPUnit\Framework\Attributes\Before]
     public function prepare()
     {
+        // Loaded here, not at the top: then the coverage of the test
+        // includes the file's last statement.
+        require_once dirname(dirname(__DIR__)) . '/check.php';
         // check_main() gets the same connection string, so pg_connect()
         // returns this link and sees the uncommitted rows.
         $this->connection = pg_connect(pgacc_test_connection_string());

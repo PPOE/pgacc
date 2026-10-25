@@ -93,6 +93,5 @@ function check_main(array $arguments, $out, $err, $conninfo = 'dbname=accounting
     return 0;
 }
 
-if (isset($_SERVER['argv'][0]) && realpath($_SERVER['argv'][0]) === __FILE__) {
-    exit(check_main(array_slice($_SERVER['argv'], 1), STDOUT, STDERR));
-}
+// One statement, so that loading the file in a test covers it.
+isset($_SERVER['argv'][0]) && realpath($_SERVER['argv'][0]) === __FILE__ && exit(check_main(array_slice($_SERVER['argv'], 1), STDOUT, STDERR));
