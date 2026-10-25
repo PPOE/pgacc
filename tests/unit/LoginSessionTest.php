@@ -5,8 +5,6 @@
  * the session key derived from $key, the users.cookie nonce, the
  * pp_pgacc_login token and its constant-time comparison, and the form token
  * (CSRF) with its field, request check and the POST check.
- *
- * Runs on PHP 5.3 (PHPUnit 4.8, tests/php53/phpunit.xml): no "finally".
  */
 
 // Stand-ins for random_bytes(), openssl_random_pseudo_bytes() and
@@ -247,34 +245,23 @@ final class LoginSessionTest extends FunctionsTestCase
         list($result, $text, $before, $after) = self::startSession();
         self::assertFalse($result);
         self::assertSame($before, $after);
-        self::assertStringContainsStringCompat('pgacc: login refused: no valid session key', $text);
-        self::assertStringNotContainsStringCompat('short', str_replace('pgacc: login refused: no valid session key ($key in constants.php)', '', $text));
+        self::assertStringContainsString('pgacc: login refused: no valid session key', $text);
+        self::assertStringNotContainsString('short', str_replace('pgacc: login refused: no valid session key ($key in constants.php)', '', $text));
         $GLOBALS['key'] = self::TEST_KEY;
 
         // Without random bytes.
         list($result, $text, $before, $after) = self::startSession(false);
         self::assertFalse($result);
         self::assertSame($before, $after);
-        self::assertStringContainsStringCompat('pgacc: login refused: no secure random source', $text);
+        self::assertStringContainsString('pgacc: login refused: no secure random source', $text);
 
         // The session cannot be stored: a failing query, or no such user.
         list($result, $text) = self::startSession("\x00\x00\x00\x2a", true);
         self::assertFalse($result);
-        self::assertStringContainsStringCompat('pgacc: login refused: the session of user 7 could not be stored', $text);
+        self::assertStringContainsString('pgacc: login refused: the session of user 7 could not be stored', $text);
         list($result, $text) = self::startSession("\x00\x00\x00\x2a", false, 987654);
         self::assertFalse($result);
-        self::assertStringContainsStringCompat('pgacc: login refused: the session of user 987654 could not be stored', $text);
-    }
-
-    // PHPUnit 4.8 (PHP 5.3 lane) has no assertStringContainsString().
-    private static function assertStringContainsStringCompat($needle, $haystack)
-    {
-        self::assertTrue(strpos($haystack, $needle) !== false, "'$needle' not in '$haystack'");
-    }
-
-    private static function assertStringNotContainsStringCompat($needle, $haystack)
-    {
-        self::assertTrue(strpos($haystack, $needle) === false, "'$needle' in '$haystack'");
+        self::assertStringContainsString('pgacc: login refused: the session of user 987654 could not be stored', $text);
     }
 
     public function testSessionTokenIsAnHmacOfIdNonceAndLoginTime()

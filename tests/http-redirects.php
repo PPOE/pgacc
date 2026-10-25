@@ -7,8 +7,6 @@
  * must be a 302 with exactly the expected Location and an empty body, also
  * against a second server started with output_buffering=0. The voucher write
  * redirects (relocate() in edit.php) are in tests/write-workflows.php.
- *
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 

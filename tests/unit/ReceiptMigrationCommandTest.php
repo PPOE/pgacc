@@ -5,8 +5,6 @@
  * images install tests/runtime/test-constants.php there) and database; the
  * fixture voucher 1003 has file 42. The in-process cases are in
  * ReceiptMigrationTest.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7); PHP_BINARY needs PHP 5.4.
  */
 
 require_once __DIR__ . '/ReceiptMigrationTestCase.php';

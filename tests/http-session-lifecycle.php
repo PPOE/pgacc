@@ -6,7 +6,6 @@
  *
  * The password cases used to live at the end of write-workflows.php. Keep
  * them independent so old-code red checks do not run unrelated voucher writes.
- * Test client: PHP 5.6; application: PHP 5.3 and newer.
  */
 require __DIR__ . '/http-test-helpers.php';
 require_once dirname(__DIR__) . '/functions.php';

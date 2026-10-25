@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Self-tests of tests/mutation/lib.php on PHPUnit 9.6 (PHP 7.4 and 8.5). -->
+<!-- Self-tests of tests/mutation/lib.php. -->
 <phpunit bootstrap="bootstrap.php" colors="false" cacheResult="false" beStrictAboutTestsThatDoNotTestAnything="true">
   <testsuites>
     <testsuite name="mutation runner">

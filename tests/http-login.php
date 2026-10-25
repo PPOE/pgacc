@@ -6,8 +6,6 @@
  * Redirects are answered before the page is rendered, so they have an empty
  * body. The redirects are repeated against a second server started with
  * output_buffering=0: headers must not depend on output buffering.
- *
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 
@@ -78,10 +76,9 @@ function response_cookie_attributes($response, $name)
 }
 
 // The login cookies are secure, HttpOnly and SameSite=Lax, without path or
-// domain, on every PHP version (index.php sends the Set-Cookie headers itself:
-// setcookie() of PHP 5.3 has no SameSite and no Max-Age). Each cookie is sent
+// domain (index.php sends the Set-Cookie headers itself). Each cookie is sent
 // exactly once. $maxAge 0: the cookie is deleted (value "deleted", expiry
-// 1970-01-01 00:00:01 GMT, as setcookie() of PHP 5.5+ sends it).
+// 1970-01-01 00:00:01 GMT, as setcookie() sends it).
 function login_cookie_header_problems($response, $maxAge)
 {
     $problems = array();

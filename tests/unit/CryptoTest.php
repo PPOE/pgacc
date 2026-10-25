@@ -6,8 +6,6 @@
  * tests/fixtures/mcrypt/vectors.json were produced by the real mcrypt
  * extension (see tests/fixtures/mcrypt/generate-vectors.php), so existing
  * receipt files and the membership-system exchange stay readable.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 
 final class CryptoTest extends FunctionsTestCase

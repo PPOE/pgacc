@@ -5,8 +5,6 @@
  * served by the membership stub of compose.test.yaml over verified HTTPS
  * (MembershipStub), so the live membership system is never contacted. The ppmembers table is rebuilt
  * inside a transaction that is rolled back.
- *
- * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
 
 require_once dirname(dirname(__DIR__)) . '/getusers.php';

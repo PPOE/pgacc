@@ -18,7 +18,7 @@
  * A top-level PHP file missing from the report is an error; other paths
  * (tests/, non-PHP files) are outside the coverage scope and are skipped.
  *
- * Runs on PHP 5.6 and newer with SimpleXML, inside or outside the container:
+ * Needs SimpleXML; runs inside or outside the container:
  * absolute report paths are matched on their path relative to the report's
  * common root (/app in the test containers).
  */

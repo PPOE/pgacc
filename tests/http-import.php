@@ -9,7 +9,7 @@
  * organizations). Offending lines get the existing "Ungültige Buchungszeile"
  * report with their line number and are skipped; the remaining lines and
  * files are imported. Runs after
- * write-workflows.php on the same database. Must stay compatible with PHP 5.6.
+ * write-workflows.php on the same database.
  */
 require __DIR__ . '/http-test-helpers.php';
 

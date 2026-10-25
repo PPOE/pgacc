@@ -1,6 +1,6 @@
 <?php
 
-// Shared HTTP test helpers. Must stay compatible with PHP 5.6.
+// Shared HTTP test helpers.
 
 require_once __DIR__ . '/http-diagnostics.php';
 require_once __DIR__ . '/db-helpers.php';
@@ -89,14 +89,8 @@ function http_request($path, $method = 'GET', $form = array(), $cookies = array(
     ));
 
     $url = rtrim($baseUrl, '/') . $path;
-    if (function_exists('http_get_last_response_headers')) {
-        // PHP 8.4+; PHP 8.5 deprecates the magic $http_response_header local.
-        $body = @file_get_contents($url, false, $context);
-        $responseHeaders = http_get_last_response_headers();
-    } else {
-        require_once __DIR__ . '/http-legacy-headers.php';
-        list($body, $responseHeaders) = legacy_file_get_contents_with_headers($url, $context);
-    }
+    $body = @file_get_contents($url, false, $context);
+    $responseHeaders = http_get_last_response_headers();
     if (!is_array($responseHeaders)) {
         $responseHeaders = array();
     }
@@ -288,14 +282,9 @@ function login_redirect_location($uri)
 // (otherwise like the application service: same document root and
 // diagnostics recorder), so that tests can check that headers do not
 // depend on output buffering. Returns its base URL; the server is stopped
-// when the test script ends. Lanes whose server is not the client's PHP
-// (PHP 5.3: Lighttpd + PHP-CGI) provide one in PGACC_TEST_UNBUFFERED_BASE_URL.
+// when the test script ends.
 function start_unbuffered_server($port)
 {
-    $external = getenv('PGACC_TEST_UNBUFFERED_BASE_URL');
-    if ($external !== false && $external !== '') {
-        return $external;
-    }
     $log = '/tmp/unbuffered-server-' . $port . '.log';
     $command = 'exec php -d output_buffering=0'
         . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/runtime/diagnostics-prepend.php')

@@ -6,7 +6,6 @@
  * value export and the line diff. Runs before every recording and
  * comparison (tests/reference/in-container.sh); also runnable on its own:
  *   php tests/reference/selftest.php
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/lib.php';
 

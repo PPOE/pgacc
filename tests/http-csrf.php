@@ -9,7 +9,7 @@
  * Merge, recovery, the column preferences and logout no longer write on GET.
  *
  * Runs last in a lane: it creates its own synthetic vouchers (ids 93xx) and
- * removes them again. Test client: PHP 5.6; application: PHP 5.3 and newer.
+ * removes them again.
  */
 require __DIR__ . '/http-test-helpers.php';
 

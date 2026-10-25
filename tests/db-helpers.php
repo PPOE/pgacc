@@ -2,7 +2,6 @@
 
 // Connection string of the synthetic test database (PG* variables of the
 // test containers), shared by the HTTP tests and the PHPUnit bootstrap.
-// Must stay compatible with PHP 5.6.
 
 function pgacc_test_connection_string()
 {

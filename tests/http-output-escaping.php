@@ -15,7 +15,6 @@
  * they cannot split cells.
  *
  * Runs last on the lane's database and removes its rows again.
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 

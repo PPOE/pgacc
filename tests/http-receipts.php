@@ -11,8 +11,6 @@
  * The test reads and writes the server's files/ directory: a volume shared
  * with the server in compose.test.yaml, the copy's files/ in the mutation
  * runner (PGACC_TEST_APP_ROOT).
- *
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 // The membership export and receipt files are encrypted and decrypted with

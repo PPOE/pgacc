@@ -5,7 +5,6 @@
  * PDF 1.4 files, one Helvetica text line per entry (WinAnsi bytes).
  * Deterministic: rerunning reproduces the committed files.
  *   php tests/reference/fixtures/make-pdf.php
- * Must stay compatible with PHP 5.6.
  */
 function reference_pdf($lines)
 {

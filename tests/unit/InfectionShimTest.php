@@ -3,8 +3,6 @@
 require_once dirname(__DIR__) . '/mutation/InfectionShim.php';
 
 // Tests for the Infection class wrapper (tests/mutation/InfectionShim.php).
-// PHP 5.6-compatible: no setUp()/tearDown(), because PHPUnit 9 requires a
-// `void` return type that PHP 5.6 cannot parse.
 final class InfectionShimTest extends PHPUnit\Framework\TestCase
 {
     const SHIM = 'PgaccFunctionsMutationShim';

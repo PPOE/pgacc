@@ -10,8 +10,6 @@
  * and shown once, in the header, the filter row, every voucher row, and the
  * CSV export. The column buttons (POST hide=-N / hide=N with the form token)
  * then show and hide a stored column again; GET ?hide= changes nothing.
- *
- * Must stay compatible with PHP 5.6.
  */
 require __DIR__ . '/http-test-helpers.php';
 

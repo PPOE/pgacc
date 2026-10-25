@@ -2,7 +2,7 @@
 
 /*
  * Prints line and branch coverage of tests/mutation/lib.php from a serialized
- * php-code-coverage file written by the self-test (PHP 7.4 lane only), and
+ * php-code-coverage file written by the self-test, and
  * lists every uncovered line and branch. Exits nonzero if any remain.
  *
  *   php tests/mutation/tests/coverage-summary.php /tmp/lib.cov

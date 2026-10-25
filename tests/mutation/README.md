@@ -50,8 +50,6 @@ every edit.
 - It accepts the locked PHPUnit 9.6.38 and php-code-coverage 9.2.32.
 - 0.35 skips uncovered code unless `--with-uncovered`, which the script passes.
 - The base image's Xdebug stays off (`xdebug.mode=off`); PHPUnit uses PCOV.
-- The PHP 7.4 lane (Infection 0.26.6 from a locked Composer project, Xdebug
-  3.1.6) was removed after `php5-last`.
 
 ### Global functions and the wrapper
 
@@ -91,8 +89,8 @@ docker run --rm --network none -v "$PWD/tests:/app/tests:ro" \
 ```
 
 `PGACC_INFECTION_TARGET=shim` mutates the wrapper against these tests
-(`@function_signature` enabled; Infection 0.26 needs the class file as
-`bootstrap`). Last result (2026-10-23): every mutant killed on both lanes.
+(`@function_signature` enabled; the class file is the Infection
+`bootstrap`). Last result (2026-10-23): every mutant killed.
 
 ### Results
 
@@ -101,7 +99,6 @@ replacement and its review fixes):
 
 | Lane | Mutants | Killed | Escaped | Not covered | Timed out |
 |---|---:|---:|---:|---:|---:|
-| PHP 7.4, Infection 0.26.6 | 686 | 431 | 245 | 9 | |
 | PHP 8.5, Infection 0.35.8 | 723 | 494 | 220 | 7 | 2 |
 
 Rerun after `functions.php` changes and compare with this table. No mutant
@@ -172,7 +169,7 @@ Infection cannot mutate code reached only through HTTP tests: it maps mutants
 to tests through the PHPUnit process's coverage, its include interceptor
 replaces files only in that process, and page scripts are top-level code.
 
-On `rights2orgasql()` Infection generates 20 (PHP 7.4) and 24 (PHP 8.5)
+On `rights2orgasql()` Infection generates 24
 mutants, all killed, but only about 6 overlap the runner's target. It does not
 change string literals or invent domain-specific alternatives, so it misses
 fail-open returns (`" AND false "` to `""`), `IN` to `OR`/`NOT IN`, changed
@@ -419,10 +416,7 @@ Accepted equivalents (reasons in the target files):
 
 Deliberately not mutated: an unprotected import page (`redirects`) and the bank
 import check (`read-only-rights`), because the page would call the external
-membership system. The PHP 7.4-only accepted
-equivalents (`checklogin-implicit-connection`, `logout-implicit-connection`,
-`page-new-buchung-default-restored`, the `null-arguments` guard removals) were
-removed with that lane: PHP 8.5 kills those mutants.
+membership system.
 
 ### Required step for fixes
 
