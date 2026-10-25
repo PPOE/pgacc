@@ -229,6 +229,50 @@
     @apply mx-auto mt-2 mb-4 max-w-[1000px] rounded-lg border border-motd-border bg-motd px-3 py-2 shadow-sm;
   }
 
+  /* The booking progress per year in the notice box (percent_of_bookings()):
+     a compact table that scrolls inside the box in narrow windows. */
+  .motd .progress {
+    @apply mt-2 overflow-x-auto;
+
+    & table {
+      @apply w-auto;
+    }
+
+    & caption {
+      @apply pb-1 text-left font-semibold;
+    }
+
+    & th,
+    & td {
+      @apply py-0.5 pr-3 pl-2 whitespace-nowrap;
+    }
+
+    & thead th {
+      @apply border-b border-motd-border text-right;
+    }
+
+    & thead th:first-child,
+    & tbody th {
+      @apply pl-0 text-left;
+    }
+
+    & tbody th {
+      @apply font-semibold tabular-nums;
+    }
+
+    & tr:nth-child(even) {
+      @apply bg-white/35;
+    }
+
+    & tr:not(:has(tr)):hover {
+      @apply bg-white/60;
+    }
+
+    & .percent {
+      @apply inline-block min-w-[8ch] text-right text-muted;
+    }
+  }
+
   /* Content panels: tables and forms. Wide tables scroll inside the panel. */
   .use_terms {
     @apply overflow-x-auto rounded-lg border border-panel-border bg-panel p-3 shadow-sm;

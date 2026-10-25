@@ -3,7 +3,7 @@
 # form: speichern=&parts=1&bid0=0&dir0=in&in_type0=8&out_type0=20&wk_type0=21&date0=15.09.2024&person_type0=1&lo0=1&amount0=10&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Draft&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=Synthetic+Reference+Supplier&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0&add=Neue+Buchungszeile&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (19714 bytes) ---
+--- body (20407 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -16,7 +16,7 @@ header: Content-type: text/html; charset=UTF-8
 </head>
 <body>
 <div id="content">
-<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<br /><i>2012: 5 Buchungszeilen, 3 (60 %) abgeschlossen, 1 (20 %) bearbeitet, 1 (20 %) unbearbeitet.</i><br /><i>2013: 2 Buchungszeilen, 2 (100 %) abgeschlossen, 0 (0 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2024: 16 Buchungszeilen, 9 (56.25 %) abgeschlossen, 3 (18.75 %) bearbeitet, 4 (25 %) unbearbeitet.</i><br /><i>2025: 2 Buchungszeilen, 1 (50 %) abgeschlossen, 1 (50 %) bearbeitet, 0 (0 %) unbearbeitet.</i><br /><i>2026: 5 Buchungszeilen, 1 (20 %) abgeschlossen, 1 (20 %) bearbeitet, 3 (60 %) unbearbeitet.</i></div>
+<div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption><thead><tr><th scope="col">Jahr</th><th scope="col">Buchungszeilen</th><th scope="col">abgeschlossen</th><th scope="col">bearbeitet</th><th scope="col">unbearbeitet</th></tr></thead><tbody><tr><th scope="row">2012</th><td>5</td><td>3 <span class="percent">(60 %)</span></td><td>1 <span class="percent">(20 %)</span></td><td>1 <span class="percent">(20 %)</span></td></tr><tr><th scope="row">2013</th><td>2</td><td>2 <span class="percent">(100 %)</span></td><td>0 <span class="percent">(0 %)</span></td><td>0 <span class="percent">(0 %)</span></td></tr><tr><th scope="row">2024</th><td>16</td><td>9 <span class="percent">(56.25 %)</span></td><td>3 <span class="percent">(18.75 %)</span></td><td>4 <span class="percent">(25 %)</span></td></tr><tr><th scope="row">2025</th><td>2</td><td>1 <span class="percent">(50 %)</span></td><td>1 <span class="percent">(50 %)</span></td><td>0 <span class="percent">(0 %)</span></td></tr><tr><th scope="row">2026</th><td>5</td><td>1 <span class="percent">(20 %)</span></td><td>1 <span class="percent">(20 %)</span></td><td>3 <span class="percent">(60 %)</span></td></tr></tbody></table></div></div>
 
 <div class="page new">
 <div class="main" id="default">

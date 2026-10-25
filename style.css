@@ -21,6 +21,11 @@
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-ordinal: initial;
+      --tw-slashed-zero: initial;
+      --tw-numeric-figure: initial;
+      --tw-numeric-spacing: initial;
+      --tw-numeric-fraction: initial;
       --tw-gradient-position: initial;
       --tw-gradient-from: #0000;
       --tw-gradient-via: #0000;
@@ -645,6 +650,75 @@
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
 
+  .motd .progress {
+    margin-top: calc(var(--spacing) * 2);
+    overflow-x: auto;
+  }
+
+  .motd .progress table {
+    width: auto;
+  }
+
+  .motd .progress caption {
+    padding-bottom: var(--spacing);
+    text-align: left;
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .motd .progress th, .motd .progress td {
+    padding-block: calc(var(--spacing) * .5);
+    padding-right: calc(var(--spacing) * 3);
+    padding-left: calc(var(--spacing) * 2);
+    white-space: nowrap;
+  }
+
+  .motd .progress thead th {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+    border-color: var(--color-motd-border);
+    text-align: right;
+  }
+
+  .motd .progress thead th:first-child, .motd .progress tbody th {
+    text-align: left;
+    padding-left: 0;
+  }
+
+  .motd .progress tbody th {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    --tw-numeric-spacing: tabular-nums;
+    font-variant-numeric: var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, );
+  }
+
+  .motd .progress tr:nth-child(2n) {
+    background-color: #ffffff59;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .motd .progress tr:nth-child(2n) {
+      background-color: color-mix(in oklab, var(--color-white) 35%, transparent);
+    }
+  }
+
+  .motd .progress tr:not(:has(tr)):hover {
+    background-color: #fff9;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .motd .progress tr:not(:has(tr)):hover {
+      background-color: color-mix(in oklab, var(--color-white) 60%, transparent);
+    }
+  }
+
+  .motd .progress .percent {
+    text-align: right;
+    min-width: 8ch;
+    color: var(--color-muted);
+    display: inline-block;
+  }
+
   .use_terms {
     border-radius: var(--radius-lg);
     border-style: var(--tw-border-style);
@@ -1002,6 +1076,31 @@
   syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
+}
+
+@property --tw-ordinal {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-slashed-zero {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-figure {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-spacing {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-fraction {
+  syntax: "*";
+  inherits: false
 }
 
 @property --tw-gradient-position {

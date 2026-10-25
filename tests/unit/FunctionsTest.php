@@ -696,8 +696,34 @@ final class FunctionsTest extends FunctionsTestCase
     public function testPercentOfBookingsUsesSyntheticDatabaseRows()
     {
         $text = percent_of_bookings();
-        self::assertStringContainsString('2024: 7 Buchungszeilen, 4 (57.14 %) abgeschlossen, 2 (28.57 %) bearbeitet, 1 (14.29 %) unbearbeitet.', $text);
-        self::assertStringNotContainsString('2023: ', $text);
+        self::assertStringStartsWith(
+            '<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption>'
+            . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungszeilen</th><th scope="col">abgeschlossen</th>'
+            . '<th scope="col">bearbeitet</th><th scope="col">unbearbeitet</th></tr></thead><tbody><tr>',
+            $text,
+        );
+        self::assertStringEndsWith('</tr></tbody></table></div>', $text);
+        self::assertStringContainsString(
+            '<tr><th scope="row">2024</th><td>7</td><td>4 <span class="percent">(57.14 %)</span></td>'
+            . '<td>2 <span class="percent">(28.57 %)</span></td><td>1 <span class="percent">(14.29 %)</span></td></tr>',
+            $text,
+        );
+        self::assertStringNotContainsString('>2023<', $text);
+    }
+
+    public function testPercentOfBookingsWithoutBookingsIsEmpty()
+    {
+        $connection = pg_connect(pgacc_test_connection_string());
+        self::assertNotFalse($connection);
+        pg_query($connection, 'BEGIN');
+        try {
+            pg_query($connection, 'UPDATE vouchers SET deleted = true');
+            $text = percent_of_bookings();
+        } finally {
+            // The shared default link stays open for later tests.
+            pg_query($connection, 'ROLLBACK');
+        }
+        self::assertSame('', $text);
     }
 
     public function testEyesWithAndWithoutNoeyesFlag()
