@@ -46,6 +46,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 - A 1.0.x (PHP 5.3) hotfix needs the harness of the `php5-last` tag: this branch has no PHP 5.3 lane.
 - Run the reference comparison (`sh tests/reference/run.sh compare 8.5`) once, after the patch stabilizes, when
   a change can affect page output, SQL or stored data.
+- Every application file keeps at least 95% line coverage (`tests/coverage/check-file-floor.php`, run by the lane;
+  reviewed exceptions in `tests/coverage/file-floor-exceptions.php`).
 - CI runs tests, the coverage gate, the reference comparison and static analysis on every pull request
   push; mutation only with the `mutation` or `full-ci` label, weekly and on manual runs; broad Infection
   and full mutation sweeps with `full-ci`, weekly and manual (`tests/README.md`, "Continuous integration"). Report checks left to CI as pending, not as passed.
