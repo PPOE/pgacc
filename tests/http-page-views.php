@@ -47,25 +47,6 @@ function page_view($path, $cookies, $label)
     return $response;
 }
 
-// Known failure (tests/COMPATIBILITY_PLAN.md): page_closed() selects three
-// columns too few.
-function page_view_known($path, $cookies, $label)
-{
-    $known = array(
-        '/index.php?action=closed' => array('KF-CLOSED-MISSING-COLUMNS', 'closed.php', 'Undefined array key'),
-    );
-    if (!isset($known[$path])) {
-        return page_view($path, $cookies, $label);
-    }
-    list($id, $file, $message) = $known[$path];
-    if ($id === 'KF-CLOSED-MISSING-COLUMNS' && $cookies === array()) {
-        return page_view($path, $cookies, $label); // login redirect
-    }
-    return with_expected_diagnostics($id, array(array($file, $message)), function () use ($path, $cookies) {
-        return http_request($path, 'GET', array(), $cookies);
-    });
-}
-
 $page_view_problems = array();
 $users = array(
     'root,bgf' => login_user('synthetic-admin', 'correct-password'),
@@ -90,7 +71,7 @@ foreach ($users as $label => $cookies) {
         $path = key($paths);
         unset($paths[$path]);
         $seen[$path] = true;
-        $response = page_view_known($path, $cookies, $label);
+        $response = page_view($path, $cookies, $label);
         preg_match_all('/<a href="([^"]*)"/', $response['body'], $links);
         foreach ($links[1] as $href) {
             $next = page_view_path($href, $actions);

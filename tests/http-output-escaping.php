@@ -139,14 +139,14 @@ assert_contains($listing, "<td>Büromaterial für Österreich</td>\n<td>Grüße<
 assert_contains($listing, '<td>Jürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön</td>', 'listing with umlauts');
 assert_contains($listing, "<td>=HYPERLINK(&quot;http://example.invalid&quot;)</td>\n<td>=1+1</td>", 'listing formulas in HTML');
 
-// The closed-voucher listing (page_closed()) renders its header and table.
-// Its query lacks vaccount, ack1_old and ack2_old, which page_listing_line()
-// reads (known failure KF-CLOSED-MISSING-COLUMNS: those cells stay empty).
-$closed = with_expected_diagnostics('KF-CLOSED-MISSING-COLUMNS', array(array('closed.php', 'Undefined array key')), function () use ($admin) {
-    return page('/index.php?action=closed&filter_date=2024', $admin);
-});
+// The closed-voucher listing (page_closed()) renders its header and table,
+// including the virtual account and the old acknowledgements.
+$closed = page('/index.php?action=closed&filter_date=2024', $admin);
 assert_contains($closed, 'action=closed', 'closed listing');
 assert_contains($closed, '</table>', 'closed listing');
+foreach (array('vaccount', 'ackold1', 'ackold2') as $field) {
+    assert_escaped($closed, $field, 'closed listing');
+}
 
 // CSV export: raw text without entities, formulas neutralized.
 $csv = page('/index.php?action=all&filter_date=2024&format=csv', $admin);
