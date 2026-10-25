@@ -87,7 +87,7 @@ docker compose $p up --detach --wait database
 docker compose $p run --rm database-test          # load (or reset) the fixtures
 docker compose $p build application               # after EVERY source or test edit
 docker compose $p run --rm --no-deps application env XDEBUG_MODE=off \
-  php vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result \
+  php vendor/bin/phpunit --configuration phpunit.xml --do-not-record-test-run-history \
   --filter ReceiptStorageTest::testConfiguredKeyIsTheValidGlobalKey
 docker compose $p down --volumes --remove-orphans # when done
 ```
