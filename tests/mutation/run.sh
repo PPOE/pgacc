@@ -3,7 +3,7 @@ set -eu
 
 # Target-driven mutation runner (see tests/mutation/README.md).
 #
-#   sh tests/mutation/run.sh <7.4|8.5> <target> [--changed-since=<base>] [runner options]
+#   sh tests/mutation/run.sh 8.5 <target> [--changed-since=<base>] [runner options]
 #   sh tests/mutation/run.sh <lane> --self-test
 #
 # --changed-since=<base> (Git revision; its merge base with HEAD is used, as
@@ -14,8 +14,8 @@ set -eu
 # Runs tests/mutation/runner.php in a one-off container of the lane's
 # application image, on the lane's isolated database and internal network.
 # Results go to build/mutation/<target>-php<lane>/ (override with
-# PGACC_MUTATION_HOST_DIR). PGACC_TEST_ID isolates concurrent runs and
-# PGACC_TEST_PG selects the PostgreSQL server exactly as for tests/run.sh.
+# PGACC_MUTATION_HOST_DIR). PGACC_TEST_ID isolates concurrent runs as for
+# tests/run.sh.
 
 test_id=${PGACC_TEST_ID:-}
 case "$test_id" in
@@ -24,14 +24,12 @@ case "$test_id" in
     exit 2
     ;;
 esac
-pgacc_test_pg_default=18
-. "$(dirname "$0")/../postgres-version.sh"
-PGACC_TEST_SUFFIX=${test_id:+-$test_id}$PGACC_TEST_PG_TAG
+PGACC_TEST_SUFFIX=${test_id:+-$test_id}
 export PGACC_TEST_SUFFIX
 
 usage()
 {
-  echo "Usage: sh tests/mutation/run.sh <7.4|8.5> <target|--self-test> [--changed-since=<base>] [--only=id,...] [--check]" >&2
+  echo "Usage: sh tests/mutation/run.sh 8.5 <target|--self-test> [--changed-since=<base>] [--only=id,...] [--check]" >&2
   exit 2
 }
 
@@ -41,8 +39,7 @@ target=$2
 shift 2
 
 case "$php_version" in
-  7.4) lane=php74 lane_file= ;;
-  8.5) lane=php85 lane_file=compose.php85.yaml ;;
+  8.5) lane=php85 ;;
   *) usage ;;
 esac
 case "$target" in
@@ -58,7 +55,7 @@ compose()
   # The lane's services without compose.coverage.yaml: the mutant servers use
   # the same settings as the regular application service.
   docker compose --project-name "pgacc-mutation${PGACC_TEST_SUFFIX}-$lane" \
-    -f compose.test.yaml ${lane_file:+-f "$lane_file"} "$@"
+    -f compose.test.yaml "$@"
 }
 
 cleanup()
@@ -70,22 +67,17 @@ trap cleanup EXIT INT TERM
 compose build application
 
 if [ "$target" = --self-test ]; then
-  # Unit tests of tests/mutation/lib.php; no database needed. PHP 7.4 also
-  # prints their line and branch coverage of lib.php.
-  if [ "$php_version" = 7.4 ]; then
-    # Branch analysis needs more than the default memory_limit (PHPUnit only).
-    command='XDEBUG_MODE=coverage php -d memory_limit=-1 vendor/bin/phpunit \
-      --configuration tests/mutation/tests/phpunit.xml --coverage-php /tmp/lib.cov \
-      && php tests/mutation/tests/coverage-summary.php /tmp/lib.cov'
-  else
-    command='XDEBUG_MODE=off php vendor/bin/phpunit \
-      --configuration tests/mutation/tests/phpunit.xml --no-coverage'
-  fi
+  # Unit tests of tests/mutation/lib.php; no database needed. Also prints
+  # their line and branch coverage of lib.php.
+  # Branch analysis needs more than the default memory_limit (PHPUnit only).
+  command='XDEBUG_MODE=coverage php -d memory_limit=-1 vendor/bin/phpunit \
+    --configuration tests/mutation/tests/phpunit.xml --coverage-php /tmp/lib.cov \
+    && php tests/mutation/tests/coverage-summary.php /tmp/lib.cov'
   compose run --rm --no-deps application sh -c "$command"
   exit
 fi
 
-host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane$PGACC_TEST_PG_TAG}
+host_dir=${PGACC_MUTATION_HOST_DIR:-$repo_root/build/mutation/$target-$lane}
 rm -rf "$host_dir"
 mkdir -p "$host_dir"
 
@@ -106,7 +98,6 @@ for option; do
   esac
 done
 
-pgacc_test_pg_build
 compose up --detach --wait database membership
 status=0
 compose run --rm --no-deps --volume "$host_dir:/results" \

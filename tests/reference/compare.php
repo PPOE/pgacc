@@ -27,7 +27,7 @@ if ($php === false || $php === '') {
     $php = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 }
 if (!is_file("$referenceDir/manifest.txt")) {
-    ref_fail("no reference recording in $referenceDir (run: sh tests/reference/record.sh)");
+    ref_fail("no reference recording in $referenceDir (the historical PHP 5 recording; see tests/README.md)");
 }
 $entries = require __DIR__ . '/allowlist.php';
 $problems = ref_allowlist_problems($entries);

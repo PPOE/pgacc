@@ -29,8 +29,9 @@ return $default_lo;
 // form that is shown again.
 function voucher_text($value, $escape)
 {
+  global $dbconn;
   if ($escape)
-    return pg_escape_string($value);
+    return pg_escape_string($dbconn, $value);
   return $value;
 }
 function get_voucher($part,$rights,$escape = true)
@@ -91,6 +92,7 @@ return true;
 }
 function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null)
 {
+global $dbconn;
 $voucher = get_voucher($part,$rights);
 if ($voucher['date'] == null)
 {
@@ -134,7 +136,7 @@ if ($voucher['mitgliedsnummer'] == 0)
   $found = false;
   foreach ($queries as $query)
   {
-    if ($result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error()))
+    if ($result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn)))
     {
       if (pg_num_rows($result) == 1)
       {
@@ -154,15 +156,15 @@ if ($voucher['mitgliedsnummer'] == 0)
 else
 {
   $query = "SELECT name FROM ppmembers WHERE id = {$voucher['mitgliedsnummer']};";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-    $voucher['name'] = pg_escape_string($line['name']);
+    $voucher['name'] = pg_escape_string($dbconn, $line['name']);
   }
   pg_free_result($result);
 }
 
 $query = 'DROP TABLE IF EXISTS ppmembers;';
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 pg_free_result($result);
 }
 if ($voucher['file'] == -1)
@@ -182,10 +184,10 @@ VALUES
   '{$voucher['city']}',{$voucher['amount']},'{$voucher['konto']}',
   '{$voucher['vkonto']}','{$voucher['comment']}','{$voucher['commentgf']}',
   {$voucher['purpose']},{$voucher['file']},{$voucher['refund']},".
-  ($ack1_old == null ? "NULL" : "'" . pg_escape_string($ack1_old) . "'").",".
-  ($ack2_old == null ? "NULL" : "'" . pg_escape_string($ack2_old) . "'").
+  ($ack1_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack1_old) . "'").",".
+  ($ack2_old == null ? "NULL" : "'" . pg_escape_string($dbconn, $ack2_old) . "'").
   ");";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 }
 pg_free_result($result);
@@ -193,6 +195,7 @@ return $voucher_number;
 }
 function page_new_save($rights)
 {
+global $dbconn;
 $rights = write_rights($rights);
 if ($rights === false)
 {
@@ -209,7 +212,7 @@ if (!posted_organizations_allowed($parts, $rights))
   return;
 }
 $query = "SELECT nextval('voucher_number') AS num;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 $voucher_number = $line['num'];
 }
@@ -224,6 +227,7 @@ for ($i = 0; $i < $parts; $i++)
 }
 function page_new_file($rights)
 {
+global $dbconn;
 $rights = write_rights($rights);
 if ($rights === false)
 {
@@ -277,7 +281,7 @@ $rightssql = rights2orgasql($rights);
 // Only a current row of this voucher that the user sees; checked before the
 // finalized check, so that other organizations learn nothing about it.
 $query = "SELECT file FROM vouchers WHERE NOT deleted AND id = $bid AND voucher_id = $id $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 if (!($line = pg_fetch_array($result, null, PGSQL_ASSOC)))
 {
   echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
@@ -289,7 +293,7 @@ pg_free_result($result);
 
 // A finalized row blocks the upload, also a row of another organization.
 $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
   pg_free_result($result);
@@ -298,7 +302,7 @@ if (pg_fetch_array($result, null, PGSQL_ASSOC)) {
 pg_free_result($result);
 
 $query = "SELECT nextval('file_number') AS num;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $file_number = $line['num'];
 }
@@ -307,14 +311,14 @@ pg_free_result($result);
 // The scoped update must match the row (checked above) before the receipt
 // is stored and the approvals of the voucher are reset.
 $query = "UPDATE vouchers SET file = $file_number WHERE NOT deleted AND id = $bid AND voucher_id = $id AND file = $previous_file $rightssql;";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 $updated = pg_affected_rows($result);
 pg_free_result($result);
 
 $sourcepath = $_FILES["file$file"]["tmp_name"];
 if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath))
 {
-  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;") or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   pg_free_result($result);
   echo '<div class="slot_error" id="slot_error">FEHLER: Beleg konnte nicht gespeichert werden.</div><br /><br /><br />';
   return;
@@ -331,6 +335,7 @@ relocate("index.php?action=edit&id=$id&bid=$bid&hint=1");
 }
 function page_edit_form($part,$voucher,$rights)
 {
+global $dbconn;
 block_start();
 if (intval($voucher['bid']) == 0)
   echo '<h3>Neue Buchungszeile</h3>';
@@ -359,7 +364,7 @@ echo '
 <select id="in_type'.$part.'" name="in_type'.$part.'" onchange="clicked();">
 ';
 $query = "SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
@@ -373,7 +378,7 @@ echo '
 <select id="out_type'.$part.'" name="out_type'.$part.'" onchange="clicked();">
 ';
 $query = "SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
 ';
@@ -387,7 +392,7 @@ echo '
 <select id="wk_type'.$part.'" name="wk_type'.$part.'" onchange="clicked();">
 ';
 $query = "SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo '<option value="'.($voucher['type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
@@ -401,7 +406,7 @@ echo '
 <select id="person_type'.$part.'" name="person_type'.$part.'" onchange="clicked();">
 ';
 $query = "SELECT id,name FROM person_type ORDER BY used DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
     echo '<option value="'.($voucher['person_type'] == $line['id']?$line['id'] . '" selected="selected"':$line['id'] . '"').'>'.html_escape($line['name']).'</option>
     ';
@@ -421,7 +426,7 @@ echo '
 <select id="lo'.$part.'" name="lo'.$part.'" onchange="clicked();">
 ';
 $query = "SELECT id,name FROM lo ORDER BY id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 if (organization_allowed($line['id'], $rights))
   echo '<option value="'.($line['id'] == $voucher['lo']?$line['id'].'" selected="selected"':$line['id'].'"').'>'.html_escape($line['name']).'</option>

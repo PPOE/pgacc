@@ -66,12 +66,8 @@ final class ReceiptImportTest extends FunctionsTestCase
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         chdir($directory);
-        // Not asserted: the implicit-connection deprecations of PHP 8.5
-        // (a separate item in tests/COMPATIBILITY_PLAN.md).
         set_error_handler(function ($type, $message, $file, $line) use (&$diagnostics) {
-            if ($type !== E_DEPRECATED) {
-                $diagnostics[] = basename($file) . ':' . $line . ': ' . $message;
-            }
+            $diagnostics[] = basename($file) . ':' . $line . ': ' . $message;
             return true;
         });
         ob_start();
@@ -162,7 +158,7 @@ final class ReceiptImportTest extends FunctionsTestCase
             'upload',
             function () use ($rights, $setup) {
                 if ($setup !== null) {
-                    pg_query($setup);
+                    pg_query($GLOBALS['dbconn'], $setup);
                 }
                 page_import2_match_voucher($rights, 3, 'XY/987654321', '2024-09-15');
             }
@@ -185,10 +181,10 @@ final class ReceiptImportTest extends FunctionsTestCase
             hex2bin($vector['plain']),
             'upload',
             function () use (&$approvals) {
-                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1, ack2)
+                pg_query($GLOBALS['dbconn'], "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1, ack2)
                           VALUES (9303, 4711, 20, 1, 'Synthetic approved row', timestamp '2024-09-15 00:00:00', 0, 'synthetic-a', 'synthetic-b')");
                 page_import2_match_voucher('2', 3, 'XY/987654321', '2024-09-15');
-                $approvals = pg_fetch_row(pg_query('SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id = 9303'));
+                $approvals = pg_fetch_row(pg_query($GLOBALS['dbconn'], 'SELECT ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id = 9303'));
             }
         );
         self::assertSame('done: <a href="index.php?action=edit&id=4711&bid=9301">4711</a><br />', $output);
@@ -237,11 +233,11 @@ final class ReceiptImportTest extends FunctionsTestCase
             hex2bin($vector['plain']),
             'file0',
             function () use ($rights, &$approvals) {
-                pg_query("UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE id = 9301");
-                pg_query("INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1)
+                pg_query($GLOBALS['dbconn'], "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE id = 9301");
+                pg_query($GLOBALS['dbconn'], "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file, ack1)
                           VALUES (9304, 4712, 20, 2, 'Synthetic other voucher', timestamp '2024-09-15 00:00:00', 0, 'synthetic-c')");
                 page_new_file($rights);
-                $approvals = pg_fetch_all(pg_query('SELECT id, file, ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id IN (9301, 9304) ORDER BY id'));
+                $approvals = pg_fetch_all(pg_query($GLOBALS['dbconn'], 'SELECT id, file, ack1, ack2, ack1_old, ack2_old FROM vouchers WHERE id IN (9301, 9304) ORDER BY id'));
             }
         );
         self::assertSame('<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div>'
@@ -276,7 +272,7 @@ final class ReceiptImportTest extends FunctionsTestCase
             hex2bin($vector['plain']),
             'file0',
             function () {
-                pg_query('UPDATE vouchers SET file = 77 WHERE id = 9301');
+                pg_query($GLOBALS['dbconn'], 'UPDATE vouchers SET file = 77 WHERE id = 9301');
                 page_new_file('2');
             }
         );

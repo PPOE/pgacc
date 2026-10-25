@@ -1,6 +1,7 @@
 <?php
 function v_graph($konto, $date_begin, $date_end)
 {
+  global $dbconn;
   if ($konto === "") {
     return;
   }
@@ -20,7 +21,7 @@ function v_graph($konto, $date_begin, $date_end)
     $cond .= " AND date <= '$date_end' ";
 
   $query = "SELECT extract(epoch FROM date) * 1000 AS timestamp, SUM(amount) / 100.0, (SELECT SUM(amount) / 100.0 FROM vouchers WHERE date <= v.date AND NOT deleted $cond ) AS runningtotal FROM vouchers v WHERE NOT deleted $cond GROUP BY date ORDER BY date;";
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   //$array = pg_fetch_all($result);
   $array = array();
   $min = 0;
@@ -85,7 +86,7 @@ function v_graph($konto, $date_begin, $date_end)
 
 function v_report($konto,$date_begin,$date_end)
 {
-  global $realtype_req;
+  global $realtype_req,$dbconn;
   $cond = " AND vaccount LIKE '$konto%' ";
   if (strpos($konto,",") !== false)
   {
@@ -102,7 +103,7 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
@@ -110,7 +111,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
   }
@@ -123,7 +124,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -136,7 +137,7 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
@@ -144,7 +145,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
   }
@@ -157,7 +158,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -172,13 +173,14 @@ echo '
 
 function page_vreport($rights)
 {
+  global $dbconn;
   //if (strlen($rights) > 0)
   //{
     $query2 = "SELECT vaccount FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY vaccount ORDER BY vaccount";
-    $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     echo "<ul>";
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-      $k = $line2['vaccount'];
+      $k = $line2['vaccount'] === null ? '' : $line2['vaccount'];
       if ($rights == '' && is_numeric(str_replace(array(" ","AT"),array("",""),$k)))
       {
         $k = substr($line2['vaccount'],-3,3);

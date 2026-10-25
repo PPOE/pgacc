@@ -17,19 +17,19 @@ tag("td",tag("b",sortlink($action,'ama','Name'))));
 
 function spendings_page_listing_line($line)
 {
-global $make_csv;
+global $make_csv,$dbconn;
 if (!$make_csv)
 echo "<tr>";
 echo tag("td", $line["voucher_id"]);
 echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td",listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"])));
 }
 pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td", listing_text($line2["name"]));
 }
@@ -47,6 +47,7 @@ else
 
 function page_spendings()
 {
+  global $dbconn;
   echo "<h1>Ausgabenliste der Piratenpartei Österreichs</h1>\n";
   $type = -1;
   if (isset($_GET["type"]) && preg_match('/^\d+$/', $_GET["type"]) == 1)
@@ -73,7 +74,7 @@ if ($to != -1)
 spendings_page_listing_header('spendings');
 $sort = getsort();
 $query = "SELECT * FROM vouchers WHERE ".eyes()./*" AND (SELECT SUM(amount) FROM vouchers B WHERE ".eyes()." AND B.voucher_id = vouchers.voucher_id) < 0*/" AND amount < 0 $where ORDER BY $sort";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 spendings_page_listing_line($line);
 }

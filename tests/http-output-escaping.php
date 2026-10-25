@@ -169,6 +169,15 @@ assert_contains($listing, "<td>Büromaterial für Österreich</td>\n<td>Grüße<
 assert_contains($listing, '<td>Jürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön</td>', 'listing with umlauts');
 assert_contains($listing, "<td>=HYPERLINK(&quot;http://example.invalid&quot;)</td>\n<td>=1+1</td>", 'listing formulas in HTML');
 
+// The closed-voucher listing (page_closed()) renders its header and table.
+// Its query lacks vaccount, ack1_old and ack2_old, which page_listing_line()
+// reads (known failure KF-CLOSED-MISSING-COLUMNS: those cells stay empty).
+$closed = with_expected_diagnostics('KF-CLOSED-MISSING-COLUMNS', array(array('closed.php', 'Undefined array key')), function () use ($admin) {
+    return page('/index.php?action=closed&filter_date=2024', $admin);
+});
+assert_contains($closed, 'action=closed', 'closed listing');
+assert_contains($closed, '</table>', 'closed listing');
+
 // CSV export: raw text without entities, formulas neutralized.
 $csv = page('/index.php?action=all&filter_date=2024&format=csv', $admin);
 $csvRow = "9001\t9001\t2024-07-01\t" . payload('type-in') . "\tPiratenpartei " . payload('lo') . "\tNein\t" . payload('contra') . "\t"
@@ -335,7 +344,15 @@ assert_contains($wk, '<a href="index.php?action=spendings&type=92&from=2012-09-2
 assert_contains($wk, "<br /><h2><a name=\"nrw{$lo}2013\" href=\"#$lo\">$lo</a></h2>\n", 'wk unit heading');
 assert_contains($wk, '<h3><a name="Piratenpartei ' . escaped('oo') . '">Piratenpartei ' . escaped('oo') . "</a></h3>\n", 'wk suborganization heading');
 
+// A line without an account and virtual account (both NULL): the transaction
+// listing and the tinyreport and vreport account lists show it empty (PHP 8.1+
+// null-argument guards).
+insert_voucher($database, $voucherColumns, array(9040, 9040, 90, 90, 'false', null, '', 'Escaping no account',
+    '', '', '', 100, null, 'Escaping no account', 'false', 'false',
+    'false', '2024-07-09', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'false', null, null, null));
+
 $transactions = page('/index.php?action=transactions');
+assert_contains($transactions, "<td>2024-07-09</td>\n<td>" . escaped('type-in') . "</td>\n<td>$lo</td>\n<td></td>\n<td>1.00€</td>\n", 'transactions row without account');
 assert_contains($transactions, "<td>2024-07-01</td>\n<td>" . escaped('type-in') . "</td>\n<td>$lo</td>\n<td>" . escaped('account') . "</td>\n<td>12.34€</td>\n", 'transactions row');
 $transactionsCsv = page('/index.php?action=transactions&format=csv');
 assert_contains($transactionsCsv, "\n2024-07-01\t" . payload('type-in') . "\tPiratenpartei " . payload('lo') . "\t" . payload('account') . "\t12,34€\t\n", 'transactions CSV row');
@@ -353,6 +370,7 @@ $vreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array('vr
 assert_contains($vreport, '<li><a href="vreport?konto=' . rawurlencode(payload('vaccount')) . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
 assert_contains($vreport, "<li><a href=\"vreport?konto=TEST-%C3%84%C3%96%C3%9C\">Konto 'TEST-ÄÖÜ'</a></li>", 'vreport account with umlauts');
 assert_contains($vreport, "<li><a href=\"vreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'vreport account with URL characters');
+assert_contains($vreport, "<li><a href=\"vreport?konto=\">Konto ''</a></li>", 'vreport line without virtual account');
 foreach (array('vaccount', 'type-in', 'type-out') as $field) {
     assert_escaped($vreport, $field, 'vreport');
 }
@@ -361,6 +379,8 @@ $tinyreport = with_expected_diagnostics('KF-REPORT-UNDEFINED-UNIT', array(array(
 });
 assert_contains($tinyreport, '<li><a href="tinyreport?konto=' . rawurlencode(payload('account')) . '">Konto \'' . escaped('account') . '\'</a></li>', 'tinyreport account');
 assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'tinyreport account with URL characters');
+assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=\">Konto ''</a></li>", 'tinyreport line without account');
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id = 9040'));
 foreach (array('account', 'type-in', 'type-out') as $field) {
     assert_escaped($tinyreport, $field, 'tinyreport');
 }
@@ -420,7 +440,7 @@ pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 
 pg_free_result(escaping_query($database, 'DELETE FROM lo WHERE id IN (3, 5, 10)'));
 
 // Bank CSV import (import.php): file names, MIME types and the report of an
-// invalid line. Each imported line raises the known KF-IMPORT-REGEX-G warning.
+// invalid line.
 function upload($path, $cookies, $field, $name, $type, $content, $form = array())
 {
     $response = http_request($path, 'POST', $form, $cookies, null, array($field => array('name' => $name, 'type' => $type, 'content' => $content)));
@@ -432,9 +452,7 @@ $fileName = '<i id=fn>&ä.csv';
 $fileNameEscaped = '&lt;i id=fn&gt;&amp;ä.csv';
 $handkassa = "Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt\r\n"
     . "Montag;5,00;Handkassa;<s>csvline</s>&ä;;;Nein;Nein;Synthetic Importer;0;1;;;\r\n";
-$import = with_known_failure('KF-IMPORT-REGEX-G', function () use ($admin, $fileName, $handkassa) {
-    return upload('/index.php?action=import', $admin, 'uploadcsv[]', $fileName, 'text/csv', $handkassa, array('MAX_FILE_SIZE' => '1000000'));
-});
+$import = upload('/index.php?action=import', $admin, 'uploadcsv[]', $fileName, 'text/csv', $handkassa, array('MAX_FILE_SIZE' => '1000000'));
 assert_contains($import, "<h2>Importiere $fileNameEscaped</h2>", 'import heading');
 assert_contains($import, "Ungültige Buchungszeile in Datei 1 ($fileNameEscaped), Zeile 2 <br />", 'import invalid line');
 assert_contains($import, "<pre>Montag;5,00;Handkassa;&lt;s&gt;csvline&lt;/s&gt;&amp;ä;;;Nein;Nein;Synthetic Importer;0;1;;;</pre>", 'import raw line');

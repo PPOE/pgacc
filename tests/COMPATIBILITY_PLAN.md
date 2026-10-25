@@ -4,10 +4,124 @@ Reviewed against the synthetic Docker harness on 2026-10-23. This list separates
 completed changes from reproducible failures and configuration-dependent risks.
 Application changes beyond the completed fixes listed below remain follow-up work.
 
-Test lanes since 2026-10-24 (owner decision): PHP 5.3 / PostgreSQL 8.4.20 (the
-production pair), PHP 7.4 / 18 (coverage) and 7.4 / 8.4, PHP 8.5 / 18. The PHP
-5.6 and 8.0 lanes, the separate syntax matrix and the PostgreSQL 9.4, 14 and 17
-servers were removed; findings below that name them are historical.
+Test lanes after the 1.0.0 release (tag `php5-last`; owner decision 2026-10-25):
+PHP 8.5 / PostgreSQL 18 only (see [PHP 8.5-only migration](#php-85-only-migration)).
+The PHP 5.3 / 8.4.20 production-pair lane, the PHP 7.4 lanes (18 and 8.4),
+and earlier the PHP 5.6 and 8.0 lanes, the separate syntax matrix and the
+PostgreSQL 9.4, 14 and 17 servers were removed; findings below that name them
+are historical.
+
+## PHP 8.5-only migration
+
+Owner decision 2026-10-25: after the 1.0.0 release (tag `php5-last`, PHP 5.3)
+the application supports and tests only PHP 8.5 and PostgreSQL 18, on a new
+server. First step (branch `php85/lanes`, CI and harness only, no application
+code): the PHP 5.3, 7.4 / 18 and 7.4 / 8.4 lanes, the PHP 5.6 client image,
+`tests/php53/`, `tests/postgres84/`, `PGACC_TEST_PG`, the reference
+re-recording (`record.sh`), the Infection 0.26 project, the 5.3 floor canaries
+and the PHP 7.4-only mutation equivalents were removed. Coverage (Xdebug
+3.5.3), the changed-line gate, the mutation runner, Infection and the reference
+comparison run on the PHP 8.5 / 18 lane; `composer.json` has `platform.php`
+8.5.0 (lock unchanged apart from its hash); PHPCompatibility `testVersion`
+8.5-, PHPStan `phpVersion` 8.5; the release check of `vendor/` runs on 8.5
+(`tests/release-vendor-check.php`).
+
+State of the lane at that step (`sh tests/run.sh`, exit 1): 9 of 12 groups
+fail (8 HTTP scripts, and PHPUnit with 2 `UnusedOutputTest` failures), all from PHP
+8.5's implicit-connection deprecation: 86 unexpected diagnostic sites (73
+`pg_query()`, 12 `pg_escape_string()`, 1 `pg_version()`; 7727 occurrences)
+and their consequences (4 "headers already sent" warnings, non-empty or
+broken redirects, deprecation text in pages, downloads and CSV). The
+reference comparison passes (0 unaccepted differences, 2 accepted and 25 `todo`
+entries). The mutation self-test passes; most targets' baselines fail on the
+same deprecations (no `tests/known-diagnostics.php` entries are added for
+them).
+
+Next steps, in order:
+
+- [x] (a) Pass the connection explicitly to every `pg_*` call. Done in the same
+  branch: 141 `pg_query()`, 30 `pg_escape_string()`, 134 `pg_last_error()` and
+  1 `pg_version()` calls in 26 application files now pass `$dbconn`; 40
+  functions got `global $dbconn` (appended to an existing `global` line where
+  it came before the first call, else a new line after the opening brace).
+  The three `pg_connect(...) or die(... pg_last_error())` lines are unchanged:
+  no connection exists there. The PHPUnit bootstrap stores its link in
+  `$GLOBALS['dbconn']`; `ReceiptImportTest` now also fails on deprecations.
+  With the deprecations gone the lane reached pages it never finished before
+  and showed two PHP 8.1+ null-argument deprecations, now guarded as in
+  `null-arguments` (same output): `rawurlencode()` of a missing account in
+  `tinyreport.php` and `str_replace()` of a null `account` in
+  `transactions.php` (mutations `tinyreport-konto-null-guard-removed`,
+  `transactions-account-null-guard-removed` in `output-escaping`).
+  `vreport.php:188` has the same unguarded `rawurlencode($k)`, but the tests
+  never reach it with a null account. The `fgetcsv()`/`str_getcsv()` calls
+  in `import.php` pass the default enclosure and escape explicitly (same
+  behaviour; the two PHPCompatibility findings are gone). `csrf` is in the
+  `ci.sh` list, and the CI harness job is blocking. `sh tests/run.sh` passes
+  (exit 0).
+- [ ] (b) `smalot/pdfparser` ^2, so that the PDF bank-statement import
+  (`import2.php`) works on PHP 8.x: the locked v0.9.23 declares a class
+  `Object` (fatal since 7.2) and its TCPDF 6.2.6 does not parse on PHP 8
+  (curly-brace offsets). Update the `RD-PDFPARSER-PHP72-*` reference entries,
+  the skipped PDF import in `tests/http-receipts.php` and add a PDF round trip
+  to `tests/release-vendor-check.php`.
+- [ ] (c) phpseclib: 2.0.55 reproduces all 21 mcrypt contract vectors on PHP
+  8.5 without diagnostics (release check) and `CryptoTest` passes, also after
+  (a). Moving to v3 is optional.
+- [ ] (d) Re-baseline the reference on PHP 8.5 (a new recording next to
+  `tests/reference/php5/`, which stays the historical PHP 5 golden master),
+  once each `todo` difference from `php5/` is explained or fixed.
+- [ ] (e) Later: receipt v3 with sodium `secretstream`.
+
+Found while covering the changed lines (owner decisions, not fixed):
+
+- [ ] Known failure `KF-CLOSED-MISSING-COLUMNS`: `page_closed()`
+  (`closed.php`, `action=closed`) selects no `vaccount`, `ack1_old` and
+  `ack2_old`, which `page_listing_line()` reads: "Undefined array key"
+  warnings, and those cells stay empty in the closed listing. Fix: add the
+  three columns to the query (changes the listing's output).
+  `http-output-escaping.php` attributes the warnings to the KF id.
+- [x] `KF-IMPORT-REGEX-G` resolved by removal (owner decision): the BAWAG
+  voucher-ID duplicate check in `import.php` (11 lines from b08f998
+  "Preserve production pgacc changes", a production-only edit) never ran:
+  its `/g` regex is invalid (warning on every imported line, no match), and
+  its `SELECT` on `import` names columns that table does not have (only
+  `line`). Removing it changes no behaviour; identical lines stay skipped
+  via `import.line`. `http-import.php` asserts a BAWAG line with a voucher ID
+  imports without diagnostics.
+- [ ] Optional later feature: a working duplicate check by BAWAG voucher ID
+  against `vouchers`.
+- CI: mutation testing runs in its own job only with the `mutation` or
+  `full-ci` label, weekly and on manual runs (owner decision).
+- [x] Review fixes: a failed `pg_connect()` in `index.php`, `check.php` and
+  `mbapi.php` called `pg_last_error()` without a connection (an uncaught
+  Error on PHP 8); they now log `error_get_last()` and die with
+  "Verbindungsaufbau fehlgeschlagen" (`http-connect-failure.php`).
+  `report.php` called the nonexistent `pg_prev_error()` on two query
+  failures; now `pg_last_error($dbconn)`. `vreport.php` guards a NULL
+  `vaccount` like `tinyreport.php` (mutation `vreport-vaccount-null-guard-removed`).
+- [ ] Later: a static rule (PHPStan or a grep check) against implicit `pg_*`
+  connections.
+- [ ] Later: the changed-line base of pull request `synchronize` runs (the
+  previous head, not the PR base) for the coverage gate and the mutation job.
+- [ ] Later: adding a label (`mutation`, `full-ci`) re-runs the whole
+  pipeline, not only the added job.
+
+Harness follow-ups found in the first step (not done there):
+
+- [ ] HTTP branch coverage looks incomplete on PHP 8.5: most HTTP-only pages
+  report 0% branches while their lines are covered. Likely cause: OPcache is
+  on for `php -S` (`opcache.enable`), so Xdebug sees branch data only when a
+  file is compiled. Line coverage and the changed-line gate are not affected;
+  the branch report is advisory (`PGACC_COVERAGE_STRICT_BRANCHES=0`).
+  Candidate fix: `-d opcache.enable=0` for the coverage server, which also
+  makes compile-time deprecations appear on every request (owner decision).
+- [ ] Remove the inert pre-9.x PostgreSQL branches (`tests/database-smoke.sh`,
+  `pgacc_mutation_fixture_files()`/`pgacc_mutation_drop_database_sql()`,
+  `tests/fixtures/plpgsql-*.sql`, the reference statement log and
+  `PGACC_REFERENCE_PGOPTIONS` in `tests/reference/runtime/prepend.php`) and
+  the PHP 5.x remarks in test comments.
+- [x] `csrf` added to the `ci.sh` list (all 14 targets).
 
 ## Completed and verified
 
@@ -727,7 +841,7 @@ former stand-ins 9.4, 14 and 17 are gone.
 |---|---|---|
 | PHP 5.3 (`run.sh 5.3`) | pass (default, production pair) | not run |
 | PHP 7.4 (`run.sh 7.4`) | CI weekly/PRs (reference compare passes locally) | pass (coverage lane) |
-| PHP 8.5 (`run.sh 8.5`) | not run | CI lane (fails by design, see above) |
+| PHP 8.5 (`run.sh 8.5`) | not run | pass (the only lane since `php5-last`) |
 
 Test infrastructure adapted for 8.4 (no application change): fixtures chosen
 by server version (`CREATE EXTENSION pgcrypto` only on 9.1+, pgcrypto from
@@ -971,7 +1085,7 @@ differences above are only visible for out-of-range input.
     downloads, the error cases, merges, the script over HTTP; it shares the
     server's `files/` through a Compose volume). Mutation target
     `receipt-crypto`; Infection also runs `ReceiptStorageTest`.
-  - [ ] `KD-PHPSECLIB-OPENSSL-53` (PHP 5.3 only, hidden): phpseclib's AES-CBC
+  - [x] `KD-PHPSECLIB-OPENSSL-53` (PHP 5.3 only, hidden; entry removed with the PHP 5.3 lane): phpseclib's AES-CBC
     decryption on PHP 5.3 (no `OPENSSL_RAW_DATA`) encrypts one ECB block
     under `@` (`Crypt/Base.php:1159`), which warns about the empty IV that
     ECB never uses. Harmless; `ReceiptStorageTest` checks the v2 vectors on
@@ -1274,16 +1388,16 @@ finding was checked by reading the source. Only those that name a
 
 Both are kept as canaries in `tests/static-analysis/canaries/`.
 
-### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`)
+### PHPCompatibility (24 findings; 4 after the `mcrypt` replacement, 2 after the short-tag fix, 3 with `hash_equals()`, 2 with `testVersion` 8.5-, 0 after the CSV escape fix)
 
 | Finding | Locations | Status |
 |---|---|---|
 | Short open tag | `file.php:1`, `getusers.php:1` | **Fixed** (short-tag item above) |
 | `mcrypt` extension, functions and constants removed in 7.2 (4 findings per site) | `file.php:19`, `getusers.php:20`, `import2.php:189`, `mbapi.php:17`, `new.php:252` | **Fixed** (`mcrypt` replacement above); 20 baseline entries removed. |
-| `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | Known from the Rector review; not previously in this plan |
+| `fgetcsv()`/`str_getcsv()` without `$escape` (deprecated in 8.4) | `import.php:52`, `import.php:163` | **Fixed**: the default enclosure and escape are passed explicitly (step a of the PHP 8.5-only migration) |
 | `hash_equals()` not in PHP 5.5 or earlier | `functions.php:693` (`receipt_equals()`) | **Accepted**: guarded by `function_exists()`, which PHPCompatibility does not see; PHP 5.3 uses `receipt_equals_fallback()` (tested on the PHP 5.3 lane) |
 
-### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token)
+### PHPStan (91 findings; 79 after the `closed.php`/`report.php` fixes, the `index.php:226` merge fix and the `new.php:184` rights fix, 76 after `donations.php`, 72 after the `mcrypt` replacement, 69 after the explicit receipt key, one fewer after `edit.php:120`, one fewer after the finalization removal, one fewer after the login session token, one fewer after the removal of the dead voucher-ID check)
 
 | Finding | Locations | Status and impact |
 |---|---|---|
@@ -1293,10 +1407,10 @@ Both are kept as canaries in `tests/static-analysis/canaries/`.
 | Extra arguments to functions without parameters | `index.php:264` (fixed with `KD-NEW-RIGHTS`), `:289`, `:321` (fixed: `page_import()` takes the rights for the import checks); `functions.php:163` | Known from the Rector review. Fixed at `index.php:226`: the merge dispatch passed `intval($_POST["bid1"])` and `intval($_POST["bid2"])`, which `page_edit_merge($rights)` ignores (it reads `$_GET`); the merge link is a GET request, so each merge raised two undefined-index notices (warnings on PHP 8). The arguments are dropped; `tests/write-workflows.php` covers the merge. |
 | `$key` read inside functions without `global` | `file.php:19`, `new.php:252`, `import2.php:189` (2 each) | **Fixed without a behaviour change**: the call sites pass `''`, the value they always used; entries removed. Since then fixed: new receipts use the configured key (receipt key item). Receipt encryption and decryption use `md5($id . $key . $id)` with `$key` always undefined. The configured key is therefore never part of the receipt key, so the key depends only on the voucher ID. PHP 8 also emits an "Undefined variable" warning before the download headers in `file.php`. Do not change this without a migration plan for existing `.aes` files (see the `mcrypt` item). |
 | `tag()` called with one of two required arguments | `closed.php:158` (`emptytag()`) | **Fixed.** On PHP 7.1+ this threw `ArgumentCountError` whenever a listing column was hidden through `user_prefs_hide` (ledger, open, deleted, closed listings); on 5.6 it displayed "Missing argument 2 for tag()" in every hidden cell and returned `<td></td>`. Reproduced with the new `tests/http-listing-prefs.php` (users `synthetic-hide-odd`/`synthetic-hide-even` hide every column once, in HTML and CSV): fatal error on 7.4, displayed warning on 5.6. `emptytag()` now passes `''`, which produces the same `<td></td>` that PHP 5.6 did, without the warning. Baseline entry removed. |
-| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths die with a fatal error instead of their message. |
+| Undefined functions | `index.php:266` `page_new_ack()`, `index.php:285` `page_transfer()`, `report.php:185`/`:194` `pg_prev_error()` | **New.** The `ack` POST on the new-voucher form and `?action=transfer` cause a fatal error on every PHP version. The report error paths died with a fatal error instead of their message: **fixed** (`pg_last_error($dbconn)`, PHP 8.5-only migration review fixes). |
 | Undefined variables in function scope | `new.php:184` (`$rights` in `page_new_save()`, fixed), `edit.php:120` (`$rightssql` in `page_edit_ack()`, fixed), `new.php:613` (`$bgfandack`), `report.php:340-397` (`$prevcond`, 8, fixed), `wk.php:145-180` (`$year`, 7) | **New** here; `new.php:184`, `edit.php:117` and `report.php:340` were then also observed at runtime as `KD-NEW-RIGHTS`, `KD-EDIT-RIGHTSSQL` and `KD-REPORT-PREVCOND` (impact and follow-up there). `new.php:613` (`$bgfandack`) is observed by `tests/http-output-escaping.php` (re-rendered new-voucher form) as known failure `KF-NEW-UNDEFINED-BGFANDACK`; `wk.php` is observed by `tests/http-output-escaping.php` as known failure `KF-WK-UNDEFINED-YEAR`. Each site warns on PHP 8 before headers. |
 | Possibly undefined variables | `check.php:24-38` (`$i`), `import2.php:187/193` and `new.php:250/256` (`$file_number`), `new.php:108` (`$queries`), `new.php:180/184` (`$voucher_number`), `tinyreport.php:24-74` and `vreport.php:108-158` (`$unit`, 8 each; observed by `tests/http-output-escaping.php` as known failure `KF-REPORT-UNDEFINED-UNIT`), `mbapi.php:19` (`$datakey`, 2; 1 since the `mcrypt` replacement) | **New**, lower confidence. Some depend on query results or switch branches, and `mbapi.php` gets `$datakey` from `constants.php`. Review individually. |
-| Invalid regex modifier `/g` | `import.php:306` | **New.** `preg_match()` always returns `false` with a warning, so BAWAG voucher IDs are never extracted. `tests/http-import.php` records the warning as known failure `KF-IMPORT-REGEX-G`. Cover with the planned BAWAG import test. |
+| Invalid regex modifier `/g` | `import.php:306` | **Removed** with the dead voucher-ID check it guarded (see "PHP 8.5-only migration"); formerly known failure `KF-IMPORT-REGEX-G`. |
 | Arithmetic on a possible array | `new.php:46` | **New.** `get_param()` can return an array (`amount[]=`). `array * float` is a `TypeError` on PHP 8. |
 | Always-true/false conditions | `index.php:18` (`!$data` after `or die`), `import.php:161` (`'Paypal' == 'Paypal'`), `import.php:263` (`0 == 0`, gone since the member-match fix of the PR review) | **New**, logic smells; no direct version impact. |
 | `setcookie()` value is an int | `index.php:27` | **Fixed** with the login session token (the cookie is a hex string now); baseline entry removed. |

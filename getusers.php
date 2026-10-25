@@ -1,7 +1,7 @@
 <?php
 function getUsers()
 {
-global $datakey;
+global $datakey,$dbconn;
 $sData = file_get_contents("http://mitglieder.piratenpartei.at/adm_api/adm_names.php");
 if (strlen($datakey) == 0)
   die('Kein Passwort!');
@@ -10,11 +10,11 @@ if (strlen($sData) < 1000)
   die('Daten von Mitgliederverwaltung zu kurz!');
 
 $query = 'DROP TABLE IF EXISTS ppmembers;';
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 pg_free_result($result);
 
 $query = 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer);';
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 pg_free_result($result);
 
 $decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
@@ -45,13 +45,13 @@ foreach ($lines as $line)
   //echo "insert: id=$id, name=$name, lo=$lo_num\n";
   if ($count > 0)
     $query .= ',';
-  $query .= "($id,'".pg_escape_string($name)."',$lo_num,$paid)";
+  $query .= "($id,'".pg_escape_string($dbconn, $name)."',$lo_num,$paid)";
   $count++;
 }
 if ($count > 0)
 {
   $query .= ';';
-  $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   pg_free_result($result);
 }
  

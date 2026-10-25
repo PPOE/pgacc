@@ -76,5 +76,29 @@ assert_contains($ledger['body'], 'Synthetic Draft', 'authenticated ledger');
 assert_not_contains($ledger['body'], 'Deleted donation', 'authenticated ledger');
 assert_no_fatal_error($ledger['body'], 'authenticated ledger');
 
+// Reports of years whose opening or closing balance date has no balance row
+// fall back to the latest balance (2024-12-31 in the fixtures).
+$report2023 = http_request('/index.php?year=2023');
+assert_status($report2023, 200, '2023 report');
+assert_no_fatal_error($report2023['body'], '2023 report');
+assert_not_contains($report2023['body'], 'Abfrage fehlgeschlagen', '2023 report');
+assert_contains($report2023['body'], '<td width="150px">Kontostand 31.12.2024</td>', '2023 report opening balance fallback');
+$report2025 = http_request('/index.php?year=2025');
+assert_status($report2025, 200, '2025 report');
+assert_no_fatal_error($report2025['body'], '2025 report');
+assert_not_contains($report2025['body'], 'Abfrage fehlgeschlagen', '2025 report');
+assert_contains($report2025['body'], '<td width="150px">Kontostand 31.12.2024</td>', '2025 report opening balance');
+
+// check.php: the ad-hoc voucher-number check (unlinked; export-ignored and
+// denied by production's web server, but served by the test server).
+// "SYNTHETIC0" has no vouchers, so numbers 2 and 3 are reported missing.
+$check = http_request('/check.php?kto=SYNTHETIC0&max=3');
+assert_status($check, 200, 'check.php');
+assert_no_fatal_error($check['body'], 'check.php');
+assert_contains($check['body'], 'Habe 0 von 1 Buchungen gefunden.<br /><br />', 'check.php');
+assert_contains($check['body'], 'Habe insgesamt 0  Buchungen gefunden.<br /><br />', 'check.php');
+assert_contains($check['body'], 'Habe 0  Buchungen gefunden die ich nicht zuordnen konnte.<br /><br />', 'check.php');
+assert_contains($check['body'], "Buchung 2 FEHLT (0 results)<br />\nBuchung 3 FEHLT (0 results)<br />\n", 'check.php');
+
 assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL HTTP characterization tests passed\n";

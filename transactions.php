@@ -15,18 +15,18 @@ tag("td",tag("b",sortlink($action,'ama','Betrag'))));
 
 function transactions_page_listing_line($line, $action = "edit")
 {
-global $make_csv;
+global $make_csv,$dbconn;
 if (!$make_csv)
 echo "<tr>";
 echo tag("td", format_date($line["date"]));
 $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td",listing_text(str_replace(array('Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'),array('Spenden'),$line2["name"])));
 }
 pg_free_result($result2);
 $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
 echo tag("td", listing_text($line2["name"]));
 }
@@ -63,7 +63,7 @@ echo tag("td", listing_text(str_replace(array(
 'Sachspenden Kärnten',
 'Piratenpartei Österreichs (Bank Austria)',
 'Piratenpartei Österreichs (Altes BAWAG Konto)'
-),$line["account"])));
+),$line["account"] === null ? '' : $line["account"])));
 echo tag("td", sprintf("%1.2f",$line["amount"] / 100.0) . "€");
 if ($make_csv)
   echo "\n";
@@ -74,11 +74,11 @@ else
 function page_transactions()
 {
   echo "<h1>Kontobewegungen der Piratenpartei Österreichs</h1>\n";
-global $make_csv;
+global $make_csv,$dbconn;
 transactions_page_listing_header('transactions');
 $sort = getsort();
 $query = "SELECT * FROM vouchers WHERE NOT deleted AND amount != 0 AND date > '2011-12-31' ORDER BY $sort";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
 transactions_page_listing_line($line);
 }

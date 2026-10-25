@@ -1,6 +1,7 @@
 <?php
 function page_accounts($rights)
 {
+ global $dbconn;
  // Read once: an own password change ends the session (users.cookie), and
  // the page still lists the own account afterwards.
  $ownId = checklogin('id');
@@ -16,9 +17,9 @@ function page_accounts($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
       }
-      $pass = isset($_POST["password$id"]) ? pg_escape_string($_POST["password$id"]) : '';
-      $name = isset($_POST["name$id"]) ? pg_escape_string($_POST["name$id"]) : '';
-      $nrights = isset($_POST["rights$id"]) ? pg_escape_string($_POST["rights$id"]) : '';
+      $pass = isset($_POST["password$id"]) ? pg_escape_string($dbconn, $_POST["password$id"]) : '';
+      $name = isset($_POST["name$id"]) ? pg_escape_string($dbconn, $_POST["name$id"]) : '';
+      $nrights = isset($_POST["rights$id"]) ? pg_escape_string($dbconn, $_POST["rights$id"]) : '';
       if (has_right($rights, 'root') && $id == -1)
         if ($pass != "******")
           $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('md5')), '$nrights');";
@@ -33,7 +34,7 @@ function page_accounts($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
       }
-      $result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . html_escape(pg_last_error()));
+      $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . html_escape(pg_last_error($dbconn)));
       while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
       }
       pg_free_result($result);
@@ -58,7 +59,7 @@ if (!has_right($rights, 'root'))
   $restrict = " WHERE id = $id ";
 }
 $query = "SELECT * FROM users $restrict ORDER BY rights DESC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   $i = $line['id'];
   echo '<tr><td>'.html_escape($line['name']).'</td><td><input type="password" name="password'.$i.'" value="******"></td>'.(has_right($rights, 'root') ? '<td><input type="text" name="rights'.$i.'" value="'.html_escape($line['rights']).'" /></td>':'').'<td><input type="submit" name="submit" value="Benutzer '.$i.' aktualisieren" /></td></tr>'."\n";

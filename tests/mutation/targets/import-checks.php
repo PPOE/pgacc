@@ -90,8 +90,8 @@ return array(
         array(
             'id' => 'import2-failed-store-keeps-file',
             'file' => 'import2.php',
-            'search' => '    $result = pg_query("UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '    $result = pg_query("SELECT 1;")',
+            'search' => '    $result = pg_query($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'replace' => '    $result = pg_query($dbconn, "SELECT 1;")',
             'rationale' => 'A receipt that could not be stored leaves the voucher without a file number.',
         ),
         array(
@@ -131,8 +131,8 @@ return array(
         array(
             'id' => 'upload-failed-store-keeps-file',
             'file' => 'new.php',
-            'search' => '  $result = pg_query("UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
-            'replace' => '  $result = pg_query("SELECT 1;")',
+            'search' => '  $result = pg_query($dbconn, "UPDATE vouchers SET file = $previous_file WHERE NOT deleted AND id = $bid AND file = $file_number;")',
+            'replace' => '  $result = pg_query($dbconn, "SELECT 1;")',
             'rationale' => 'A receipt that could not be stored does not stay referenced: the row gets its '
                 . 'previous file number back.',
         ),
@@ -145,20 +145,20 @@ return array(
         ),
         array(
             'id' => 'import-member-match-ends-file',
-            'search' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
-            'replace' => "pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true; break;",
+            'search' => "pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
+            'replace' => "pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true; break;",
             'rationale' => 'A member match does not end the import of the file.',
         ),
         array(
             'id' => 'import-member-name-unescaped',
-            'search' => "\$voucher['name'] = pg_escape_string(\$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
+            'search' => "\$voucher['name'] = pg_escape_string(\$dbconn, \$line['name']);\n                pg_free_result(\$result);\n                \$found = true;",
             'replace' => "\$voucher['name'] = \$line['name'];\n                pg_free_result(\$result);\n                \$found = true;",
             'rationale' => 'Removed escape: a member name with a quote is inserted as SQL.',
         ),
         array(
             'id' => 'import-member-line-escaped-twice',
             'search' => "WHERE name <> '' AND '\$csvline' ILIKE",
-            'replace' => "WHERE name <> '' AND '\" . pg_escape_string(\$csvline) . \"' ILIKE",
+            'replace' => "WHERE name <> '' AND '\" . pg_escape_string(\$dbconn, \$csvline) . \"' ILIKE",
             'rationale' => 'The line is escaped once: a quoted member name still matches.',
         ),
         array(

@@ -1,9 +1,11 @@
 #!/bin/sh
 set -eu
 
-# PGACC_COVERAGE_DIR is set by compose.coverage.yaml (PHP 7.4 lane only): the
+# PGACC_COVERAGE_DIR is set by compose.coverage.yaml (tests/run.sh): the
 # application server then writes per-request coverage there, and the PHPUnit
-# coverage is merged with it after all groups have run.
+# coverage is merged with it after all groups have run. Every group is
+# attempted, so that all failures stay visible; the exit status is nonzero if
+# any group failed.
 coverage_dir=${PGACC_COVERAGE_DIR:-}
 phpunit_coverage=
 phpunit_memory=128M
@@ -22,23 +24,27 @@ if [ -n "$coverage_dir" ]; then
   fi
 fi
 
-php tests/http-smoke.php
-php tests/http-login.php
-php tests/http-session-lifecycle.php
-php tests/http-listing-prefs.php
-php tests/http-redirects.php
-php tests/http-donations.php
+test_status=0
+php --version | head -n 1
+php tests/http-smoke.php || test_status=1
+php tests/http-login.php || test_status=1
+php tests/http-session-lifecycle.php || test_status=1
+php tests/http-listing-prefs.php || test_status=1
+php tests/http-redirects.php || test_status=1
+php tests/http-donations.php || test_status=1
 # shellcheck disable=SC2086 # intentional word splitting of the optional flags
-XDEBUG_MODE=coverage php -d memory_limit="$phpunit_memory" vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result --coverage-text $phpunit_coverage
-php tests/show-uncovered-functions.php /tmp/functions-clover.xml
-php tests/write-workflows.php
-php tests/http-import.php
-php tests/http-receipts.php
-php tests/http-output-escaping.php
-php tests/http-csrf.php
+XDEBUG_MODE=coverage php -d memory_limit="$phpunit_memory" vendor/bin/phpunit --configuration phpunit.xml --do-not-cache-result --coverage-text $phpunit_coverage || test_status=1
+php tests/show-uncovered-functions.php /tmp/functions-clover.xml || test_status=1
+php tests/write-workflows.php || test_status=1
+php tests/http-import.php || test_status=1
+php tests/http-receipts.php || test_status=1
+php tests/http-output-escaping.php || test_status=1
+php tests/http-csrf.php || test_status=1
+php tests/http-connect-failure.php || test_status=1
 
 if [ -n "$coverage_dir" ]; then
-  XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir"
+  XDEBUG_MODE=coverage php -d memory_limit=1G tests/coverage/merge.php "$coverage_dir" "$report_dir" \
+    || test_status=1
   if [ -f "$report_dir/changed-lines.txt" ]; then
     set -- "$report_dir/clover.xml" "$report_dir/changed-lines.txt"
     if [ -f "$report_dir/uncovered-branches.txt" ]; then
@@ -47,6 +53,7 @@ if [ -n "$coverage_dir" ]; then
         set -- --fail-on-branches "$@"
       fi
     fi
-    php tests/coverage/check-changed-lines.php "$@"
+    php tests/coverage/check-changed-lines.php "$@" || test_status=1
   fi
 fi
+exit "$test_status"

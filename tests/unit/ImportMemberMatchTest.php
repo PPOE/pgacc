@@ -78,13 +78,9 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         stream_wrapper_register('http', 'ImportMemberListStream');
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
-        // Every imported line raises the known failure KF-IMPORT-REGEX-G (the
-        // /g modifier, see tests/COMPATIBILITY_PLAN.md); anything else is kept.
         $diagnostics = array();
         set_error_handler(function ($type, $message) use (&$diagnostics) {
-            if (strpos($message, "Unknown modifier 'g'") === false && $type !== E_DEPRECATED) {
-                $diagnostics[] = $message;
-            }
+            $diagnostics[] = $message;
             return true;
         });
         ob_start();

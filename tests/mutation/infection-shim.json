@@ -17,7 +17,6 @@
         "customPath": "/app/vendor/bin/phpunit"
     },
     "bootstrap": "/app/tests/mutation/InfectionShim.php",
-    "initialTestsPhpOptions": "-d xdebug.mode=coverage",
     "timeout": 20,
     "tmpDir": "/tmp/infection",
     "logs": {

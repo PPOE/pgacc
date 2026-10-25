@@ -1,7 +1,7 @@
 <?php
 function tiny_report($konto,$date_begin,$date_end)
 {
-  global $realtype_req;
+  global $realtype_req,$dbconn;
   $cond = " AND account LIKE '$konto%' ";
   if (strpos($konto,",") !== false)
   {
@@ -18,7 +18,7 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
@@ -26,7 +26,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
   }
@@ -39,7 +39,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -52,7 +52,7 @@ echo '
 <table>
 ';
 $query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";
-$result = pg_query($query) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
   if ($unit == -1)
@@ -60,7 +60,7 @@ while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
   else
     $unit_s = " AND orga = " . $unit;
   $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} ".$cond;
-  $result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+  $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
   while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
     echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
   }
@@ -73,7 +73,7 @@ if ($unit == -1)
 else
   $unit_s = " AND orga = " . $unit;
 $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) ".$cond;
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   echo sprintf("%1.2f",$line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
 }
@@ -88,10 +88,11 @@ echo '
 
 function page_tinyreport($rights)
 {
+  global $dbconn;
   if (strlen($rights) > 0)
   {
 $query2 = "SELECT account FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY account ORDER BY account";
-$result2 = pg_query($query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error());
+$result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
 echo "<ul>";
 while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   $k = $line2['account'];
@@ -99,7 +100,7 @@ while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
   {
     $k = substr($line2['account'],-3,3);
   }
-  echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k)) . "\">Konto '".html_escape($k)."'</a></li>";
+  echo "<li><a href=\"" . html_escape("tinyreport?konto=" . rawurlencode($k === null ? '' : $k)) . "\">Konto '".html_escape($k)."'</a></li>";
 }
 echo "</ul>";
 pg_free_result($result2);

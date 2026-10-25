@@ -5,11 +5,8 @@ parameters:
   # Level 1 adds "might not be defined" (the uninitialized $rights2 and the
   # count() crashes); level 5 adds argument types.
   level: 5
-  # The application must still run on PHP 5.6, but PHPStan cannot model
-  # PHP < 7.1. PHPCompatibility (phpcs.xml) covers the 5.6 floor.
-  phpVersion:
-    min: 70100
-    max: 80599
+  # After php5-last the application supports PHP 8.5 only.
+  phpVersion: 80500
   tmpDir: /tmp/phpstan
   # The locked application dependencies (smalot/pdfparser, phpseclib), read
   # statically.

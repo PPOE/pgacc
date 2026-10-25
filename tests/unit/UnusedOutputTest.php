@@ -13,13 +13,13 @@ final class UnusedOutputTest extends FunctionsTestCase
 {
     private function withSyntheticRows($callback)
     {
-        pg_query('BEGIN');
-        pg_query("INSERT INTO type (id, name, used, income, realtype) VALUES (95, '<s>type</s> & \"Ö\"', 0, -1, 95)");
-        pg_query("INSERT INTO lo (id, name) VALUES (95, '<s>lo</s> ''x''')");
+        pg_query($GLOBALS['dbconn'], 'BEGIN');
+        pg_query($GLOBALS['dbconn'], "INSERT INTO type (id, name, used, income, realtype) VALUES (95, '<s>type</s> & \"Ö\"', 0, -1, 95)");
+        pg_query($GLOBALS['dbconn'], "INSERT INTO lo (id, name) VALUES (95, '<s>lo</s> ''x''')");
         ob_start();
         call_user_func($callback);
         $output = ob_get_clean();
-        pg_query('ROLLBACK');
+        pg_query($GLOBALS['dbconn'], 'ROLLBACK');
         return $output;
     }
 

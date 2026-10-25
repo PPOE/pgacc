@@ -18,15 +18,10 @@ $GLOBALS['pgacc_test_known_failure'] = null;
 $GLOBALS['pgacc_test_diagnostics_reported'] = false;
 $GLOBALS['pgacc_test_checked_requests'] = 0;
 
-// PHP minor version of the application server under test: the client's own
-// version, except on lanes whose server runs another PHP (the PHP 5.3 lane
-// sets PGACC_TEST_SERVER_PHP; its tests run from the PHP 5.6 image).
+// PHP minor version of the application server under test: the client runs
+// on the same image.
 function server_php_version()
 {
-    $version = getenv('PGACC_TEST_SERVER_PHP');
-    if ($version !== false && $version !== '') {
-        return $version;
-    }
     return PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 }
 

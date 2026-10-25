@@ -39,14 +39,9 @@ function import_orga($database, $comment)
     return $row;
 }
 
-// Every imported line runs preg_match() with the invalid modifier /g
-// (import.php, an open finding in tests/COMPATIBILITY_PLAN.md): its warning
-// is the known failure KF-IMPORT-REGEX-G, checked at the end.
 function import_csv($name, $content, $cookies)
 {
-    return with_known_failure('KF-IMPORT-REGEX-G', function () use ($name, $content, $cookies) {
-        return import_request($name, $content, $cookies);
-    });
+    return import_request($name, $content, $cookies);
 }
 
 function import_request($name, $content, $cookies)
@@ -94,6 +89,19 @@ if ($kaffee['orga'] !== '2' || $kaffee['date'] !== '2024-02-15 00:00:00') {
 $paypal = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal.csv');
 $importedPaypal = import_csv('paypal.csv', $paypal, $adminCookies);
 assert_contains($importedPaypal['body'], 'wurde erfolgreich importiert', 'paypal fixture');
+// Sparkasse statements (lo 6, account 20815 6659403): the comment joins
+// Umsatzzeile1, Zusatztext and Auftraggeber.
+$sparkasse = "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"
+    . "Kundendaten/Zahlungsreferenz;Umsatzzeile 2;Ersterfassungsreferenz;Auftraggeber Kontonr./IBAN;"
+    . "Auftraggeber BLZ/BIC;Partnername;Partner Kontonr./IBAN;Partner BLZ/BIC\r\n"
+    . "Synthetic;15.05.2024;12,34;EUR;15.05.2024;Synthetic Sparkasse line;Zusatz;Auftraggeber;;;;;;"
+    . "Synthetic Partner;AT00 0000;SYNTATWW\r\n";
+$importedSparkasse = import_csv('sparkasse.csv', $sparkasse, $adminCookies);
+assert_contains($importedSparkasse['body'], 'wurde erfolgreich importiert', 'sparkasse import');
+$sparkasseRow = import_orga($database, 'Synthetic Sparkasse line; Zusatz; Auftraggeber');
+if ($sparkasseRow['orga'] !== '6' || $sparkasseRow['date'] !== '2024-05-15 00:00:00') {
+    fail_test('sparkasse row: ' . var_export($sparkasseRow, true));
+}
 
 // An unknown account is reported the same way (unchanged).
 $unknown = file_get_contents(__DIR__ . '/reference/fixtures/import/bawag-unknown-account.csv');
@@ -129,7 +137,7 @@ $mixed = $handkassaHeader
     . handkassa_line('2024-02-30', 'Synthetic import with an impossible date', '1')
     . handkassa_line('03.04.2024', 'Synthetic import after skipped lines', '1');
 $second = $handkassaHeader . handkassa_line('04.04.2024', 'Synthetic import from a second file', '1');
-$mixedImport = with_known_failure('KF-IMPORT-REGEX-G', function () use ($mixed, $second, $unitOneCookies) {
+$mixedImport = call_user_func(function () use ($mixed, $second, $unitOneCookies) {
     return http_request(
         '/index.php?action=import',
         'POST',
@@ -200,17 +208,18 @@ if (import_count($database, 'Synthetic BAWAG line of organization 2%') !== 0) {
     fail_test('BAWAG line of organization 2 imported by organization 1');
 }
 
-$regexWarnings = 0;
-foreach ($GLOBALS['pgacc_test_diagnostics'] as $record) {
-    if ($record['known_failure'] === 'KF-IMPORT-REGEX-G') {
-        if ($record['file'] !== 'import.php' || strpos($record['message'], "Unknown modifier 'g'") === false) {
-            fail_test('unexpected diagnostic during the import: ' . $record['file'] . ':' . $record['line'] . ' ' . $record['message']);
-        }
-        $regexWarnings++;
-    }
-}
-if ($regexWarnings === 0) {
-    fail_test('KF-IMPORT-REGEX-G no longer occurs: turn it into a regular check');
+// A BAWAG line with a voucher ID (XY/123456789) imports without diagnostics
+// (the former known failure KF-IMPORT-REGEX-G: a voucher-ID check with an
+// invalid /g regex warned on every line and never ran; it was removed). The
+// same line again is skipped by the import.line check.
+$bawagId = "AT606000050110117300;Synthetic BAWAG voucher XY/123456789|BAWAATWW AT611904300234573201 Synthetic Spender;06.04.2024;06.04.2024;+7,00;EUR\n";
+$firstId = import_csv('bawag-id.csv', $bawagId, $adminCookies);
+assert_contains($firstId['body'], 'wurde erfolgreich importiert', 'BAWAG voucher ID import');
+assert_not_contains($firstId['body'], 'fehlgeschlagen', 'BAWAG voucher ID import');
+$againId = import_csv('bawag-id.csv', $bawagId, $adminCookies);
+assert_contains($againId['body'], 'wurde erfolgreich importiert', 'BAWAG voucher ID import again');
+if (import_count($database, 'Synthetic BAWAG voucher XY/123456789%') !== 1) {
+    fail_test('BAWAG voucher ID import: expected one voucher after importing the same line twice');
 }
 
 pg_close($database);

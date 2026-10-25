@@ -7,7 +7,6 @@
         "customPath": "/app/vendor/bin/phpunit"
     },
     "bootstrap": "/tmp/infection-src/functions.php",
-    "initialTestsPhpOptions": "-d xdebug.mode=coverage",
     "timeout": 20,
     "tmpDir": "/tmp/infection",
     "logs": {

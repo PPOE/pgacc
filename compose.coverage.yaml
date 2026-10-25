@@ -1,12 +1,12 @@
-# PHP 7.4 lane only (added by tests/run.sh): measures coverage of the
-# application server process during the HTTP and write-workflow tests and
-# merges it with the PHPUnit coverage. See tests/README.md, "Coverage".
+# Added by tests/run.sh: measures coverage of the application server process
+# during the HTTP and write-workflow tests and merges it with the PHPUnit
+# coverage. See tests/README.md, "Coverage".
 services:
   application:
     environment:
-      # "develop" is Xdebug's default mode, which the server already ran with;
-      # keep it so error output is unchanged and only add coverage.
-      XDEBUG_MODE: develop,coverage
+      # Coverage only: without compose.coverage.yaml Xdebug is off
+      # (tests/php-runtime.Dockerfile), so error output stays unchanged.
+      XDEBUG_MODE: coverage
       PGACC_COVERAGE_DIR: /coverage/http
       PGACC_COVERAGE_BRANCHES: ${PGACC_COVERAGE_BRANCHES:-1}
       # PHP allows only one auto_prepend_file: the coverage prepend replaces

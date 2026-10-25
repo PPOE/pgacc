@@ -21,15 +21,17 @@ Core concepts:
 
 ## Requirements
 
-- PHP with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
+- PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
   exchange use `phpseclib` (same ciphertext; used automatically if loaded).
-- PostgreSQL with the `pgcrypto` extension (passwords use `crypt()`).
+- PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
 
-Tested on PHP 5.3 with PostgreSQL 8.4 (the production pair), PHP 7.4 with
-PostgreSQL 18 and 8.4, and PHP 8.5 with PostgreSQL 18. The PHP 8.5 lane still
-has known failures; see [tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md).
+Tested on PHP 8.5 with PostgreSQL 18 only. The last release for PHP 5.3 and
+PostgreSQL 8.4 is 1.0.0 (tag `php5-last`). The PDF bank-statement import does
+not work on PHP 8 yet; see
+[tests/COMPATIBILITY_PLAN.md](tests/COMPATIBILITY_PLAN.md), "PHP 8.5-only
+migration".
 
 Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
 
@@ -83,12 +85,11 @@ All pages are served through `index.php?action=<name>`, e.g.:
 The test harness runs in Docker with synthetic data only.
 
 ```sh
-sh tests/run.sh                         # all lanes
-sh tests/run.sh 7.4                     # one lane: 5.3, 7.4 or 8.5 (PGACC_TEST_PG=8.4|18)
-PGACC_TEST_ID=mine sh tests/run.sh 7.4  # isolate concurrent runs
+sh tests/run.sh                         # the PHP 8.5 / PostgreSQL 18 lane, with coverage
+PGACC_TEST_ID=mine sh tests/run.sh      # isolate concurrent runs
 sh tests/static-analysis.sh             # PHPCompatibility + PHPStan
-sh tests/mutation/run.sh 7.4 <target>   # target-driven mutation runner
-sh tests/mutation/infection.sh 7.4      # Infection (7.4 or 8.5)
+sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
+sh tests/mutation/infection.sh 8.5      # Infection
 ```
 
 Change workflow and verification order: [AGENTS.md](AGENTS.md).
@@ -107,7 +108,7 @@ Releases are created only by the Release workflow
    `git tag -a php5-last -m 'Last release for PHP 5.3'`, then
    `git push origin v1.0.0 php5-last`.
 3. The workflow builds `pgacc-1.0.0.tar.gz` (code plus `vendor/`, checked on
-   PHP 5.3) and its `.sha256`, and creates a draft release with the
+   the PHP version of the tagged commit: 5.3 for 1.0.0, 8.5 afterwards) and its `.sha256`, and creates a draft release with the
    CHANGELOG.md section as notes (a prerelease for versions with a `-`).
 4. Review the draft on GitHub and publish it. Deploy: [UPGRADING.md](UPGRADING.md).
 
