@@ -56,36 +56,6 @@ function page($path, $cookies = array(), $method = 'GET', $form = array())
     return $response['body'];
 }
 
-// Pages that raise known, documented diagnostics of code outside this test's
-// scope (tests/COMPATIBILITY_PLAN.md): they are attributed to $id, must all
-// match $expected (file, message part), and must still occur.
-function with_expected_diagnostics($id, $expected, $callback)
-{
-    $before = count($GLOBALS['pgacc_test_diagnostics']);
-    $result = with_known_failure($id, $callback);
-    $seen = 0;
-    for ($i = $before; $i < count($GLOBALS['pgacc_test_diagnostics']); $i++) {
-        $record = $GLOBALS['pgacc_test_diagnostics'][$i];
-        if ($record['known_failure'] !== $id) {
-            continue;
-        }
-        $matched = false;
-        foreach ($expected as $diagnostic) {
-            if ($record['file'] === $diagnostic[0] && strpos($record['message'], $diagnostic[1]) !== false) {
-                $matched = true;
-            }
-        }
-        if (!$matched) {
-            fail_test("$id: unexpected diagnostic {$record['file']}:{$record['line']} {$record['message']}");
-        }
-        $seen++;
-    }
-    if ($seen === 0) {
-        fail_test("$id no longer occurs: turn it into a regular check");
-    }
-    return $result;
-}
-
 function body_part($body, $start, $end, $label)
 {
     $from = strpos($body, $start);

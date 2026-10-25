@@ -2,8 +2,8 @@
 /*
  * The member lookup of the bank import (import.php): a line without a name is
  * matched against the member list (getusers(), here a synthetic list served
- * through a replaced http:// stream wrapper, so no membership system is
- * contacted). The import runs inside a transaction that is rolled back.
+ * by the membership stub over verified HTTPS, MembershipStub, so no
+ * membership system is contacted). The import runs inside a transaction that is rolled back.
  *
  * Must stay compatible with PHP 5.6 (PHPUnit 5.7).
  */
@@ -11,39 +11,7 @@
 require_once dirname(dirname(__DIR__)) . '/getusers.php';
 require_once dirname(dirname(__DIR__)) . '/import.php';
 require_once __DIR__ . '/AppExitGuard.php';
-
-final class ImportMemberListStream
-{
-    public static $response = '';
-
-    /** @var resource|null */
-    public $context;
-
-    private $position = 0;
-
-    public function stream_open($path, $mode, $options, &$openedPath)
-    {
-        $this->position = 0;
-        return true;
-    }
-
-    public function stream_read($count)
-    {
-        $chunk = substr(self::$response, $this->position, $count);
-        $this->position += strlen($chunk);
-        return $chunk;
-    }
-
-    public function stream_eof()
-    {
-        return $this->position >= strlen(self::$response);
-    }
-
-    public function stream_stat()
-    {
-        return array();
-    }
-}
+require_once __DIR__ . '/MembershipStub.php';
 
 final class ImportMemberMatchTest extends FunctionsTestCase
 {
@@ -60,7 +28,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         for ($i = 2; $i < 40; $i++) {
             $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
         }
-        ImportMemberListStream::$response = base64_encode(membership_encrypt($key, $plain));
+        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
         $csv = "Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt\r\n"
             . "05.04.2024;5,00;Handkassa;$text;;;Nein;Nein;;0;1;;;\r\n";
         $path = tempnam(sys_get_temp_dir(), 'pgacc-import');
@@ -74,8 +42,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         ));
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $key;
-        stream_wrapper_unregister('http');
-        stream_wrapper_register('http', 'ImportMemberListStream');
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         $diagnostics = array();
@@ -94,7 +60,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         } finally {
             $output = ob_get_clean();
             restore_error_handler();
-            stream_wrapper_restore('http');
+            MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
             $_FILES = array();
@@ -114,7 +80,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         for ($i = 1; $i < 40; $i++) {
             $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
         }
-        ImportMemberListStream::$response = base64_encode(membership_encrypt($key, $plain));
+        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
         $_FILES = array('uploadcsv' => array(
             'name' => array('<i>a&b</i>.csv'),
             'type' => array('text/csv'),
@@ -124,8 +90,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         ));
         $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
         $GLOBALS['datakey'] = $key;
-        stream_wrapper_unregister('http');
-        stream_wrapper_register('http', 'ImportMemberListStream');
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         ob_start();
@@ -135,7 +99,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             AppExitGuard::leave();
         } finally {
             $output = ob_get_clean();
-            stream_wrapper_restore('http');
+            MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
             $GLOBALS['datakey'] = $datakey;
             $_FILES = array();

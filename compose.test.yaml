@@ -57,15 +57,19 @@ services:
     working_dir: /app
 
   # Local membership-system stub (tests/reference/membership/): getusers()
-  # fetches http://mitglieder.piratenpartei.at/adm_api/adm_names.php, which
+  # fetches https://mitglieder.piratenpartei.at/adm_api/adm_names.php, which
   # this alias resolves to inside the internal test network, so the import
   # and member pages never reach the real service. Serves the synthetic,
-  # encrypted member list for tests/runtime/test-constants.php's $datakey.
+  # encrypted member list for tests/runtime/test-constants.php's $datakey over
+  # HTTPS with the synthetic certificate of the application image, whose test
+  # CA that image trusts (tests/php-runtime.Dockerfile). The image is built
+  # with the application service.
   membership:
-    image: php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
-    command: ["php", "-S", "0.0.0.0:80", "/membership/router.php"]
+    image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
+    pull_policy: never
+    command: ["php", "/app/tests/reference/membership/server.php"]
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('https://mitglieder.piratenpartei.at/__stub/health') === \"ok\\n\" ? 0 : 1);"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -77,8 +81,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    volumes:
-      - ./tests/reference/membership:/membership:ro
 
   application:
     image: pgacc-test-application${PGACC_TEST_SUFFIX:-}

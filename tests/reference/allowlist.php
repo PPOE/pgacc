@@ -197,4 +197,23 @@ return array(
             . 'tests/COMPATIBILITY_PLAN.md for the application paths where this matters.',
         'category' => 'accepted',
     ),
+    // Last, so that the entries above keep the separators of their own changes.
+    // Only the recordings whose requests call getusers().
+    array(
+        'id' => 'RD-GETUSERS-TRANSACTION-IMPORT',
+        'php' => array('8.5'),
+        'files' => 'sql/import-*.sql',
+        'lines' => '/^\+(BEGIN;|COMMIT;|-- next)$/',
+        'reason' => 'Intended fix: getusers() replaces ppmembers in one transaction (drop, create and the same '
+            . 'INSERT between BEGIN and COMMIT). See "Member-list refresh" in tests/COMPATIBILITY_PLAN.md.',
+        'category' => 'accepted',
+    ),
+    array(
+        'id' => 'RD-GETUSERS-TRANSACTION-MB',
+        'php' => array('8.5'),
+        'files' => 'sql/mb-admin.sql',
+        'lines' => '/^\+(BEGIN;|COMMIT;|-- next)$/',
+        'reason' => 'As RD-GETUSERS-TRANSACTION-IMPORT, for the member-fee page.',
+        'category' => 'accepted',
+    ),
 );

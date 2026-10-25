@@ -383,7 +383,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `redirects` | login check and member search redirect in `index.php`, `ob_start()` for edit/merge, `relocate()` in `edit.php` and its callers, `search.php` | `http-redirects.php`, `write-workflows.php` |
 | `rights-checks` | organization scope and rights checks of voucher creation, revision, approval, approval reset, merge, the role checks and new users; the removed finalization (`finalization-write-restored`) | `write-workflows.php` |
 | `sql-injection` | request values in SQL: voucher ID checks, escaped old approvals, date pattern, listing filter | `write-workflows.php` |
-| `import-checks` | date and organization checks of every bank CSV line (`import.php`), the PDF import's voucher match (`import2.php`), the receipt upload's row check (`new.php`) | `ReceiptImportTest`, `ImportMemberMatchTest`, `http-import.php` |
+| `import-checks` | date and organization checks of every bank CSV line (`import.php`), the PDF import's voucher match (`import2.php`), the receipt upload's row check (`new.php`), the member-list refresh (`getusers.php`) | `ReceiptImportTest`, `ImportMemberMatchTest`, `GetUsersTest`, `http-import.php` |
 | `read-only-rights` | `write_rights()` and its checks for read-only `Rbgf` | `write-workflows.php`, PHPUnit |
 | `listing-columns` | column preferences in `closed.php` (`listing_column_hidden()`, `emptytag()`) | `http-listing-prefs.php` |
 | `csrf` | form-token check and token derivation in `index.php`, POST-only column preferences, logout, merge (`edit.php`, also the merge that moves no row) and recovery (`recover.php`), the token fields of the forms | `http-csrf.php`, `http-listing-prefs.php` |

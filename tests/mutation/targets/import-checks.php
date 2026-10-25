@@ -5,16 +5,18 @@
  * offending lines are reported ("Ungültige Buchungszeile", line number) and
  * skipped, with a summary per file; and the PDF import's voucher match
  * (import2.php: the user's organizations, no finalized row) and the row check
- * of the receipt upload (new.php page_new_file()). Tested
- * with tests/http-import.php against the membership stub of
+ * of the receipt upload (new.php page_new_file()); and the member-list
+ * refresh (getusers.php: fetch status, list checks, one transaction).
+ * Tested with tests/http-import.php against the membership stub of
  * compose.test.yaml. See tests/mutation/README.md for the format.
  */
 return array(
-    'description' => 'Date and organization checks of the bank CSV import (import tests)',
+    'description' => 'Date and organization checks of the bank CSV import and the member-list refresh (import tests)',
     'file' => 'import.php',
     'tests' => array(
         array('type' => 'phpunit', 'filter' => 'testImport|testUpload', 'file' => 'tests/unit/ReceiptImportTest.php'),
         array('type' => 'phpunit', 'filter' => 'ImportMemberMatchTest', 'file' => 'tests/unit/ImportMemberMatchTest.php'),
+        array('type' => 'phpunit', 'filter' => 'GetUsersTest', 'file' => 'tests/unit/GetUsersTest.php'),
         array('type' => 'http', 'script' => 'tests/http-import.php'),
     ),
     'timeout' => 180,
@@ -190,6 +192,62 @@ return array(
             'rationale' => 'The PDF import attaches a receipt only to a row that still has none.',
             'equivalent' => array('reason' => 'Only a concurrent change of the row between the row check and '
                 . 'the update tells the difference; the tests run requests one at a time.'),
+        ),
+        array(
+            'id' => 'members-error-status-accepted',
+            'file' => 'getusers.php',
+            'search' => "if (\$sData === false || !is_array(\$headers) || !preg_match('#^HTTP/\\S+ 200( |\$)#', \$headers[0]))",
+            'replace' => 'if ($sData === false)',
+            'rationale' => 'A failed fetch (HTTP error status, redirect) stops with its own error.',
+        ),
+        array(
+            'id' => 'members-redirect-followed',
+            'file' => 'getusers.php',
+            'search' => "'follow_location' => 0",
+            'replace' => "'follow_location' => 1",
+            'rationale' => 'Redirects are not followed (no other host, no plain HTTP).',
+        ),
+        array(
+            'id' => 'members-fields-unchecked',
+            'file' => 'getusers.php',
+            'search' => '  if (count($values) < 5)',
+            'replace' => '  if (false)',
+            'rationale' => 'An undecryptable list (lines without the five fields) is not imported.',
+        ),
+        array(
+            'id' => 'members-empty-list-accepted',
+            'file' => 'getusers.php',
+            'search' => 'if ($count == 0)',
+            'replace' => 'if (false)',
+            'rationale' => 'A list without a member line does not replace ppmembers.',
+        ),
+        array(
+            'id' => 'members-commits-caller-transaction',
+            'file' => 'getusers.php',
+            'search' => '$nested = pg_transaction_status($dbconn) != PGSQL_TRANSACTION_IDLE;',
+            'replace' => '$nested = false;',
+            'rationale' => 'Inside a caller\'s transaction the refresh uses a savepoint, not BEGIN/COMMIT.',
+        ),
+        array(
+            'id' => 'members-savepoint-outside-transaction',
+            'file' => 'getusers.php',
+            'search' => '$nested = pg_transaction_status($dbconn) != PGSQL_TRANSACTION_IDLE;',
+            'replace' => '$nested = true;',
+            'rationale' => 'A request refreshes the list in its own transaction.',
+        ),
+        array(
+            'id' => 'members-sql-error-ignored',
+            'file' => 'getusers.php',
+            'search' => '  $error = pg_result_status($result) == PGSQL_FATAL_ERROR ? pg_result_error($result) : null;',
+            'replace' => '  $error = null;',
+            'rationale' => 'An SQL error in the refresh stops the page.',
+        ),
+        array(
+            'id' => 'members-without-transaction',
+            'file' => 'getusers.php',
+            'search' => "  \$nested ? 'SAVEPOINT getusers;' : 'BEGIN;',",
+            'replace' => "  \$nested ? 'SAVEPOINT getusers;' : 'SELECT 1;',",
+            'rationale' => 'Drop, create and insert run in one transaction: a failed INSERT keeps the old rows.',
         ),
     ),
 );
