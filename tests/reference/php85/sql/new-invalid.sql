@@ -38,33 +38,14 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT nextval('voucher_number') AS num;
+SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC
 -- next
-
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(5003, '2024-02-31', 8,1,10,false,
-  0,'SYNTHETICREF',
-  'Synthetic Reference Supplier','Test Street 1','0000',
-  'Test City',0,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference invalid '' quote','Reference workflow',
-  false,0,false,NULL,NULL);
+SELECT id,name FROM type WHERE income = 0 ORDER BY used DESC,id ASC
 -- next
--- ERROR 22008: date/time field value out of range: "2024-02-31"
--- in: 
-INSERT INTO vouchers
-(voucher_id, date, type, person_type, orga, member,
-member_id, contra_account, name, street, plz, city,
-amount, account, vaccount, comment, commentgf,
-committed, file, refund, ack1_old, ack2_old)
-VALUES
-(5003, '2024-02-31', 8,1,10,false,
-  0,'SYNTHETICREF',
-  'Synthetic Reference Supplier','Test Street 1','0000',
-  'Test City',0,'TESTACCOUNT2',
-  'TESTVIRTUAL2','Reference invalid '' quote','Reference workflow',
-  false,0,false,NULL,NULL);
+SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM person_type ORDER BY used DESC,id ASC
+-- next
+SELECT id,name FROM lo ORDER BY id ASC
+-- next
+SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval

@@ -1,5 +1,0 @@
-## (sequences)
-- voucher_number	5002	t
-+ voucher_number	5003	t
-## vouchers
-(unchanged)

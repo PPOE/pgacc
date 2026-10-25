@@ -156,10 +156,6 @@ SELECT name FROM type WHERE id = 20
 -- next
 SELECT name FROM lo WHERE id = 2
 -- next
-SELECT name FROM type WHERE id = 20
--- next
-SELECT name FROM lo WHERE id = 2
--- next
 SELECT name FROM type WHERE id = 8
 -- next
 SELECT name FROM lo WHERE id = 2

@@ -4,7 +4,7 @@ status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8
 header: Content-Disposition: attachment; filename=all.csv
---- body (8995 bytes) ---
+--- body (8722 bytes) ---
 ﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
 1007	108	2011-12-31	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-008	TEST-ACCOUNT-1	TEST-VIRTUAL-1	50,00€	Voucher before public transaction cutoff		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
 2005	205	2012-03-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-205	TEST-ACCOUNT-1	TEST-VIRTUAL-1	3,33€	Year 2012 a		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor 2012   	
@@ -25,13 +25,12 @@ header: Content-Disposition: attachment; filename=all.csv
 2022	222	2024-06-30	Synthetic bank charges	Synthetic Regional Unit	Nein		AT606000050110117300		-7,00€	Entgelt für Kontoführung		Ja	 	<del></del> <del></del>	Nein	Nein	Bank   	
 1006	107	2024-07-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-007	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,00€	Zero-value closed voucher		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
 1009	110	2024-08-01	Synthetic donation	Synthetic National Unit	Nein	SYNTHETIC-010	TEST-ACCOUNT-1	TEST-VIRTUAL-1	10,00€	Partially reviewed donation		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Donor   	
-5005	1007	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-1,00€	Reference merge target	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
-5005	1008	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-2,00€	Reference merge source	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
-5004	1004	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	0,00€	Reference Ümlaut "Zitat" O'Brien / Zeile 2	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Jörg Ä. Österreicher Test Street 1 0000 Test City	
+5003	1006	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-1,00€	Reference merge target	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
+5003	1007	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-2,00€	Reference merge source	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
 5002	1003	2024-09-15	Synthetic donation	Synthetic National Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	7,00€	Reference unit one own	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
 5001	1001	2024-09-15	Synthetic donation	Synthetic National Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	100,50€	Reference two parts income	Reference workflow	Nein	 	<del>synthetic-admin</del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
-5000	1005	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-99,99€	Reference blocked revision	Reference workflow	Nein	 	<del>synthetic-admin</del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
-1004	1006	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-30,00€	Reference revised draft	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
+5000	1004	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-99,99€	Reference blocked revision	Reference workflow	Nein	 	<del>synthetic-admin</del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
+1004	1005	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-30,00€	Reference revised draft	Reference workflow	Nein	 	<del></del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
 5001	1002	2024-09-16	Synthetic legacy expense	Synthetic National Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-0,99€	Reference two parts campaign	Reference workflow	Nein	 	<del>synthetic-admin</del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
 2012	212	2024-10-01	Synthetic in-kind donation	Synthetic Regional Unit	Nein	BG/123456789 12	TEST-ACCOUNT-2	TEST-VIRTUAL-2	99,99€	Sachspende Österreich / zweite Zeile BG/123456789 12	Kommentar <b>GF</b>	Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Nein	Jörg "Quote" O'Brien Gasse 2 8010 Graz	
 2013	213	2024-10-02	Synthetic in-kind service	Synthetic National Unit	Nein	SYNTHETIC-213	TEST-ACCOUNT-1	TEST-VIRTUAL-1	0,05€	Dienstleistung		Ja	reviewer-a 	<del></del> <del></del>	Nein	Nein	Synthetic Service Donor   	

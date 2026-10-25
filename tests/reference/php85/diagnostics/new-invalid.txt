@@ -1,3 +1,0 @@
-E_WARNING new.php:211: pg_query(): Query failed: ERROR:  date/time field value out of range: &quot;2024-02-31&quot;
-LINE 8: (5003, '2024-02-31', 8,1,10,false,
-               ^

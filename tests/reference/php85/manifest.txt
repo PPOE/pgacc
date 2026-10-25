@@ -261,7 +261,7 @@ edit-view-revised	admin	GET /index.php?action=edit&id=1004	200
 deleted-after-revision	admin	GET /index.php?action=deleted&format=csv	200
 new-merge-target	admin	POST /index.php?action=new	200
 new-merge-source	admin	POST /index.php?action=new	200
-merge-get	admin	GET /index.php?action=merge&bid1=5005&bid2=5006	200
+merge-get	admin	GET /index.php?action=merge&bid1=5003&bid2=5004	200
 merge-no-token	admin	POST /index.php?action=merge	200
 merge-wrong-token	admin	POST /index.php?action=merge	200
 merge-unitone	unitone	POST /index.php?action=merge	200
