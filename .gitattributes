@@ -15,7 +15,8 @@
 # Third-party files stay exactly as shipped (icons/readme.* are CRLF).
 /icons/** -text
 /js/** -text
-/jquery.fileupload.js -text
+# Our own chart script (the rest of js/ is vendored).
+/js/vreport-chart.js text eol=lf
 
 # Test harness, CI and tooling.
 /tests/** export-ignore
