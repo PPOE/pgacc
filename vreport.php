@@ -34,7 +34,6 @@ function v_graph($konto, $date_begin, $date_end)
 function v_report($konto, $date_begin, $date_end)
 {
     global $realtype_req,$dbconn;
-    $unit = -1; // all units; $unit_s is not used in the queries
     $cond = " AND vaccount LIKE '$konto%' ";
     if (strpos($konto, ",") !== false) {
         $konto = "'" . implode("','", explode(",", $konto)) . "'";
@@ -53,9 +52,6 @@ function v_report($konto, $date_begin, $date_end)
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-        if ($unit == -1)
-            $unit_s = "";
-        else $unit_s = " AND orga = " . $unit;
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
         $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
@@ -65,9 +61,6 @@ function v_report($konto, $date_begin, $date_end)
     }
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
-    if ($unit == -1)
-        $unit_s = "";
-    else $unit_s = " AND orga = " . $unit;
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
@@ -85,9 +78,6 @@ function v_report($konto, $date_begin, $date_end)
     $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-        if ($unit == -1)
-            $unit_s = "";
-        else $unit_s = " AND orga = " . $unit;
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
         $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
@@ -97,9 +87,6 @@ function v_report($konto, $date_begin, $date_end)
     }
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
-    if ($unit == -1)
-        $unit_s = "";
-    else $unit_s = " AND orga = " . $unit;
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {

@@ -8,13 +8,8 @@
  */
 return array(
     'donations.php' => array(
-        'floor' => 77.3,
-        'reason' => 'umlaute() (lines 12-21) is called nowhere, and the donor rows (120-121, 127-132) are dead: '
-            . 'the collection of $donations is commented out for legal reasons, so the loops never run.',
-    ),
-    'tinyreport.php' => array(
-        'floor' => 94.1,
-        'reason' => '$unit is always -1, so the four "AND orga" else branches (27, 39, 59, 71) never run, and '
-            . 'line 96 needs empty rights inside the strlen($rights) > 0 block.',
+        'floor' => 84.4,
+        'reason' => 'umlaute() (lines 12-21) is called by no page; it stays because the reference helper '
+            . 'recordings (tests/reference/helpers.php) characterize it.',
     ),
 );

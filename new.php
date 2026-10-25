@@ -244,10 +244,6 @@ function page_new_file($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Datei Upload fehlgeschlagen.</div><br /><br /><br />';
         return;
     }
-    if ($bid == -1) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Buchungszeile nicht gefunden.</div><br /><br /><br />';
-        return;
-    }
     $id = -1;
     if (isset($_GET["id"])) {
         $id = $_GET["id"];

@@ -13,12 +13,6 @@ parameters:
 			path: ../../check.php
 
 		-
-			message: '#^Empty array passed to foreach\.$#'
-			identifier: foreach.emptyArray
-			count: 2
-			path: ../../donations.php
-
-		-
 			message: '#^Function percent_of_bookings invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
@@ -29,12 +23,6 @@ parameters:
 			identifier: regexp.pattern
 			count: 1
 			path: ../../functions.php
-
-		-
-			message: '#^Loose comparison using \=\= between ''Paypal'' and ''Paypal'' will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 1
-			path: ../../import.php
 
 		-
 			message: '#^Variable \$file_number might not be defined\.$#'
@@ -51,12 +39,6 @@ parameters:
 		-
 			message: '#^Function page_kdonations invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
-			count: 1
-			path: ../../index.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
 			count: 1
 			path: ../../index.php
 
@@ -83,15 +65,3 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: ../../new.php
-
-		-
-			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 4
-			path: ../../tinyreport.php
-
-		-
-			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 4
-			path: ../../vreport.php

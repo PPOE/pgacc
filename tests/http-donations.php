@@ -8,8 +8,8 @@
  * hidden value from the form and answers it like a browser, so the
  * application's check is exercised unchanged.
  *
- * Donor publication is disabled for legal reasons (the collection of the
- * donors is commented out): even with a correct answer and a qualifying
+ * Donor publication is disabled for legal reasons (page_donations() runs the
+ * query but shows no row): even with a correct answer and a qualifying
  * donor (2024: "Synthetic Donor", 130.00 EUR in tests/fixtures/data.sql), the
  * table has only its header row, and no donor name appears in any form.
  * 2025 has a donation below the 100 EUR threshold; years before 2012 show

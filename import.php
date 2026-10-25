@@ -197,8 +197,6 @@ function page_import($rights)
                     $voucher2['purpose'] = 'false';
                     $voucher2['receipt'] = 'false';
                     $dovoucher2 = true;
-                } else {
-                    die("Unbekanntes CSV Format\n");
                 }
                 // Only dates, and organizations the user may use (organization_allowed()):
                 // other lines are reported and skipped.

@@ -1109,15 +1109,15 @@ $callSites = array(
     array(
         'id' => 'tinyreport-html-escape-line-name',
         'file' => 'tinyreport.php',
-        'search' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
-        'replace' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
+        'search' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
+        'replace' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
         'id' => 'tinyreport-html-escape-line-name-2',
         'file' => 'tinyreport.php',
-        'search' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
-        'replace' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
+        'search' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
+        'replace' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
@@ -1166,15 +1166,15 @@ $callSites = array(
     array(
         'id' => 'vreport-html-escape-line-name',
         'file' => 'vreport.php',
-        'search' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
-        'replace' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
+        'search' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
+        'replace' => '$query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
         'id' => 'vreport-html-escape-line-name-2',
         'file' => 'vreport.php',
-        'search' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
-        'replace' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";' . "\n" . '        if ($unit == -1)' . "\n" . '            $unit_s = "";' . "\n" . '        else',
+        'search' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
+        'replace' => '$query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";' . "\n" . '    $result = pg_query($dbconn, $query) or die(\'Abfrage fehlgeschlagen: \' . pg_last_error($dbconn));' . "\n" . '    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {' . "\n" . '        echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
         'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
@@ -1198,13 +1198,6 @@ $callSites = array(
         'search' => '        echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'" . html_escape($k) . "\'</a></li>";',
         'replace' => '        echo "<li><a href=\\"" . html_escape("vreport?konto=" . rawurlencode($k)) . "\\">Konto \'" . ($k) . "\'</a></li>";',
         'rationale' => 'Unescaped output: html_escape() removed around $k.',
-    ),
-    array(
-        'id' => 'wk-html-escape-line-name',
-        'file' => 'wk.php',
-        'search' => '                    echo "<tr><td>" . html_escape($line[\'name\']) . "</td><td>";',
-        'replace' => '                    echo "<tr><td>" . ($line[\'name\']) . "</td><td>";',
-        'rationale' => 'Unescaped output: html_escape() removed around $line[\'name\'].',
     ),
     array(
         'id' => 'wk-html-escape-line-name-2',

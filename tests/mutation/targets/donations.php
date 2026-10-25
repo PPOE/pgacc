@@ -1,16 +1,13 @@
 <?php
 
 /*
- * page_donations() in donations.php: the array initializations that keep the
- * donor list from passing undefined variables to foreach and
- * array_multisort() (TypeError on PHP 8), the disabled donor publication,
- * and the captcha that guards the list, which logged-in users skip (also in
- * kdonations.php page_kdonations()). Tested with tests/http-donations.php
- * (2024 has a donor above the threshold, so the sort block runs). See
- * tests/mutation/README.md for the format.
+ * page_donations() in donations.php: the captcha that guards the donor list
+ * (disabled for legal reasons, header row only), which logged-in users skip
+ * (also in kdonations.php page_kdonations()). Tested with
+ * tests/http-donations.php. See tests/mutation/README.md for the format.
  */
 return array(
-    'description' => 'donations.php page_donations() list initialization, disabled publication, captcha and login bypass; kdonations.php login bypass (HTTP)',
+    'description' => 'donations.php page_donations() captcha and login bypass; kdonations.php login bypass (HTTP)',
     'file' => 'donations.php',
     'region' => array('start' => 'function page_donations($year)', 'end' => 'echo "<br /><br /><br />";'),
     'tests' => array(
@@ -18,30 +15,6 @@ return array(
     ),
     'timeout' => 60,
     'mutations' => array(
-        array(
-            'id' => 'donations-initialization-removed',
-            'search' => "\$donations = [];\n",
-            'replace' => "true;\n",
-            'rationale' => 'The pre-fix state: foreach over an undefined $donations (TypeError in array_multisort() on PHP 8).',
-        ),
-        array(
-            'id' => 'sort-sum-initialization-removed',
-            'search' => '$sort_sum = [];',
-            'replace' => 'true;',
-            'rationale' => 'array_multisort() receives null as its first array.',
-        ),
-        array(
-            'id' => 'sort-name-initialization-removed',
-            'search' => '$sort_name = [];',
-            'replace' => 'true;',
-            'rationale' => 'array_multisort() receives null as its third argument.',
-        ),
-        array(
-            'id' => 'publication-re-enabled',
-            'search' => '//$donations[] = $line;',
-            'replace' => '$donations[] = $line;',
-            'rationale' => 'Donor publication is disabled for legal reasons; no donor may be listed.',
-        ),
         array(
             'id' => 'captcha-check-bypassed',
             'search' => "intval(\$_POST['captcha_input']) == intval(\$_POST['captcha']) + 37",

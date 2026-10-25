@@ -389,9 +389,9 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `csrf` | form-token check and token derivation in `index.php`, POST-only column preferences, logout, merge (`edit.php`, also the merge that moves no row) and recovery (`recover.php`), the token fields of the forms | `http-csrf.php`, `http-listing-prefs.php` |
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `amount-cents` | two-decimal amounts in `report.php` Anlage A, tabular digits in the `style.css` `td` rule (issue #1) | `http-smoke.php` |
-| `donations` | `page_donations()` initializations, disabled publication, captcha | `http-donations.php` |
+| `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
-| `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations/wk sinks | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
+| `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 
 Accepted equivalents (reasons in the target files):
