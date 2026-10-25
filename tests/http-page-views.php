@@ -125,6 +125,92 @@ foreach (array('vreport' => 'TEST-VIRTUAL', 'tinyreport' => 'TEST-ACCOUNT') as $
     assert_contains($body, "<tr><td><b>Summe</b></td><td>-90.00&nbsp;€</td></tr>", "$action $konto expense sum");
 }
 
+// The listing and report filters of the links of the campaign report
+// (kdonations: type, unit, from, to) and of the account reports (several
+// comma-separated accounts, date_begin, date_end).
+$admin = $users['root,bgf'];
+$spendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-01-01&to=2025-01-01', array(), 'anonymous')['body'];
+assert_contains($spendings, "<td>1003</td>\n<td>2024-04-01</td>\n", 'filtered spendings');
+assert_contains($spendings, "<td>-50.00€</td>\n<td>Synthetic Supplier</td>\n</tr>", 'filtered spendings');
+assert_not_contains($spendings, '-15.00€', 'filtered spendings (type 21)');
+$laterSpendings = page_view('/index.php?action=spendings&type=20&unit=2&from=2024-05-01&to=2025-01-01', array(), 'anonymous')['body'];
+assert_not_contains($laterSpendings, '<td>1003</td>', 'spendings from May 2024');
+$kdonations = page_view('/index.php?action=kdonations&type=11&unit=1&from=2024-01-01&to=2025-01-01', $admin, 'root,bgf')['body'];
+assert_contains($kdonations, 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.</table>', 'filtered in-kind donations');
+foreach (array('tinyreport' => 'TEST-ACCOUNT-1,TEST-ACCOUNT-2', 'vreport' => 'TEST-VIRTUAL-1,TEST-VIRTUAL-2') as $action => $konto) {
+    $body = page_view("/index.php?action=$action&konto=$konto&date_begin=2024-01-01&date_end=2024-12-31", $admin, 'root,bgf')['body'];
+    assert_contains($body, "<h1>Bericht Konto $konto</h1>", "$action $konto 2024");
+    assert_contains($body, "<tr><td><b>Summe</b></td><td>160.00&nbsp;€</td></tr>", "$action $konto 2024 income sum");
+    assert_contains($body, "<tr><td><b>Summe</b></td><td>-90.00&nbsp;€</td></tr>", "$action $konto 2024 expense sum");
+}
+
+$database = @pg_connect(pgacc_test_connection_string());
+if ($database === false) {
+    fail_test('could not connect to the fixture database');
+}
+function page_views_query($database, $query)
+{
+    if (@pg_query($database, $query) === false) {
+        fail_test("query failed: $query: " . pg_last_error($database));
+    }
+}
+
+// Visitors see a numeric virtual account (bank account number, "AT"
+// and spaces ignored) by its last three characters only.
+page_views_query($database, "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount)
+    VALUES (9150, 4780, 8, 1, false, 100, 'TEST-ACCOUNT-1', 'Synthetic numeric virtual account', timestamp '2024-09-15 00:00:00', 2, 0, 'AT12 3456 7890')");
+$numeric = page_view('/index.php?action=vreport', array(), 'anonymous')['body'];
+assert_contains($numeric, "<li><a href=\"vreport?konto=890\">Konto '890'</a></li>", 'vreport numeric account for visitors');
+$numeric = page_view('/index.php?action=vreport', $admin, 'root,bgf')['body'];
+assert_contains($numeric, "<li><a href=\"vreport?konto=AT12%203456%207890\">Konto 'AT12 3456 7890'</a></li>", 'vreport numeric account');
+page_views_query($database, 'DELETE FROM vouchers WHERE id = 9150');
+
+// The report lists the balance of a "Piratenpartei" organization on the
+// last day of the year.
+page_views_query($database, "INSERT INTO lo (id, name) VALUES (93, 'Piratenpartei Synthetic Balance Unit')");
+page_views_query($database, "INSERT INTO balance (id, value, orga, date) VALUES (93, 4321, 93, timestamp '2024-12-31 00:00:00')");
+$report = page_view('/index.php?year=2024', array(), 'anonymous')['body'];
+assert_contains($report, "<tr><td><a href=\"#Piratenpartei Synthetic Balance Unit\">Piratenpartei Synthetic Balance Unit</a></td>\n"
+    . "<td>0.00&nbsp;€</td><td>0.00&nbsp;€</td>\n<td>0.00&nbsp;€</td>\n<td>0.00&nbsp;€</td>\n<td>43.21&nbsp;€</td></tr>\n", 'report organization balance');
+page_views_query($database, 'DELETE FROM balance WHERE id = 93');
+page_views_query($database, 'DELETE FROM lo WHERE id = 93');
+pg_close($database);
+
+// An unknown action shows the report.
+$unknown = page_view('/index.php?action=unknown', array(), 'anonymous')['body'];
+assert_contains($unknown, '<h1>Rechenschaftsbericht der Piratenpartei Österreichs ' . $year . '</h1>', 'unknown action');
+
+// A year with a suffix ("2024-1", accepted by index.php) is passed to the
+// report as a string (known failure): the arithmetic on it warns on PHP 8,
+// and the first query fails on the date '2024-1-01-01', which ends the page.
+$suffixed = with_expected_diagnostics('KF-REPORT-YEAR-SUFFIX', array(
+    array('report.php', 'A non-numeric value'),
+    array('report.php', 'invalid input syntax for type timestamp'),
+), function () {
+    return http_request('/index.php?year=2024-1');
+});
+assert_status($suffixed, 200, 'report of 2024-1');
+assert_contains($suffixed['body'], '<h1>Rechenschaftsbericht der Piratenpartei Österreichs 2024-1</h1>', 'report of 2024-1');
+assert_contains($suffixed['body'], 'Abfrage fehlgeschlagen: ERROR:  invalid input syntax for type timestamp: "2024-1-01-01"', 'report of 2024-1');
+
+// Requests without X-Forwarded-Proto: https are redirected to https.
+$plain = @file_get_contents(rtrim(getenv('PGACC_TEST_BASE_URL'), '/') . '/index.php?action=impressum', false, stream_context_create(array(
+    'http' => array('header' => "Host: pgacc.test\r\nConnection: close", 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 10),
+)));
+$plainHeaders = http_get_last_response_headers();
+$plainResponse = array('status' => 0, 'headers' => is_array($plainHeaders) ? $plainHeaders : array(), 'body' => $plain);
+if (is_array($plainHeaders) && preg_match('/^HTTP\/\S+ (\d{3})/', $plainHeaders[0], $status) === 1) {
+    $plainResponse['status'] = intval($status[1]);
+}
+assert_status($plainResponse, 302, 'request without https');
+// The host is the server's SERVER_NAME (here the address it listens on).
+if (preg_match('#^https://[^/]+/index\.php\?action=impressum$#D', (string) response_header($plainResponse, 'Location')) !== 1) {
+    fail_test('request without https sent Location ' . var_export(response_header($plainResponse, 'Location'), true));
+}
+if ($plain !== '') {
+    fail_test('request without https answered ' . var_export($plain, true));
+}
+
 assert_no_problems($page_view_problems, 'plain page views:');
 assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL plain page view tests passed\n";
