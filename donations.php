@@ -53,7 +53,7 @@ function page_donations($year)
 ';
         $donation_condition = "AND type = 8";
         $query = "SELECT name,SUM(amount) AS sum FROM vouchers WHERE " . eyes() . " $donation_condition " . date_condition($year) . " GROUP BY name;";
-        $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result = db_query($dbconn, $query);
         // The donor list is not published for legal reasons; no row is shown.
         pg_free_result($result);
         echo '</table>';

@@ -25,13 +25,13 @@ function transactions_page_listing_line($line, $action = "edit")
     }
     echo tag("td", format_date($line["date"]));
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
     }
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo tag("td", listing_text($line2["name"]));
     }
@@ -84,7 +84,7 @@ function page_transactions()
     transactions_page_listing_header('transactions');
     $sort = getsort();
     $query = "SELECT * FROM vouchers WHERE NOT deleted AND amount != 0 AND date > '2011-12-31' ORDER BY $sort";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         transactions_page_listing_line($line);
     }

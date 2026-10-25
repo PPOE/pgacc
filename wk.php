@@ -10,7 +10,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income = 1 AND realtype = id ORDER BY used DESC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         if ($unit == -1) {
             $unit_s = "";
@@ -18,7 +18,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
             $unit_s = " AND orga = " . $unit;
         }
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             if (intval($line2['sum']) != 0 || $print_empty) {
                 if ($line['id'] == 11 || $line['id'] == 12) {
@@ -39,7 +39,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
         $unit_s = " AND orga = " . $unit;
     }
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -52,7 +52,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income <= 0 AND realtype = id ORDER BY used DESC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         if ($unit == -1) {
             $unit_s = "";
@@ -60,7 +60,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
             $unit_s = " AND orga = " . $unit;
         }
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             if (intval($line2['sum']) != 0 || $print_empty) {
                 echo "<tr><td><a href=\"index.php?action=spendings&type={$line['id']}&from=$from&to=$to&unit=$unit\">" . html_escape($line['name']) . "</a></td><td>";
@@ -77,7 +77,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
         $unit_s = " AND orga = " . $unit;
     }
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -135,12 +135,12 @@ function page_wk()
     echo '<h1><a name="nrwl2013">Nationalratswahl 2013 (Länder)</a></h1>';
     block_start();
     $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<br /><h2><a name=\"nrw" . html_escape($line['name']) . "2013\" href=\"#" . html_escape($line['name']) . "\">" . html_escape($line['name']) . "</a></h2>\n";
         wk_unit_report("", $cond, $cond, $line['id'], $year, '2013-11-01', '2013-06-13');
         $query2 = "SELECT id,name FROM oo WHERE lo = {$line['id']} AND name LIKE '%Piratenpartei%' ORDER BY id ASC";
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             echo "<h3><a name=\"" . html_escape($line2['name']) . "\">" . html_escape($line2['name']) . "</a></h3>\n";
             wk_unit_report("", $cond, $cond, $line2['id'], $year, '2013-11-01', '2013-06-13');

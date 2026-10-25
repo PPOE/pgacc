@@ -20,11 +20,11 @@ function tiny_report($konto, $date_begin, $date_end)
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income = 1 $realtype_req ORDER BY realtype ASC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
         }
@@ -33,7 +33,7 @@ function tiny_report($konto, $date_begin, $date_end)
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -46,11 +46,11 @@ function tiny_report($konto, $date_begin, $date_end)
 <table>
 ';
     $query = "SELECT id,name FROM type WHERE income <= 0 $realtype_req ORDER BY realtype ASC,id ASC";
-    $result = pg_query($dbconn, $query) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
         }
@@ -59,7 +59,7 @@ function tiny_report($konto, $date_begin, $date_end)
     pg_free_result($result);
     echo "<tr><td><b>Summe</b></td><td>";
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
-    $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+    $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
         echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
     }
@@ -77,7 +77,7 @@ function page_tinyreport($rights)
     global $dbconn;
     if (strlen($rights ?? '') > 0) {
         $query2 = "SELECT account FROM vouchers WHERE NOT deleted AND amount != 0 GROUP BY account ORDER BY account";
-        $result2 = pg_query($dbconn, $query2) or die('Abfrage fehlgeschlagen: ' . pg_last_error($dbconn));
+        $result2 = db_query($dbconn, $query2);
         echo "<ul>";
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             $k = $line2['account'];
