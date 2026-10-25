@@ -77,15 +77,3 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: ../../new.php
-
-		-
-			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 4
-			path: ../../tinyreport.php
-
-		-
-			message: '#^Loose comparison using \=\= between \-1 and \-1 will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 4
-			path: ../../vreport.php

@@ -6,10 +6,4 @@
  * documented as unreachable; each change is reviewed. floor: the file's
  * current line coverage in percent (one decimal, as in summary.txt).
  */
-return array(
-    'tinyreport.php' => array(
-        'floor' => 94.1,
-        'reason' => '$unit is always -1, so the four "AND orga" else branches (27, 39, 59, 71) never run, and '
-            . 'line 96 needs empty rights inside the strlen($rights) > 0 block.',
-    ),
-);
+return array();
