@@ -2,45 +2,66 @@
 # Opt-in pre-commit hook: git config core.hooksPath .githooks
 # Fails the commit if a staged PHP file is not formatted (PER-CS 3.0,
 # whitespace rules only; the CI check, scripts/format.sh --check). It checks
-# the staged content (the index blobs), not the working tree.
-#   exit 1: a staged file needs formatting (the diff is shown);
-#   exit 2: the check could not run (Docker, image build, ...).
+# the staged content (the index blobs, with the staged formatter config),
+# not the working tree.
+#   exit 1: a staged file needs formatting (the diff is shown) or has a
+#           syntax error;
+#   exit 2: the check could not run (Docker, image build, an unsupported
+#           file name, ...).
 set -eu
 
-repo_dir=$(git rev-parse --show-toplevel)
-files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.php')
-[ -n "$files" ] || exit 0
-
-# The staged blobs and the staged formatter config, at their repository
-# paths, in a directory under build/ (ignored by Git).
-mkdir -p "$repo_dir/build"
-work=$(mktemp -d "$repo_dir/build/pre-commit.XXXXXX")
+repo_dir=$(git rev-parse --show-toplevel) || exit 2
+cd "$repo_dir" || exit 2
+mkdir -p build || exit 2
+work=$(mktemp -d "$repo_dir/build/pre-commit.XXXXXX") || exit 2
 trap 'rm -rf "$work"' EXIT
-config=.php-cs-fixer.dist.php
-git show ":$config" >"$work/$config" 2>/dev/null || cp "$repo_dir/$config" "$work/$config"
-for file in $files; do
-  mkdir -p "$work/$(dirname "$file")"
-  git show ":$file" >"$work/$file"
-done
 
+# The staged PHP files, NUL-separated; a name with a newline cannot be
+# passed on safely.
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.php' >"$work/names" || exit 2
+[ -s "$work/names" ] || exit 0
+if [ "$(tr -cd '\n' <"$work/names" | wc -c)" -ne 0 ]; then
+  echo "pre-commit: a staged PHP file name contains a newline; check it by hand" >&2
+  exit 2
+fi
+tr '\0' '\n' <"$work/names" >"$work/list" || exit 2
+
+config=.php-cs-fixer.dist.php
+mkdir "$work/tree" || exit 2
+git show ":$config" >"$work/tree/$config" 2>/dev/null || cp "$config" "$work/tree/$config" || exit 2
+while IFS= read -r file; do
+  mkdir -p "$work/tree/$(dirname "$file")" || exit 2
+  git show ":$file" >"$work/tree/$file" || exit 2
+done <"$work/list"
+
+# The files as arguments, blanks included.
+set --
+while IFS= read -r file; do
+  set -- "$@" "$file"
+done <"$work/list"
 status=0
-# shellcheck disable=SC2086 # $files: one plain path per line
-(cd "$work" && sh "$repo_dir/scripts/format.sh" --check --root="$work" $files) >"$work.out" 2>&1 || status=$?
-case "$status" in
-  0) rm -f "$work.out"; exit 0 ;;
-  8)
-    sed -E "s#$repo_dir/##g; s#(/app/)?build/pre-commit\.[A-Za-z0-9]+/##g" "$work.out" | grep -v '^PHP CS Fixer\|^PHP runtime\|^Loaded config\|^Running analysis' >&2 || true
-    rm -f "$work.out"
-    echo "pre-commit: staged PHP files are not formatted. Run:" >&2
-    # shellcheck disable=SC2086
-    echo "  sh scripts/format.sh $(echo $files)" >&2
-    echo "then git add them again (or bypass once with git commit --no-verify)." >&2
-    exit 1
-    ;;
-  *)
-    cat "$work.out" >&2
-    rm -f "$work.out"
-    echo "pre-commit: the formatting check could not run (exit $status); see above." >&2
-    exit 2
-    ;;
-esac
+(cd "$work/tree" && sh "$repo_dir/scripts/format.sh" --check --root="$work/tree" -- "$@") >"$work/out" 2>&1 || status=$?
+
+# PHP-CS-Fixer's exit status is a bitmask: 8 needs formatting, 4 syntax
+# error; format.sh uses 2 (and 3) for infrastructure errors.
+show() {
+  sed -e "s#$work/tree/##g" -e 's#/app/build/pre-commit\.[A-Za-z0-9]*/tree/##g' -e 's#build/pre-commit\.[A-Za-z0-9]*/tree/##g' "$work/out" |
+    grep -v '^PHP CS Fixer\|^PHP runtime\|^Loaded config\|^Running analysis' >&2 || true
+}
+if [ "$status" -eq 0 ]; then
+  exit 0
+fi
+if [ "$status" -eq 2 ] || [ "$status" -eq 3 ] || [ $((status & ~12)) -ne 0 ]; then
+  show
+  echo "pre-commit: the formatting check could not run (exit $status); see above." >&2
+  exit 2
+fi
+show
+if [ $((status & 4)) -ne 0 ]; then
+  echo "pre-commit: a staged PHP file has a syntax error (see above)." >&2
+fi
+if [ $((status & 8)) -ne 0 ]; then
+  echo "pre-commit: staged PHP files are not formatted. Format them, review, then stage only the" >&2
+  echo "formatting: sh scripts/format.sh <files>; git diff; git add -p" >&2
+fi
+exit 1

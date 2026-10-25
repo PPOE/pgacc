@@ -5,8 +5,11 @@
 # (vendor/, fixtures, recordings; --path-mode=intersection). Reads the hook
 # JSON from stdin (.tool_input.file_path, via jq).
 #
-# Never blocks the agent: always exits 0, is silent on success and prints at
-# most one short line when something goes wrong.
+# Never blocks the agent (PostToolUse cannot block): silent with exit 0 on
+# success and for files it does not format; exit 2 with one line on stderr
+# (shown to the agent) when formatting fails; one line and exit 0 when jq is
+# missing or the formatter image is not built yet (no image build inside a
+# hook).
 
 repo_dir=$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P) || exit 0
 if ! command -v jq >/dev/null 2>&1; then
@@ -31,7 +34,16 @@ case "$file" in
   *) exit 0 ;;
 esac
 
-if ! sh "$repo_dir/scripts/format.sh" "$file" >/dev/null 2>&1; then
-  echo "format hook: scripts/format.sh failed for ${file#"$repo_dir"/} (run it manually)"
-fi
-exit 0
+status=0
+sh "$repo_dir/scripts/format.sh" --no-build "$file" >/dev/null 2>&1 || status=$?
+case "$status" in
+  0) exit 0 ;;
+  3)
+    echo "format hook: the formatter image is not built; run sh scripts/format.sh once"
+    exit 0
+    ;;
+  *)
+    echo "format hook: sh scripts/format.sh ${file#"$repo_dir"/} failed (exit $status); run it to see why" >&2
+    exit 2
+    ;;
+esac

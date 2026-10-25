@@ -544,23 +544,35 @@ whitespace and LF line endings, with PHP-CS-Fixer 3.95.27 pinned in
 lists them. Not formatted: `tests/fixtures/`, `tests/reference/fixtures/`,
 `tests/reference/php5/`, `tests/static-analysis/canaries/`, `vendor/`.
 
-`format.sh` always runs the fixer on PHP 8.5 with `short_open_tag=0`, the
-first of: a host PHP 8.5 (`php8.5`, or `php` if it is 8.5+) with the fixer
-from `composer install -d tests/style`; otherwise a warm container
-(`pgacc-style-<hash of the checkout path>`, started once, then `docker exec`,
-about 0.3 s per file; `--stop` removes it); with `--ci` or `CI=true` a
-one-off `docker run --rm` (about 0.6 s per file). The containers have no
-network, a read-only root, no capabilities, no-new-privileges where the Docker
-host allows it, and `.git` read-only; the image (`tests/style/Dockerfile`,
-build context `tests/style/`) is built once per Dockerfile/lock content. The
-fixer cache is `build/php-cs-fixer/`.
+`format.sh` always runs the fixer on PHP 8.5 with `short_open_tag=0`. Runtime,
+the first that applies: `--ci` or `CI=true`/`CI=1` (a one-off `docker run
+--rm`, about 0.6 s per file; it takes precedence); a host PHP 8.5.x with the
+fixer from `composer install -d tests/style` at the locked version; otherwise
+warm containers, `pgacc-style-<checkout hash>-<image hash>-ro` for `--check`
+(repository read-only) and `...-rw` for formatting, started once and reused
+with `docker exec` (about 0.3 s per file). A lock directory serializes their
+start; a running container is never removed, and one whose mounts or image
+do not match the checkout is not used (a one-off container runs instead).
+`sh scripts/format.sh --stop` removes this checkout's containers, `--stop-all`
+every `pgacc-style-*` container (for example after moving a worktree). The
+containers have no network, a read-only root, no capabilities, no-new-privileges
+where the Docker host allows it (probed once per image) and `.git` read-only;
+formatting mounts the repository read-write, so a fixer bug could write other
+files of the checkout. The image (`tests/style/Dockerfile`, build context
+`tests/style/`) is built once per Dockerfile/lock content; `--no-build` exits 3
+instead of building. The fixer cache is `build/php-cs-fixer/`. Exit status:
+PHP-CS-Fixer's bitmask (8 needs formatting, 4 syntax error), 2 for usage or
+infrastructure errors.
 
 CI runs `sh scripts/format.sh --check --ci` in the static-analysis job. A
 Claude Code hook (`.claude/settings.json`, `scripts/claude-format-hook.sh`)
-formats every PHP file an agent edits; it always exits 0 and prints at most
-one line. `.githooks/pre-commit` (opt-in: `git config core.hooksPath
-.githooks`) checks the staged content of the staged PHP files: exit 1 with the
-diff when one needs formatting, exit 2 when the check cannot run.
+formats every PHP file an agent edits: silent on success; exit 2 with one line
+on stderr (shown to the agent, not blocking) when formatting fails; one line
+and exit 0 when jq is missing or the image is not built yet (it never builds
+it). `.githooks/pre-commit` (opt-in: `git config core.hooksPath .githooks`)
+checks the staged blobs of the staged PHP files (blanks in names are fine):
+exit 1 with the diff when one needs formatting or has a syntax error, exit 2
+when the check cannot run; the fix it suggests is format, review, `git add -p`.
 
 ## Open test work
 
