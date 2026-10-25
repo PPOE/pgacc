@@ -73,6 +73,7 @@ if ($dbconn === false) {
 }
 
 require("functions.php");
+require("src/db.php");
 
 function checklogin($get = 'name', $redir = true)
 {

@@ -3,6 +3,7 @@
 include "constants.php";
 require "vendor/autoload.php";
 require "functions.php";
+require "src/db.php";
 
 $dbconn = pg_connect("dbname=accounting");
 if ($dbconn === false) {

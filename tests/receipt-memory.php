@@ -11,6 +11,7 @@
  */
 require dirname(__DIR__) . '/vendor/autoload.php';
 require dirname(__DIR__) . '/functions.php';
+require dirname(__DIR__) . '/src/db.php';
 
 $directory = $argv[1];
 mkdir($directory . '/files');

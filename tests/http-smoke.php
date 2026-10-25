@@ -36,6 +36,13 @@ if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabu
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 
+// src/db.php only defines functions: a direct request prints nothing.
+$library = http_request('/src/db.php');
+assert_status($library, 200, 'src/db.php');
+if ($library['body'] !== '') {
+    fail_test('src/db.php: a direct request printed ' . var_export($library['body'], true));
+}
+
 $transactions = http_request('/index.php?action=transactions');
 assert_status($transactions, 200, 'transactions');
 assert_contains($transactions['body'], 'Kontobewegungen der Piratenpartei Österreichs', 'transactions');

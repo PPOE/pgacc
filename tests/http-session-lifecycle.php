@@ -9,6 +9,7 @@
  */
 require __DIR__ . '/http-test-helpers.php';
 require_once dirname(__DIR__) . '/functions.php';
+require_once dirname(__DIR__) . '/src/db.php';
 require __DIR__ . '/runtime/test-constants.php';
 
 function lifecycle_row($database, $userId)

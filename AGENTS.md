@@ -1,7 +1,8 @@
 # AGENTS.md
 
 pgacc is a legacy PHP/PostgreSQL accounting tool for a political party, with a German UI.
-It has 30 top-level PHP files, global functions, no framework, direct `pg_*` calls, and SQL built by string concatenation.
+It has 30 top-level PHP files plus library files in `src/`, global functions, no framework, `pg_*` calls (mostly through
+the `src/db.php` helpers), and SQL built by string concatenation.
 Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fix plan: `tests/COMPATIBILITY_PLAN.md`.
 
 ## Compatibility contract
@@ -124,6 +125,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 |---|---|
 | `index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
 | `functions.php` | Shared helpers: `acc_header`/`acc_footer`, `getfilter`, `getsort`, `rights2orgasql` (rights to SQL) |
+| `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure); loaded by `index.php` and `mbapi.php` after `functions.php` |
 | `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), merge, revisions (finalization removed) |
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
