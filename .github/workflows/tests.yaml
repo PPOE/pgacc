@@ -203,19 +203,18 @@ jobs:
         run: docker compose --project-name 'pgacc-mutation-php85' -f compose.test.yaml down --volumes --remove-orphans
 
   reference:
-    # PHP 5 golden master (tests/reference/, tests/README.md), recorded on the
-    # former production pair PHP 5.3 / PostgreSQL 8.4 before php5-last and kept
-    # as the historical reference: PHP 8.5 / PostgreSQL 18 must match it except
-    # for reviewed tests/reference/allowlist.php entries (accepted/todo).
+    # Golden master (tests/reference/php85/, tests/README.md), recorded on
+    # PHP 8.5 / PostgreSQL 18: the same lane must match it byte for byte except
+    # for reviewed tests/reference/allowlist.php entries (none today).
     # Failures stay visible: not continue-on-error.
-    name: PHP 5 reference comparison (PHP 8.5)
+    name: Reference comparison (PHP 8.5)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - name: Compare with the PHP 5 reference
+      - name: Compare with the reference recording
         run: sh tests/reference/run.sh compare 8.5
 
       - name: Publish comparison summary

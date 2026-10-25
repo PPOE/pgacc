@@ -19,5 +19,5 @@ php tests/reference/scenario.php "$recording"
 if [ "$PGACC_REFERENCE_MODE" = record ]; then
   echo "Reference recorded in tests/reference/php85/ on PHP $PGACC_REFERENCE_LANE"
 else
-  php tests/reference/compare.php tests/reference/php5 "$out/actual" "$out"
+  php tests/reference/compare.php tests/reference/php85 "$out/actual" "$out"
 fi

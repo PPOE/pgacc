@@ -9,12 +9,11 @@ set -eu
 #                                             diff before committing it)
 #   sh tests/reference/run.sh compare [8.5]   run the scenario on the PHP 8.5 /
 #                                             PostgreSQL 18 lane and compare it
-#                                             with tests/reference/php5/
+#                                             with tests/reference/php85/
 #
-# tests/reference/php5/ was recorded on the production pair (PHP 5.3,
-# PostgreSQL 8.4) before php5-last and is kept as the historical golden
-# master; that lane no longer exists, so it cannot be re-recorded. Differences
-# must match reviewed tests/reference/allowlist.php entries. PGACC_TEST_ID works
+# The comparison runs on the same runtime as the recording, so every
+# difference fails unless a reviewed tests/reference/allowlist.php entry
+# accepts it (none today). PGACC_TEST_ID works
 # as for tests/run.sh. Compare results go to build/reference/php85/
 # (report.txt, diffs/ and the actual recording).
 

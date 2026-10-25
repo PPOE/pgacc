@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Compares a lane's recording with the PHP 5 reference.
+ * Compares a lane's recording with the reference recording (tests/reference/php85/).
  *
  *   php tests/reference/compare.php <reference dir> <actual dir> <report dir>
  *
@@ -28,7 +28,7 @@ if ($php === false || $php === '') {
     $php = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 }
 if (!is_file("$referenceDir/manifest.txt")) {
-    ref_fail("no reference recording in $referenceDir (the historical PHP 5 recording; see tests/README.md)");
+    ref_fail("no reference recording in $referenceDir (run: sh tests/reference/run.sh record)");
 }
 $entries = require __DIR__ . '/allowlist.php';
 $problems = ref_allowlist_problems($entries);
@@ -103,7 +103,7 @@ foreach ($failed as $file => $failure) {
     $category = strpos($file, '/') === false ? $file : substr($file, 0, strpos($file, '/'));
     $categories[$category] = isset($categories[$category]) ? $categories[$category] + 1 : 1;
 }
-$report = "PHP 5 reference comparison on PHP $php\n"
+$report = "Reference comparison on PHP $php\n"
     . count($files) . " files: $same identical, " . count($accepted) . ' accepted by the allowlist, '
     . count($failed) . ' with unaccepted differences, ' . count($informational) . " informational\n";
 foreach ($categories as $category => $count) {
@@ -139,8 +139,8 @@ ref_write("$reportDir/report.txt", $report);
 $lines = explode("\n", $report);
 echo implode("\n", array_slice($lines, 0, 300)) . (count($lines) > 300 ? "\n... (see report.txt)\n" : "\n");
 if (count($failed) > 0 || count($stale) > 0) {
-    fwrite(STDERR, "PHP 5 reference comparison failed on PHP $php: " . count($failed) . ' files differ, '
+    fwrite(STDERR, "Reference comparison failed on PHP $php: " . count($failed) . ' files differ, '
         . count($stale) . " stale allowlist entries. Report: build/reference/php" . str_replace('.', '', $php) . "/report.txt\n");
     exit(1);
 }
-echo "PHP 5 reference comparison passed on PHP $php\n";
+echo "Reference comparison passed on PHP $php\n";
