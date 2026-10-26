@@ -155,28 +155,32 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertSame($expectedCsv, tag_raw($tagName, $text));
     }
 
-    // tag() encodes its text for HTML; the CSV cell is the same as tag_raw().
-    #[PHPUnit\Framework\Attributes\DataProvider('tagProvider')]
+    // tag() encodes its text for HTML; its CSV cell is the one of tag_raw().
+    #[PHPUnit\Framework\Attributes\DataProvider('tagEncodedProvider')]
     public function testTagRendersEncodedHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
     {
         list($tagName, $text) = $args;
         $GLOBALS['make_csv'] = false;
-        self::assertSame("<$tagName>" . html_escape($text) . "</$tagName>\n", tag($tagName, $text));
+        self::assertSame($expectedHtml, tag($tagName, $text));
         $GLOBALS['make_csv'] = true;
         self::assertSame($expectedCsv, tag($tagName, $text));
+        self::assertSame($expectedCsv, tag_raw($tagName, $text));
     }
 
-    public function testTagRendersMarkupEncodedOrRaw()
+    public static function tagEncodedProvider()
     {
-        $text = '<b>Jörg "Q" O\'Brien & Co</b>';
-        $GLOBALS['make_csv'] = false;
-        self::assertSame("<td>&lt;b&gt;Jörg &quot;Q&quot; O&#039;Brien &amp; Co&lt;/b&gt;</td>\n", tag('td', $text));
-        self::assertSame("<td>$text</td>\n", tag_raw('td', $text));
-        self::assertSame("<td>&amp;amp;</td>\n", tag('td', '&amp;'));
-        $GLOBALS['make_csv'] = true;
-        self::assertSame("$text\t", tag('td', $text));
-        self::assertSame("$text\t", tag_raw('td', $text));
-        self::assertSame("'=1&2\t", tag('td', '=1&2'));
+        return [
+            'markup' => [['td', '<b>x</b>'], "<td>&lt;b&gt;x&lt;/b&gt;</td>\n", "<b>x</b>\t"],
+            'single quote' => [['td', "O'Brien"], "<td>O&#039;Brien</td>\n", "O'Brien\t"],
+            'double quote' => [['td', 'a"b'], "<td>a&quot;b</td>\n", "a\"b\t"],
+            'ampersand and entity' => [['td', 'A & B &amp;'], "<td>A &amp; B &amp;amp;</td>\n", "A & B &amp;\t"],
+            'umlauts unchanged' => [['td', 'Jörg Müßig €'], "<td>Jörg Müßig €</td>\n", "Jörg Müßig €\t"],
+            'formula with quote' => [['td', '=HYPERLINK("x")'], "<td>=HYPERLINK(&quot;x&quot;)</td>\n", "'=HYPERLINK(\"x\")\t"],
+            'row with markup' => [['tr', "<i>a</i>\nb"], "<tr>&lt;i&gt;a&lt;/i&gt;\nb</tr>\n", "<i>a</i> / b\n"],
+            'amount' => [['td', '-12.50€'], "<td>-12.50€</td>\n", "-12,50€\t"],
+            'integer' => [['td', 42], "<td>42</td>\n", "42\t"],
+            'null' => [['td', null], "<td></td>\n", "\t"],
+        ];
     }
 
     public static function tagProvider()

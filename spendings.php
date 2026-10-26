@@ -11,8 +11,7 @@ function spendings_page_listing_header($action)
     . tag_raw("td", tag_raw("b", sortlink($action, 'datea', 'Datum')))
     . tag_raw("td", tag_raw("b", sortlink($action, 'typea', 'Art')))
     . tag_raw("td", tag_raw("b", sortlink($action, 'loa', 'LO')))
-    // removed for legal reasons.
-    //tag("td",tag("b",sortlink($action,'texta','Text'))) .
+    // The text column was removed for legal reasons.
     . tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Betrag')))
     . tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Name'))));
 }
@@ -36,8 +35,7 @@ function spendings_page_listing_line($line)
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
     echo tag("td", $line2["name"]);
     pg_free_result($result2);
-    // removed for legal reasons
-    //echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
+    // The text column was removed for legal reasons.
 
     echo tag("td", format_amount($line["amount"], "€"));
     echo tag_raw("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");

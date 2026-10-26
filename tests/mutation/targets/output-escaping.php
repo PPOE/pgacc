@@ -55,16 +55,10 @@ $mutations = [
         'rationale' => 'Listing cells are not encoded in HTML.',
     ],
     [
-        'id' => 'tag-html-raw',
-        'search' => "    if (!\$make_csv) {\n        \$text = html_escape(\$text);\n    }\n    return tag_raw(\$tag, \$text);",
-        'replace' => "    if (false) {\n        \$text = html_escape(\$text);\n    }\n    return tag_raw(\$tag, \$text);",
+        'id' => 'tag-unencoded',
+        'search' => "    return tag_raw(\$tag, listing_text(\$text));",
+        'replace' => "    return tag_raw(\$tag, \$text);",
         'rationale' => 'tag() writes its text into the HTML listings without encoding.',
-    ],
-    [
-        'id' => 'tag-csv-encoded',
-        'search' => "    if (!\$make_csv) {\n        \$text = html_escape(\$text);\n    }\n    return tag_raw(\$tag, \$text);",
-        'replace' => "    if (true) {\n        \$text = html_escape(\$text);\n    }\n    return tag_raw(\$tag, \$text);",
-        'rationale' => 'The CSV export gets HTML entities from tag().',
     ],
     [
         'id' => 'csv-link-unencoded',
