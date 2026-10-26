@@ -69,15 +69,15 @@ id	name	used	income	realtype
 8	Synthetic donation	10	1	8
 ## users (12 rows)
 id	name	hash	login	cookie	rights	hide
-1	synthetic-admin	{{md5-crypt}}	{{now}}	\N	root,bgf	
-10	synthetic-readonly	{{md5-crypt}}	{{now}}	{{cookie}}	Rbgf	
-100	synthetic-created	{{md5-crypt}}	\N	\N	3	\N
-11	synthetic-norights	{{md5-crypt}}	{{now}}	{{cookie}}		\N
-2	synthetic-reviewer	{{md5-crypt}}	{{now}}	{{cookie}}	bgf	
-3	synthetic-unit-one	{{md5-crypt}}	{{now}}	{{cookie}}	1,2	
-4	synthetic-hide-odd	{{md5-crypt}}	{{now}}	{{cookie}}	root,bgf	1,3,5,7,9,11,13,15,17
+1	synthetic-admin	{{bcrypt}}	{{now}}	\N	root,bgf	
+10	synthetic-readonly	{{bcrypt}}	{{now}}	{{cookie}}	Rbgf	
+100	synthetic-created	{{bcrypt}}	\N	\N	3	\N
+11	synthetic-norights	{{bcrypt}}	{{now}}	{{cookie}}		\N
+2	synthetic-reviewer	{{bcrypt}}	{{now}}	{{cookie}}	bgf	
+3	synthetic-unit-one	{{bcrypt}}	{{now}}	{{cookie}}	1,2	
+4	synthetic-hide-odd	{{bcrypt}}	{{now}}	{{cookie}}	root,bgf	1,3,5,7,9,11,13,15,17
 5	synthetic-hide-even	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	root,bgf	2,4,6,8,10,12,14,16,18
-6	synthetic-unit-two	{{md5-crypt}}	{{now}}	{{cookie}}	2	
+6	synthetic-unit-two	{{bcrypt}}	{{now}}	{{cookie}}	2	
 7	synthetic-no-rights	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}		
 8	synthetic-read-only	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf	
 9	synthetic-read-only-two	{{md5-crypt}}	2024-01-01 12:00:00	{{cookie}}	Rbgf,2	

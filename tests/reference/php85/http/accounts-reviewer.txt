@@ -2,7 +2,7 @@
 # request: GET /index.php?action=accounts as reviewer
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (6281 bytes) ---
+--- body (6305 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,7 +31,7 @@ header: Content-type: text/html; charset=UTF-8
 <br style="clear: both;" />
 <div class="wiki use_terms">
 <form action="index.php?action=accounts" method="POST"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><table>
-<tr><td><b>Name</b></td><td><b>Passwort</b></td></tr>
+<tr><td><b>Name</b></td><td><b>Passwort</b> (mindestens 12 Zeichen)</td></tr>
 <tr><td>synthetic-reviewer</td><td><input type="password" name="password2" value="******"></td><td><input type="submit" name="submit" value="Benutzer 2 aktualisieren" /></td></tr>
 
 </table></form>

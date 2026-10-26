@@ -17,8 +17,17 @@ function login($user, $pass)
     global $dbconn;
     $user = pg_escape_string($dbconn, $user);
     $pass = pg_escape_string($dbconn, $pass);
-    $data = db_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'");
+    $data = db_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,hash LIKE '\$1\$%' AS md5,rights FROM users WHERE name = '$user'");
+    if (pg_num_rows($data) === 0) {
+        // An unknown name costs one bcrypt (cost 10) like a known one, so the
+        // response time does not tell whether the name exists.
+        pg_free_result(db_query($dbconn, "SELECT crypt('$pass', '\$2a\$10\$67sp9/gQT74aBczejNIl6epXefU8dbycDMmqSmNfVAuexnugicmGy')"));
+    }
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC)) {
+        if ($line['md5'] == 't' && $line['success'] == 't') {
+            // An MD5-crypt hash from before bcrypt is replaced on login.
+            pg_free_result(db_query($dbconn, "UPDATE users SET hash = crypt('$pass', gen_salt('bf', 10)) WHERE id = " . intval($line['id']) . " AND hash LIKE '\$1\$%'"));
+        }
         // Fails closed without a valid $key, a CSPRNG or a stored session
         // (functions.php): the login form is shown again.
         if ($line['success'] == 't' && ($token = login_start_session($dbconn, $line['id'])) !== false) {

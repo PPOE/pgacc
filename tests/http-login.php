@@ -245,6 +245,31 @@ function logged_in_target_problems($cookies, $target, $baseUrl = null, $expected
 }
 
 // Valid login without target redirects to index.php with both cookies.
+function stored_hash($userId)
+{
+    $result = @pg_query_params(database_connection(), 'SELECT hash FROM users WHERE id = $1', [$userId]);
+    return $result === false || pg_num_rows($result) !== 1 ? null : pg_fetch_result($result, 0, 0);
+}
+
+// A user with an MD5-crypt hash (accounts from before bcrypt), created here
+// so no other test has upgraded it yet: a valid login replaces the hash with
+// bcrypt, a rejected one does not.
+@pg_query(database_connection(), 'DELETE FROM users WHERE id = 93 OR name = \'synthetic-md5-legacy\'');
+if (@pg_query(database_connection(), "INSERT INTO users (id, name, hash, rights, hide) VALUES "
+    . "(93, 'synthetic-md5-legacy', crypt('legacy-password', gen_salt('md5')), '2', '')") === false) {
+    fail_test('could not create the MD5-crypt user');
+}
+$md5Before = stored_hash(93);
+$reviewerHash = stored_hash(2);
+login_request('synthetic-md5-legacy', 'wrong-password');
+check('rejected login keeps the MD5-crypt hash', stored_hash(93) === $md5Before ? [] : ['hash changed']);
+check('MD5-crypt user logs in', login_response_problems(login_request('synthetic-md5-legacy', 'legacy-password'), 'index.php', 93));
+check(
+    'valid login upgrades the MD5-crypt hash to bcrypt',
+    strpos((string) stored_hash(93), '$2a$10$') === 0 ? [] : ['hash was not $2a$10$'],
+);
+check('upgraded user logs in again', login_response_problems(login_request('synthetic-md5-legacy', 'legacy-password'), 'index.php', 93));
+@pg_query(database_connection(), 'DELETE FROM users WHERE id = 93 OR name = \'synthetic-md5-legacy\'');
 $login = login_request('synthetic-admin', 'correct-password');
 check('valid login', array_merge(login_response_problems($login, 'index.php', 1), redirect_body_problems($login)));
 check('valid login cookie attributes', login_cookie_attribute_problems($login));
@@ -258,6 +283,7 @@ if (isset($cookies['pp_pgacc_login']) && isset($cookies['pp_pgacc_id'])) {
 // same user no longer authenticate. Tokens are random, not derived from the
 // user or the time alone.
 $relogin = login_request('synthetic-admin', 'correct-password');
+check('other users keep their hash', stored_hash(2) === $reviewerHash ? [] : ['reviewer hash changed']);
 check('second login', array_merge(login_response_problems($relogin, 'index.php', 1), login_state_problems($relogin, 1)));
 $reloginCookies = response_cookies($relogin);
 if (isset($cookies['pp_pgacc_login']) && isset($reloginCookies['pp_pgacc_login'])) {

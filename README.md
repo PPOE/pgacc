@@ -23,7 +23,8 @@ Core concepts:
 
 - PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
   exchange use `phpseclib` (same ciphertext; used automatically if loaded).
-- PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`).
+- PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`;
+  new passwords bcrypt, older MD5-crypt hashes still accepted).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
 - A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
 - Browsers: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+ (the stylesheet

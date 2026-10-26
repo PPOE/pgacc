@@ -186,11 +186,12 @@ check('cell normalization', [
     ref_normalize_cell('users', 'login', REF_FIXTURE_LOGIN),
     ref_normalize_cell('users', 'login', '2026-10-23 17:00:00.123'),
     ref_normalize_cell('users', 'hash', '$1$abcdefgh$0123456789abcdefghijkl'),
+    ref_normalize_cell('users', 'hash', '$2a$10$' . str_repeat('a', 53)),
     ref_normalize_cell('users', 'hash', 'plain'),
     ref_normalize_cell('vouchers', 'save_date', '2026-10-23 17:00:00'),
     ref_normalize_cell('vouchers', 'date', '2024-01-01 00:00:00'),
     ref_normalize_cell('users', 'login', null),
-], ['{{cookie}}', REF_FIXTURE_LOGIN, '{{now}}', '{{md5-crypt}}', 'plain', '{{save_date}}', '2024-01-01 00:00:00', null]);
+], ['{{cookie}}', REF_FIXTURE_LOGIN, '{{now}}', '{{md5-crypt}}', '{{bcrypt}}', 'plain', '{{save_date}}', '2024-01-01 00:00:00', null]);
 check('cell escaping', ref_escape_cell("a\tb\nc\\"), 'a\\tb\\nc\\\\');
 check('null cell', ref_escape_cell(null), '\\N');
 check('dump delta', ref_dump_delta(['h', 'a', 'b', 'b'], ['h', 'b', 'c']), ['- a', '- b', '+ c']);
