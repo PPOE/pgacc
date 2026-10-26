@@ -795,6 +795,18 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertFileDoesNotExist($this->directory . '/files/901.v2.aes');
     }
 
+    public function testLegacyFileNotReadToItsSizeFails()
+    {
+        // Also as root: /proc/version reports size 0 but reads non-empty, so
+        // the read does not match the file's size (like a cut-off read).
+        symlink('/proc/version', $this->directory . '/files/901.aes');
+        list($status, $output) = $this->migrate(['--include-unusual']);
+        self::assertSame(1, $status);
+        self::assertSame("901.aes: 901.aes could not be read\nFailed: 901\n" . self::summary([0, 0, 0, 0, 1]), $output);
+        self::assertFileDoesNotExist($this->directory . '/files/901.v2.aes');
+        self::assertSame('/proc/version', readlink($this->directory . '/files/901.aes'));
+    }
+
     public function testDatabaseFailure()
     {
         // The test's transaction is aborted, so the voucher query fails.
