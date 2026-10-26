@@ -80,8 +80,8 @@ $mutations = [
     ],
     [
         'id' => 'gentab-html-check-inverted',
-        'search' => "    }\n    if (listing_column_hidden(\$tabc)) {\n        return tag(\"td\", listing_column_form(\$action, -\$tabc, 'add'));",
-        'replace' => "    }\n    if (!listing_column_hidden(\$tabc)) {\n        return tag(\"td\", listing_column_form(\$action, -\$tabc, 'add'));",
+        'search' => "    }\n    if (listing_column_hidden(\$tabc)) {\n        return tag_raw(\"td\", listing_column_form(\$action, -\$tabc, 'add'));",
+        'replace' => "    }\n    if (!listing_column_hidden(\$tabc)) {\n        return tag_raw(\"td\", listing_column_form(\$action, -\$tabc, 'add'));",
         'rationale' => 'The HTML header shows the add icon exactly for hidden columns.',
     ],
     [
