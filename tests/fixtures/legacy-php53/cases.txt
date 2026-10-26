@@ -1,0 +1,16 @@
+# <file number> <voucher ID at the upload> <input file>
+1 701 01_pdf_small.pdf
+2 702 02_pdf_aligned.pdf
+3 703 03_jpeg_small.jpg
+5 705 05_pdf_trailing_zeros_5.pdf
+6 706 06_jpeg_trailing_zeros_40.jpg
+7 707 07_empty.bin
+9 709 09_png.png
+10 710 10_jpeg_trailer_after_eoi.jpg
+11 711 11_pdf_merged_voucher.pdf
+12 712 12_pdf_same_voucher_a.pdf
+13 712 13_pdf_same_voucher_b.pdf
+14 714 14_pdf_ends_zero_aligned.pdf
+15 715 15_jpeg_trailing_zero_1.jpg
+16 716 16_pdf_garbage_after_eof_2k.pdf
+17 717 17_pdf_exactly_32.pdf

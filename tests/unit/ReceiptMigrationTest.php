@@ -120,7 +120,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $this->put('904.aes', receipt_encrypt('4711', '', "\x89PNG\r\n\x1a\nsynthetic"));
         $this->put('905.aes', $this->legacyPdf());
         $this->put('906.aes', receipt_encrypt('4711', '', '%PDF' . str_repeat('x', 4000) . "\n%%EOF\n"));
-        $this->put('907.v2.aes', 'new receipt, not touched');
+        $this->put('907.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '907', '%PDF new receipt, not touched'));
         $this->put('908.aes', $this->legacyPdf());
         $this->put('912.aes', receipt_encrypt('4711', '', "%PDF-1.4\nsynthetic, but cut off"));
         // Not file numbers: reported, not migrated.
@@ -130,18 +130,25 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $this->put('notes.txt', 'not a receipt');
         $this->put('907.v2.aes.tmp-1-2', 'left by a failed write');
         $before = $this->files();
-        $otherNames = "0.aes: not migrated: not a file number\n"
-            . "007.aes: not migrated: not a file number\n"
-            . "2147483648.aes: not migrated: not a file number\n"
-            . "x.aes: not migrated: not a file number\n";
-        $noVoucher = 'not migrated: no voucher with this file decrypts it to a complete PDF or JPEG';
+        $otherNames = "0.aes: skipped, legacy kept: not a file number\n"
+            . "007.aes: skipped, legacy kept: not a file number\n"
+            . "2147483648.aes: skipped, legacy kept: not a file number\n"
+            . "x.aes: skipped, legacy kept: not a file number\n";
+        $noVoucher = 'skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG '
+            . '(--search-voucher-ids tries the other voucher IDs)';
+        $png = 'skipped, legacy kept: voucher 4711 decrypts it to a PNG image, not a complete PDF or JPEG '
+            . '(--include-unusual migrates it)';
+        $cutOff = 'skipped, legacy kept: voucher 4711 decrypts it to a PDF that looks incomplete or has data after '
+            . 'its end, not a complete PDF or JPEG (--include-unusual migrates it)';
         $skippedLines = "903.aes: $noVoucher\n"
-            . "904.aes: $noVoucher\n"
+            . "904.aes: $png\n"
             . "905.aes: $noVoucher\n"
-            . "906.aes: not migrated: 4032 bytes, above --max-size=4000\n";
+            . "906.aes: skipped, legacy kept: 4032 bytes, above --max-size=4000\n";
+        $skippedList = "Skipped, legacy kept: 0.aes, 007.aes, 2147483648.aes, x.aes, 903, 904, 905, 906, 912\n";
 
+        // Skipped files give exit status 3.
         list($status, $output, $errors) = $this->migrate(['--dry-run', '--max-size=4000']);
-        self::assertSame([0, ''], [$status, $errors]);
+        self::assertSame([3, ''], [$status, $errors]);
         // Nothing written, not even the lock file.
         self::assertSame($before, $this->files());
         self::assertSame(
@@ -150,21 +157,23 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             . "902.aes: would migrate (voucher 815)\n"
             . $skippedLines
             . "908.aes: would migrate (voucher 4711)\n"
-            . "912.aes: $noVoucher\n"
-            . self::summary([3, 0, 0, 0, 9, 0], true),
+            . "912.aes: $cutOff\n"
+            . $skippedList
+            . self::summary([3, 0, 0, 9, 0], true),
             $output,
         );
 
         list($status, $output, $errors) = $this->migrate(['--max-size=4000']);
-        self::assertSame([0, ''], [$status, $errors]);
+        self::assertSame([3, ''], [$status, $errors]);
         self::assertSame(
             $otherNames
             . "901.aes: migrated (voucher 4711); 901.aes kept until --delete-legacy\n"
             . "902.aes: migrated (voucher 815); 902.aes kept until --delete-legacy\n"
             . $skippedLines
             . "908.aes: migrated (voucher 4711); 908.aes kept until --delete-legacy\n"
-            . "912.aes: $noVoucher\n"
-            . self::summary([3, 0, 0, 0, 9, 0]),
+            . "912.aes: $cutOff\n"
+            . $skippedList
+            . self::summary([3, 0, 0, 9, 0]),
             $output,
         );
         $files = $this->files();
@@ -181,18 +190,19 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
 
         // Idempotent, and the size limit can be raised.
         list($status, $output) = $this->migrate([]);
-        self::assertSame(0, $status);
+        self::assertSame(3, $status);
         self::assertSame(
             $otherNames
             . "901.aes: already migrated; 901.aes kept until --delete-legacy\n"
             . "902.aes: already migrated; 902.aes kept until --delete-legacy\n"
             . "903.aes: $noVoucher\n"
-            . "904.aes: $noVoucher\n"
+            . "904.aes: $png\n"
             . "905.aes: $noVoucher\n"
             . "906.aes: migrated (voucher 4711); 906.aes kept until --delete-legacy\n"
             . "908.aes: already migrated; 908.aes kept until --delete-legacy\n"
-            . "912.aes: $noVoucher\n"
-            . self::summary([1, 3, 0, 0, 8, 0]),
+            . "912.aes: $cutOff\n"
+            . "Skipped, legacy kept: 0.aes, 007.aes, 2147483648.aes, x.aes, 903, 904, 905, 912\n"
+            . self::summary([1, 3, 0, 8, 0]),
             $output,
         );
     }
@@ -202,11 +212,18 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $jpeg = self::legacyVector('jpeg with trailing NUL bytes');
         $this->put('901.aes', $this->legacyPdf());
         $this->put('902.aes', hex2bin($jpeg['cipher']));
+        $this->put('904.aes', receipt_encrypt('4711', '', "\x89PNG\r\n\x1a\nsynthetic"));
         $this->put('908.aes', $this->legacyPdf());
         self::assertSame(0, $this->migrationStatus(['--limit=2']));
-        // 908 is not migrated yet; 902.v2.aes is replaced by other content.
+        // 908 is not migrated yet, 904 is skipped; 902.v2.aes is replaced by
+        // a valid file with other content.
         $this->put('902.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '902', '%PDF other content'));
         $before = $this->files();
+        // Without <n>.v2.aes, nothing is decrypted: skipped, legacy kept.
+        $rest = "904.aes: skipped, legacy kept: no 904.v2.aes (skipped by the migration or not migrated yet; a run without --delete-legacy lists why)\n"
+            . "908.aes: skipped, legacy kept: no 908.v2.aes (skipped by the migration or not migrated yet; a run without --delete-legacy lists why)\n"
+            . "Skipped, legacy kept: 904, 908\n"
+            . "Failed: 902\n";
 
         list($status, $output) = $this->migrate(['--delete-legacy', '--dry-run']);
         self::assertSame(1, $status);
@@ -214,8 +231,8 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             self::deleteReminder()
             . "901.aes: verified; would delete 901.aes\n"
             . "902.aes: 902.v2.aes does not decrypt to the content of 902.aes with this key; both kept\n"
-            . "908.aes: not migrated yet; 908.aes kept\n"
-            . self::summary([0, 0, 1, 1, 0, 1], true),
+            . $rest
+            . self::summary([0, 0, 1, 2, 1], true),
             $output,
         );
         self::assertSame($before, $this->files());
@@ -226,8 +243,8 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             self::deleteReminder()
             . "901.aes: verified; deleted 901.aes\n"
             . "902.aes: 902.v2.aes does not decrypt to the content of 902.aes with this key; both kept\n"
-            . "908.aes: not migrated yet; 908.aes kept\n"
-            . self::summary([0, 0, 1, 1, 0, 1]),
+            . $rest
+            . self::summary([0, 0, 1, 2, 1]),
             $output,
         );
         $expected = $before;
@@ -235,27 +252,27 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame($expected, $this->files());
         self::assertSame(self::paddedPdf(), $this->v2Plain('901'));
 
-        // With another key nothing verifies, so nothing is deleted.
+        // Without failures, skipped files give exit status 3.
         unlink($this->directory . '/files/902.v2.aes');
-        self::assertSame(0, $this->migrationStatus([]));
-        $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
-        list($status, $output) = $this->migrate(['--delete-legacy']);
-        self::assertSame(1, $status);
+        unlink($this->directory . '/files/904.aes');
+        list($status, $output) = $this->migrate(['--delete-legacy', '--limit=1']);
+        self::assertSame(3, $status);
         self::assertSame(
             self::deleteReminder()
-            . "902.aes: 902.v2.aes does not decrypt to the content of 902.aes with this key; both kept\n"
-            . "908.aes: 908.v2.aes does not decrypt to the content of 908.aes with this key; both kept\n"
-            . self::summary([0, 0, 0, 0, 0, 2], false, self::OTHER_KEY),
+            . "902.aes: skipped, legacy kept: no 902.v2.aes (skipped by the migration or not migrated yet; a run without --delete-legacy lists why)\n"
+            . "908.aes: skipped, legacy kept: no 908.v2.aes (skipped by the migration or not migrated yet; a run without --delete-legacy lists why)\n"
+            . "Skipped, legacy kept: 902, 908\n"
+            . self::summary([0, 0, 0, 2, 0]),
             $output,
         );
-        $this->writeConstants("<?php\n\$key = '" . self::TEST_KEY . "';\n");
+        self::assertSame(0, $this->migrationStatus([]));
         list($status, $output) = $this->migrate(['--delete-legacy', '--limit=1']);
         self::assertSame(0, $status);
         self::assertSame(
             self::deleteReminder()
             . "902.aes: verified; deleted 902.aes\n"
             . "Stopped after --limit=1; run again for the remaining files.\n"
-            . self::summary([0, 0, 1, 0, 0, 0]),
+            . self::summary([0, 0, 1, 0, 0]),
             $output,
         );
         self::assertSame(
@@ -266,9 +283,10 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
 
     public function testExistingV2FilesAreVerified()
     {
-        // 901: an invalid <n>.v2.aes and a good legacy file: re-created.
-        // 902: a valid <n>.v2.aes: left alone. 903: an invalid <n>.v2.aes and
-        // a legacy file that does not decrypt: reported, both kept.
+        // 901: an invalid <n>.v2.aes and a good legacy file. 902: a valid
+        // <n>.v2.aes. 903: an invalid <n>.v2.aes and a legacy file that does
+        // not decrypt. 909-911: valid. Any checked file that does not verify
+        // stops the run, unless --recreate-unverified or --ignore-unverified.
         $jpeg = self::legacyVector('jpeg with trailing NUL bytes');
         $this->put('901.aes', $this->legacyPdf());
         $this->put('901.v2.aes', 'not a v2 file');
@@ -276,26 +294,456 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $this->put('902.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '902', hex2bin($jpeg['decrypted'])));
         $this->put('903.aes', $this->legacyPdf());
         $this->put('903.v2.aes', 'not a v2 file either');
+        foreach (['909', '910', '911'] as $number) {
+            $this->put("$number.aes", $this->legacyPdf());
+            $this->put("$number.v2.aes", receipt_v2_encrypt(self::TEST_KEY, $number, self::paddedPdf()));
+        }
         $before = $this->files();
-        $lines = "902.aes: already migrated; 902.aes kept until --delete-legacy\n"
-            . "903.aes: 903.v2.aes does not verify, and 903.aes cannot replace it (no voucher with this file decrypts it "
-            . "to a complete PDF or JPEG); both kept\n";
+        foreach ([['--dry-run'], [], ['--delete-legacy']] as $arguments) {
+            self::assertSame([2, '', self::unverified('901,903')], $this->migrate($arguments));
+        }
+        $files = $this->files();
+        unset($files['.migrate-receipt-key.lock']);
+        self::assertSame($before, $files);
+        $valid = "902.aes: already migrated; 902.aes kept until --delete-legacy\n";
+        $rest = "909.aes: already migrated; 909.aes kept until --delete-legacy\n"
+            . "910.aes: already migrated; 910.aes kept until --delete-legacy\n"
+            . "911.aes: already migrated; 911.aes kept until --delete-legacy\n";
 
-        list($status, $output) = $this->migrate(['--dry-run']);
+        list($status, $output) = $this->migrate(['--ignore-unverified=901,903']);
+        self::assertSame(3, $status);
+        self::assertSame("901.aes: skipped, legacy kept: 901.v2.aes does not verify with this key (--ignore-unverified)\n"
+            . $valid
+            . "903.aes: skipped, legacy kept: 903.v2.aes does not verify with this key (--ignore-unverified)\n"
+            . $rest . "Skipped, legacy kept: 901, 903\n" . self::summary([0, 4, 0, 2, 0]), $output);
+        // Not listed: still stops.
+        self::assertSame([2, '', self::unverified('903')], $this->migrate(['--ignore-unverified=901']));
+
+        $cannot = "903.aes: 903.v2.aes does not verify, and 903.aes cannot replace it (no voucher with this file decrypts it "
+            . "to a complete PDF or JPEG (--search-voucher-ids tries the other voucher IDs)); both kept\n";
+        list($status, $output) = $this->migrate(['--recreate-unverified', '--dry-run']);
         self::assertSame(1, $status);
-        self::assertSame("901.aes: 901.v2.aes does not verify; would re-create it (voucher 4711)\n" . $lines
-            . self::summary([1, 1, 0, 0, 0, 1], true), $output);
-        self::assertSame($before, $this->files());
+        self::assertSame("901.aes: 901.v2.aes does not verify; would re-create it (voucher 4711)\n" . $valid . $cannot
+            . $rest . "Failed: 903\n" . self::summary([1, 4, 0, 0, 1], true), $output);
+        self::assertSame($before, array_diff_key($this->files(), ['.migrate-receipt-key.lock' => '']));
 
-        list($status, $output) = $this->migrate([]);
+        list($status, $output) = $this->migrate(['--recreate-unverified']);
         self::assertSame(1, $status);
         self::assertSame("901.aes: 901.v2.aes does not verify; re-created it (voucher 4711); 901.aes kept until --delete-legacy\n"
-            . $lines . self::summary([1, 1, 0, 0, 0, 1]), $output);
+            . $valid . $cannot . $rest . "Failed: 903\n" . self::summary([1, 4, 0, 0, 1]), $output);
         self::assertSame(self::paddedPdf(), $this->v2Plain('901'));
         $files = $this->files();
         unset($files['.migrate-receipt-key.lock'], $files['901.v2.aes'], $before['901.v2.aes']);
         // Nothing deleted in the first phase.
         self::assertSame($before, $files);
+
+        // The delete phase deletes nothing whose <n>.v2.aes does not verify.
+        list($status, $output) = $this->migrate(['--delete-legacy', '--ignore-unverified=903']);
+        self::assertSame(3, $status);
+        self::assertStringContainsString("903.aes: skipped, legacy kept: 903.v2.aes does not verify with this key (--ignore-unverified)\n", $output);
+        self::assertFileExists($this->directory . '/files/903.aes');
+        self::assertFileDoesNotExist($this->directory . '/files/901.aes');
+    }
+
+    public function testAWrongKeyChangesNothing()
+    {
+        // Three receipts migrated with the right key, then runs with another
+        // key (another constants.php): they do not re-create the files or
+        // delete legacy files, and stop before writing anything.
+        $jpeg = self::legacyVector('jpeg with trailing NUL bytes');
+        $this->put('901.aes', $this->legacyPdf());
+        $this->put('902.aes', hex2bin($jpeg['cipher']));
+        $this->put('908.aes', $this->legacyPdf());
+        $this->put('909.aes', $this->legacyPdf());
+        self::assertSame(0, $this->migrationStatus(['--limit=3']));
+        $before = $this->files();
+        $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
+        $constants = $this->directory . '/constants.php';
+
+        // The fingerprint of the right key does not confirm another key.
+        $mismatch = '--key-fingerprint=' . self::fingerprint(self::TEST_KEY) . ' does not match the key fingerprint '
+            . self::fingerprint(self::OTHER_KEY) . " of \$key in $constants. Nothing was changed.\n";
+        foreach ([[], ['--delete-legacy'], ['--dry-run']] as $arguments) {
+            self::assertSame([2, '', $mismatch], $this->migrate($arguments));
+        }
+
+        // Confirmed by mistake: the existing files do not verify, so the run
+        // stops, also in the delete phase and in dry runs.
+        $this->confirmedKey = self::OTHER_KEY;
+        foreach ([[], ['--delete-legacy'], ['--dry-run'], ['--delete-legacy', '--dry-run']] as $arguments) {
+            self::assertSame([2, '', self::unverified('901,902,908', self::OTHER_KEY)], $this->migrate($arguments), implode(' ', $arguments));
+        }
+        $files = $this->files();
+        self::assertSame($before, $files);
+
+        // With one existing file left, too.
+        unlink($this->directory . '/files/901.v2.aes');
+        unlink($this->directory . '/files/902.v2.aes');
+        self::assertSame([2, '', self::unverified('908', self::OTHER_KEY)], $this->migrate(['--delete-legacy']));
+        self::assertSame(['.migrate-receipt-key.lock', '901.aes', '902.aes', '908.aes', '908.v2.aes', '909.aes'], array_keys($this->files()));
+        self::assertSame(self::paddedPdf(), $this->v2Plain('908'));
+    }
+
+    public function testTheKeyCheckIncludesV2FilesWithoutLegacyFile()
+    {
+        // After a partial delete phase (and with new uploads), most <n>.v2.aes
+        // have no legacy file left; a run with another key still stops before
+        // it migrates the rest.
+        foreach (['901', '908', '909'] as $number) {
+            $this->put("$number.aes", $this->legacyPdf());
+        }
+        $this->put('907.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '907', '%PDF new upload'));
+        self::assertSame(0, $this->migrationStatus(['--limit=2']));
+        self::assertSame(0, $this->migrationStatus(['--delete-legacy', '--limit=2']));
+        $before = $this->files();
+        self::assertSame(['.migrate-receipt-key.lock', '901.v2.aes', '907.v2.aes', '908.v2.aes', '909.aes'], array_keys($before));
+        $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
+        $this->confirmedKey = self::OTHER_KEY;
+        self::assertSame([2, '', self::unverified('901,907,908', self::OTHER_KEY)], $this->migrate([]));
+        self::assertSame($before, $this->files());
+
+        // With the right key, two damaged files stop the run until they are
+        // listed in --ignore-unverified.
+        $this->writeConstants("<?php\n\$key = '" . self::TEST_KEY . "';\n");
+        $this->confirmedKey = self::TEST_KEY;
+        $this->put('908.aes', $this->legacyPdf());
+        $this->put('908.v2.aes', 'damaged');
+        $this->put('910.v2.aes', 'damaged');
+        foreach (['911', '912'] as $number) {
+            $this->put("$number.v2.aes", receipt_v2_encrypt(self::TEST_KEY, $number, '%PDF new upload'));
+        }
+        self::assertSame([2, '', self::unverified('910,908')], $this->migrate([]));
+        list($status, $output) = $this->migrate(['--ignore-unverified=908,910']);
+        self::assertSame(3, $status);
+        self::assertSame("908.aes: skipped, legacy kept: 908.v2.aes does not verify with this key (--ignore-unverified)\n"
+            . "909.aes: migrated (voucher 4711); 909.aes kept until --delete-legacy\n"
+            . "Skipped, legacy kept: 908\n" . self::summary([1, 0, 0, 1, 0]), $output);
+        // --recreate-unverified cannot re-create 910 (no legacy file).
+        self::assertSame([2, '', self::unverified('910')], $this->migrate(['--recreate-unverified']));
+    }
+
+    public function testOneReceiptOfTheApplicationCatchesAWrongKey()
+    {
+        // A first run with another key: no file is migrated yet, but one
+        // receipt uploaded since the upgrade does not verify, so nothing is
+        // written.
+        $this->put('901.aes', $this->legacyPdf());
+        $this->put('907.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '907', '%PDF new upload'));
+        $before = $this->files();
+        $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
+        $this->confirmedKey = self::OTHER_KEY;
+        self::assertSame([2, '', self::unverified('907', self::OTHER_KEY)], $this->migrate([]));
+        $files = $this->files();
+        unset($files['.migrate-receipt-key.lock']);
+        self::assertSame($before, $files);
+    }
+
+    public function testLimitBatchesCheckABoundedSample()
+    {
+        // 16 receipts without a legacy file fill the key check's sample; the
+        // damaged 901.v2.aes is not in it. A --limit batch does not read it
+        // again, the run without --limit does.
+        for ($number = 920; $number < 936; $number++) {
+            $this->put("$number.v2.aes", receipt_v2_encrypt(self::TEST_KEY, "$number", '%PDF new upload'));
+        }
+        $this->put('901.aes', $this->legacyPdf());
+        $this->put('901.v2.aes', 'damaged');
+        $this->put('909.aes', $this->legacyPdf());
+        list($status, $output) = $this->migrate(['--limit=1']);
+        self::assertSame(0, $status);
+        self::assertSame("901.aes: already migrated (not checked again in a --limit run); 901.aes kept until --delete-legacy\n"
+            . "909.aes: migrated (voucher 4711); 909.aes kept until --delete-legacy\n"
+            . self::summary([1, 1, 0, 0, 0]), $output);
+        list($status, $output) = $this->migrate([]);
+        self::assertSame(1, $status);
+        self::assertStringStartsWith('901.aes: 901.v2.aes does not verify with this key; both kept (--recreate-unverified '
+            . 're-creates it from 901.aes, --ignore-unverified=901 leaves it)', $output);
+        self::assertStringContainsString("909.aes: already migrated; 909.aes kept until --delete-legacy\n", $output);
+        // --recreate-unverified checks every existing file first: 940, a
+        // damaged upload outside the sample, stops it.
+        $this->put('940.v2.aes', 'damaged');
+        self::assertSame(1, $this->migrationStatus([]));
+        self::assertSame([2, '', self::unverified('940')], $this->migrate(['--recreate-unverified', '--dry-run']));
+        list($status, $output) = $this->migrate(['--recreate-unverified', '--ignore-unverified=940', '--dry-run']);
+        self::assertSame(0, $status);
+        self::assertStringStartsWith("901.aes: 901.v2.aes does not verify; would re-create it (voucher 4711)\n", $output);
+
+        // --ignore-unverified skips 901 outside the sample, also in the
+        // delete phase.
+        list($status, $output) = $this->migrate(['--ignore-unverified=901']);
+        self::assertSame(3, $status);
+        self::assertStringStartsWith("901.aes: skipped, legacy kept: 901.v2.aes does not verify with this key (--ignore-unverified)\n", $output);
+        list($status, $output) = $this->migrate(['--delete-legacy', '--ignore-unverified=901']);
+        self::assertSame(3, $status);
+        self::assertSame(self::deleteReminder()
+            . "901.aes: skipped, legacy kept: 901.v2.aes does not verify with this key (--ignore-unverified)\n"
+            . "909.aes: verified; deleted 909.aes\n"
+            . "Skipped, legacy kept: 901\n" . self::summary([0, 0, 1, 1, 0]), $output);
+    }
+
+    public function testWritingAndDeletingNeedTheKeyFingerprint()
+    {
+        $this->put('901.aes', $this->legacyPdf());
+        $before = $this->files();
+        $message = "A run that writes or deletes needs --key-fingerprint=<8 hex digits>: the key fingerprint that the "
+            . "user administration page (Benutzerverwaltung) shows root, from the application whose receipts these are. "
+            . "Nothing was changed.\n";
+        foreach ([[], ['--delete-legacy'], ['--recreate-unverified']] as $arguments) {
+            self::assertSame([2, '', $message], $this->migrate($arguments, true, false));
+        }
+        self::assertSame($before, $this->files());
+        // A dry run needs none; upper case is accepted.
+        list($status, $output) = $this->migrate(['--dry-run'], true, false);
+        self::assertSame(0, $status);
+        self::assertStringEndsWith('key fingerprint ' . self::fingerprint(self::TEST_KEY) . "\n", $output);
+        self::assertSame(0, $this->migrate(['--key-fingerprint=' . strtoupper(self::fingerprint(self::TEST_KEY))], true, false)[0]);
+        self::assertSame(self::paddedPdf(), $this->v2Plain('901'));
+    }
+
+    public function testIncludeUnusualFiles()
+    {
+        // 904 (a PNG) and 912 (a cut-off PDF) decrypt with their voucher ID;
+        // 903 does not (the merged case) and stays skipped.
+        $png = rijndael256_zero_pad("\x89PNG\r\n\x1a\nsynthetic");
+        $cutOff = rijndael256_zero_pad("%PDF-1.4\nsynthetic, but cut off");
+        $this->put('903.aes', $this->legacyPdf());
+        $this->put('904.aes', receipt_encrypt('4711', '', $png));
+        $this->put('912.aes', receipt_encrypt('4711', '', $cutOff));
+        $skipped = '903.aes: skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG '
+            . "(--search-voucher-ids tries the other voucher IDs)\n";
+
+        list($status, $output) = $this->migrate(['--include-unusual']);
+        self::assertSame(3, $status);
+        self::assertSame($skipped
+            . "904.aes: migrated (voucher 4711, unusual: a PNG image); 904.aes kept until --delete-legacy\n"
+            . "912.aes: migrated (voucher 4711, unusual: a PDF that looks incomplete or has data after its end); "
+            . "912.aes kept until --delete-legacy\n"
+            . "Skipped, legacy kept: 903\n"
+            . self::summary([2, 0, 0, 1, 0]), $output);
+        self::assertSame($png, $this->v2Plain('904'));
+        self::assertSame($cutOff, $this->v2Plain('912'));
+
+        // The delete phase needs the option too.
+        list($status, $output) = $this->migrate(['--delete-legacy']);
+        self::assertSame(3, $status);
+        self::assertStringContainsString("904.aes: skipped, legacy kept: voucher 4711 decrypts it to a PNG image", $output);
+        self::assertStringContainsString("Skipped, legacy kept: 903, 904, 912\n", $output);
+        list($status, $output) = $this->migrate(['--delete-legacy', '--include-unusual']);
+        self::assertSame(3, $status);
+        self::assertSame(self::deleteReminder()
+            . "903.aes: skipped, legacy kept: no 903.v2.aes (skipped by the migration or not migrated yet; "
+            . "a run without --delete-legacy lists why)\n"
+            . "904.aes: verified; deleted 904.aes\n"
+            . "912.aes: verified; deleted 912.aes\n"
+            . "Skipped, legacy kept: 903\n"
+            . self::summary([0, 0, 2, 1, 0]), $output);
+        self::assertSame(['.migrate-receipt-key.lock', '903.aes', '904.v2.aes', '912.v2.aes'], array_keys($this->files()));
+    }
+
+    public function testUnusualTypes()
+    {
+        self::assertSame('a PNG image', receipt_migration_unusual_type("\x89PNG\r\n\x1a\nrest", 64));
+        self::assertSame('a GIF image', receipt_migration_unusual_type('GIF87a', 32));
+        self::assertSame('a GIF image', receipt_migration_unusual_type('GIF89a', 32));
+        self::assertSame('a TIFF image', receipt_migration_unusual_type("II*\0", 32));
+        self::assertSame('a TIFF image', receipt_migration_unusual_type("MM\0*", 32));
+        self::assertSame('a JPEG that looks incomplete or has data after its end', receipt_migration_unusual_type("\xFF\xD8\xFF\xE0", 32));
+        self::assertSame('an empty file', receipt_migration_unusual_type(str_repeat("\0", 32), 32));
+        // Zeros are an empty file only if the file is one block.
+        self::assertNull(receipt_migration_unusual_type(str_repeat("\0", 32), 64));
+        self::assertNull(receipt_migration_unusual_type(str_repeat("\0", 31) . 'x', 32));
+        self::assertNull(receipt_migration_unusual_type("\x89PNG\r\n\x1a", 32));
+        self::assertNull(receipt_migration_unusual_type('GIF88a', 32));
+        self::assertNull(receipt_migration_unusual_type('random bytes', 32));
+    }
+
+    public function testSearchVoucherIds()
+    {
+        // 903 (rows of voucher 4712) and 905 (no row) were encrypted for
+        // voucher 4711; 913 for 4700, an ID that no row has any more (a
+        // merge); 914 has no row and decrypts with voucher 4711 only to a
+        // cut-off PDF, which the search does not accept.
+        $this->put('903.aes', $this->legacyPdf());
+        $this->put('905.aes', $this->legacyPdf());
+        $this->put('913.aes', receipt_encrypt('4700', '', self::paddedPdf()));
+        $this->put('914.aes', receipt_encrypt('4711', '', "%PDF-1.4\nsynthetic, but cut off"));
+        pg_query($this->connection, 'DELETE FROM vouchers WHERE voucher_id = 4700');
+
+        list($status, $output) = $this->migrate(['--search-voucher-ids']);
+        self::assertSame(3, $status);
+        self::assertSame(
+            "903.aes: migrated (voucher 4711, found by --search-voucher-ids; its rows have voucher 4712); "
+            . "903.aes kept until --delete-legacy\n"
+            . "905.aes: migrated (voucher 4711, found by --search-voucher-ids; no voucher has this file); "
+            . "905.aes kept until --delete-legacy\n"
+            . "913.aes: migrated (voucher 4700, found by --search-voucher-ids; no voucher has this file); "
+            . "913.aes kept until --delete-legacy\n"
+            . "914.aes: skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG, "
+            . "and no other voucher ID does\n"
+            . "Skipped, legacy kept: 914\n"
+            . self::summary([3, 0, 0, 1, 0]),
+            $output,
+        );
+        foreach (['903', '905', '913'] as $number) {
+            self::assertSame(self::paddedPdf(), $this->v2Plain($number));
+        }
+        list($status, $output) = $this->migrate(['--delete-legacy', '--search-voucher-ids']);
+        self::assertSame(3, $status);
+        self::assertStringEndsWith("Skipped, legacy kept: 914\n" . self::summary([0, 0, 3, 1, 0]), $output);
+        self::assertSame(['.migrate-receipt-key.lock', '903.v2.aes', '905.v2.aes', '913.v2.aes', '914.aes'], array_keys($this->files()));
+    }
+
+    public function testSearchVoucherIdsDatabaseFailure()
+    {
+        $this->put('903.aes', $this->legacyPdf());
+        pg_query($this->connection, 'DROP SEQUENCE voucher_number CASCADE');
+        list($status, $output) = $this->migrate(['--search-voucher-ids']);
+        self::assertSame(1, $status);
+        self::assertStringStartsWith('903.aes: database query failed: ', $output);
+        self::assertStringEndsWith("Failed: 903\n" . self::summary([0, 0, 0, 0, 1]), $output);
+    }
+
+    public function testGenuineLegacyFilesOfTheOriginalCode()
+    {
+        // tests/fixtures/legacy-php53: files written by the original upload
+        // code on PHP 5.3.3 with mcrypt, and the SHA-256 of what the original
+        // download sent. Voucher 711 (file 11) was merged into 799.
+        $fixture = dirname(__DIR__) . '/fixtures/legacy-php53';
+        $downloads = [];
+        foreach (file("$fixture/downloads.txt", FILE_IGNORE_NEW_LINES) as $line) {
+            if ($line[0] !== '#') {
+                [$name, $type, $length, $sha256] = explode(' ', $line);
+                $downloads[$name] = [$type, intval($length), $sha256];
+            }
+        }
+        pg_query($this->connection, 'DELETE FROM vouchers WHERE voucher_id > 1000');
+        $numbers = [];
+        foreach (file("$fixture/cases.txt", FILE_IGNORE_NEW_LINES) as $line) {
+            if ($line[0] === '#') {
+                continue;
+            }
+            [$number, $voucher] = explode(' ', $line);
+            $numbers[] = $number;
+            $voucher = $voucher === '711' ? '799' : $voucher;
+            copy("$fixture/files/$number.aes", "{$this->directory}/files/$number.aes");
+            pg_query_params($this->connection, "INSERT INTO vouchers (id, voucher_id, type, orga, comment, date, file)
+                VALUES ($1, $2, 20, 2, 'Synthetic legacy fixture', timestamp '2013-07-12 00:00:00', $3)", [9000 + $number, $voucher, $number]);
+            // The legacy read sends what the original download sent.
+            $plain = receipt_decrypt($voucher, '', file_get_contents("$fixture/files/$number.aes"));
+            self::assertSame($downloads[$number][2], hash('sha256', $plain), $number);
+        }
+        self::assertSame(15, count($numbers));
+
+        list($status, $output) = $this->migrate([]);
+        self::assertSame(3, $status);
+        self::assertStringEndsWith("Skipped, legacy kept: 6, 7, 9, 10, 11, 16\n" . self::summary([9, 0, 0, 6, 0]), $output);
+        list($status, $output) = $this->migrate(['--include-unusual', '--search-voucher-ids']);
+        self::assertSame(0, $status);
+        self::assertSame(
+            "1.aes: already migrated; 1.aes kept until --delete-legacy\n"
+            . "2.aes: already migrated; 2.aes kept until --delete-legacy\n"
+            . "3.aes: already migrated; 3.aes kept until --delete-legacy\n"
+            . "5.aes: already migrated; 5.aes kept until --delete-legacy\n"
+            . "6.aes: migrated (voucher 706, unusual: a JPEG that looks incomplete or has data after its end); 6.aes kept until --delete-legacy\n"
+            . "7.aes: migrated (voucher 707, unusual: an empty file); 7.aes kept until --delete-legacy\n"
+            . "9.aes: migrated (voucher 709, unusual: a PNG image); 9.aes kept until --delete-legacy\n"
+            . "10.aes: migrated (voucher 710, unusual: a JPEG that looks incomplete or has data after its end); 10.aes kept until --delete-legacy\n"
+            . "11.aes: migrated (voucher 711, found by --search-voucher-ids; its rows have voucher 799); 11.aes kept until --delete-legacy\n"
+            . "12.aes: already migrated; 12.aes kept until --delete-legacy\n"
+            . "13.aes: already migrated; 13.aes kept until --delete-legacy\n"
+            . "14.aes: already migrated; 14.aes kept until --delete-legacy\n"
+            . "15.aes: already migrated; 15.aes kept until --delete-legacy\n"
+            . "16.aes: migrated (voucher 716, unusual: a PDF that looks incomplete or has data after its end); 16.aes kept until --delete-legacy\n"
+            . "17.aes: already migrated; 17.aes kept until --delete-legacy\n"
+            . self::summary([6, 9, 0, 0, 0]),
+            $output,
+        );
+        // Every migrated receipt downloads the bytes the original download
+        // sent before the merge.
+        foreach ($numbers as $number) {
+            $expected = $downloads[$number === '11' ? '11-before-merge' : $number];
+            $plain = receipt_v2_read_with(self::TEST_KEY, $number, "{$this->directory}/files/$number.v2.aes");
+            self::assertSame([$expected[1], $expected[2]], [strlen($plain), hash('sha256', $plain)], $number);
+            // The legacy download sent everything but a PDF as image/jpeg;
+            // from <n>.v2.aes a PNG is sent as image/png, an empty file as a
+            // download (application/octet-stream).
+            $type = ['7' => 'application/octet-stream', '9' => 'image/png'][$number] ?? $expected[0];
+            self::assertSame($type, receipt_content_type($plain), $number);
+        }
+
+        list($status, $output) = $this->migrate(['--delete-legacy', '--include-unusual', '--search-voucher-ids']);
+        self::assertSame(0, $status);
+        self::assertStringEndsWith(self::summary([0, 0, 15, 0, 0]), $output);
+        foreach ($numbers as $number) {
+            self::assertFileDoesNotExist("{$this->directory}/files/$number.aes");
+        }
+    }
+
+    public function testNewFilesGetTheOwnerGroupAndModeOfTheLegacyFile()
+    {
+        if (receipt_migration_euid() !== 0) {
+            self::markTestSkipped('needs root (ReceiptMigrationCommandTest covers other users)');
+        }
+        $this->put('901.aes', $this->legacyPdf());
+        $legacy = $this->directory . '/files/901.aes';
+        self::assertTrue(chown($legacy, 33) && chgrp($legacy, 34) && chmod($legacy, 0640));
+        $previous = umask(077);
+        try {
+            $status = $this->migrationStatus([]);
+        } finally {
+            umask($previous);
+        }
+        self::assertSame(0, $status);
+        $v2 = $this->directory . '/files/901.v2.aes';
+        clearstatcache();
+        self::assertSame([33, 34, 0640], [fileowner($v2), filegroup($v2), fileperms($v2) & 07777]);
+        self::assertSame(self::paddedPdf(), $this->v2Plain('901'));
+    }
+
+    public function testWritingNotAsRoot()
+    {
+        // receipt_migration_write() as for another user ($root false; run
+        // here as root, so the group can always be set, the owner not).
+        if (receipt_migration_euid() !== 0) {
+            self::markTestSkipped('needs root to give the legacy files other owners');
+        }
+        $files = $this->directory . '/files';
+        $cases = [
+            // Owner 33, group 34, 0644: readable for everyone.
+            ['1', 0644, ['', '; warning: owner or group differ from 1.aes, readable for its group']],
+            // 0640: readable through the group, which could be set.
+            ['2', 0640, ['', '; warning: owner or group differ from 2.aes, readable for its group']],
+            // 0600: only the owner could read it.
+            ['3', 0600, ['would not be readable by the owner or group of 3.aes (run as its owner, or as root)', '']],
+        ];
+        foreach ($cases as [$number, $mode, $expected]) {
+            file_put_contents("$files/$number.aes", 'legacy');
+            self::assertTrue(chown("$files/$number.aes", 33) && chgrp("$files/$number.aes", 34) && chmod("$files/$number.aes", $mode));
+            self::assertSame($expected, receipt_migration_write("$files/$number.v2.aes", 'new', "$files/$number.aes", false), $number);
+            clearstatcache();
+            if ($expected[0] === '') {
+                self::assertSame([0, 34, $mode], [fileowner("$files/$number.v2.aes"), filegroup("$files/$number.v2.aes"), fileperms("$files/$number.v2.aes") & 0777]);
+            } else {
+                self::assertFileDoesNotExist("$files/$number.v2.aes");
+            }
+        }
+        // The owner itself: no warning.
+        file_put_contents("$files/4.aes", 'legacy');
+        chmod("$files/4.aes", 0600);
+        self::assertSame(['', ''], receipt_migration_write("$files/4.v2.aes", 'new', "$files/4.aes", false));
+        self::assertSame(['1.aes', '1.v2.aes', '2.aes', '2.v2.aes', '3.aes', '4.aes', '4.v2.aes'], array_keys($this->files()));
+    }
+
+    public function testWarnsWhenRunAsRoot()
+    {
+        if (receipt_migration_euid() !== 0) {
+            self::markTestSkipped('needs root');
+        }
+        $out = fopen('php://memory', 'w+');
+        $err = fopen('php://memory', 'w+');
+        self::assertSame(2, receipt_migration_main(['--constants=' . $this->directory . '/missing.php'], $out, $err));
+        rewind($err);
+        self::assertStringStartsWith(self::rootWarning() . 'No valid receipt key', stream_get_contents($err));
     }
 
     public function testDeleteLegacyFlushesFirst()
@@ -312,7 +760,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame(0, $this->migrationStatus(['--delete-legacy', '--sync=false', '--dry-run']));
         list($status, $output) = $this->migrate(['--delete-legacy', '--sync=sync']);
         self::assertSame(0, $status);
-        self::assertStringEndsWith("901.aes: verified; deleted 901.aes\n" . self::summary([0, 0, 1, 0, 0, 0]), $output);
+        self::assertStringEndsWith("901.aes: verified; deleted 901.aes\n" . self::summary([0, 0, 1, 0, 0]), $output);
     }
 
     public function testFailuresKeepEveryFile()
@@ -326,7 +774,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         list($status, $output, $errors) = $this->migrate([]);
         self::assertSame([1, ''], [$status, $errors]);
         self::assertSame("901.aes: 901.v2.aes could not be written; 901.aes kept\n"
-            . self::summary([0, 0, 0, 0, 0, 1]), $output);
+            . "Failed: 901\n" . self::summary([0, 0, 0, 0, 1]), $output);
         $files = $this->files();
         unset($files['.migrate-receipt-key.lock']);
         self::assertSame($before, $files);
@@ -340,7 +788,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         list($status, $output) = $this->migrate([]);
         self::assertSame(1, $status);
         self::assertStringStartsWith('901.aes: database query failed: ', $output);
-        self::assertStringEndsWith(self::summary([0, 0, 0, 0, 0, 1]), $output);
+        self::assertStringEndsWith(self::summary([0, 0, 0, 0, 1]), $output);
         self::assertSame(['.migrate-receipt-key.lock', '901.aes'], array_keys($this->files()));
     }
 
@@ -356,7 +804,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             "909.aes: migrated (voucher 4711); 909.aes kept until --delete-legacy\n"
             . "910.aes: migrated (voucher 4711); 910.aes kept until --delete-legacy\n"
             . "Stopped after --limit=2; run again for the remaining files.\n"
-            . self::summary([2, 0, 0, 0, 0, 0]),
+            . self::summary([2, 0, 0, 0, 0]),
             $output,
         );
         self::assertFalse(is_file($this->directory . '/files/911.v2.aes'));
@@ -390,10 +838,15 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
     {
         $this->put('901.aes', $this->legacyPdf());
         $before = $this->files();
-        $usage = "Usage: php migrate-receipt-key.php [--dry-run] [--delete-legacy] [--limit=N]\n"
-            . "       [--max-size=BYTES] [--files=DIR] [--constants=FILE] [--database=CONNINFO] [--sync=COMMAND]\n";
+        $usage = receipt_migration_usage();
+        self::assertSame("Usage: php migrate-receipt-key.php [--dry-run] [--key-fingerprint=HEX] [--delete-legacy]\n"
+            . "       [--recreate-unverified] [--ignore-unverified=N,...] [--include-unusual] [--search-voucher-ids]\n"
+            . "       [--limit=N] [--max-size=BYTES] [--files=DIR] [--constants=FILE]\n"
+            . "       [--database=CONNINFO] [--sync=COMMAND]\n", $usage);
         $arguments = ['--limit=0', '--limit=x', '--limit=', '--max-size=0', '--max-size=1k', '--keep-legacy',
-            'files', '--files=', '--sync='];
+            'files', '--files=', '--sync=', '--key-fingerprint=', '--key-fingerprint=1234567', '--key-fingerprint=123456789',
+            '--key-fingerprint=1234567g', '--recreate-invalid', '--include-unusual=1', '--ignore-unverified=',
+            '--ignore-unverified=0', '--ignore-unverified=1,', '--ignore-unverified=1,,2'];
         foreach ($arguments as $argument) {
             self::assertSame([2, '', $usage], $this->migrate([$argument]), $argument);
         }
@@ -480,7 +933,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         ]);
         self::assertSame([0, ''], [$status, $errors]);
         self::assertSame("901.aes: would migrate (voucher 4711)\n"
-            . self::summary([1, 0, 0, 0, 0, 0], true, self::OTHER_KEY), $output);
+            . self::summary([1, 0, 0, 0, 0], true, self::OTHER_KEY), $output);
 
         list($status, , $errors) = $this->migrateFrom($this->directory . '/files', [
             '--files=.',

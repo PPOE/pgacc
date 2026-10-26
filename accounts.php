@@ -44,6 +44,9 @@ function page_accounts($rights)
     if (has_right($rights, 'root')) {
         echo '<p>1: Burgenland, 2: Kärnten, 3: Niederösterreich, 4: Oberösterreich, 5: Salzburg, 6: Steiermark, 8: Vorarlberg, 9: Wien, 10: Bund (only), bgf: Alles</p>';
         echo '<p>Ein vorgestelltes R erzeugt einen read only Zugang. Beispiel: Rbgf. root hat Möglichkeit Buchungen zu mergen, sowie gelöschte Buchungszeilen wiederherzustellen</p>';
+        // For migrate-receipt-key.php --key-fingerprint (UPGRADING.md): a
+        // fingerprint of the configured key, never the key itself.
+        echo receipt_key_notice(receipt_configured_key());
     }
     block_start();
     echo '<form action="index.php?action=accounts" method="POST">' . csrf_field() . '<table>

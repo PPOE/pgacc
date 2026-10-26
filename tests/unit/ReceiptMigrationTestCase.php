@@ -15,6 +15,8 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
 
     protected $directory;
     protected $connection;
+    // The key whose fingerprint migrate() confirms by default.
+    protected $confirmedKey = self::TEST_KEY;
 
     #[PHPUnit\Framework\Attributes\Before]
     public function prepare()
@@ -103,15 +105,18 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         return receipt_v2_decrypt(self::TEST_KEY, $number, file_get_contents($this->directory . "/files/$number.v2.aes"));
     }
 
-    // array(exit status, output, errors) of receipt_migration_main().
-    protected function migrate($arguments, $defaults = true)
+    // array(exit status, output, errors) of receipt_migration_main(); by
+    // default with the test directory, database and the fingerprint of
+    // $confirmedKey. The warning of a run as root is checked and removed
+    // from the errors (testWarnsWhenRunAsRoot).
+    protected function migrate($arguments, $defaults = true, $fingerprint = true)
     {
         if ($defaults) {
             $arguments = array_merge([
                 '--files=' . $this->directory . '/files',
                 '--constants=' . $this->directory . '/constants.php',
                 '--database=' . pgacc_test_connection_string(),
-            ], $arguments);
+            ], $fingerprint ? ['--key-fingerprint=' . self::fingerprint($this->confirmedKey)] : [], $arguments);
         }
         $out = fopen('php://memory', 'w+');
         $err = fopen('php://memory', 'w+');
@@ -132,7 +137,12 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         self::assertSame([], $diagnostics);
         rewind($out);
         rewind($err);
-        $result = [$status, stream_get_contents($out), stream_get_contents($err)];
+        $errors = stream_get_contents($err);
+        if (receipt_migration_euid() === 0 && $errors !== receipt_migration_usage()) {
+            self::assertStringStartsWith(self::rootWarning(), $errors);
+            $errors = substr($errors, strlen(self::rootWarning()));
+        }
+        $result = [$status, stream_get_contents($out), $errors];
         self::assertStringNotContainsString(self::TEST_KEY, $result[1] . $result[2]);
         return $result;
     }
@@ -141,7 +151,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     {
         return ($dryRun ? 'Dry run, nothing written: ' : '')
             . "{$counts[0]} migrated, {$counts[1]} already migrated, {$counts[2]} legacy deleted, "
-            . "{$counts[3]} not yet migrated, {$counts[4]} skipped, {$counts[5]} failed; "
+            . "{$counts[3]} skipped, {$counts[4]} failed; "
             . 'key fingerprint ' . self::fingerprint($key) . "\n";
     }
 
@@ -163,6 +173,22 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     {
         $result = $this->migrate($arguments);
         return $result[0];
+    }
+
+    // The message of a run whose key check finds files that do not verify.
+    protected static function unverified($list, $key = self::TEST_KEY)
+    {
+        return 'These existing <n>.v2.aes do not verify with the key of this run (key fingerprint '
+            . self::fingerprint($key) . "): $list. Nothing was changed. If the key is wrong, run with the "
+            . 'constants.php of the application (--key-fingerprint from its user administration page). If the key is right '
+            . 'and the files are damaged, keep a copy of them and either re-create those that still have a legacy file with '
+            . "--recreate-unverified, or leave them alone with --ignore-unverified=$list.\n";
+    }
+
+    protected static function rootWarning()
+    {
+        return "Warning: running as root. Each new <n>.v2.aes gets the owner, group and mode of its <n>.aes; "
+            . "running as the web server's user is preferred.\n";
     }
 
     // The reminder that every --delete-legacy run prints first.

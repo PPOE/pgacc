@@ -750,10 +750,27 @@ function receipt_configured_key()
     return '';
 }
 
-// Identifies a key in the migration's output without revealing it.
+// Identifies a key (the migration's --key-fingerprint, shown to root on the
+// user administration page) without revealing it: Argon2id with a fixed salt
+// (the first 16 bytes of SHA-256("pgacc-key-fingerprint")), opslimit 2 and
+// memlimit 64 MiB (libsodium's interactive limits), first 8 hex digits. The
+// slow derivation keeps a fingerprint that was seen from being a fast test
+// for guessed keys.
 function receipt_key_fingerprint($key)
 {
-    return substr(hash_hmac('sha256', 'pgacc-key-fingerprint', $key), 0, 8);
+    $salt = substr(hash('sha256', 'pgacc-key-fingerprint', true), 0, 16);
+    return substr(bin2hex(sodium_crypto_pwhash(16, $key, $salt, 2, 67108864, SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13)), 0, 8);
+}
+
+// The receipt key paragraph of the user administration page (root only):
+// the fingerprint of the configured key, and a warning for a short one.
+function receipt_key_notice($key)
+{
+    if (!receipt_key_is_valid($key)) {
+        return '<p>Fingerabdruck des Beleg-Schlüssels (für migrate-receipt-key.php --key-fingerprint): kein gültiger Schlüssel ($key) konfiguriert</p>';
+    }
+    return '<p>Fingerabdruck des Beleg-Schlüssels (für migrate-receipt-key.php --key-fingerprint): ' . html_escape(receipt_key_fingerprint($key)) . '</p>'
+        . (strlen($key) < 32 ? '<p>Warnung: Der Beleg-Schlüssel ($key) hat weniger als 32 Zeichen. Er darf nicht mehr geändert werden, sobald Belege damit verschlüsselt sind (UPGRADING.md).</p>' : '');
 }
 
 function receipt_v2_path($directory, $number)
@@ -766,14 +783,21 @@ function receipt_legacy_path($directory, $number)
     return $directory . '/' . $number . '.aes';
 }
 
-// PDF and JPEG by their magic bytes; anything else is sent as a download.
+// PDF, JPEG, PNG and GIF by their magic bytes; anything else is sent as a
+// download.
 function receipt_content_type($plain)
 {
-    if (str_starts_with($plain, '%PDF')) {
-        return 'application/pdf';
-    }
-    if (str_starts_with($plain, "\xFF\xD8\xFF")) {
-        return 'image/jpeg';
+    $types = [
+        '%PDF' => 'application/pdf',
+        "\xFF\xD8\xFF" => 'image/jpeg',
+        "\x89PNG\r\n\x1A\n" => 'image/png',
+        'GIF87a' => 'image/gif',
+        'GIF89a' => 'image/gif',
+    ];
+    foreach ($types as $magic => $type) {
+        if (str_starts_with($plain, $magic)) {
+            return $type;
+        }
     }
     return 'application/octet-stream';
 }
@@ -917,11 +941,13 @@ function receipt_temp_path($path)
 }
 
 // Writes a temporary file next to $path and renames it over $path, so readers
-// never see a partly written file. Only the temporary file is ever removed.
-function receipt_write_file($path, $bytes)
+// never see a partly written file. $prepare (optional) is called with the
+// temporary file's path before the rename and must return true. Only the
+// temporary file is ever removed.
+function receipt_write_file($path, $bytes, $prepare = null)
 {
     $temp = receipt_temp_path($path);
-    if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path)) {
+    if (@file_put_contents($temp, $bytes) === strlen($bytes) && ($prepare === null || $prepare($temp)) && @rename($temp, $path)) {
         return true;
     }
     @unlink($temp);
@@ -1067,16 +1093,6 @@ function receipt_v2_read_with($key, $number, $path)
     });
     return $complete ? implode('', $chunks) : false;
 }
-
-// True if files/<number>.v2.aes ($path) decrypts through the chunked path;
-// nothing is kept, so memory does not grow with the receipt.
-function receipt_v2_verify_with($key, $number, $path)
-{
-    $receipt = receipt_v2_open_with($key, $number, $path);
-    return $receipt !== false && receipt_v2_decrypt_chunks($receipt, 'receipt_v2_discard');
-}
-
-function receipt_v2_discard($chunk) {}
 
 function receipt_v2_echo($chunk)
 {

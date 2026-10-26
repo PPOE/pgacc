@@ -15,8 +15,17 @@
  * hash_hkdf(), no salt) of the key with the info "pgacc-receipt-v2|enc|<n>"
  * and "pgacc-receipt-v2|mac|<n>".
  *
- * Needs PHP 7.1.2 (hash_hkdf()).
+ * Needs PHP 7.2 (hash_hkdf(), sodium).
  */
+// The key fingerprint (receipt_key_fingerprint()): Argon2id (libsodium,
+// opslimit 2, memlimit 64 MiB) of the key with the salt SHA-256
+// ("pgacc-key-fingerprint")[0..16), first 8 hex digits. Needs PHP 7.2.
+function key_fingerprint($key)
+{
+    $salt = substr(hash('sha256', 'pgacc-key-fingerprint', true), 0, 16);
+    return substr(bin2hex(sodium_crypto_pwhash(16, $key, $salt, 2, 67108864, SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13)), 0, 8);
+}
+
 function v2_vector($name, $key, $number, $iv, $plain)
 {
     $encryptionKey = hash_hkdf('sha256', $key, 32, 'pgacc-receipt-v2|enc|' . $number);
@@ -70,8 +79,8 @@ echo json_encode(array(
     'generator' => 'tests/fixtures/receipt-v2/generate-vectors.php',
     'php' => PHP_VERSION,
     'fingerprints' => array(
-        $key => substr(hash_hmac('sha256', 'pgacc-key-fingerprint', $key), 0, 8),
-        $otherKey => substr(hash_hmac('sha256', 'pgacc-key-fingerprint', $otherKey), 0, 8),
+        $key => key_fingerprint($key),
+        $otherKey => key_fingerprint($otherKey),
     ),
     'vectors' => $vectors,
 ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";

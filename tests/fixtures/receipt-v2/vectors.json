@@ -2,8 +2,8 @@
     "generator": "tests/fixtures/receipt-v2/generate-vectors.php",
     "php": "7.4.33",
     "fingerprints": {
-        "synthetic-test-only-encryption-key": "b3c87107",
-        "another-synthetic-receipt-key": "ec1cf7a9"
+        "synthetic-test-only-encryption-key": "ed9eb5a4",
+        "another-synthetic-receipt-key": "06cf425d"
     },
     "vectors": [
         {
