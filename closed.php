@@ -287,7 +287,7 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
+        echo tag("td", format_amount($line["amount"], "€"));
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");

@@ -20,15 +20,22 @@ return [
     'mutations' => [
         [
             'id' => 'anlage-sum-unformatted',
-            'search' => '<td>" . sprintf("%1.2f", $amount) . "&nbsp;€</td><td>0.00&nbsp;€',
-            'replace' => '<td>$amount&nbsp;€</td><td>0.00&nbsp;€',
+            'search' => '<td>" . format_amount($amount, "&nbsp;€") . "</td><td>0.00&nbsp;€',
+            'replace' => '<td>" . ($amount / 100.0) . "&nbsp;€</td><td>0.00&nbsp;€',
             'rationale' => 'The pre-fix donation sum: a whole-euro (or zero) sum loses its cents.',
         ],
         [
             'id' => 'anlage-sum-no-decimals',
-            'search' => 'sprintf("%1.2f", $amount)',
-            'replace' => 'sprintf("%1.0f", $amount)',
+            'search' => 'format_amount($amount, "&nbsp;€")',
+            'replace' => 'sprintf("%1.0f", $amount / 100.0) . "&nbsp;€"',
             'rationale' => 'A format without cent places.',
+        ],
+        [
+            'id' => 'format-amount-no-decimals',
+            'file' => 'src/format.php',
+            'search' => '    return sprintf("%1.2f", $cents / 100.0) . $unit;',
+            'replace' => '    return sprintf("%1.0f", $cents / 100.0) . $unit;',
+            'rationale' => 'format_amount() (every report and listing amount) without cent places.',
         ],
         [
             'id' => 'anlage-related-zero-without-cents',

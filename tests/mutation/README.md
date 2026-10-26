@@ -3,7 +3,7 @@
 Two tools, both on the PHP 8.5 lane (the only lane after `php5-last`):
 
 - [Infection](https://infection.github.io/) generates mutants for the
-  PHPUnit-tested helpers in `functions.php` (through a class wrapper) and
+  PHPUnit-tested helpers in `functions.php` and `src/format.php` (through a class wrapper) and
   reports a mutation score. It is a report, not a CI gate yet. Use it for
   broad coverage of helpers that PHPUnit calls directly. See [Infection](#infection).
 - `run.sh`, the target-driven runner, applies hand-written, reviewable
@@ -36,7 +36,7 @@ run or a `--min-msi`/`--min-covered-msi` option. CI runs both
 targets (`functions`, `shim`) on full runs only, with `continue-on-error`, and
 uploads the reports.
 
-Run Infection once for a finished `functions.php` helper change, not after
+Run Infection once for a finished `functions.php` or `src/format.php` helper change, not after
 every edit.
 
 ### Versions
@@ -56,28 +56,34 @@ every edit.
 No Infection release (checked up to 0.35.8) mutates functions outside a class,
 so `functions.php` alone gives 0 mutants. `infection-shim.php` (command-line
 entry for `PgaccInfectionShim` in `InfectionShim.php`) writes a disposable copy
-to `/tmp/infection-src/functions.php` in the container:
+of each file that `infection.sh` lists (`functions.php` and the library files in
+`src/`) to the same path under `/tmp/infection-src` in the container:
 
 - each top-level `function name(` becomes `public static function name(` of
-  one final class, on the same line;
+  one final class per file (`PgaccFunctionsMutationShim`,
+  `PgaccSrcFormatMutationShim`, ...), on the same line;
 - after the class, each global name is a one-line delegate,
   `function name(...$arguments) { return Class::name(...$arguments); }`.
 
 Tests keep calling the global names, so defaults, `global`, output and return
-values are unchanged, and reported line numbers are `functions.php` lines. The
+values are unchanged, and reported line numbers are those of the original file. The
 wrapper refuses what it cannot wrap faithfully: other top-level code,
-by-reference parameters or returns, any `static`, and
-`__FUNCTION__`/`func_get_args()`-style constructs. `PGACC_FUNCTIONS_FILE` makes
-`tests/functions-bootstrap.php` load the copy; `infection/phpunit.xml` mirrors
-`phpunit.xml` with coverage on it. `@function_signature` mutators are disabled
+by-reference parameters or returns, any `static`,
+`__FUNCTION__`/`func_get_args()`-style constructs, and `__DIR__`/`__FILE__`
+(the copy is elsewhere; so `src/db.php`, whose `db_caller()` derives the
+application directory from its own, is left to the `db-helpers` target).
+`PGACC_INFECTION_SOURCE` makes `tests/functions-bootstrap.php` load the copies
+(`pgacc_test_source()`), `infection-bootstrap.php` loads them for Infection, and
+`infection/phpunit.xml` mirrors `phpunit.xml` with coverage on them. `@function_signature` mutators are disabled
 (they only break the wrapper). Mutants are reported against the `/tmp` path, so
 `--git-diff-lines` does not apply.
 
 `tests/unit/InfectionShimTest.php` (in the normal suite) checks exact output
-for small inputs, that every function of `functions.php` and of
-`tests/fixtures/infection-shim/functions.php` keeps its line and the result
+for small inputs, the class name of each file, that every function of the wrapped
+application files and of `tests/fixtures/infection-shim/functions.php` keeps its line and the result
 passes `php -l`, that the wrapped fixture behaves like the original (in
-separate `php -n` processes), each refusal message, and the command-line entry.
+separate `php -n` processes, also together with `src/fixture.php`), each refusal
+message, and the command-line entry.
 Its own coverage (100% of lines and branches):
 
 ```sh
@@ -101,7 +107,14 @@ replacement and its review fixes):
 |---|---:|---:|---:|---:|---:|
 | PHP 8.5, Infection 0.35.8 | 723 | 494 | 220 | 7 | 2 |
 
-Rerun after `functions.php` changes and compare with this table. No mutant
+Run of 2026-10-26 on `functions.php` and `src/format.php` (with
+`AmountParsingTest` and `FormatTest` added to the Infection suite): 1639 mutants,
+MSI 86% (master before: 1634, 81%). `amount_cents()` 64 of 65 killed (before:
+all 65 not covered); the escaped `preg_quote()` removal is equivalent (the
+thousands separators `,` and `.` need no quoting in a character class).
+`format_amount()` 5 of 5, `format_date()` as before (the regex anchors).
+
+Rerun after `functions.php` or `src/format.php` changes and compare with this table. No mutant
 escapes on recently changed lines except the equivalent `setBlockLength(257)`
 (phpseclib rounds it to the same 256-bit block); the
 [`receipt-crypto` target](#targets) covers the call sites. Infection has no
@@ -394,7 +407,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
 | `year-nav` | year selector `year_nav()` (range, previous and next year, marked year, "Alle Jahre", escaped links) and its call sites in `report.php` and `donations.php` | `YearNavTest`, `http-smoke.php`, `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
-| `amount-parsing` | `amount_cents()` in `functions.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
+| `amount-parsing` | `amount_cents()` in `src/format.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 | `booking-progress` | `percent_of_bookings()` in `functions.php`: column order, the bar's segment widths, `aria-hidden`, no table without bookings | PHPUnit `testPercentOfBookings*` |

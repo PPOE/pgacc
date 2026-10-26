@@ -74,6 +74,7 @@ if ($dbconn === false) {
 
 require("functions.php");
 require("src/db.php");
+require("src/format.php");
 
 function checklogin($get = 'name', $redir = true)
 {

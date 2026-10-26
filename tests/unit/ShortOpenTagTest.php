@@ -14,6 +14,7 @@ final class ShortOpenTagTest extends FunctionsTestCase
             'file.php' => ['file.php', 'download_file'],
             'getusers.php' => ['getusers.php', 'getUsers'],
             'src/db.php' => ['src/db.php', 'db_query'],
+            'src/format.php' => ['src/format.php', 'amount_cents'],
         ];
     }
 

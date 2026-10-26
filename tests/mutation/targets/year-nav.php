@@ -11,7 +11,7 @@
 return [
     'description' => 'Year selector year_nav() and its call sites on the report and the donations page',
     'file' => 'functions.php',
-    'region' => ['start' => 'function year_nav($selected, $urlForYear, $allowAll = false)', 'end' => '// An amount in cents, parsed exactly'],
+    'region' => ['start' => 'function year_nav($selected, $urlForYear, $allowAll = false)', 'end' => '// Whether the comma-separated rights contain exactly'],
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'YearNavTest', 'file' => 'tests/unit/YearNavTest.php'],
         ['type' => 'http', 'script' => 'tests/http-smoke.php'],

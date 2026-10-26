@@ -6,7 +6,7 @@
         "configDir": "/app/tests/mutation/infection",
         "customPath": "/app/vendor/bin/phpunit"
     },
-    "bootstrap": "/tmp/infection-src/functions.php",
+    "bootstrap": "/app/tests/mutation/infection-bootstrap.php",
     "timeout": 20,
     "tmpDir": "/tmp/infection",
     "logs": {

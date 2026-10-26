@@ -20,7 +20,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
             while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
                 if (intval($line2['sum']) != 0 || $print_empty) {
                     echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-                    echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+                    echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
                 }
             }
             pg_free_result($result2);
@@ -35,7 +35,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND " . eyes() . " {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = -1) " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+            echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
         }
         pg_free_result($result2);
         echo '
@@ -61,7 +61,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             if (intval($line2['sum']) != 0 || $print_empty) {
                 echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-                echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+                echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
             }
         }
         pg_free_result($result2);
@@ -76,7 +76,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND " . eyes() . " {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '
@@ -99,7 +99,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             if (intval($line2['sum']) != 0 || $print_empty) {
                 echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
-                echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+                echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
             }
         }
         pg_free_result($result2);
@@ -114,7 +114,7 @@ function unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2013, $vari
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND " . eyes() . " {$unit_s} AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '
@@ -152,13 +152,13 @@ function page_report($year = 2012)
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND " . eyes() . " AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+        echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
     }
     pg_free_result($result2);
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND " . eyes() . " AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+        echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
     }
     pg_free_result($result2);
     echo "</tr>\n";
@@ -169,13 +169,13 @@ function page_report($year = 2012)
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND " . eyes() . " AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+            echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
         }
         pg_free_result($result2);
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12,29,30) AND " . eyes() . " AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+            echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
         }
         pg_free_result($result2);
         echo "</tr>\n";
@@ -229,28 +229,28 @@ function page_report($year = 2012)
     $query2 = "SELECT SUM(value) AS value FROM balance WHERE date = '$prev_date_r'";
     $result2 = db_query($dbconn, $query2);
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC);
-    echo "<td>" . sprintf("%1.2f", $line2['value'] / 100.0) . "&nbsp;€</td>";
+    echo "<td>" . format_amount($line2['value'], "&nbsp;€") . "</td>";
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . " AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+        echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
     }
     pg_free_result($result2);
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . " AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+        echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
     }
     pg_free_result($result2);
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . $condall;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>";
+        echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>";
     }
     $query2 = "SELECT SUM(value) AS value FROM balance WHERE date = '$last_date_r'";
     $result2 = db_query($dbconn, $query2);
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC);
-    echo "<td>" . sprintf("%1.2f", $line2['value'] / 100.0) . "&nbsp;€</td>";
+    echo "<td>" . format_amount($line2['value'], "&nbsp;€") . "</td>";
     echo "</tr>\n";
     $query = "SELECT id,name FROM lo WHERE name LIKE '%Piratenpartei%' ORDER BY id ASC";
     $result = db_query($dbconn, $query);
@@ -272,28 +272,28 @@ function page_report($year = 2012)
         $query2 = "SELECT SUM(value) AS value FROM balance WHERE orga = {$line['id']} AND date = '$prev_date_r'";
         $result2 = db_query($dbconn, $query2);
         $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC);
-        echo "<td>" . sprintf("%1.2f", $line2['value'] / 100.0) . "&nbsp;€</td>";
+        echo "<td>" . format_amount($line2['value'], "&nbsp;€") . "</td>";
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . " AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+            echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
         }
         pg_free_result($result2);
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . " AND orga = {$line['id']} AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+            echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
         }
         pg_free_result($result2);
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype NOT IN (11,12) AND " . eyes() . " AND orga = {$line['id']} " . $condall;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td>\n";
+            echo "<td>" . format_amount($line2['sum'], "&nbsp;€") . "</td>\n";
         }
         $query2 = "SELECT value FROM balance WHERE orga = {$line['id']} AND date = '$last_date_r'";
         $result2 = db_query($dbconn, $query2);
         if ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo "<td>" . sprintf("%1.2f", $line2['value'] / 100.0) . "&nbsp;€</td>";
+            echo "<td>" . format_amount($line2['value'], "&nbsp;€") . "</td>";
         } else {
             echo "<td>unbekannt</td>";
         }
@@ -418,8 +418,7 @@ Die Piratenpartei Österreichs hält keine Stimmrechte an Unternehmen.
             $amount = $line['sum'];
         }
         pg_free_result($result);
-        $amount = $amount / 100.0;
-        echo "<tr><td><b>" . html_escape($ptype['description']) . "</b></td><td>" . sprintf("%1.2f", $amount) . "&nbsp;€</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>\n";
+        echo "<tr><td><b>" . html_escape($ptype['description']) . "</b></td><td>" . format_amount($amount, "&nbsp;€") . "</td><td>0.00&nbsp;€</td><td>0.00&nbsp;€</td></tr>\n";
     }
     echo '</table>';
     block_end();
