@@ -65,12 +65,8 @@ function donations_captcha($body, $year, $label)
 
 function assert_donations_heading($body, $year, $label)
 {
-    assert_contains($body, "<h1>Spendenliste der Piratenpartei Österreichs $year</h1>\n", $label);
-    assert_contains($body, '<div class="wiki motd"><h2>', $label);
-    for ($y = 2012; $y <= intval(date('Y')); $y++) {
-        assert_contains($body, "<a href=\"donations?year=$y\">$y</a> ", "$label year links");
-    }
-    assert_contains($body, '</h2>' . DONATIONS_NOTICE . '</div>', $label);
+    assert_contains($body, "<div class=\"page_title\"><h1>Spendenliste der Piratenpartei Österreichs $year</h1>" . expected_year_nav($year, 'donations?year=') . "</div>\n", "$label year selector");
+    assert_contains($body, "</div>\n<div class=\"wiki motd\">" . DONATIONS_NOTICE . '</div>', $label);
 }
 
 function assert_no_donor_data($body, $label)
@@ -149,6 +145,11 @@ assert_donations_heading($early, 2013, 'donations 2011');
 assert_not_contains($early, DONATIONS_CAPTCHA_INTRO, 'donations 2011');
 assert_not_contains($early, '<table id="donations"', 'donations 2011');
 assert_no_donor_data($early, 'donations 2011');
+
+// The year selector at its ends: no previous year for 2012, no next year for
+// the current year.
+assert_donations_heading(donations_page(2012), 2012, 'donations 2012');
+assert_donations_heading(donations_page(intval(date('Y'))), intval(date('Y')), 'donations current year');
 
 // In-kind donations (kdonations.php): the captcha form, then, with the right
 // answer, the table header and the notice; publication stays disabled.

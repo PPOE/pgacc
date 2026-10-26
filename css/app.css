@@ -351,6 +351,101 @@
   }
 
   /*************************************************************************
+   * Year selector (year_nav()): one connected control of previous year,
+   * drop-down and next year. Styled on its own, independent of its place.
+   */
+
+  .year_nav {
+    @apply relative inline-flex w-fit items-stretch rounded-full border border-neutral-300 bg-white text-[0.95rem]/snug shadow-xs;
+
+    & .year_nav_step,
+    & summary {
+      @apply flex items-center justify-center no-underline transition-colors select-none;
+    }
+
+    & .year_nav_step {
+      @apply w-9 pb-0.5 text-xl/none text-neutral-500;
+    }
+
+    & .year_nav_prev {
+      @apply rounded-l-full;
+    }
+
+    & .year_nav_next {
+      @apply rounded-r-full;
+    }
+
+    & a.year_nav_step:hover {
+      @apply bg-neutral-100 text-accent-dark;
+    }
+
+    & span.year_nav_step {
+      @apply cursor-default text-neutral-300;
+    }
+
+    & a.year_nav_step:focus-visible,
+    & summary:focus-visible {
+      @apply relative z-10 outline-none ring-2 ring-accent/60;
+    }
+
+    & details {
+      @apply flex border-x border-neutral-200;
+    }
+
+    & summary {
+      @apply min-w-20 cursor-pointer list-none gap-1.5 px-3 py-1 font-semibold text-accent-dark;
+
+      &::-webkit-details-marker {
+        @apply hidden;
+      }
+
+      &::after {
+        @apply text-[0.7rem] text-neutral-500;
+        content: "\25BE";
+      }
+
+      &:hover {
+        @apply bg-accent/8;
+      }
+    }
+
+    & details[open] > summary {
+      @apply bg-accent/10;
+    }
+
+    & ul {
+      @apply absolute top-full left-1/2 z-20 m-0 mt-1.5 max-h-80 w-28 -translate-x-1/2 list-none overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 text-center shadow-lg;
+    }
+
+    & li {
+      @apply m-0 p-0;
+    }
+
+    & ul a {
+      @apply block rounded-lg px-3 py-1 text-ink no-underline;
+
+      &:hover,
+      &:focus-visible {
+        @apply bg-neutral-100 text-accent-dark outline-none;
+      }
+
+      &[aria-current="page"] {
+        @apply bg-accent/12 font-semibold text-accent-dark;
+      }
+    }
+  }
+
+  /* A page title with the year selector on its right, below it on narrow
+     screens. */
+  .page_title {
+    @apply mt-12 mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3;
+
+    & h1 {
+      @apply m-0;
+    }
+  }
+
+  /*************************************************************************
    * Column header icons (sort, hide a column)
    */
 

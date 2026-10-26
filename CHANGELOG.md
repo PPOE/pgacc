@@ -37,6 +37,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The maintenance script `check.php` runs only on the command line
   (`php check.php <account> <max>`), like the receipt migration; over HTTP it
   answers 404. A failed query prints the database error and exits with status 1.
+- The report and the donations page select the year with a compact year
+  selector instead of a row of year links: previous year, a drop-down of all
+  years (current year first, down to 2012, the shown year marked) and next
+  year. No JavaScript; the same years and link targets as before.
 
 ### Removed
 

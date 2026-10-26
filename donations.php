@@ -36,12 +36,10 @@ function page_donations($year)
         $captcha_check = false;
         $year = 2013;
     }
-    echo "<h1>Spendenliste der Piratenpartei Österreichs $year</h1>\n";
-    echo '<div class="wiki motd"><h2>';
-    for ($i = 2012; $i <= intval(date('Y')); $i++) {
-        echo "<a href=\"donations?year=$i\">$i</a> ";
-    }
-    echo '</h2>';
+    echo "<div class=\"page_title\"><h1>Spendenliste der Piratenpartei Österreichs $year</h1>";
+    echo year_nav($year, fn($y) => "donations?year=$y");
+    echo "</div>\n";
+    echo '<div class="wiki motd">';
     //echo 'Gemäß <a href="https://lqfb.piratenpartei.at/initiative/show/1151.html">Beschluss i1151 vom 28.12.2012</a> veröffentlichen wir alle Spenden ab 100€ pro Jahr und Spender.';
     echo 'Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.';
     echo'</div>';

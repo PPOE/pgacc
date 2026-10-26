@@ -190,6 +190,32 @@ function assert_no_fatal_error($body, $label)
     assert_not_contains($body, 'Parse error', $label);
 }
 
+// The year selector (year_nav()) of the report and the donations page,
+// $selected marked, every year from the current one down to 2012 linked as
+// "$url$year", the previous and next year linked or disabled.
+function expected_year_nav($selected, $url)
+{
+    $last = intval(date('Y'));
+    $prev = '<span class="year_nav_step year_nav_prev" role="link" aria-disabled="true" aria-label="Vorheriges Jahr">&lsaquo;</span>';
+    if ($selected > 2012) {
+        $y = $selected - 1;
+        $prev = "<a class=\"year_nav_step year_nav_prev\" href=\"$url$y\" aria-label=\"Vorheriges Jahr: $y\" title=\"Vorheriges Jahr: $y\">&lsaquo;</a>";
+    }
+    $next = '<span class="year_nav_step year_nav_next" role="link" aria-disabled="true" aria-label="Nächstes Jahr">&rsaquo;</span>';
+    if ($selected < $last) {
+        $y = $selected + 1;
+        $next = "<a class=\"year_nav_step year_nav_next\" href=\"$url$y\" aria-label=\"Nächstes Jahr: $y\" title=\"Nächstes Jahr: $y\">&rsaquo;</a>";
+    }
+    $items = '';
+    for ($y = $last; $y >= 2012; $y--) {
+        $current = $y === $selected ? ' aria-current="page"' : '';
+        $items .= "<li><a href=\"$url$y\"$current>$y</a></li>";
+    }
+    return '<nav class="year_nav" aria-label="Jahr">' . $prev
+        . "<details class=\"year_nav_menu\"><summary aria-label=\"Jahr wählen: $selected\">$selected</summary><ul>"
+        . $items . '</ul></details>' . $next . '</nav>';
+}
+
 function login_request($name, $password, $target = null, $baseUrl = null)
 {
     $form = [

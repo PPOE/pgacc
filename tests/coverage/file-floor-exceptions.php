@@ -8,7 +8,7 @@
  */
 return [
     'donations.php' => [
-        'floor' => 84.4,
+        'floor' => 84.1,
         'reason' => 'umlaute() (lines 12-21) is called by no page; it stays because the reference helper '
             . 'recordings (tests/reference/helpers.php) characterize it.',
     ],

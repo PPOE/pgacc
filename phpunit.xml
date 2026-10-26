@@ -31,6 +31,7 @@
       <file>tests/unit/UnusedOutputTest.php</file>
       <file>tests/unit/AmountParsingTest.php</file>
       <file>tests/unit/DbHelpersTest.php</file>
+      <file>tests/unit/YearNavTest.php</file>
     </testsuite>
   </testsuites>
   <coverage>
