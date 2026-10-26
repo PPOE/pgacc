@@ -15,19 +15,26 @@ function page_accounts($rights)
                 echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
                 return;
             }
+            // New passwords need 12 characters (UTF-8); "******" keeps the
+            // stored password. Login does not check the length.
+            $rawPass = isset($_POST["password$id"]) && is_string($_POST["password$id"]) ? $_POST["password$id"] : '';
+            if ($rawPass !== "******" && mb_strlen($rawPass, 'UTF-8') < 12) {
+                echo '<div class="slot_error" id="slot_error">FEHLER: Das Passwort muss mindestens 12 Zeichen lang sein.</div><br /><br /><br />';
+                return;
+            }
             $pass = isset($_POST["password$id"]) ? pg_escape_string($dbconn, $_POST["password$id"]) : '';
             $name = isset($_POST["name$id"]) ? pg_escape_string($dbconn, $_POST["name$id"]) : '';
             $nrights = isset($_POST["rights$id"]) ? pg_escape_string($dbconn, $_POST["rights$id"]) : '';
             if (has_right($rights, 'root') && $id == -1) {
                 if ($pass != "******") {
-                    $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('md5')), '$nrights');";
+                    $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('bf', 10)), '$nrights');";
                 } else {
                     $query = "SELECT 1";
                 }
             } elseif (!has_right($rights, 'root') && $pass != "******") {
-                $query = "UPDATE users SET hash = crypt('$pass', gen_salt('md5')), cookie = NULL WHERE id = $id";
+                $query = "UPDATE users SET hash = crypt('$pass', gen_salt('bf', 10)), cookie = NULL WHERE id = $id";
             } elseif (has_right($rights, 'root')) {
-                $query = "UPDATE users SET rights = '$nrights'" . ($pass != "******" ? ", hash = crypt('$pass', gen_salt('md5')), cookie = NULL" : "") . " WHERE id = $id";
+                $query = "UPDATE users SET rights = '$nrights'" . ($pass != "******" ? ", hash = crypt('$pass', gen_salt('bf', 10)), cookie = NULL" : "") . " WHERE id = $id";
             } else {
                 echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
                 return;

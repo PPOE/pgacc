@@ -22,6 +22,16 @@ add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
+## Passwords: bcrypt and 12 characters
+
+From the release after 2.0.0 new and changed passwords are stored as bcrypt
+(`$2a$` hashes) instead of MD5-crypt (`$1$`). Nothing needs to be migrated:
+existing hashes stay valid until the password is changed. To move all
+accounts to bcrypt, have each user (or root) set the password again. A
+password that is set needs at least 12 characters; login still accepts
+existing shorter passwords. bcrypt uses only the first 72 bytes of a
+password, so longer passwords give no extra strength.
+
 ## Member list: no shared table
 
 From the release after 2.0.0 each request keeps the member list of the

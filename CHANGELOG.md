@@ -71,6 +71,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Receipt download: a `<n>.v2.aes` receipt that is a PNG or GIF image is
   shown as `image/png` or `image/gif` instead of being offered as a
   download `<n>.bin`.
+- New and changed passwords are stored as bcrypt (pgcrypto `gen_salt('bf',
+  10)`) instead of MD5-crypt. Existing MD5-crypt hashes still log in; an
+  account gets a bcrypt hash when its password is next set. bcrypt uses only
+  the first 72 bytes of a password.
+- A password that is set (new user, change by root, own change) needs at
+  least 12 characters (UTF-8 characters, not bytes); a shorter or empty one
+  is refused with "FEHLER: Das Passwort muss mindestens 12 Zeichen lang
+  sein." and nothing is saved. Login does not check the length, so existing
+  shorter passwords keep working. "******" still keeps the stored password.
 
 ### Removed
 
