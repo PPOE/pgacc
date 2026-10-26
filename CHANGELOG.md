@@ -100,6 +100,24 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A BAWAG export with an empty line (for example at the end of the file) is
   imported completely; the empty line is skipped instead of stopping the
   import as an invalid line.
+- Saving a voucher keeps its stored receipt; a receipt number in the request
+  is ignored. A new voucher starts without a receipt (the upload attaches
+  one), and a revised row keeps the receipt of the current row it replaces.
+- A voucher revision is saved in one database transaction under the
+  voucher's lock, which receipt uploads and imports, approvals, merges and
+  recoveries take too. It is refused and changes nothing when the form was
+  opened before another save of the voucher, also one that ran at the same
+  time ("Die Buchung wurde inzwischen geändert. Bitte neu laden.": the current
+  voucher is shown with the unsaved entries listed below the message), when
+  it posts a row of another organization ("Keine Berechtigung für diese
+  Buchungszeile."), when it drops a row with a receipt, when it has no rows,
+  or when locking its rows ends in a deadlock ("Bitte erneut speichern").
+- Each request keeps its own member list (a temporary table), so concurrent
+  page views, imports and saves no longer replace or wait for each other's
+  list ([UPGRADING.md](UPGRADING.md)). When the membership system is
+  unreachable or answers with invalid data, saving a member's voucher is
+  refused with the form shown again ("Die Mitgliederverwaltung ist nicht
+  erreichbar. Bitte später erneut speichern.") instead of ending the page.
 
 ### Removed
 

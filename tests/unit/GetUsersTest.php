@@ -26,9 +26,10 @@ final class GetUsersTest extends FunctionsTestCase
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         try {
-            // getUsers() dies on a short response, an empty key or an SQL error.
+            // getUsers() returns null, or the error (a short response, an
+            // empty key, an SQL error); the guard fails on an exit.
             AppExitGuard::enter('getUsers()');
-            getUsers();
+            self::assertNull(getUsers());
             // Inside the test's transaction getUsers() uses a savepoint and
             // leaves the transaction open.
             $status = pg_transaction_status($connection);
@@ -121,6 +122,23 @@ final class GetUsersTest extends FunctionsTestCase
         $rows = self::importMembers($datakey, base64_encode(membership_encrypt($datakey, $plain)));
         self::assertCount(39, $rows);
         self::assertSame(['id' => '2101', 'name' => 'Synthetic Odd Id', 'lo' => '1', 'paid' => '1'], $rows[0]);
+    }
+
+    public function testWithoutAKeyTheErrorIsReturned()
+    {
+        // No die(): the caller decides (the pages stop, a voucher save refuses).
+        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
+        $GLOBALS['datakey'] = '';
+        MembershipStub::mode('ok');
+        try {
+            AppExitGuard::enter('getUsers()');
+            $error = getUsers();
+        } finally {
+            AppExitGuard::leave();
+            MembershipStub::reset();
+            $GLOBALS['datakey'] = $datakey;
+        }
+        self::assertSame('Kein Passwort!', $error);
     }
 
     private static function importMembers($key, $response)

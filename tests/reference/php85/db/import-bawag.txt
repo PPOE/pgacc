@@ -15,7 +15,7 @@
 + AT716000050110117393;Bargeld;09.01.2024;09.01.2024;-0,01;EUR
 + AT856000010110123642;SpendeohneGegenkontoSynthetica;10.01.2024;10.01.2024;+3,00;EUR
 + AT916000050110110437;MitgliedsbeitragGerlindeTitelträgerinAT333333;05.01.2024;05.01.2024;+20,00;EUR
-## ppmembers
+## pg_temp
 (absent before and after)
 ## vouchers
 + 1008	5005	8	2	f	0	BAWAATWW AT611904300234573201	Synthetic Spender				5000	AT606000050110117300	Spende\nBAWAATWW AT611904300234573201 Synthetic Spender	f	f	f	2024-01-02 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N

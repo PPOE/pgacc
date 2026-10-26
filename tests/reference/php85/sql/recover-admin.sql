@@ -38,6 +38,8 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT pg_advisory_lock(1, 1004);
+-- next
 UPDATE vouchers SET deleted = false WHERE voucher_id = 1004 AND id = 105;
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval

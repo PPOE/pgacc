@@ -9,7 +9,12 @@ function page_mb($rights)
     }
     $year = date('Y');
     $previousYear = $year - 1;
-    getusers();
+    // The member list of this request (a temporary table, getusers()); a
+    // failed refresh stops the page with its message.
+    $members_error = getusers();
+    if ($members_error !== null) {
+        die($members_error);
+    }
     $query = "SELECT id,paid FROM ppmembers WHERE paid = 1;";
     $result = db_query($dbconn, $query);
     $ids = [];
@@ -120,7 +125,4 @@ function page_mb($rights)
     }
     echo "</table>";
     pg_free_result($result);
-
-    $query = 'DROP TABLE IF EXISTS ppmembers;';
-    db_exec($dbconn, $query);
 }

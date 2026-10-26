@@ -1473,26 +1473,32 @@ differences above are only visible for out-of-range input.
   error log), a short response (unchanged), a line of five or more
   characters without the five tab-separated fields, or a list without any
   member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
-  before the table is touched.
+  before the table is touched (since the temporary table below: `getusers()`
+  returns the message, the member-fee and import pages stop with it, a
+  voucher save refuses and shows the form again).
   Behaviour change, accepted by the owner (merged in #25): before, such
   a line was imported as member 0 with PHP warnings, and a list without
-  member lines left an empty table. Drop, create and insert run in one
-  transaction (a savepoint inside a caller's transaction, as in the unit
-  tests); an SQL error rolls back and stops the page. The member-fee, import
-  and voucher pages still drop `ppmembers` after each view, so a failed
-  refresh shows the error instead of serving an older list. Tests:
+  member lines left an empty table. The refresh runs in one transaction (a
+  savepoint inside a caller's transaction, as in the unit tests); an SQL
+  error rolls back and stops the page. Tests:
   `tests/http-import.php` (stub modes `short`, `garbage`, `empty`, `error`,
   `redirect`, `redirect-http`, `selfsigned`, `wrongname`, `overflow` for a
-  failed INSERT after DROP and CREATE, a `ppmembers` view for the SQL error,
-  a member match with the `flow` list), `GetUsersTest` (exact rows of the
+  failed INSERT, a member match with the `flow` list, a locked shared table
+  that no page waits for), `GetUsersTest` (exact rows of the
   `flow` list over HTTPS); the stub speaks HTTPS with a per-build test CA
   (`tests/README.md`).
-- [ ] Planned (not now): a per-connection `TEMP` table instead of the shared
-  `ppmembers`, so that concurrent requests do not drop each other's list.
+- [x] Member list per request: `ppmembers` is a temporary table of the
+  request's connection (`CREATE TEMP TABLE … ON COMMIT PRESERVE ROWS`),
+  so concurrent requests neither drop nor wait for each other's list and the
+  database user needs no `CREATE` on `public` (`UPGRADING.md`). `getusers()`
+  returns its error instead of ending the request. A voucher save loads the
+  list before its transaction and, without it, refuses with "Die
+  Mitgliederverwaltung ist nicht erreichbar. Bitte später erneut speichern."
+  (form shown again, nothing written).
 - [ ] Open follow-up (not changed with the HTTPS refresh): the member list is
   still fetched on every GET of the import and member-fee pages (`import.php`
   `page_import()`, `mb.php` `page_mb()`) and when a member voucher is saved
-  (`new.php`). Moving the refresh off GET (an explicit action, or a cache
+  (`new.php`, `edit.php`). Moving the refresh off GET (an explicit action, or a cache
   with an age) is a separate owner decision.
 - [ ] Deferred (owner decision): the arithmetic check on the public donor pages
   (`donations.php`, `kdonations.php`) is no real bot protection, since its

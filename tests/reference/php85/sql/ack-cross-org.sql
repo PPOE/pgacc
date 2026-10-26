@@ -38,6 +38,8 @@ SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
+SELECT pg_advisory_lock(1, 5000);
+-- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000  AND orga IN ('1') ;
 -- next
 SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval

@@ -79,7 +79,44 @@ function create_voucher($database, $comment, $amount, $file, $cookies)
         [$comment],
         "created $comment",
     );
+    attach_receipt_numbers($database, $row['voucher_id'], [$file]);
     return $row['voucher_id'];
+}
+
+// A save ignores a posted receipt number (new vouchers start without a
+// receipt): the receipts of a test voucher are set in the database, as the
+// upload would. $files: part => file number; the rows of the parts are the
+// voucher's current rows in the order of their IDs.
+function attach_receipt_numbers($database, $voucherId, $files)
+{
+    $result = @pg_query_params($database, 'SELECT id FROM vouchers WHERE voucher_id = $1 AND NOT deleted ORDER BY id', [$voucherId]);
+    if ($result === false) {
+        fail_test("database query failed for the receipts of voucher $voucherId: " . pg_last_error($database));
+    }
+    $ids = pg_fetch_all_columns($result);
+    pg_free_result($result);
+    foreach ($files as $part => $file) {
+        if (intval($file) === 0) {
+            continue;
+        }
+        if (!isset($ids[$part])) {
+            fail_test("voucher $voucherId has no row for part $part");
+        }
+        $result = @pg_query_params($database, 'UPDATE vouchers SET file = $1 WHERE id = $2 AND NOT deleted', [intval($file), $ids[$part]]);
+        if ($result === false || pg_affected_rows($result) !== 1) {
+            fail_test("could not set the receipt of part $part of voucher $voucherId");
+        }
+    }
+}
+
+// The posted file numbers of the parts of a voucher form.
+function posted_receipt_numbers($form)
+{
+    $files = [];
+    for ($part = 0; $part < intval($form['parts']); $part++) {
+        $files[$part] = $form["file$part"] ?? 0;
+    }
+    return $files;
 }
 
 // Voucher write redirects (relocate() in edit.php): 302 to the voucher's
@@ -135,12 +172,14 @@ $created = database_row(
 assert_database_field($created, 'type', '20', 'created voucher');
 assert_database_field($created, 'orga', '2', 'created voucher');
 assert_database_field($created, 'amount', '-1234', 'created voucher');
-assert_database_field($created, 'file', '9001', 'created voucher');
+// The posted receipt number is ignored: a new voucher has no receipt.
+assert_database_field($created, 'file', '0', 'created voucher');
 assert_database_field($created, 'deleted', 'f', 'created voucher');
 assert_database_field($created, 'receipt_received', 'f', 'created voucher');
 assert_database_field($created, 'ack1', null, 'created voucher');
 assert_database_field($created, 'ack2', null, 'created voucher');
 $createdVoucherId = $created['voucher_id'];
+attach_receipt_numbers($database, $createdVoucherId, [9001]);
 
 $unauthorizedApproval = http_request(
     '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
@@ -565,6 +604,7 @@ function create_voucher_from_form($database, $form, $cookies)
         [$comment],
         "created $comment",
     );
+    attach_receipt_numbers($database, $row['voucher_id'], posted_receipt_numbers($form));
     return $row['voucher_id'];
 }
 
@@ -1015,8 +1055,8 @@ foreach (['bgf' => $reviewerCookies, 'root,bgf' => $adminCookies, 'Rbgf' => logi
 // receipt check.
 $historyId = create_voucher($database, 'Synthetic voucher with history', '-10.75', 0, $adminCookies);
 $historyRevision = revision_form($historyId, 'Synthetic revised voucher with history', '-10.80');
-$historyRevision['file0'] = '9014';
 assert_redirect(edit_request($historyId, $historyRevision, $adminCookies), edit_location($historyId, 5), 'revision before the history check');
+attach_receipt_numbers($database, $historyId, [9014]);
 pg_query_params($database, "UPDATE vouchers SET ack1_old = 'synthetic-old-first' WHERE voucher_id = $1 AND deleted", [$historyId]);
 assert_redirect(edit_request($historyId, $approveForm, $adminCookies), edit_location($historyId, 4), 'approval of a voucher with history');
 assert_database_count(
