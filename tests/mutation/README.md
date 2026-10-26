@@ -107,7 +107,14 @@ replacement and its review fixes):
 |---|---:|---:|---:|---:|---:|
 | PHP 8.5, Infection 0.35.8 | 723 | 494 | 220 | 7 | 2 |
 
-Rerun after `functions.php` changes and compare with this table. No mutant
+Run of 2026-10-26 on `functions.php` and `src/format.php` (with
+`AmountParsingTest` and `FormatTest` added to the Infection suite): 1639 mutants,
+MSI 86% (master before: 1634, 81%). `amount_cents()` 64 of 65 killed (before:
+all 65 not covered); the escaped `preg_quote()` removal is equivalent (the
+thousands separators `,` and `.` need no quoting in a character class).
+`format_amount()` 5 of 5, `format_date()` as before (the regex anchors).
+
+Rerun after `functions.php` or `src/format.php` changes and compare with this table. No mutant
 escapes on recently changed lines except the equivalent `setBlockLength(257)`
 (phpseclib rounds it to the same 256-bit block); the
 [`receipt-crypto` target](#targets) covers the call sites. Infection has no
