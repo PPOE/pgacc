@@ -194,21 +194,26 @@ foreach ($uploads as $upload) {
 }
 
 // A save takes no receipt number from the request: a new voucher starts
-// without a receipt, a revision keeps the receipt of the stored row it
-// revises (only a row of the voucher within the user's rights). A user of
+// without a receipt; a revised row takes the receipt of the current row it
+// revises (a current row of the voucher within the user's rights), each one
+// at most once. A posted row that is not such a row (an old revision, a row
+// of another voucher or organization) refuses the save. A user of
 // organization 1 posts the receipt number of the organization 2 receipt of
-// 9101 (also as the row of organization 2 of a voucher with both
-// organizations) and cannot download it.
-function receipt_voucher_form($comment, $bid, $file)
+// 9101 and cannot download it.
+function receipt_voucher_form($comment, $bids, $file)
 {
-    return [
-        'speichern' => 'Speichern', 'parts' => '1', 'bid0' => strval($bid), 'dir0' => 'out',
-        'in_type0' => '8', 'out_type0' => '20', 'wk_type0' => '20', 'date0' => '2024-09-15',
-        'person_type0' => '1', 'lo0' => '1', 'amount0' => '-1.00', 'gegenkonto0' => 'SYNTHETIC001',
-        'konto0' => 'TESTACCOUNT1', 'vkonto0' => 'TESTVIRTUAL1', 'comment0' => $comment,
-        'commentgf0' => '', 'mitgliedsnummer0' => '0', 'name0' => 'Synthetic Supplier',
-        'street0' => 'Test Street 1', 'plz0' => '0000', 'city0' => 'Test City', 'file0' => strval($file),
-    ];
+    $form = ['speichern' => 'Speichern', 'parts' => strval(count((array) $bids))];
+    foreach (array_values((array) $bids) as $part => $bid) {
+        $form += [
+            "bid$part" => strval($bid), "dir$part" => 'out', "in_type$part" => '8', "out_type$part" => '20',
+            "wk_type$part" => '20', "date$part" => '2024-09-15', "person_type$part" => '1', "lo$part" => '1',
+            "amount$part" => '-1.00', "gegenkonto$part" => 'SYNTHETIC001', "konto$part" => 'TESTACCOUNT1',
+            "vkonto$part" => 'TESTVIRTUAL1', "comment$part" => $comment, "commentgf$part" => '',
+            "mitgliedsnummer$part" => '0', "name$part" => 'Synthetic Supplier', "street$part" => 'Test Street 1',
+            "plz$part" => '0000', "city$part" => 'Test City', "file$part" => strval($file),
+        ];
+    }
+    return $form;
 }
 
 function assert_receipt_number($expected, $actual, $label)
@@ -218,14 +223,20 @@ function assert_receipt_number($expected, $actual, $label)
     }
 }
 
+// The current rows of the vouchers with this comment, ordered by ID.
+function current_receipt_rows($database, $comment)
+{
+    return receipts_query(
+        $database,
+        'SELECT id, voucher_id, file FROM vouchers WHERE comment = $1 AND NOT deleted ORDER BY id',
+        [$comment],
+        "current rows of $comment",
+    );
+}
+
 function current_receipt_row($database, $comment)
 {
-    $rows = receipts_query(
-        $database,
-        'SELECT id, voucher_id, file FROM vouchers WHERE comment = $1 AND NOT deleted',
-        [$comment],
-        "current row of $comment",
-    );
+    $rows = current_receipt_rows($database, $comment);
     if (count($rows) !== 1) {
         fail_test("$comment has " . count($rows) . ' current rows, expected 1');
     }
@@ -240,11 +251,30 @@ function assert_receipt_refused($cookies, $id, $content, $label)
     }
 }
 
-function revise_receipt_voucher($database, $cookies, $voucherId, $form, $label)
+function revision_request($cookies, $voucherId, $form)
 {
     $form += ['id' => strval($voucherId), 'changed' => '1', 'ack1' => '', 'ack2' => '', 'ack1_old' => '', 'ack2_old' => ''];
-    $response = http_request('/index.php?action=edit&id=' . $voucherId, 'POST', $form, $cookies);
+    return http_request('/index.php?action=edit&id=' . $voucherId, 'POST', $form, $cookies);
+}
+
+function revise_receipt_voucher($database, $cookies, $voucherId, $form, $label)
+{
+    $response = revision_request($cookies, $voucherId, $form);
     assert_no_problems(redirect_problems($response, "index.php?action=edit&id=$voucherId&hint=5"), $label);
+}
+
+// A refused revision writes nothing: the voucher keeps its rows.
+function assert_revision_refused($database, $cookies, $voucherId, $form, $label)
+{
+    $before = receipts_query($database, 'SELECT * FROM vouchers WHERE voucher_id = $1 ORDER BY id', [$voucherId], $label);
+    $response = revision_request($cookies, $voucherId, $form);
+    assert_status($response, 200, $label);
+    assert_contains($response['body'], '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde inzwischen geändert. Bitte neu laden.</div>', $label);
+    assert_contains($response['body'], '<a href="index.php?action=edit&id=' . $voucherId . '">Zurück zur Buchung</a>', $label);
+    assert_not_contains($response['body'], 'Buchung aktualisiert', $label);
+    if (receipts_query($database, 'SELECT * FROM vouchers WHERE voucher_id = $1 ORDER BY id', [$voucherId], $label) !== $before) {
+        fail_test("$label changed the voucher");
+    }
 }
 
 $unitOneCookies = login_user('synthetic-unit-one', 'unit-password');
@@ -259,51 +289,69 @@ receipts_query(
     $database,
     "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, committed,
                            date, person_type, file, save_user, vaccount)
-     VALUES (9120, 4750, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision without a receipt', false,
+     VALUES (9180, 4780, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision without a receipt', false,
              timestamp '2024-09-15 00:00:00', 1, 0, 3, 'TESTVIRTUAL1'),
-            (9121, 4751, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision with a receipt', false,
+            (9181, 4781, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision with a receipt', false,
              timestamp '2024-09-15 00:00:00', 1, 99001, 3, 'TESTVIRTUAL1'),
-            (9122, 4752, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision of two organizations', false,
+            (9182, 4782, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision of two organizations', false,
              timestamp '2024-09-15 00:00:00', 1, 0, 3, 'TESTVIRTUAL1'),
-            (9123, 4752, 20, 2, false, -100, 'TESTACCOUNT2', 'Synthetic row of organization 2', false,
-             timestamp '2024-09-15 00:00:00', 1, $1, 1, 'TESTVIRTUAL2')",
+            (9183, 4782, 20, 2, false, -100, 'TESTACCOUNT2', 'Synthetic row of organization 2', false,
+             timestamp '2024-09-15 00:00:00', 1, $1, 1, 'TESTVIRTUAL2'),
+            (9184, 4783, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision with two receipts', false,
+             timestamp '2024-09-15 00:00:00', 1, 99003, 3, 'TESTVIRTUAL1'),
+            (9185, 4783, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision with two receipts', false,
+             timestamp '2024-09-15 00:00:00', 1, 99004, 3, 'TESTVIRTUAL1')",
     [$foreignFile],
     'vouchers of organization 1',
 );
-$revisions = [
-    // [voucher, posted row (null: the current one, a comment: the current
-    // row of that voucher), posted file, comment, expected file]
-    [4750, null, $foreignFile, 'Synthetic revision without a receipt', '0'],
-    [4750, 9101, $foreignFile, 'Synthetic revision without a receipt', '0'],
-    [4752, 9123, $foreignFile, 'Synthetic revision of two organizations', '0'],
-    // The row of another voucher of organization 1, with a receipt.
-    [4750, 'Synthetic revision with a receipt', 0, 'Synthetic revision without a receipt', '0'],
-    [4751, null, $foreignFile, 'Synthetic revision with a receipt', '99001'],
-    // A form opened before the last save posts the old revision's row.
-    [4751, 9121, $foreignFile, 'Synthetic revision with a receipt', '99001'],
-    [4751, 0, 0, 'Synthetic revision with a receipt', '0'],
-];
-foreach ($revisions as $i => $revision) {
-    list($voucherId, $bid, $file, $comment, $expected) = $revision;
-    $row = current_receipt_row($database, $comment);
-    if ($bid === null) {
-        $bid = intval($row['id']);
-    } elseif (is_string($bid)) {
-        $bid = intval(current_receipt_row($database, $bid)['id']);
-    }
-    $label = "revision $i of voucher $voucherId with a posted receipt number";
-    revise_receipt_voucher($database, $unitOneCookies, $voucherId, receipt_voucher_form($comment, $bid, $file), $label);
-    $row = current_receipt_row($database, $comment);
-    assert_receipt_number($expected, $row['file'], $label);
-    assert_receipt_refused($unitOneCookies, $row['id'], $pdf, $label);
-}
-// A revision posting the stored row and no receipt number keeps the receipt.
+
+// The current row: a posted receipt number is ignored.
+$row = current_receipt_row($database, 'Synthetic revision without a receipt');
+revise_receipt_voucher($database, $unitOneCookies, 4780, receipt_voucher_form('Synthetic revision without a receipt', $row['id'], $foreignFile), 'revision without a receipt');
+assert_receipt_number('0', current_receipt_row($database, 'Synthetic revision without a receipt')['file'], 'revision without a receipt');
 $row = current_receipt_row($database, 'Synthetic revision with a receipt');
-receipts_query($database, 'UPDATE vouchers SET file = 99001 WHERE id = $1', [$row['id']], 'receipt of the revision');
+$staleRow = $row['id'];
+revise_receipt_voucher($database, $unitOneCookies, 4781, receipt_voucher_form('Synthetic revision with a receipt', $row['id'], $foreignFile), 'revision with a receipt');
+$row = current_receipt_row($database, 'Synthetic revision with a receipt');
+assert_receipt_number('99001', $row['file'], 'revision with a receipt');
+assert_receipt_refused($unitOneCookies, $row['id'], $pdf, 'revision with a receipt');
+// No posted receipt number: the receipt is kept too.
 $form = receipt_voucher_form('Synthetic revision with a receipt', $row['id'], 0);
 unset($form['file0']);
-revise_receipt_voucher($database, $unitOneCookies, 4751, $form, 'revision without a posted receipt number');
+revise_receipt_voucher($database, $unitOneCookies, 4781, $form, 'revision without a posted receipt number');
 assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'revision without a posted receipt number');
+
+// Rows that are no current row of the voucher within the user's rights:
+// refused, the receipts stay where they are.
+$refused = [
+    'old revision (a form opened before another save)' => [4781, 'Synthetic revision with a receipt', $staleRow],
+    'row of organization 2 of another voucher' => [4780, 'Synthetic revision without a receipt', 9101],
+    'row of organization 2 of the voucher' => [4782, 'Synthetic revision of two organizations', 9183],
+    'row of another voucher of organization 1' => [4780, 'Synthetic revision without a receipt', current_receipt_row($database, 'Synthetic revision with a receipt')['id']],
+];
+foreach ($refused as $label => $case) {
+    list($voucherId, $comment, $bid) = $case;
+    assert_revision_refused($database, $unitOneCookies, $voucherId, receipt_voucher_form($comment, $bid, $foreignFile), "revision posting the $label");
+}
+assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'receipt after the refused revisions');
+assert_receipt_number($foreignFile, receipts_query($database, 'SELECT file FROM vouchers WHERE id = 9183', [], 'row of organization 2')[0]['file'], 'receipt of organization 2 after the refused revisions');
+
+// Each stored receipt goes to one revised row at most: a row posted twice
+// keeps its receipt once, swapped rows keep their own receipts.
+list($first, $second) = current_receipt_rows($database, 'Synthetic revision with two receipts');
+revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$first['id'], $first['id']], 0), 'revision posting a row twice');
+$files = array_column(current_receipt_rows($database, 'Synthetic revision with two receipts'), 'file');
+sort($files);
+if ($files !== ['0', '99003']) {
+    fail_test('revision posting a row twice stored receipts ' . var_export($files, true));
+}
+receipts_query($database, "UPDATE vouchers SET file = CASE WHEN id = (SELECT min(id) FROM vouchers WHERE voucher_id = 4783 AND NOT deleted) THEN 99003 ELSE 99004 END WHERE voucher_id = 4783 AND NOT deleted", [], 'receipts of the swapped rows');
+list($first, $second) = current_receipt_rows($database, 'Synthetic revision with two receipts');
+revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$second['id'], $first['id']], 0), 'revision with swapped rows');
+$files = array_column(current_receipt_rows($database, 'Synthetic revision with two receipts'), 'file');
+if ($files !== ['99004', '99003']) {
+    fail_test('revision with swapped rows stored receipts ' . var_export($files, true));
+}
 assert_receipt_download($adminCookies, 9101, $pdf, 'application/pdf', $foreignFile, 'receipt after the posted receipt numbers', true);
 
 // A merge changes the voucher ID of the merged rows. A <n>.v2.aes is keyed on

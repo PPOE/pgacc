@@ -28,46 +28,69 @@ return [
         [
             'id' => 'saved-receipt-number-posted',
             'file' => 'new.php',
-            'search' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? 0);',
+            'search' => '$voucher[\'file\'] = $stored_files[$bid] ?? 0;',
             'replace' => '$voucher[\'file\'] = max(0, intval($voucher[\'file\']));',
             'rationale' => 'A save takes no receipt number from the request (new voucher or revision).',
         ],
         [
             'id' => 'saved-receipt-number-posted-for-new-rows',
             'file' => 'new.php',
-            'search' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? 0);',
-            'replace' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? max(0, intval($voucher[\'file\'])));',
-            'rationale' => 'A new voucher, or a revised row without a stored row of the voucher in the '
-                . 'user\'s rights, starts without a receipt.',
+            'search' => '$voucher[\'file\'] = $stored_files[$bid] ?? 0;',
+            'replace' => '$voucher[\'file\'] = $stored_files[$bid] ?? max(0, intval($voucher[\'file\']));',
+            'rationale' => 'A new voucher or a new part starts without a receipt.',
+        ],
+        [
+            'id' => 'saved-receipt-number-reused',
+            'file' => 'new.php',
+            'search' => '    unset($stored_files[$bid]);
+',
+            'replace' => '    // receipt kept for further parts
+',
+            'rationale' => 'Each stored receipt goes to one revised row at most: a row posted twice does not copy it.',
         ],
         [
             'id' => 'revision-receipt-numbers-dropped',
             'file' => 'edit.php',
             'search' => 'page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files);',
-            'replace' => 'page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings);',
-            'rationale' => 'A revision keeps the receipt of the stored row it revises.',
+            'replace' => 'page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $unused_files);',
+            'rationale' => 'A revision keeps the receipt of the current row it revises.',
         ],
         [
             'id' => 'revision-receipt-numbers-without-rights',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id;";',
-            'rationale' => 'A revision takes no receipt from a row of another organization of the voucher.',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id FOR UPDATE;";',
+            'rationale' => 'A revision takes no receipt from a row of another organization of the voucher, and refuses such a row.',
         ],
         [
             'id' => 'revision-receipt-numbers-of-any-voucher',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE TRUE $rightssql;";',
-            'rationale' => 'A revision takes no receipt from a row of another voucher.',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted $rightssql FOR UPDATE;";',
+            'rationale' => 'A revision takes no receipt from a row of another voucher, and refuses such a row.',
         ],
         [
-            'id' => 'revision-receipt-numbers-current-rows-only',
+            'id' => 'revision-receipt-numbers-of-deleted-rows',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
-            'rationale' => 'A form opened before another save posts an old revision\'s row: it keeps '
-                . 'that row\'s receipt.',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql FOR UPDATE;";',
+            'rationale' => 'An old revision (whose organization may have changed since) passes on no receipt: a form that posts one is refused.',
+        ],
+        [
+            'id' => 'revision-stale-row-accepted',
+            'file' => 'edit.php',
+            'search' => 'if ($bid > 0 && !array_key_exists($bid, $stored_files)) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A posted row that is no current row of the voucher within the user\'s rights refuses the save, nothing is written.',
+        ],
+        [
+            'id' => 'revision-not-committed',
+            'file' => 'edit.php',
+            'search' => '    db_exec($dbconn, \'COMMIT;\');
+',
+            'replace' => '    db_exec($dbconn, \'ROLLBACK;\');
+',
+            'rationale' => 'The revision is committed.',
         ],
         [
             'id' => 'new-save-rights-dropped',
@@ -80,8 +103,8 @@ return [
         [
             'id' => 'new-save-rights-null',
             'file' => 'new.php',
-            'search' => 'page_save_buchung($voucher_number, $rights, $i);',
-            'replace' => 'page_save_buchung($voucher_number, null, $i);',
+            'search' => 'page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files);',
+            'replace' => 'page_save_buchung($voucher_number, null, $i, null, null, $warnings, $stored_files);',
             'rationale' => 'Voucher creation passes the user\'s rights to page_save_buchung(), so an '
                 . 'organization user\'s voucher is saved in that organization, not organization 10.',
         ],

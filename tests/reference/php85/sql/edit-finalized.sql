@@ -42,6 +42,10 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
 -- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
 -- next
+BEGIN;
+-- next
+SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = 5000  FOR UPDATE;
+-- next
 
     UPDATE vouchers
     SET
@@ -56,8 +60,6 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5
   
 -- next
 SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = 5000  ORDER BY id ASC LIMIT 1;
--- next
-SELECT id, file FROM vouchers WHERE voucher_id = 5000 ;
 -- next
 UPDATE vouchers SET deleted = true WHERE voucher_id = 5000 ;
 -- next
@@ -74,3 +76,5 @@ VALUES
   'Test City',-9999,'TESTACCOUNT2',
   'TESTVIRTUAL2','Reference blocked revision','Reference workflow',
   false,0,false,'synthetic-admin',NULL);
+-- next
+COMMIT;

@@ -216,6 +216,33 @@ function page_edit_save($rights)
         page_edit($form_rights, true);
         return;
     }
+    // The snapshot of the user's current rows, the approval reset, the
+    // replacement of the rows and the new rows are one transaction; the rows
+    // stay locked against a concurrent upload or save until the commit.
+    db_exec($dbconn, 'BEGIN;');
+    // The receipt numbers of the revised rows: only current rows of this
+    // voucher that the user sees pass theirs on (page_save_buchung() ignores
+    // posted ones). A posted row that is not one of them (a form opened
+    // before another save) refuses the save.
+    $stored_files = [];
+    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";
+    $result = db_query($dbconn, $query);
+    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+        $stored_files[intval($line['id'])] = intval($line['file']);
+    }
+    pg_free_result($result);
+    for ($i = 0; $i < $parts; $i++) {
+        $bid = intval(get_param($i, 'bid', 0, '/^\d+$/'));
+        if ($bid > 0 && !array_key_exists($bid, $stored_files)) {
+            db_exec($dbconn, 'ROLLBACK;');
+            echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde inzwischen geändert. Bitte neu laden.</div><br /><br /><br />';
+            block_start();
+            echo "<a href=\"index.php?action=edit&id=$id\">Zurück zur Buchung</a>";
+            block_end();
+            return;
+        }
+    }
+
     echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
     block_start();
     echo "<a href=\"index.php?action=edit&id=$id&hint=5\">Zurück zur Buchung</a>";
@@ -236,17 +263,6 @@ function page_edit_save($rights)
     }
     pg_free_result($result);
 
-    // The receipt numbers of the revised rows, from the rows of this voucher
-    // the user sees (page_save_buchung() ignores posted ones); also old
-    // revisions, for a form opened before another save.
-    $stored_files = [];
-    $query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";
-    $result = db_query($dbconn, $query);
-    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        $stored_files[intval($line['id'])] = intval($line['file']);
-    }
-    pg_free_result($result);
-
     $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id $rightssql;";
     db_exec($dbconn, $query);
 
@@ -254,6 +270,7 @@ function page_edit_save($rights)
     for ($i = 0; $i < $parts; $i++) {
         page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files);
     }
+    db_exec($dbconn, 'COMMIT;');
     // Corrected values are named in the redirect (warn=) for the edit page.
     $warn = '';
     if (count($voucher_warnings) > 0) {

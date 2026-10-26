@@ -117,10 +117,11 @@ function amount_refused()
 }
 // Each correction of a posted value is also added to $warnings ('date',
 // 'refund', 'purpose'), for the redirect of the revision. The receipt number
-// is never taken from the request: a revised row keeps the one of the stored
-// row it revises ($stored_files: row ID => file number, from the database),
-// any other row starts without a receipt (the upload attaches one).
-function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null, &$warnings = null, $stored_files = [])
+// is never taken from the request: a revised row takes the one of the stored
+// row it revises from $stored_files (row ID => file number, from the
+// database; empty for a new voucher), at most once, and removes it there.
+// Any other row starts without a receipt (the upload attaches one).
+function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old, &$warnings, &$stored_files)
 {
     global $dbconn;
     $voucher = get_voucher($part, $rights);
@@ -193,7 +194,9 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
         $query = 'DROP TABLE IF EXISTS ppmembers;';
         db_exec($dbconn, $query);
     }
-    $voucher['file'] = intval($stored_files[intval($voucher['bid'])] ?? 0);
+    $bid = intval($voucher['bid']);
+    $voucher['file'] = $stored_files[$bid] ?? 0;
+    unset($stored_files[$bid]);
     $query = "
 INSERT INTO vouchers
 (voucher_id, date, type, person_type, orga, member,
@@ -242,8 +245,11 @@ function page_new_save($rights)
 
     echo "<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>";
 
+    // A new voucher has no stored receipts.
+    $warnings = [];
+    $stored_files = [];
     for ($i = 0; $i < $parts; $i++) {
-        page_save_buchung($voucher_number, $rights, $i);
+        page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files);
     }
 }
 function page_new_file($rights)

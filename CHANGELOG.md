@@ -102,7 +102,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   import as an invalid line.
 - Saving a voucher keeps its stored receipt; a receipt number in the request
   is ignored. A new voucher starts without a receipt (the upload attaches
-  one), and a revised row keeps the receipt of the row it replaces.
+  one), and a revised row keeps the receipt of the current row it replaces.
+  A form opened before another save of the voucher is refused ("Die Buchung
+  wurde inzwischen geändert. Bitte neu laden.") and changes nothing. A
+  revision is saved in one database transaction.
 
 ### Removed
 
