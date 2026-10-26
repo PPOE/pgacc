@@ -32,9 +32,9 @@ PHP 5.3 and PostgreSQL 8.4.
 2. Check the PHP extensions. In the unpacked release directory run
    `composer check-platform-reqs --no-dev` with the target PHP (Composer is
    needed only for this check, not to install). It must report `ext-iconv` and
-   `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5 as
-   present. Without Composer, `php -m` must list `iconv`, `zlib`, `openssl` and
-   `pgsql`.
+   `ext-zlib` (the PDF receipt import, `smalot/pdfparser`), `ext-sodium` (the
+   receipt key fingerprint) and PHP 8.5 as present. Without Composer, `php -m`
+   must list `iconv`, `zlib`, `sodium`, `openssl` and `pgsql`.
 3. Outgoing HTTPS to the membership system must work with a trusted CA bundle
    (the member list is fetched over verified HTTPS).
 4. Upgrade the database to PostgreSQL 18 if needed: dump the `accounting`
@@ -111,11 +111,12 @@ command line. Do not post migration transcripts publicly.
    receipts checked.
 2. Get the **key fingerprint from the application**: log in as root and
    open the user administration (Benutzerverwaltung). It shows "Fingerabdruck
-   des Beleg-Schlüssels" (8 hex digits) of the `$key` the application uses
-   (never the key itself). Every run that writes or deletes needs it as
-   `--key-fingerprint=<fingerprint>`; a run with another `$key` (another
-   `constants.php`, another installation) then stops without changing
-   anything.
+   des Beleg-Schlüssels" (8 hex digits, a slow Argon2id derivation of the
+   `$key` the application uses, never the key itself; it also warns if the
+   key has fewer than 32 characters). Every run that writes or deletes needs
+   it as `--key-fingerprint=<fingerprint>`; a run with another `$key`
+   (another `constants.php`, another installation) then stops without
+   changing anything.
 3. Dry run: `sudo -u <web user> php migrate-receipt-key.php --dry-run
    --key-fingerprint=<fingerprint>`. It writes nothing and lists each legacy
    file as "would migrate" or "skipped, legacy kept" with the reason; the
@@ -133,7 +134,11 @@ command line. Do not post migration transcripts publicly.
      voucher ID of their rows decrypts (after a voucher merge) and migrates
      a file only if one decrypts it to a complete PDF or JPEG; the line
      names the voucher ID found. (Such a receipt downloaded as unreadable
-     bytes before; afterwards it is the original receipt.)
+     bytes before; afterwards it is the original receipt.) It costs one
+     single-block decryption per file and candidate ID (all voucher IDs up
+     to the highest one; roughly 0.15 ms each, so 20,000 IDs take about 3 s
+     per file); IDs found for one file are tried first for the next. Run it
+     after the normal migration, when only the skipped files are left.
    Pass the same options again to `--delete-legacy` (step 7).
 5. Migrate: `sudo -u <web user> php migrate-receipt-key.php
    --key-fingerprint=<fingerprint>`, optionally in batches (`--limit=500`).
@@ -141,20 +146,25 @@ command line. Do not post migration transcripts publicly.
    large receipts run with `php -d memory_limit=1G` (or set `--max-size`).
    Legacy files are kept. Finish with a run without `--limit`, and rerun
    until the summary shows 0 migrated and 0 failed.
-   - Before writing, each run checks up to 16 existing `<n>.v2.aes`, first
-     receipts without a legacy file (uploaded since the upgrade). If two or
-     more, and at least half, of them do not verify, or none of the checked
-     uploads does, the run stops: the key is probably not the one they were
-     written with.
+   - Before writing, each run checks the MAC of up to 16 existing
+     `<n>.v2.aes`, first receipts without a legacy file (uploaded since the
+     upgrade). If any of them does not verify, the run stops and lists them:
+     the key is probably wrong. If the key is certainly right and the files
+     are damaged, keep a copy of them and either re-create those that still
+     have a legacy file with `--recreate-unverified` (which then checks
+     every existing `<n>.v2.aes` before writing, also in `--limit` batches),
+     or leave them alone with `--ignore-unverified=<n>,...` (listed as
+     skipped).
    - A run without `--limit` also checks every other existing `<n>.v2.aes`
      it reaches; one that does not verify is kept and reported as failed.
      `--limit` batches do not read the already migrated files again (listed
-     as "not checked again"). Only if the key is certainly right, re-create
-     a damaged file from the legacy file with `--recreate-unverified`.
-   - Each new `<n>.v2.aes` gets the owner, group and mode of its `<n>.aes`
-     (the umask does not matter). If that is not possible (another user, not
-     root), the file is not written and the line says so. Running as root
-     works but prints a warning; prefer the web server's user.
+     as "not checked again").
+   - Run as the web server's user: each new `<n>.v2.aes` gets the mode of
+     its `<n>.aes` (the umask does not matter) and its group where the user
+     may set it; if the owner or group still differ, the line warns, and if
+     the owner or group of `<n>.aes` could not read the new file, it is not
+     written. Run as root (a warning is printed), the new file gets the
+     owner, group and mode of `<n>.aes`.
 6. Verify: run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy`
    also runs `sync` itself and stops if that fails). Spot-check several
    migrated receipts (PDF and JPEG, and any migrated with the options of
@@ -180,8 +190,8 @@ Exit status of every run:
 |---|---|
 | 0 | done; nothing skipped |
 | 1 | a file failed (listed under "Failed: ..."); fix the cause and run again |
-| 2 | not run, nothing changed (usage, invalid key, missing or wrong `--key-fingerprint`, the key check of step 5 failed, lock, database, `sync`) |
-| 3 | done, but legacy files were skipped (with `--delete-legacy`: every legacy file without `<n>.v2.aes`); listed at the end, their legacy files are kept |
+| 2 | not run, nothing changed (usage, invalid key, missing or wrong `--key-fingerprint`, a checked `<n>.v2.aes` does not verify (step 5), lock, database, `sync`) |
+| 3 | done, but legacy files were skipped (with `--delete-legacy`: every legacy file without `<n>.v2.aes`; also those of `--ignore-unverified`); listed at the end, their legacy files are kept |
 
 ## Rollback
 

@@ -182,6 +182,19 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame(8, strlen(receipt_key_fingerprint(self::TEST_KEY)));
     }
 
+    public function testKeyNotice()
+    {
+        $line = '<p>Fingerabdruck des Beleg-Schlüssels (für migrate-receipt-key.php --key-fingerprint): ';
+        $warning = '<p>Warnung: Der Beleg-Schlüssel ($key) hat weniger als 32 Zeichen. Er darf nicht mehr geändert werden, '
+            . 'sobald Belege damit verschlüsselt sind (UPGRADING.md).</p>';
+        self::assertSame($line . receipt_key_fingerprint(self::TEST_KEY) . '</p>', receipt_key_notice(self::TEST_KEY));
+        $short = str_repeat('k', 31);
+        self::assertSame($line . receipt_key_fingerprint($short) . '</p>' . $warning, receipt_key_notice($short));
+        self::assertSame($line . receipt_key_fingerprint(str_repeat('k', 32)) . '</p>', receipt_key_notice(str_repeat('k', 32)));
+        self::assertSame($line . 'kein gültiger Schlüssel ($key) konfiguriert</p>', receipt_key_notice(''));
+        self::assertSame($line . 'kein gültiger Schlüssel ($key) konfiguriert</p>', receipt_key_notice('CHANGE-ME-CHANGE-ME-CHANGE-ME'));
+    }
+
     public function testFileNames()
     {
         self::assertSame('/srv/files/42.v2.aes', receipt_v2_path('/srv/files', 42));

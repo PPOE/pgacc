@@ -46,9 +46,7 @@ function page_accounts($rights)
         echo '<p>Ein vorgestelltes R erzeugt einen read only Zugang. Beispiel: Rbgf. root hat Möglichkeit Buchungen zu mergen, sowie gelöschte Buchungszeilen wiederherzustellen</p>';
         // For migrate-receipt-key.php --key-fingerprint (UPGRADING.md): a
         // fingerprint of the configured key, never the key itself.
-        $receiptKey = receipt_configured_key();
-        echo '<p>Fingerabdruck des Beleg-Schlüssels (für migrate-receipt-key.php --key-fingerprint): '
-            . ($receiptKey === '' ? 'kein gültiger Schlüssel ($key) konfiguriert' : html_escape(receipt_key_fingerprint($receiptKey))) . '</p>';
+        echo receipt_key_notice(receipt_configured_key());
     }
     block_start();
     echo '<form action="index.php?action=accounts" method="POST">' . csrf_field() . '<table>

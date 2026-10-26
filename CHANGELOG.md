@@ -48,8 +48,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   year. No JavaScript; the same years and link targets as before.
 - Receipt migration (`migrate-receipt-key.php`): a run that writes or
   deletes needs `--key-fingerprint=<8 hex digits>`, the key fingerprint
-  that the user administration page now shows root (never the key);
-  without it, or with another one, nothing is changed. Skipped files are
+  that the user administration page now shows root (never the key; it also
+  warns about a key of fewer than 32 characters); without it, or with
+  another one, nothing is changed. The fingerprint is now a slow Argon2id
+  derivation (requires the `sodium` extension, part of standard PHP
+  builds); earlier fingerprints no longer match. Skipped files are
   listed by file number at the end and give exit status 3 (1 a file failed,
   2 not run); the delete phase reports every legacy file without
   `<n>.v2.aes` as "skipped, legacy kept". New options: `--include-unusual`
@@ -58,10 +61,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   as images, other types as a download instead of `image/jpeg`);
   `--search-voucher-ids` tries other voucher IDs for files of merged
   vouchers and accepts only a complete PDF or JPEG; `--recreate-unverified`
-  (see Fixed). `--limit` batches no longer re-check already migrated files
-  (the run without `--limit` and the delete phase do). New `<n>.v2.aes`
-  files get the owner, group and mode of their legacy file; a run as root
-  prints a warning. Operator steps in [UPGRADING.md](UPGRADING.md).
+  and `--ignore-unverified=<n,...>` (see Fixed). `--limit` batches no longer
+  re-check already migrated files (the run without `--limit` and the delete
+  phase do). New `<n>.v2.aes` files get the owner, group and mode of their
+  legacy file when run as root (with a warning); run as the web server's
+  user, its mode and, where permitted, its group, with a warning if owner or
+  group differ, and not written if the legacy file's owner or group could
+  not read them. Operator steps in [UPGRADING.md](UPGRADING.md).
 - Receipt download: a `<n>.v2.aes` receipt that is a PNG or GIF image is
   shown as `image/png` or `image/gif` instead of being offered as a
   download `<n>.bin`.
@@ -75,10 +81,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Receipt migration: a run with another `$key` no longer re-creates existing
   `<n>.v2.aes` files that do not verify with it. Such a file is kept and
-  reported as failed (re-created only with `--recreate-unverified`). Before
-  writing, each run checks up to 16 existing files, receipts uploaded since
-  the upgrade first, and stops if two or more, and at least half, of them,
-  or every checked upload, do not verify. `--delete-legacy` deletes a legacy file
+  reported. Before writing, each run checks the MAC of up to 16 existing
+  files, receipts uploaded since the upgrade first, and stops with their
+  list if one does not verify, unless `--recreate-unverified` (re-creates
+  those with a legacy file; then all files are checked) or
+  `--ignore-unverified` (leaves them alone) is given. `--delete-legacy` deletes a legacy file
   only when its `<n>.v2.aes` verifies with the confirmed key and decrypts to
   exactly its content.
 - A receipt download whose stored file is missing or unreadable answers with

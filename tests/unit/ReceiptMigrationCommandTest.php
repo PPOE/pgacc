@@ -54,8 +54,9 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
 
     public function testRunAsAnotherUser()
     {
-        // Not root: a new <n>.v2.aes can only get the owner of <n>.aes if the
-        // run has it; otherwise nothing is written.
+        // Not root: the new <n>.v2.aes gets the mode of <n>.aes and its group
+        // where permitted; another owner only gives a warning while the file
+        // stays readable (the unreadable case: testWritingNotAsRoot).
         exec('command -v setpriv', $found, $missing);
         if ($missing !== 0 || receipt_migration_euid() !== 0) {
             self::markTestSkipped('needs root and setpriv');
@@ -64,24 +65,33 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         chmod($this->directory, 0755);
         chmod($files, 0777);
         chmod($this->directory . '/constants.php', 0644);
-        $this->put('42.aes', receipt_encrypt('1003', '', "%PDF synthetic\n%%EOF\n"));
         $legacy = "$files/42.aes";
-        chmod($legacy, 0644);
-        $nobody = 'setpriv --reuid=65534 --regid=65534 --clear-groups ';
         $arguments = '--key-fingerprint=' . self::fingerprint(self::TEST_KEY) . ' --files=' . escapeshellarg($files)
             . ' --constants=' . escapeshellarg($this->directory . '/constants.php');
-
-        self::assertSame([1, "42.aes: 42.v2.aes could not be given the owner, group and mode of 42.aes "
-            . "(run as the owner of 42.aes, or as root); 42.aes kept\nFailed: 42\n"
-            . self::summary([0, 0, 0, 0, 1]), ''], self::command($arguments, $nobody));
-        self::assertSame(['.migrate-receipt-key.lock', '42.aes'], array_keys($this->files()));
-
-        chown($legacy, 65534);
-        chgrp($legacy, 65534);
-        chmod($legacy, 0640);
-        self::assertSame(0, self::command($arguments, $nobody)[0]);
-        clearstatcache();
-        self::assertSame([65534, 65534, 0640], [fileowner("$files/42.v2.aes"), filegroup("$files/42.v2.aes"), fileperms("$files/42.v2.aes") & 07777]);
+        // Owner, group and mode of the legacy file; the run's groups; the
+        // expected owner and group of the new file and the warning.
+        $cases = [
+            'the web server\'s user' => [65534, 65534, 0640, '', 65534, 65534, ''],
+            'another owner, readable for everyone' => [0, 0, 0644, '', 65534, 65534,
+                '; warning: owner or group differ from 42.aes, readable for everyone'],
+            'another owner, a shared group' => [0, 34, 0640, '--groups=34', 65534, 34,
+                '; warning: owner or group differ from 42.aes, readable for its group'],
+        ];
+        foreach ($cases as $label => [$uid, $gid, $mode, $groups, $newUid, $newGid, $warning]) {
+            foreach (array_keys($this->files()) as $name) {
+                unlink("$files/$name");
+            }
+            $this->put('42.aes', receipt_encrypt('1003', '', "%PDF synthetic\n%%EOF\n"));
+            chown($legacy, $uid);
+            chgrp($legacy, $gid);
+            chmod($legacy, $mode);
+            $prefix = 'setpriv --reuid=65534 --regid=65534 ' . ($groups === '' ? '--clear-groups' : $groups) . ' ';
+            self::assertSame([0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy$warning\n"
+                . self::summary([1, 0, 0, 0, 0]), ''], self::command($arguments, $prefix), $label);
+            clearstatcache();
+            self::assertSame([$newUid, $newGid, $mode], [fileowner("$files/42.v2.aes"), filegroup("$files/42.v2.aes"),
+                fileperms("$files/42.v2.aes") & 07777], $label);
+        }
     }
 
     public function testVerifiesALargeV2FileInBoundedMemory()

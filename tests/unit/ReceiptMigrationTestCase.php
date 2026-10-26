@@ -175,6 +175,16 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         return $result[0];
     }
 
+    // The message of a run whose key check finds files that do not verify.
+    protected static function unverified($list, $key = self::TEST_KEY)
+    {
+        return 'These existing <n>.v2.aes do not verify with the key of this run (key fingerprint '
+            . self::fingerprint($key) . "): $list. Nothing was changed. If the key is wrong, run with the "
+            . 'constants.php of the application (--key-fingerprint from its user administration page). If the key is right '
+            . 'and the files are damaged, keep a copy of them and either re-create those that still have a legacy file with '
+            . "--recreate-unverified, or leave them alone with --ignore-unverified=$list.\n";
+    }
+
     protected static function rootWarning()
     {
         return "Warning: running as root. Each new <n>.v2.aes gets the owner, group and mode of its <n>.aes; "

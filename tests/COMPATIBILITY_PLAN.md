@@ -1294,24 +1294,32 @@ differences above are only visible for out-of-range input.
     are never decrypted with the legacy scheme.
   - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3
     has no fsync): a normal run writes and verifies `<n>.v2.aes` and keeps
-    `<n>.aes`; it checks an existing `<n>.v2.aes` like a download (MAC, then
-    chunked decryption) and re-creates an invalid one from `<n>.aes`, or
-    reports it (exit status 1); it never deletes anything. Hardened against
+    `<n>.aes`; it checks the MAC of an existing `<n>.v2.aes` (re-created
+    from `<n>.aes` only with `--recreate-unverified`); it never deletes
+    anything. Hardened against
     operator mistakes: writing and deleting runs need `--key-fingerprint`
     (shown to root on the user administration page, `accounts.php`); an
     existing `<n>.v2.aes` that does not verify is kept unless
-    `--recreate-unverified`; before writing, up to 16 existing
-    `<n>.v2.aes` (uploads first) are checked, and the run stops when two or
-    more, and at least half, of them do not verify, or none of the checked
-    uploads does (a wrong key); `--limit` batches do not re-check migrated
-    files (the run without `--limit` and the delete phase do); skipped files
+    `--recreate-unverified`; before writing, the MAC of up to 16 existing
+    `<n>.v2.aes` (uploads first; all with `--recreate-unverified`) is
+    checked, and the run stops with the list if one does not verify (a
+    wrong key), unless `--recreate-unverified` (files with a legacy file)
+    or `--ignore-unverified=<n,...>` covers it; `--limit` batches do not
+    re-check migrated files (the run without `--limit` and the delete phase,
+    which decrypts each file once, do); skipped files
     are listed and give exit status 3 (the delete phase reports every
     legacy file without `<n>.v2.aes` as "skipped, legacy kept", without
     decrypting it); `--include-unusual` and `--search-voucher-ids` migrate
     other recognized types and merged vouchers (search candidates fetched
     once per run); new files get the owner, group and mode of their legacy
-    file through `receipt_write_file()`'s `$prepare` (warning when run as
-    root). `<n>.v2.aes` downloads now also send PNG and GIF inline as
+    file through `receipt_write_file()`'s `$prepare` as root (warning);
+    as another user its mode and, where permitted, its group, refused only
+    if the legacy file's owner or group could not read it. Without
+    `--include-unusual` a file is judged by its first decrypted block; the
+    search tries found IDs first. The key fingerprint is Argon2id
+    (libsodium, `ext-sodium`, interactive limits, fixed salt) so that a
+    fingerprint seen on the root page is no fast test for guessed keys; the
+    root page also warns about a key of fewer than 32 characters. `<n>.v2.aes` downloads now also send PNG and GIF inline as
     `image/png`/`image/gif`. Genuine legacy files of
     the original code on PHP 5.3.3: `tests/fixtures/legacy-php53/`.
     `--delete-legacy`
@@ -1321,8 +1329,8 @@ differences above are only visible for out-of-range input.
     prints a reminder to check receipts first. It reads `$key` like `index.php` (an explicit
     relative `--constants` or `--files` is relative to the working
     directory), refuses invalid keys, prints the key fingerprint (first 8 hex
-    digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, only in its own
-    output), holds an exclusive lock (`files/.migrate-receipt-key.lock`),
+    digits of an Argon2id derivation of `$key`, see `receipt_key_fingerprint()`;
+    in its own output and on the root user administration page), holds an exclusive lock (`files/.migrate-receipt-key.lock`),
     never removes a `<n>.v2.aes` it did not just write, probes the first
     block per candidate voucher ID and then requires a complete PDF
     (`%%EOF` near the end) or JPEG (`FF D9`) with consistent zero padding,
@@ -1414,12 +1422,15 @@ differences above are only visible for out-of-range input.
      matching fingerprint nothing is written. Files above `--max-size`
      (default `memory_limit` / 8) are skipped; for large receipts run with
      `php -d memory_limit=1G` (or set `--max-size`). Legacy files are kept.
-     Each run first checks up to 16 existing `<n>.v2.aes` (uploads first)
-     and stops if most do not verify or no checked upload does (probably a
-     wrong key); a run without `--limit` checks the others it reaches and
-     keeps and reports one that does not verify (`--recreate-unverified`
-     only if the key is certainly right). New files get the owner, group
-     and mode of their legacy file, or are not written. Rerun until the
+     Each run first checks the MAC of up to 16 existing `<n>.v2.aes`
+     (uploads first) and stops with the list if one does not verify
+     (probably a wrong key; `--recreate-unverified`, which checks all, or
+     `--ignore-unverified=<n,...>` only if the key is certainly right); a run
+     without `--limit` checks the others it reaches and keeps and reports one
+     that does not verify. New files get the owner, group
+     and mode of their legacy file as root; as the web server's user their
+     mode and group where permitted (a warning if owner or group differ; not
+     written if the legacy file's owner or group could not read them). Rerun until the
      summary shows 0 migrated and 0 failed.
   7. Run `sync` once more (`--delete-legacy` also runs `sync` itself before
      it deletes anything and stops if that fails). Spot-check several
