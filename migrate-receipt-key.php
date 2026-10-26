@@ -473,7 +473,8 @@ function receipt_migration_file($connection, $options, $key, $number, $verified,
  * The key check before anything is written or deleted: the MAC of up to 16
  * existing <n>.v2.aes, first those without a legacy file (written by the
  * application, or whose legacy file was deleted), then the migrated ones,
- * by ascending number; with --recreate-unverified of every existing one. A
+ * by ascending number, and those listed in --ignore-unverified; with
+ * --recreate-unverified of every existing one. A
  * wrong key fails every file, so a bounded sample finds it, and --limit
  * batches do not read every receipt again. Returns array(result per
  * number, message): the run stops (message not '') if a checked file does
@@ -495,7 +496,10 @@ function receipt_migration_check_key($options, $key, $names, $numbers)
     sort($migrated, SORT_NUMERIC);
     $checked = array_merge($standalone, $migrated);
     $verified = [];
-    foreach ($options['recreate-unverified'] ? $checked : array_slice($checked, 0, 16) as $number) {
+    // The files of --ignore-unverified are always checked, so that they are
+    // skipped wherever they are.
+    $sample = $options['recreate-unverified'] ? $checked : array_unique(array_merge(array_slice($checked, 0, 16), array_intersect($checked, $options['ignore-unverified'])));
+    foreach ($sample as $number) {
         $verified[$number] = receipt_migration_mac_ok($key, $number, receipt_v2_path($options['files'], $number));
     }
     $failing = array_diff(array_keys($verified, false, true), $options['ignore-unverified']);

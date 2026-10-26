@@ -458,6 +458,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame(1, $status);
         self::assertStringStartsWith('901.aes: 901.v2.aes does not verify with this key; both kept (--recreate-unverified '
             . 're-creates it from 901.aes, --ignore-unverified=901 leaves it)', $output);
+        self::assertStringContainsString("909.aes: already migrated; 909.aes kept until --delete-legacy\n", $output);
         // --recreate-unverified checks every existing file first: 940, a
         // damaged upload outside the sample, stops it.
         $this->put('940.v2.aes', 'damaged');
@@ -466,7 +467,18 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         list($status, $output) = $this->migrate(['--recreate-unverified', '--ignore-unverified=940', '--dry-run']);
         self::assertSame(0, $status);
         self::assertStringStartsWith("901.aes: 901.v2.aes does not verify; would re-create it (voucher 4711)\n", $output);
-        self::assertStringContainsString("909.aes: already migrated; 909.aes kept until --delete-legacy\n", $output);
+
+        // --ignore-unverified skips 901 outside the sample, also in the
+        // delete phase.
+        list($status, $output) = $this->migrate(['--ignore-unverified=901']);
+        self::assertSame(3, $status);
+        self::assertStringStartsWith("901.aes: skipped, legacy kept: 901.v2.aes does not verify with this key (--ignore-unverified)\n", $output);
+        list($status, $output) = $this->migrate(['--delete-legacy', '--ignore-unverified=901']);
+        self::assertSame(3, $status);
+        self::assertSame(self::deleteReminder()
+            . "901.aes: skipped, legacy kept: 901.v2.aes does not verify with this key (--ignore-unverified)\n"
+            . "909.aes: verified; deleted 909.aes\n"
+            . "Skipped, legacy kept: 901\n" . self::summary([0, 0, 1, 1, 0]), $output);
     }
 
     public function testWritingAndDeletingNeedTheKeyFingerprint()
