@@ -44,7 +44,9 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 1
 -- next
 BEGIN;
 -- next
-SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = 1004  FOR UPDATE;
+SELECT id FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ORDER BY id FOR UPDATE;
+-- next
+SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ;
 -- next
 
     UPDATE vouchers

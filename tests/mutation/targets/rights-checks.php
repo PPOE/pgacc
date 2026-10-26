@@ -58,22 +58,22 @@ return [
         [
             'id' => 'revision-receipt-numbers-without-rights',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id FOR UPDATE;";',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id;";',
             'rationale' => 'A revision takes no receipt from a row of another organization of the voucher, and refuses such a row.',
         ],
         [
             'id' => 'revision-receipt-numbers-of-any-voucher',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted $rightssql FOR UPDATE;";',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted $rightssql;";',
             'rationale' => 'A revision takes no receipt from a row of another voucher, and refuses such a row.',
         ],
         [
             'id' => 'revision-receipt-numbers-of-deleted-rows',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql FOR UPDATE;";',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
             'rationale' => 'An old revision (whose organization may have changed since) passes on no receipt: a form that posts one is refused.',
         ],
         [

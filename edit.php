@@ -220,12 +220,15 @@ function page_edit_save($rights)
     // replacement of the rows and the new rows are one transaction; the rows
     // stay locked against a concurrent upload or save until the commit.
     db_exec($dbconn, 'BEGIN;');
+    // All current rows of the voucher (also of other organizations, whose
+    // approvals are reset too), locked in the order of their IDs.
+    db_exec($dbconn, "SELECT id FROM vouchers WHERE NOT deleted AND voucher_id = $id ORDER BY id FOR UPDATE;");
     // The receipt numbers of the revised rows: only current rows of this
     // voucher that the user sees pass theirs on (page_save_buchung() ignores
     // posted ones). A posted row that is not one of them (a form opened
     // before another save) refuses the save.
     $stored_files = [];
-    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql FOR UPDATE;";
+    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
     $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $stored_files[intval($line['id'])] = intval($line['file']);
