@@ -5,6 +5,21 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-26
+
+Security and data-integrity fixes for receipts, voucher saves and passwords,
+plus HTML encoding by default for listing cells. Read UPGRADING.md before
+upgrading.
+
+### Upgrade notes
+
+Follow [UPGRADING.md](UPGRADING.md). In short: deny web access to `src/`;
+the database user needs no table-creation rights any more (`ppmembers` can be
+dropped) and pgacc must not run behind a transaction- or statement-mode
+connection pooler; passwords are upgraded to bcrypt at the next login;
+receipts not migrated yet are migrated with `--key-fingerprint` as described
+there.
+
 ### Changed
 
 - `tag()` (listing cells) encodes its text for HTML by default; markup goes
@@ -93,6 +108,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The PHP 5.3 fallbacks for login nonces (openssl, mcrypt) and for the
   constant-time comparison: `random_bytes()` and `hash_equals()` only.
+- Unused stylesheet rules (leftovers from LiquidFeedback), `gregor.css` and an
+  unused JavaScript function on the donations page. Nothing changes visibly.
 
 ### Fixed
 
@@ -187,11 +204,6 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   unreachable or answers with invalid data, saving a member's voucher is
   refused with the form shown again ("Die Mitgliederverwaltung ist nicht
   erreichbar. Bitte später erneut speichern.") instead of ending the page.
-
-### Removed
-
-- Unused stylesheet rules (leftovers from LiquidFeedback), `gregor.css` and an
-  unused JavaScript function on the donations page. Nothing changes visibly.
 
 ## [2.0.0] - 2026-10-25
 
