@@ -91,6 +91,35 @@ return [
             'rationale' => 'Any other failure of the row lock ends the request with the pages\' message.',
         ],
         [
+            'id' => 'revision-members-loaded-before-value-checks',
+            'file' => 'edit.php',
+            'search' => '        && posted_organizations_allowed($parts, $rights) && posted_amounts_valid($parts, $rights)',
+            'replace' => '        && true',
+            'rationale' => 'The member list is not fetched for a revision refused for its posted organization or amount '
+                . '(a failing membership system keeps those messages).',
+        ],
+        [
+            'id' => 'revision-members-loaded-for-closed-voucher',
+            'file' => 'edit.php',
+            'search' => '        && edit_voucher_open($id, $rightssql) && members_load($parts, $rights);',
+            'replace' => '        && members_load($parts, $rights);',
+            'rationale' => 'The member list is not fetched for a voucher that the user does not see or that is finalized.',
+        ],
+        [
+            'id' => 'revision-open-check-ignores-finalized',
+            'file' => 'edit.php',
+            'search' => ' AND NOT EXISTS (SELECT 1 FROM vouchers f WHERE NOT f.deleted AND f.receipt_received AND f.voucher_id = $id);";',
+            'replace' => ';";',
+            'rationale' => 'The member list is not fetched for a finalized voucher.',
+        ],
+        [
+            'id' => 'revision-open-check-unscoped',
+            'file' => 'edit.php',
+            'search' => '$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql AND NOT EXISTS',
+            'replace' => '$query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id AND NOT EXISTS',
+            'rationale' => 'The member list is not fetched for a voucher of another organization.',
+        ],
+        [
             'id' => 'revision-receipt-row-dropped',
             'file' => 'edit.php',
             'search' => '        if ($message === null && $file != 0 && !in_array($bid, $posted, true)) {',

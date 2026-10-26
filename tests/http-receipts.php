@@ -458,12 +458,58 @@ revise_receipt_voucher($database, $unitOneCookies, 4784, receipt_voucher_form('S
 if (array_column(current_receipt_rows($database, 'Synthetic revision after a deadlock'), 'file') !== ['0', '99005']) {
     fail_test('revision after a deadlock lost a receipt');
 }
+// The member list of a member's part is fetched before the transaction,
+// and only for a revision that is not refused for its posted values or the
+// state of the voucher: with the membership system failing, those refusals
+// keep their messages, and a failed fetch writes nothing.
+function receipts_membership_mode($mode)
+{
+    $answer = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=' . $mode);
+    if ($answer !== "mode $mode\n") {
+        fail_test("membership stub mode $mode: " . var_export($answer, true));
+    }
+}
+
+$memberRows = array_column(current_receipt_rows($database, 'Synthetic revision after a deadlock'), 'id');
+$memberForm = receipt_voucher_form('Synthetic member revision', $memberRows, 0);
+$memberForm['member0'] = '1';
+$memberFetchFailed = 'Mitgliederliste konnte nicht abgerufen werden!';
+// The stub's mode outlives this script: reset it even when a check fails.
+register_shutdown_function(function () {
+    @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=ok');
+});
+receipts_membership_mode('error');
+$memberCases = [
+    'failed member list' => [4784, [], $memberFetchFailed],
+    'invalid amount' => [4784, ['amount0' => 'abc'], 'Ungültiger Betrag'],
+    'organization of another user' => [4784, ['lo0' => '2'], 'FEHLER: Keine Zugriffsrechte.'],
+    'voucher of another organization' => [4711, [], 'FEHLER: Buchung nicht gefunden.'],
+    'finalized voucher' => [4784, [], 'bereits finalisiert'],
+];
+foreach ($memberCases as $label => $case) {
+    list($voucherId, $changes, $expected) = $case;
+    if ($label === 'finalized voucher') {
+        receipts_query($database, 'UPDATE vouchers SET receipt_received = true WHERE id = $1', [$memberRows[1]], 'finalized row');
+    }
+    $before = voucher_state($database, $voucherId, "member revision: $label");
+    $response = revision_request($unitOneCookies, $voucherId, array_merge($memberForm, $changes));
+    assert_contains($response['body'], $expected, "member revision: $label");
+    if ($expected !== $memberFetchFailed) {
+        assert_not_contains($response['body'], $memberFetchFailed, "member revision: $label");
+    }
+    if (voucher_state($database, $voucherId, "member revision: $label") !== $before) {
+        fail_test("member revision: $label changed the voucher");
+    }
+}
+receipts_query($database, 'UPDATE vouchers SET receipt_received = false WHERE id = $1', [$memberRows[1]], 'finalized row');
+receipts_membership_mode('ok');
+
 // Any other failure of the row lock ends the request with the pages'
 // message, as every failed statement does, and writes nothing (here: a
 // column renamed for the test).
 $before = voucher_state($database, 4784, 'voucher before a failed lock');
 receipts_query($database, 'ALTER TABLE vouchers RENAME COLUMN receipt_received TO receipt_received_renamed', [], 'renamed column');
-$response = revision_request($unitOneCookies, 4784, receipt_voucher_form('Synthetic revision with a failed lock', [9186, 9187], 0));
+$response = revision_request($unitOneCookies, 4784, receipt_voucher_form('Synthetic revision with a failed lock', $memberRows, 0));
 receipts_query($database, 'ALTER TABLE vouchers RENAME COLUMN receipt_received_renamed TO receipt_received', [], 'restored column');
 assert_contains($response['body'], 'Abfrage fehlgeschlagen: ERROR:  column "receipt_received" does not exist', 'revision with a failed lock');
 assert_not_contains($response['body'], 'Buchung aktualisiert', 'revision with a failed lock');

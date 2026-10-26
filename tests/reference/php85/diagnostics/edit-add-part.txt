@@ -1,5 +1,5 @@
-E_WARNING edit.php:359: Undefined array key 1
-E_WARNING edit.php:359: Trying to access array offset on null
+E_WARNING edit.php:374: Undefined array key 1
+E_WARNING edit.php:374: Trying to access array offset on null
 E_WARNING src/db.php:17: pg_query(): Query failed: ERROR:  syntax error at end of input
 LINE 1: SELECT income FROM type WHERE id = 
                                            ^

@@ -116,9 +116,17 @@ function posted_amounts_valid($parts, $rights)
 // afterwards.
 function members_load($parts, $rights)
 {
+    if (posted_member_part($parts, $rights)) {
+        getusers();
+        return true;
+    }
+    return false;
+}
+// Whether a posted part is a member's.
+function posted_member_part($parts, $rights)
+{
     for ($part = 0; $part < $parts; $part++) {
         if (get_voucher($part, $rights, false)['member'] == 'true') {
-            getusers();
             return true;
         }
     }

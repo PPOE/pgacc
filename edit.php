@@ -170,6 +170,17 @@ function edit_save_rollback($members)
     db_exec($dbconn, 'ROLLBACK;');
     members_drop($members);
 }
+// Whether the user sees a current row of voucher $id and no current row of
+// it is finalized (read without a lock; the revision checks again under it).
+function edit_voucher_open($id, $rightssql)
+{
+    global $dbconn;
+    $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql AND NOT EXISTS (SELECT 1 FROM vouchers f WHERE NOT f.deleted AND f.receipt_received AND f.voucher_id = $id);";
+    $result = db_query($dbconn, $query);
+    $open = pg_num_rows($result) > 0;
+    pg_free_result($result);
+    return $open;
+}
 // Locks the current rows of voucher $id in the order of their IDs and returns
 // them (id, file, receipt_received, mine: whether the user sees the row);
 // null when PostgreSQL aborts the statement for a deadlock (the transaction
@@ -222,8 +233,12 @@ function page_edit_save($rights)
     $rightssql = rights2orgasql($rights);
 
     // The member list is loaded before the transaction (no external call
-    // while the rows are locked).
-    $members = members_load($parts, $rights);
+    // while the rows are locked), and only for a revision that the checks
+    // below will not refuse for its posted values or (as read now, without
+    // the lock) for the state of the voucher.
+    $members = posted_member_part($parts, $rights)
+        && posted_organizations_allowed($parts, $rights) && posted_amounts_valid($parts, $rights)
+        && edit_voucher_open($id, $rightssql) && members_load($parts, $rights);
     // The checks, the approval reset, the replacement of the user's rows and
     // the new rows are one transaction on the locked current rows of the
     // voucher; a refusal rolls it back and writes nothing.
