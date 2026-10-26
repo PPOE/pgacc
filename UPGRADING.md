@@ -6,15 +6,15 @@ notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Browsers
 
-From the release after 2.0.0 (the Tailwind CSS stylesheet, see
-[CHANGELOG.md](CHANGELOG.md), "Unreleased"), the pages need Chrome/Edge 111+,
+From 2.1.0 (the Tailwind CSS stylesheet, see
+[CHANGELOG.md](CHANGELOG.md), "2.1.0"), the pages need Chrome/Edge 111+,
 Safari 16.4+ or Firefox 128+. Older browsers still work but show the pages
 unstyled. The stylesheet is part of the release archive; nothing needs to be
 built on the server.
 
 ## Web server: deny `src/`
 
-From the release after 2.0.0 the archive has a `src/` directory with library
+From 2.1.0 the archive has a `src/` directory with library
 files (first `src/db.php`, the database helpers). Deny web access to `/src/`
 like `/vendor/` and `/tests/`. On Apache the shipped `src/.htaccess` does
 this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
@@ -24,7 +24,7 @@ served.
 
 ## Passwords: bcrypt and 12 characters
 
-From the release after 2.0.0 new and changed passwords are stored as bcrypt
+From 2.1.0 new and changed passwords are stored as bcrypt
 (`$2a$` hashes) instead of MD5-crypt (`$1$`). Nothing needs to be migrated:
 existing hashes stay valid and are replaced with bcrypt at the user's next
 successful login (or when the password is set). Accounts that never log in
@@ -35,7 +35,7 @@ password, so longer passwords give no extra strength.
 
 ## Member list: no shared table
 
-From the release after 2.0.0 each request keeps the member list of the
+From 2.1.0 each request keeps the member list of the
 membership system in a temporary table of its own database connection. The
 database user no longer needs to create tables in the `public` schema (only
 the `TEMPORARY` privilege on the database, which PostgreSQL grants to every
@@ -104,7 +104,7 @@ PHP 5.3 and PostgreSQL 8.4.
    tar xzf pgacc-<version>.tar.gz
    ```
 
-5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`, `/src/` (from the release after 2.0.0),
+5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`, `/src/` (from 2.1.0),
    `constants.php`, `migrate-receipt-key.php`, `check.php` and
    `composer.json`/`composer.lock`, and to disable directory listings.
    `migrate-receipt-key.php` and `check.php` run only on the command line

@@ -4,7 +4,7 @@
 // it to the new version together with the dated CHANGELOG.md section;
 // scripts/release.sh fails unless it equals the tagged version (README.md,
 // "Releases").
-const PGACC_VERSION = '2.0.0';
+const PGACC_VERSION = '2.1.0';
 
 // Third-party software shipped outside Composer (js/README.md, icons/, and
 // Tailwind CSS in style.css, built from css/app.css).
