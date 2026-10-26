@@ -1413,10 +1413,11 @@ differences above are only visible for out-of-range input.
   7. Run `sync` once more (`--delete-legacy` also runs `sync` itself before
      it deletes anything and stops if that fails). Spot-check several
      migrated receipts (PDF and JPEG) in the browser, before deleting
-     anything, and check the web server's error log for `pgacc: receipt
-     <n>.v2.aes could not be decrypted; sent the legacy <n>.aes`: while the
-     legacy files exist, a key mismatch between the web application and the
-     migration still serves the old file, so only the log shows it.
+     anything, and check the web server's error log for lines matching
+     `pgacc: receipt .*; sent the legacy` and `pgacc: receipt .*: no
+     readable stored file`: while the legacy files exist, a key mismatch
+     between the web application and the migration still serves the old
+     file, so only the log shows it.
   8. Delete the legacy files: `sudo -u <web user> php migrate-receipt-key.php
      --delete-legacy --key-fingerprint=<fingerprint>` (also with `--dry-run`
      first; it repeats the reminder). Each `<n>.aes` is deleted only when

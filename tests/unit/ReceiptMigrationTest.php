@@ -389,6 +389,42 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame(self::paddedPdf(), $this->v2Plain('908'));
     }
 
+    public function testTheKeyCheckIncludesV2FilesWithoutLegacyFile()
+    {
+        // After a partial delete phase (and with new uploads), most <n>.v2.aes
+        // have no legacy file left; a run with another key still stops before
+        // it migrates the rest.
+        foreach (['901', '908', '909'] as $number) {
+            $this->put("$number.aes", $this->legacyPdf());
+        }
+        $this->put('907.v2.aes', receipt_v2_encrypt(self::TEST_KEY, '907', '%PDF new upload'));
+        self::assertSame(0, $this->migrationStatus(['--limit=2']));
+        self::assertSame(0, $this->migrationStatus(['--delete-legacy', '--limit=2']));
+        $before = $this->files();
+        self::assertSame(['.migrate-receipt-key.lock', '901.v2.aes', '907.v2.aes', '908.v2.aes', '909.aes'], array_keys($before));
+        $this->writeConstants("<?php\n\$key = '" . self::OTHER_KEY . "';\n");
+        $this->confirmedKey = self::OTHER_KEY;
+        list($status, , $errors) = $this->migrate([]);
+        self::assertSame(2, $status);
+        self::assertStringStartsWith('3 of the 3 existing <n>.v2.aes files do not verify', $errors);
+        self::assertSame($before, $this->files());
+
+        // With the right key, two damaged files among many valid ones are
+        // reported, and the run goes on.
+        $this->writeConstants("<?php\n\$key = '" . self::TEST_KEY . "';\n");
+        $this->confirmedKey = self::TEST_KEY;
+        $this->put('908.aes', $this->legacyPdf());
+        $this->put('908.v2.aes', 'damaged');
+        $this->put('910.v2.aes', 'damaged');
+        foreach (['911', '912'] as $number) {
+            $this->put("$number.v2.aes", receipt_v2_encrypt(self::TEST_KEY, $number, '%PDF new upload'));
+        }
+        list($status, $output) = $this->migrate([]);
+        self::assertSame(1, $status);
+        self::assertStringContainsString("908.aes: 908.v2.aes does not verify with this key; both kept", $output);
+        self::assertStringContainsString("909.aes: migrated (voucher 4711)", $output);
+    }
+
     public function testWritingAndDeletingNeedTheKeyFingerprint()
     {
         $this->put('901.aes', $this->legacyPdf());

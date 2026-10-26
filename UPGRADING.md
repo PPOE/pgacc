@@ -146,11 +146,12 @@ command line. Do not post migration transcripts publicly.
 5. Verify: run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy`
    also runs `sync` itself and stops if that fails). Spot-check several
    migrated receipts (PDF and JPEG, and any migrated with the options of
-   step 3) in the browser, and check the web server's error log for
-   `pgacc: receipt <n>.v2.aes could not be decrypted; sent the legacy
-   <n>.aes`: while the legacy files exist, a key mismatch between the web
-   application and the migration still serves the old file, so only the log
-   shows it.
+   step 3) in the browser, and check the web server's error log for lines
+   matching `pgacc: receipt .*; sent the legacy` (for example `pgacc:
+   receipt <n>.v2.aes could not be decrypted; sent the legacy <n>.aes`) and
+   `pgacc: receipt .*: no readable stored file`: while the legacy files
+   exist, a key mismatch between the web application and the migration
+   still serves the old file, so only the log shows it.
 6. Only then delete the legacy files: `sudo -u <web user> php
    migrate-receipt-key.php --delete-legacy --key-fingerprint=<fingerprint>`
    (with `--dry-run` first; it repeats the reminder). Each `<n>.aes` is

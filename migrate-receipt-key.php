@@ -159,9 +159,15 @@ function receipt_migration_key($constants)
     return $key ?? null;
 }
 
+// A file number is canonical and fits PostgreSQL's integer (and a 32-bit
+// PHP integer).
+function receipt_migration_is_number($number)
+{
+    return preg_match('/^[1-9][0-9]{0,9}$/', $number) && (strlen($number) < 10 || strcmp($number, '2147483647') <= 0);
+}
+
 // File numbers of the legacy receipt files, ascending, and the other *.aes
-// names (not <n>.v2.aes): array(numbers, names). A file number is canonical
-// and fits PostgreSQL's integer (and a 32-bit PHP integer).
+// names (not <n>.v2.aes): array(numbers, names).
 function receipt_migration_numbers($directory, $names)
 {
     $numbers = [];
@@ -171,7 +177,7 @@ function receipt_migration_numbers($directory, $names)
             continue;
         }
         $number = substr($name, 0, -4);
-        if (preg_match('/^[1-9][0-9]{0,9}$/', $number) && (strlen($number) < 10 || strcmp($number, '2147483647') <= 0)) {
+        if (receipt_migration_is_number($number)) {
             $numbers[] = $number;
         } else {
             $others[] = $name;
@@ -386,14 +392,17 @@ function receipt_migration_run($connection, $options, $key, $names, $out, $err)
     $lists = ['skipped' => [], 'pending' => [], 'failed' => []];
     $changed = 0;
     [$numbers, $others] = receipt_migration_numbers($options['files'], $names);
-    // Every existing <n>.v2.aes is checked like a download, before anything
-    // is written or deleted.
+    // Every existing <n>.v2.aes (also those without a legacy file) is
+    // checked like a download, before anything is written or deleted.
     $verified = [];
-    foreach ($numbers as $number) {
+    foreach ($names as $name) {
+        $number = substr($name, 0, -7);
         $v2Path = receipt_v2_path($options['files'], $number);
-        $verified[$number] = is_file($v2Path) ? receipt_v2_verify_with($key, $number, $v2Path) : null;
+        if (str_ends_with($name, '.v2.aes') && receipt_migration_is_number($number) && is_file($v2Path)) {
+            $verified[$number] = receipt_v2_verify_with($key, $number, $v2Path);
+        }
     }
-    $existing = count(array_filter($verified, 'is_bool'));
+    $existing = count($verified);
     $unverified = count(array_keys($verified, false, true));
     if ($unverified >= 2 && $unverified * 2 >= $existing) {
         fwrite($err, "$unverified of the $existing existing <n>.v2.aes files do not verify with the key of this run "
@@ -416,7 +425,7 @@ function receipt_migration_run($connection, $options, $key, $names, $out, $err)
             fwrite($out, "Stopped after --limit={$options['limit']}; run again for the remaining files.\n");
             break;
         }
-        [$status, $message] = receipt_migration_file($connection, $options, $key, $number, $verified[$number]);
+        [$status, $message] = receipt_migration_file($connection, $options, $key, $number, $verified[$number] ?? null);
         $counts[$status]++;
         if (isset($lists[$status])) {
             $lists[$status][] = $number;
