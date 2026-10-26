@@ -4,7 +4,7 @@ status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8
 header: Content-Disposition: attachment; filename=spendings.csv
---- body (917 bytes) ---
+--- body (910 bytes) ---
 ﻿<h1>Ausgabenliste der Piratenpartei Österreichs</h1>
 Buchung	Datum	Art	LO	Betrag	Name	
 2008	2012-10-15	Synthetic expense	Synthetic Piratenpartei Six	-1234,56€	Synthetic Campaign Printer	
@@ -13,7 +13,7 @@ Buchung	Datum	Art	LO	Betrag	Name
 2014	2024-03-31	Synthetic bank charges	Synthetic Regional Unit	-7,50€	Bank	
 1003	2024-04-01	Synthetic expense	Synthetic Regional Unit	-50,00€	Synthetic Supplier	
 1003	2024-04-01	Synthetic legacy expense	Synthetic Regional Unit	-15,00€	Synthetic Supplier	
-2015	2024-11-11	Synthetic private refund	Synthetic Regional Unit	-42,00€	<i>Privatperson</i>	
+2015	2024-11-11	Synthetic private refund	Synthetic Regional Unit	-42,00€	Privatperson	
 2016	2024-12-01	Synthetic internal transfer out	Synthetic Regional Unit	-1000,00€	Intern	
 2019	2026-05-31	Synthetic expense	Synthetic Ünit Vier	-0,99€	Synthetic Supplier	
 
