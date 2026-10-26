@@ -90,15 +90,61 @@ function assert_receipt_download($cookies, $id, $body, $contentType, $fileNumber
     }
 }
 
-function assert_undecryptable_download($cookies, $id, $label)
+// The refusal: a 500 text response without any of the download headers.
+function assert_undecryptable_download($cookies, $id, $label, $baseUrl = null)
 {
-    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies);
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies, $baseUrl);
     assert_status($response, 500, $label);
     if (response_header($response, 'Content-Type') !== 'text/plain; charset=UTF-8'
         || $response['body'] !== 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.') {
         fail_test("$label: " . var_export(response_header($response, 'Content-Type'), true) . ' '
             . var_export($response['body'], true));
     }
+    foreach (['X-Content-Type-Options', 'Content-Length', 'Content-Disposition', 'Content-Transfer-Encoding',
+        'Accept-Ranges'] as $name) {
+        if (response_header($response, $name) !== null) {
+            fail_test("$label sent the header $name: " . var_export(response_header($response, $name), true));
+        }
+    }
+}
+
+// What the server logs (error_log()) for one download: the request goes to a
+// second server started by this script, whose standard error the test can
+// read (the application service's log is not shared with the test). Its fixed
+// port and log file cannot collide with another run: every run
+// (PGACC_TEST_ID) has its own test container, with its own network namespace
+// and /tmp, and runs its HTTP test files one after another; the other files
+// use ports 8081 to 8083.
+function receipt_download_log($cookies, $id)
+{
+    static $baseUrl = null;
+    if ($baseUrl === null) {
+        $baseUrl = start_unbuffered_server(8084);
+    }
+    $log = unbuffered_server_log(8084);
+    clearstatcache();
+    $offset = is_file($log) ? filesize($log) : 0;
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies, $baseUrl);
+    clearstatcache();
+    return [$response, (string) file_get_contents($log, false, null, $offset)];
+}
+
+// $expected lines must be in the log of one download, $unexpected must not;
+// neither the key nor receipt contents are logged.
+function assert_receipt_log($cookies, $id, $expected, $unexpected, $label)
+{
+    list($response, $log) = receipt_download_log($cookies, $id);
+    foreach ($expected as $line) {
+        if (strpos($log, $line) === false) {
+            fail_test("$label: the log lacks " . var_export($line, true) . ': ' . var_export($log, true));
+        }
+    }
+    foreach (array_merge($unexpected, [$GLOBALS['testKey'], '%PDF']) as $text) {
+        if (strpos($log, $text) !== false) {
+            fail_test("$label: the log contains " . var_export($text, true) . ': ' . var_export($log, true));
+        }
+    }
+    return $response;
 }
 
 // The server's files/ directory and its receipt files of one file number.
@@ -725,7 +771,7 @@ $storedCases = [
     // Another type is sent as a download, not refused.
     [9107, 4711, 990004, ['v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)],
         $png, 'image/png', 'v2 PNG receipt'],
-    [9121, 4711, 990015, ['v2.aes' => receipt_v2_encrypt($testKey, 990015, "II*\0synthetic")],
+    [9129, 4711, 990023, ['v2.aes' => receipt_v2_encrypt($testKey, 990023, "II*\0synthetic")],
         "II*\0synthetic", 'application/octet-stream', 'v2 receipt of another type'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
@@ -749,6 +795,26 @@ $storedCases = [
     // No stored file at all: refused like an undecryptable receipt, without a
     // warning or an empty JPEG.
     [9120, 4711, 990014, [], null, null, 'receipt without a stored file'],
+    // A <n>.aes that cannot be read or is shorter than one 32-byte block (a
+    // stored legacy receipt never is): refused, not sent as a short JPEG.
+    [9121, 4711, 990015, ['aes' => null], null, null, 'directory in place of the legacy file'],
+    [9122, 4711, 990016, ['aes' => ''], null, null, 'zero-byte legacy file'],
+    [9123, 4711, 990017, ['aes' => substr(hex2bin($receiptVectors['pdf 33 bytes']['cipher']), 0, 31)],
+        null, null, 'legacy file shorter than one block'],
+    // One block, the shortest stored legacy receipt: sent.
+    [9124, 4711, 990018, ['aes' => hex2bin($receiptVectors['pdf 32 bytes']['cipher'])],
+        hex2bin($receiptVectors['pdf 32 bytes']['plain']), 'application/pdf', 'one-block legacy receipt'],
+    // A damaged <n>.aes that is not whole 32-byte blocks (no stored file is):
+    // refused, not sent with a zero-padded last block.
+    [9125, 4711, 990019, ['aes' => substr(hex2bin($receiptVectors['pdf document']['cipher']), 0, 95)],
+        null, null, 'legacy file that is not whole blocks'],
+    [9128, 4711, 990022, ['aes' => substr(hex2bin($receiptVectors['pdf document']['cipher']), 0, 48)],
+        null, null, 'legacy file of one and a half blocks'],
+    // A directory at <n>.v2.aes cannot be opened (no notice, not a wrong
+    // key): the legacy file is sent if there is one, otherwise refused.
+    [9126, 4711, 990020, ['v2.aes' => null, 'aes' => hex2bin($receiptVectors['pdf document']['cipher'])],
+        rijndael256_zero_pad($pdf), 'application/pdf', 'legacy receipt beside a directory at the v2 name', 'legacy'],
+    [9127, 4711, 990021, ['v2.aes' => null], null, null, 'directory in place of the v2 file'],
 ];
 foreach ($storedCases as $case) {
     list($id, $voucherId, $fileNumber, $files, $body, $type, $label) = $case;
@@ -756,13 +822,125 @@ foreach ($storedCases as $case) {
     insert_receipt_voucher($database, $id, $voucherId, "Synthetic stored receipt $fileNumber");
     receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', [$fileNumber, $id], "file of voucher $id");
     foreach ($files as $suffix => $bytes) {
-        file_put_contents("$filesDirectory/$fileNumber.$suffix", $bytes);
+        $bytes === null ? mkdir("$filesDirectory/$fileNumber.$suffix") : file_put_contents("$filesDirectory/$fileNumber.$suffix", $bytes);
     }
     if ($body === null) {
         assert_undecryptable_download($adminCookies, $id, $label);
     } else {
         assert_receipt_download($adminCookies, $id, $body, $type, $fileNumber, $label, isset($files['v2.aes']) && !$legacyServed);
     }
+}
+
+// The log names the file number of a receipt without a readable stored file,
+// or why <n>.v2.aes was not used (a verification failure is not logged as a
+// missing file).
+foreach ([9120 => 990014, 9121 => 990015, 9122 => 990016, 9123 => 990017, 9125 => 990019, 9128 => 990022] as $id => $fileNumber) {
+    $response = assert_receipt_log(
+        $adminCookies,
+        $id,
+        ["pgacc: receipt $fileNumber: no readable stored file"],
+        [],
+        "log of voucher $id",
+    );
+    assert_status($response, 500, "voucher $id on the second server");
+}
+$wrongKey = 'could not be decrypted (wrong key or modified file)';
+$logCases = [
+    9117 => [["pgacc: receipt 990012.v2.aes $wrongKey; sent the legacy 990012.aes"], ['no readable', 'opened'],
+        'log of a v2 key mismatch'],
+    9108 => [["pgacc: receipt 990005.v2.aes $wrongKey; no readable 990005.aes"], ['no readable stored file', 'sent the legacy'],
+        'log of a v2 receipt with another key'],
+    9126 => [['pgacc: receipt 990020.v2.aes could not be opened; sent the legacy 990020.aes'], ['wrong key'],
+        'log of a directory at the v2 name beside a legacy file'],
+    9127 => [['pgacc: receipt 990021.v2.aes could not be opened; no readable 990021.aes'], ['wrong key'],
+        'log of a directory at the v2 name'],
+    9124 => [[], ['pgacc: receipt'], 'log of a one-block legacy receipt'],
+    9101 => [[], ['pgacc: receipt'], 'log of a v2 download'],
+];
+foreach ($logCases as $id => $logCase) {
+    assert_receipt_log($adminCookies, $id, $logCase[0], $logCase[1], $logCase[2]);
+}
+
+// Files the server cannot open: only on the second server, which runs as this
+// script's user, and only without root rights (which ignore the mode). An
+// unreadable <n>.aes is refused; an unreadable <n>.v2.aes is logged as such,
+// not as a wrong key, and the readable <n>.aes is sent. The modes are restored
+// even if an assertion fails.
+if (function_exists('posix_geteuid') && posix_geteuid() !== 0) {
+    $modes = [];
+    foreach (["$filesDirectory/990001.aes", "$filesDirectory/990012.v2.aes"] as $name) {
+        $modes[$name] = fileperms($name) & 07777;
+    }
+    $restore = function () use ($modes) {
+        foreach ($modes as $name => $mode) {
+            @chmod($name, $mode);
+        }
+    };
+    register_shutdown_function($restore);
+    try {
+        chmod("$filesDirectory/990001.aes", 0);
+        $response = assert_receipt_log(
+            $adminCookies,
+            9104,
+            ['pgacc: receipt 990001: no readable stored file'],
+            [],
+            'log of an unreadable legacy file',
+        );
+        assert_status($response, 500, 'unreadable legacy file');
+        chmod("$filesDirectory/990012.v2.aes", 0);
+        $response = assert_receipt_log(
+            $adminCookies,
+            9117,
+            ['pgacc: receipt 990012.v2.aes could not be opened; sent the legacy 990012.aes'],
+            ['wrong key'],
+            'log of an unreadable v2 file',
+        );
+        assert_status($response, 200, 'unreadable v2 file beside a legacy file');
+    } finally {
+        $restore();
+    }
+}
+
+// UPGRADING.md and the runbook in tests/COMPATIBILITY_PLAN.md tell operators
+// to grep the log for downloads that fell back to <n>.aes before
+// --delete-legacy: both give the same pattern, and it finds every fallback
+// line above (each reason) and no other receipt line.
+$patterns = [];
+foreach (['UPGRADING.md', 'tests/COMPATIBILITY_PLAN.md'] as $document) {
+    $text = preg_replace('/\s+/', ' ', (string) file_get_contents(dirname(__DIR__) . '/' . $document));
+    if (preg_match_all("/`grep '(pgacc: receipt [^']*)'/", $text, $found) !== 1) {
+        fail_test("$document should give exactly one grep pattern for the receipt fallback log line");
+    }
+    $patterns[$document] = $found[1][0];
+}
+if (count(array_unique($patterns)) !== 1) {
+    fail_test('the documented grep patterns differ: ' . var_export($patterns, true));
+}
+$pattern = '/' . str_replace('/', '\/', $patterns['UPGRADING.md']) . '/';
+$fallbackLines = [
+    "pgacc: receipt 990012.v2.aes $wrongKey; sent the legacy 990012.aes",
+    'pgacc: receipt 990020.v2.aes could not be opened; sent the legacy 990020.aes',
+];
+// The reason without a configured key, as receipt_v2_open() gives it.
+$GLOBALS['key'] = 'CHANGE-ME';
+list(, $noKey) = receipt_v2_open("$filesDirectory/990012.v2.aes", '990012');
+unset($GLOBALS['key']);
+$fallbackLines[] = "pgacc: receipt 990012.v2.aes $noKey; sent the legacy 990012.aes";
+foreach ($fallbackLines as $line) {
+    if (preg_match($pattern, $line) !== 1) {
+        fail_test("the documented grep pattern $pattern does not find " . var_export($line, true));
+    }
+}
+foreach (['pgacc: receipt 990005.v2.aes ' . $wrongKey . '; no readable 990005.aes',
+    'pgacc: receipt 990014: no readable stored file'] as $line) {
+    if (preg_match($pattern, $line) === 1) {
+        fail_test("the documented grep pattern $pattern also finds " . var_export($line, true));
+    }
+}
+// The fallback lines checked above are the ones the server writes.
+list(, $log) = receipt_download_log($adminCookies, 9126);
+if (strpos($log, $fallbackLines[1]) === false || preg_match($pattern, $log) !== 1) {
+    fail_test('the fallback log line changed: ' . var_export($log, true));
 }
 
 // Known bug KB-RECEIPT-LEGACY-MERGE (tests/COMPATIBILITY_PLAN.md), not

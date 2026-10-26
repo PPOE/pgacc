@@ -21,16 +21,11 @@ function download_file($rights)
     $directory = getcwd() . '/files';
     $path = receipt_v2_path($directory, $file);
     $receipt = false;
+    $problem = null;
     if (file_exists($path)) {
         // <n>.v2.aes: keyed on the file number and the configured key; checked
         // and sent in chunks (receipt_v2_open()/receipt_v2_send()).
-        $receipt = receipt_v2_open($path, $file);
-    }
-    // No usable <n>.v2.aes and no readable <n>.aes (also neither file at all).
-    if ($receipt === false && !is_readable(receipt_legacy_path($directory, $file))) {
-        header('Content-Type: text/plain; charset=UTF-8', true, 500);
-        echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
-        return true;
+        [$receipt, $problem] = receipt_v2_open($path, $file);
     }
     $v2 = $receipt !== false;
     if ($v2) {
@@ -41,13 +36,28 @@ function download_file($rights)
         // (see tests/COMPATIBILITY_PLAN.md); anything but a PDF is sent as JPEG.
         // Also sent while <n>.aes is kept and <n>.v2.aes does not decrypt (e.g. a
         // key mismatch before the migration deletes the legacy files).
-        if (file_exists($path)) {
-            error_log("pgacc: receipt $file.v2.aes could not be decrypted; sent the legacy $file.aes");
+        // A stored <n>.aes is whole 32-byte blocks, at least one: mcrypt and
+        // receipt_encrypt() zero-pad the receipt (even an empty one) to whole
+        // blocks. A directory, a file deleted after the check (e.g. by
+        // migrate-receipt-key.php --delete-legacy) or a read error give false
+        // (receipt_read_file()), counted as empty.
+        $ciphertext = receipt_read_file(receipt_legacy_path($directory, $file));
+        $size = strlen((string) $ciphertext);
+        if ($size === 0 || $size % 32 !== 0) {
+            // No usable <n>.v2.aes and no readable <n>.aes (also neither file at all).
+            error_log($problem === null ? "pgacc: receipt $file: no readable stored file"
+              : "pgacc: receipt $file.v2.aes $problem; no readable $file.aes");
+            header('Content-Type: text/plain; charset=UTF-8', true, 500);
+            echo 'FEHLER: Der Beleg konnte nicht entschlüsselt werden.';
+            return true;
         }
-        $path = receipt_legacy_path($directory, $file);
-        $data = receipt_decrypt($vid, '', file_get_contents($path));
+        if ($problem !== null) {
+            error_log("pgacc: receipt $file.v2.aes $problem; sent the legacy $file.aes");
+        }
+        $data = receipt_decrypt($vid, '', $ciphertext);
         $type = str_starts_with($data, '%PDF') ? 'application/pdf' : 'image/jpeg';
-        $length = filesize($path);
+        // The stored size: the ciphertext is whole blocks, decrypted to as many bytes.
+        $length = strlen($data);
     }
     if ($v2) {
         header('X-Content-Type-Options: nosniff');

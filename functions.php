@@ -987,29 +987,59 @@ function receipt_store($directory, $number, $source)
  * Opens files/<number>.v2.aes ($path) for sending, in two passes over one
  * open file, 64 KiB at a time: the MAC is checked over the whole file first;
  * then the last block gives the plain text length and the first block the
- * type. Returns what receipt_v2_send() needs, or false (logged; neither the
- * key nor its fingerprint goes to the web server's log).
+ * type. Returns [what receipt_v2_send() needs, null], or [false, why not]
+ * for the caller's log line (it names neither the key nor its fingerprint).
  */
 function receipt_v2_open($path, $number)
 {
     $receiptKey = receipt_configured_key();
     if ($receiptKey === '') {
-        error_log("pgacc: receipt $number.v2.aes not decrypted: no valid receipt key (\$key) configured");
+        return [false, 'not decrypted: no valid receipt key ($key) configured'];
+    }
+    // Missing (e.g. deleted after the check), unreadable or not a regular file:
+    // not a wrong key.
+    $in = receipt_open_regular($path);
+    if ($in === false) {
+        return [false, 'could not be opened'];
+    }
+    $receipt = receipt_v2_open_handle($receiptKey, $number, $in);
+    return [$receipt, $receipt === false ? 'could not be decrypted (wrong key or modified file)' : null];
+}
+
+// The whole content of the regular file $path, or false if it cannot be
+// opened or is not read completely (a read error returns the bytes so far).
+function receipt_read_file($path)
+{
+    $in = receipt_open_regular($path);
+    if ($in === false) {
         return false;
     }
-    $receipt = receipt_v2_open_with($receiptKey, $number, $path);
-    if ($receipt === false) {
-        error_log("pgacc: receipt $number.v2.aes could not be decrypted (wrong key or modified file)");
-    }
-    return $receipt;
+    $stat = fstat($in);
+    $data = @stream_get_contents($in);
+    fclose($in);
+    return is_string($data) && strlen($data) === $stat['size'] ? $data : false;
+}
+
+// A stored receipt file opened for reading, or false if it is missing,
+// unreadable or not a regular file (a directory opens on Linux, but its reads
+// raise a notice), without a PHP warning.
+function receipt_open_regular($path)
+{
+    return is_file($path) ? @fopen($path, 'rb') : false;
 }
 
 function receipt_v2_open_with($key, $number, $path)
 {
-    $in = @fopen($path, 'rb');
+    $in = receipt_open_regular($path);
     if ($in === false) {
         return false;
     }
+    return receipt_v2_open_handle($key, $number, $in);
+}
+
+// receipt_v2_open_with() for a file opened as $in (closed unless returned).
+function receipt_v2_open_handle($key, $number, $in)
+{
     $stat = fstat($in);
     $length = $stat['size'] - 52;
     $header = (string) fread($in, 20);

@@ -311,7 +311,7 @@ function login_redirect_location($uri)
 // when the test script ends.
 function start_unbuffered_server($port)
 {
-    $log = '/tmp/unbuffered-server-' . $port . '.log';
+    $log = unbuffered_server_log($port);
     $command = 'exec php -d output_buffering=0'
         . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/runtime/diagnostics-prepend.php')
         . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__));
@@ -337,6 +337,12 @@ function start_unbuffered_server($port)
         usleep(100000);
     }
     fail_test('output_buffering=0 server did not start: ' . @file_get_contents($log));
+}
+
+// Standard output and error (error_log()) of the server on $port.
+function unbuffered_server_log($port)
+{
+    return '/tmp/unbuffered-server-' . $port . '.log';
 }
 
 function stop_unbuffered_server($server)
