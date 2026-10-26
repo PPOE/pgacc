@@ -571,8 +571,8 @@ return [
         [
             'id' => 'accounts-rights-column-root-substring',
             'file' => 'accounts.php',
-            'search' => "<td><b>Passwort</b></td>' . (has_right(\$rights, 'root') ?",
-            'replace' => "<td><b>Passwort</b></td>' . (strpos(\$rights,'root') !== false ?",
+            'search' => "<td><b>Passwort</b> (mindestens 12 Zeichen)</td>' . (has_right(\$rights, 'root') ?",
+            'replace' => "<td><b>Passwort</b> (mindestens 12 Zeichen)</td>' . (strpos(\$rights,'root') !== false ?",
             'rationale' => 'The rights column is shown to root only.',
         ],
         [
