@@ -69,7 +69,7 @@ function transactions_page_listing_line($line, $action = "edit")
         'Piratenpartei Österreichs (Bank Austria)',
         'Piratenpartei Österreichs (Altes BAWAG Konto)',
     ], $line["account"] ?? '')));
-    echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
+    echo tag("td", format_amount($line["amount"], "€"));
     if ($make_csv) {
         echo "\n";
     } else {

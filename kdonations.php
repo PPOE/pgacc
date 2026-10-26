@@ -34,7 +34,7 @@ function kdonations_page_listing_line($line)
     }
     pg_free_result($result2);
     echo tag("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));
-    echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
+    echo tag("td", format_amount($line["amount"], "€"));
     echo tag("td", listing_text($line["name"]));
     if ($make_csv) {
         echo "\n";
