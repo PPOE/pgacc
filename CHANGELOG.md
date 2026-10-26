@@ -7,203 +7,91 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2.1.0] - 2026-10-26
 
-Security and data-integrity fixes for receipts, voucher saves and passwords,
-plus HTML encoding by default for listing cells. Read UPGRADING.md before
-upgrading.
+Security and data-integrity release: receipts, voucher saves and passwords.
+Read [UPGRADING.md](UPGRADING.md) before upgrading.
 
 ### Upgrade notes
 
-Follow [UPGRADING.md](UPGRADING.md). In short: deny web access to `src/`;
-the database user needs no table-creation rights any more (`ppmembers` can be
-dropped) and pgacc must not run behind a transaction- or statement-mode
-connection pooler; passwords are upgraded to bcrypt at the next login;
-receipts not migrated yet are migrated with `--key-fingerprint` as described
-there.
+- Deny web access to the new `src/` directory (on Apache the shipped
+  `src/.htaccess` does it).
+- The member list is kept in a temporary table per database connection. The
+  database user needs only the default `TEMPORARY` privilege, no `CREATE` on
+  `public`; the old `ppmembers` table can be dropped. Do not run pgacc behind
+  a connection pooler in transaction or statement mode.
+- Receipt migration runs that write or delete need `--key-fingerprint` (shown
+  to root in the user administration; requires the `sodium` extension).
+  Fingerprints of earlier releases no longer match.
+- Pages need Chrome/Edge 111+, Safari 16.4+ or Firefox 128+; older browsers
+  show them unstyled.
+
+### Security
+
+- Saving a voucher keeps its stored receipt; a receipt number in the request
+  is ignored.
+- Voucher revisions are saved in one transaction under a per-voucher lock.
+  A save from an outdated form, or one that touches another organization's
+  row, is refused.
+- New and changed passwords are stored as bcrypt and need at least 12
+  characters. Existing MD5-crypt hashes are replaced at the next login.
+  Logins with unknown user names take as long as with known ones.
+- Listing cells are HTML-encoded by default; markup needs the explicit
+  `tag_raw()`.
+- Receipt downloads refuse missing, unreadable or incomplete stored files
+  instead of sending partial data.
+- Receipt migration: a wrong key can no longer overwrite or delete receipts.
+  Existing files are verified before writing, and a legacy file is deleted
+  only when its new file decrypts to exactly the same content.
+
+### Added
+
+- A `LICENSE` file: Peter Grassberger (PeterTheOne)'s contributions are
+  licensed under AGPL-3.0-or-later. The status of other code is described
+  there; third-party code keeps its own license.
 
 ### Changed
 
-- `tag()` (listing cells) encodes its text for HTML by default; markup goes
-  through the new `tag_raw()`. Listing callers no longer need to remember
-  `listing_text()` for database values. No visible change in the HTML pages
-  or the CSV export.
-- Library code starts moving to `src/`, first the database helpers
-  (`src/db.php`). Deny web access to `src/` like `vendor/` and `tests/`
-  ([UPGRADING.md](UPGRADING.md)); on Apache the shipped `src/.htaccess` does
-  it. A failed database query still prints the same message; the PHP error
-  log now also gets a line `pgacc: query failed, called from <file>:<line>`
-  naming the page, since PHP reports the failed `pg_query()` at
-  `src/db.php`.
-- The notice box at the top of every page shows the booking progress per year
-  as a full-width table instead of one sentence per year: booking lines, then
-  unbearbeitet, bearbeitet and abgeschlossen (workflow order) with
-  percentages, and a stacked bar per year in the same order and colours as
-  the legend swatches in the column headers. Same values and rounding.
-- The booking progress lists the newest year first and shows only the current
-  and the previous year (at least the two most recent years with bookings,
-  plus the next year if it already has bookings). Older years open with
-  "Weitere Jahre anzeigen" below the table, without JavaScript: the link
-  disappears and the older years continue the table with the same columns.
-- Logged-in users see the donor lists without the arithmetic check.
+- New stylesheet built with Tailwind CSS: modernized look, usable in narrow
+  windows.
+- The booking progress is a table with bars, newest year first; older years
+  open on demand.
+- The report and the donations page select the year with a compact selector.
 - The virtual-account chart uses Chart.js; jQuery and Flot are removed.
-- The Impressum links to the party's legal notice and to pgacc's LICENSE,
-  shows the pgacc version but only the major versions of PHP and PostgreSQL,
-  and lists the third-party software (Composer packages, Chart.js, Silk icons)
-  with its licenses, left-aligned.
-- New stylesheet, built with Tailwind CSS from `css/app.css`
-  (`scripts/build-css.sh`; the built `style.css` is committed, a release needs
-  no build step). Same page HTML, colours and density, with a modernized look:
-  system fonts, consistent spacing, rounded panels and buttons with subtle
-  shadows, zebra and hover rows in the tables, visible keyboard focus, clearer
-  form fields, and a layout that works in narrow windows (wide tables scroll
-  inside their panel). The Impressum lists Tailwind CSS (MIT). Requires a
-  current browser: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+; older
-  browsers show the pages unstyled.
-- The maintenance script `check.php` runs only on the command line
-  (`php check.php <account> <max>`), like the receipt migration; over HTTP it
-  answers 404. A failed query prints the database error and exits with status 1.
-- The report and the donations page select the year with a compact year
-  selector instead of a row of year links: previous year, a drop-down of all
-  years (current year first, down to 2012, the shown year marked) and next
-  year. No JavaScript; the same years and link targets as before.
-- Receipt migration (`migrate-receipt-key.php`): a run that writes or
-  deletes needs `--key-fingerprint=<8 hex digits>`, the key fingerprint
-  that the user administration page now shows root (never the key; it also
-  warns about a key of fewer than 32 characters); without it, or with
-  another one, nothing is changed. The fingerprint is now a slow Argon2id
-  derivation (requires the `sodium` extension, part of standard PHP
-  builds); earlier fingerprints no longer match. Skipped files are
-  listed by file number at the end and give exit status 3 (1 a file failed,
-  2 not run); the delete phase reports every legacy file without
-  `<n>.v2.aes` as "skipped, legacy kept". New options: `--include-unusual`
-  also migrates other recognized types (PNG, GIF, TIFF), empty files and
-  PDFs or JPEGs that look incomplete (same bytes; PNG and GIF then download
-  as images, other types as a download instead of `image/jpeg`);
-  `--search-voucher-ids` tries other voucher IDs for files of merged
-  vouchers and accepts only a complete PDF or JPEG; `--recreate-unverified`
-  and `--ignore-unverified=<n,...>` (see Fixed). `--limit` batches no longer
-  re-check already migrated files (the run without `--limit` and the delete
-  phase do). New `<n>.v2.aes` files get the owner, group and mode of their
-  legacy file when run as root (with a warning); run as the web server's
-  user, its mode and, where permitted, its group, with a warning if owner or
-  group differ, and not written if the legacy file's owner or group could
-  not read them. Operator steps in [UPGRADING.md](UPGRADING.md).
-- Receipt download: a `<n>.v2.aes` receipt that is a PNG or GIF image is
-  shown as `image/png` or `image/gif` instead of being offered as a
-  download `<n>.bin`.
-- New and changed passwords are stored as bcrypt (pgcrypto `gen_salt('bf',
-  10)`) instead of MD5-crypt. Existing MD5-crypt hashes still log in, and
-  the next valid login replaces them with bcrypt. A login with an unknown
-  user name now takes as long as one with a known name (one bcrypt check
-  against a fixed dummy hash). bcrypt uses only the first 72 bytes of a
-  password.
-- A password that is set (new user, change by root, own change) needs at
-  least 12 characters (UTF-8 characters, not bytes); a shorter or empty one
-  is refused with "FEHLER: Das Passwort muss mindestens 12 Zeichen lang
-  sein.", the form is shown again and nothing is saved; the form says
-  "(mindestens 12 Zeichen)" next to "Passwort". Login does not check the
-  length, so existing shorter passwords keep working. "******" still keeps
-  the stored password.
-
-### Removed
-
-- The PHP 5.3 fallbacks for login nonces (openssl, mcrypt) and for the
-  constant-time comparison: `random_bytes()` and `hash_equals()` only.
-- Unused stylesheet rules (leftovers from LiquidFeedback), `gregor.css` and an
-  unused JavaScript function on the donations page. Nothing changes visibly.
+- The Impressum links to the party's legal notice and the LICENSE, lists the
+  third-party software with its licenses and shows only the major versions of
+  PHP and PostgreSQL.
+- Logged-in users see the donor lists without the arithmetic check.
+- `check.php` runs only on the command line.
+- Receipt migration: new options `--include-unusual`, `--search-voucher-ids`,
+  `--recreate-unverified` and `--ignore-unverified`; skipped files give exit
+  status 3; new files keep the owner, group and mode of their legacy file.
+  Details in [UPGRADING.md](UPGRADING.md).
+- PNG and GIF receipts download with their image type.
+- Library code starts moving to `src/` (database helpers); a failed query is
+  logged with the page that ran it.
 
 ### Fixed
 
-- Listings (ledger views, transactions, spendings, in-kind donations, and
-  their CSV exports) left out the type or organization cell of a booking
-  line whose type or organization has no row in the lookup table, so the
-  following cells moved one column to the left. Such a cell is now empty.
-- Edit form: a booking line whose type has no row in the type table gave
-  "Undefined array key" warnings and no preselected direction. It now shows
-  the direction "Einnahme" with the type as "Unbekannt (<id>)", selected,
-  so saving keeps the type unless another one is chosen.
-- Receipt migration: a run with another `$key` no longer re-creates existing
-  `<n>.v2.aes` files that do not verify with it. Such a file is kept and
-  reported. Before writing, each run checks the MAC of up to 16 existing
-  files, receipts uploaded since the upgrade first, and stops with their
-  list if one does not verify, unless `--recreate-unverified` (re-creates
-  those with a legacy file; then all files are checked) or
-  `--ignore-unverified` (leaves them alone) is given. `--delete-legacy` deletes a legacy file
-  only when its `<n>.v2.aes` verifies with the confirmed key and decrypts to
-  exactly its content.
-- A receipt download whose stored file is missing or unreadable answers with
-  the existing error ("FEHLER: Der Beleg konnte nicht entschlüsselt werden.",
-  HTTP 500) instead of an empty JPEG and PHP warnings.
-- The same error for a receipt whose stored file cannot be read (a directory,
-  a file removed while the download runs, a read error or a file not read to
-  its end) or is empty or not whole encrypted blocks, instead of a short or
-  padded file; the error sends no download headers. Each failed or fallback
-  download is logged once with the file number and the reason the newer
-  receipt file was not used; a receipt file that cannot be opened (also a
-  directory) is no longer logged as a wrong key. The migration check in
-  UPGRADING.md (step 6) searches for every fallback line. The migration
-  reports a legacy file it cannot read completely as failed instead of
-  reading it as empty (which `--include-unusual` would have migrated).
-- Logging in without a login target no longer ends on a blank page (empty
-  redirect).
-- The import pages (`?action=import`, `?action=import2`) show the upload form
-  again on PHP 8.5 instead of failing with a fatal error when no file was
-  uploaded.
-- Plain views of the new-voucher, search, donations, in-kind donations,
-  campaign, account and virtual account pages and of a receipt link without ID
-  no longer raise PHP warnings.
-- `?action=transfer` (a page removed in 2014) shows the report like any
-  unknown action instead of a fatal error.
-- An `ack` POST on the new-voucher form shows the form again instead of a
-  fatal error; nothing is saved.
-- A year that is not four digits (`?year=2024-1`) shows the report of the
-  current year instead of a warning and a failed query.
-- The voucher form and the listing filters of the CSV export ignore array
-  request parameters (`bid0[]=1`, `?filter_id[]=1`) like other invalid values
-  instead of failing with HTTP 500.
-- The closed-voucher listing shows the virtual account and the old
-  approvals again.
-- Saving a member voucher part without a member number and without a name no
-  longer raises PHP warnings.
-- Users without stored column preferences, an empty sort parameter and a
-  missing import CSV field no longer raise PHP 8.5 deprecations.
-- Amounts are parsed exactly as text instead of as floats. In the voucher form
-  they are euros with at most two decimals after a comma or a dot; spaces
-  around them are ignored. A voucher with an invalid amount (empty, text, an
-  exponent, more decimals, out of range) is no longer saved silently with
-  0.00 or rejected by the database. Nothing is saved: the form is shown again
-  with the entered amount and "FEHLER: Ungültiger Betrag" next to it, and
-  without the approval button. This applies to new vouchers and revisions, to
-  every part of a voucher, and to a missing amount.
-- Bank import (BAWAG, Sparkasse, Paypal, Handkassa): an amount with an
-  exponent, in another format or out of range is reported as an invalid line
-  and skipped, instead of being imported with a wrong value. Paypal,
-  Sparkasse and Handkassa amounts are accepted with a decimal comma or a
-  decimal point; Handkassa amounts with one decimal (12,5) are imported as
-  12.50 instead of 1.25. Blank lines are still skipped.
-- The donations page and the report no longer build invalid SQL for years
-  outside 1 to 9999 and match nothing for them; years are written with four
-  digits. The donations page treats a year after 9999 like one before 2012.
-- A BAWAG export with an empty line (for example at the end of the file) is
-  imported completely; the empty line is skipped instead of stopping the
-  import as an invalid line.
-- Saving a voucher keeps its stored receipt; a receipt number in the request
-  is ignored. A new voucher starts without a receipt (the upload attaches
-  one), and a revised row keeps the receipt of the current row it replaces.
-- A voucher revision is saved in one database transaction under the
-  voucher's lock, which receipt uploads and imports, approvals, merges and
-  recoveries take too. It is refused and changes nothing when the form was
-  opened before another save of the voucher, also one that ran at the same
-  time ("Die Buchung wurde inzwischen geändert. Bitte neu laden.": the current
-  voucher is shown with the unsaved entries listed below the message), when
-  it posts a row of another organization ("Keine Berechtigung für diese
-  Buchungszeile."), when it drops a row with a receipt, when it has no rows,
-  or when locking its rows ends in a deadlock ("Bitte erneut speichern").
-- Each request keeps its own member list (a temporary table), so concurrent
-  page views, imports and saves no longer replace or wait for each other's
-  list ([UPGRADING.md](UPGRADING.md)). When the membership system is
-  unreachable or answers with invalid data, saving a member's voucher is
-  refused with the form shown again ("Die Mitgliederverwaltung ist nicht
-  erreichbar. Bitte später erneut speichern.") instead of ending the page.
+- Amounts are parsed exactly. Invalid amounts are refused in the voucher form
+  and skipped in bank imports instead of being saved as 0.00 or a wrong value
+  (Handkassa `12,5` was imported as 1.25).
+- Listings and CSV exports no longer shift cells for a booking with an unknown
+  type or organization; the edit form shows such a type as "Unbekannt".
+- BAWAG exports with an empty line are imported completely.
+- Concurrent requests no longer replace each other's member list. If the
+  membership system is unreachable, saving a member voucher shows the form
+  again instead of ending the page.
+- Logging in without a login target no longer ends on a blank page.
+- The closed-voucher listing shows the virtual account and the old approvals
+  again.
+- No more PHP 8.5 errors or warnings on edge-case requests (import pages
+  without an upload, invalid years or array parameters, the removed
+  `?action=transfer`, plain views of several pages).
+
+### Removed
+
+- PHP 5.3 fallbacks for login nonces and the constant-time comparison: login
+  uses only `random_bytes()` and fails closed if it errors.
+- Unused stylesheet rules, `gregor.css` and dead JavaScript.
 
 ## [2.0.0] - 2026-10-25
 
