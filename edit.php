@@ -236,12 +236,22 @@ function page_edit_save($rights)
     }
     pg_free_result($result);
 
+    // The receipt numbers of the revised rows, from the current rows the
+    // user sees (page_save_buchung() ignores posted ones).
+    $stored_files = [];
+    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
+    $result = db_query($dbconn, $query);
+    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+        $stored_files[intval($line['id'])] = intval($line['file']);
+    }
+    pg_free_result($result);
+
     $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id $rightssql;";
     db_exec($dbconn, $query);
 
     $voucher_warnings = [];
     for ($i = 0; $i < $parts; $i++) {
-        page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings);
+        page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files);
     }
     // Corrected values are named in the redirect (warn=) for the edit page.
     $warn = '';

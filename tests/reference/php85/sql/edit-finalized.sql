@@ -57,6 +57,8 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5
 -- next
 SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = 5000  ORDER BY id ASC LIMIT 1;
 -- next
+SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
+-- next
 UPDATE vouchers SET deleted = true WHERE voucher_id = 5000 ;
 -- next
 

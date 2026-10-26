@@ -21,9 +21,46 @@ return [
         ['type' => 'http', 'script' => 'tests/http-session-lifecycle.php'],
         ['type' => 'phpunit', 'filter' => 'testOrganizationAllowed|testHasRight|testWriteRights'],
         ['type' => 'http', 'script' => 'tests/write-workflows.php'],
+        ['type' => 'http', 'script' => 'tests/http-receipts.php'],
     ],
     'timeout' => 180,
     'mutations' => [
+        [
+            'id' => 'saved-receipt-number-posted',
+            'file' => 'new.php',
+            'search' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? 0);',
+            'replace' => '$voucher[\'file\'] = max(0, intval($voucher[\'file\']));',
+            'rationale' => 'A save takes no receipt number from the request (new voucher or revision).',
+        ],
+        [
+            'id' => 'saved-receipt-number-posted-for-new-rows',
+            'file' => 'new.php',
+            'search' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? 0);',
+            'replace' => '$voucher[\'file\'] = intval($stored_files[intval($voucher[\'bid\'])] ?? max(0, intval($voucher[\'file\'])));',
+            'rationale' => 'A new voucher, or a revised row without a stored row of the voucher in the '
+                . 'user\'s rights, starts without a receipt.',
+        ],
+        [
+            'id' => 'revision-receipt-numbers-dropped',
+            'file' => 'edit.php',
+            'search' => 'page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files);',
+            'replace' => 'page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings);',
+            'rationale' => 'A revision keeps the receipt of the stored row it revises.',
+        ],
+        [
+            'id' => 'revision-receipt-numbers-without-rights',
+            'file' => 'edit.php',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id;";',
+            'rationale' => 'A revision takes no receipt from a row of another organization of the voucher.',
+        ],
+        [
+            'id' => 'revision-receipt-numbers-of-any-voucher',
+            'file' => 'edit.php',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted;";',
+            'rationale' => 'A revision takes no receipt from a row of another voucher.',
+        ],
         [
             'id' => 'new-save-rights-dropped',
             'file' => 'new.php',
@@ -399,15 +436,15 @@ return [
         [
             'id' => 'revision-visibility-check-unscoped',
             'region' => $save,
-            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE NOT deleted AND voucher_id = $id;',
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id;',
             'rationale' => 'Wrong organization: a user adds rows to a voucher of another organization.',
         ],
         [
             'id' => 'revision-visibility-check-counts-deleted',
             'region' => $save,
-            'search' => 'WHERE NOT deleted AND voucher_id = $id $rightssql;',
-            'replace' => 'WHERE voucher_id = $id $rightssql;',
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE voucher_id = $id $rightssql;',
             'rationale' => 'Old revisions do not make a voucher revisable.',
         ],
         [

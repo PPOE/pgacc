@@ -100,6 +100,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A BAWAG export with an empty line (for example at the end of the file) is
   imported completely; the empty line is skipped instead of stopping the
   import as an invalid line.
+- Saving a voucher keeps its stored receipt; a receipt number in the request
+  is ignored. A new voucher starts without a receipt (the upload attaches
+  one), and a revised row keeps the receipt of the row it replaces.
 
 ### Removed
 

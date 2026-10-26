@@ -116,8 +116,11 @@ function amount_refused()
     echo '<div class="slot_error" id="slot_error">FEHLER: Ungültiger Betrag (Euro mit höchstens zwei Dezimalstellen, z. B. 12,50). Die Buchung wurde nicht gespeichert.</div><br /><br /><br />';
 }
 // Each correction of a posted value is also added to $warnings ('date',
-// 'refund', 'purpose'), for the redirect of the revision.
-function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null, &$warnings = null)
+// 'refund', 'purpose'), for the redirect of the revision. The receipt number
+// is never taken from the request: a revised row keeps the one of the stored
+// row it revises ($stored_files: row ID => file number, from the database),
+// any other row starts without a receipt (the upload attaches one).
+function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null, &$warnings = null, $stored_files = [])
 {
     global $dbconn;
     $voucher = get_voucher($part, $rights);
@@ -190,9 +193,7 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
         $query = 'DROP TABLE IF EXISTS ppmembers;';
         db_exec($dbconn, $query);
     }
-    if ($voucher['file'] == -1) {
-        $voucher['file'] = 0;
-    }
+    $voucher['file'] = intval($stored_files[intval($voucher['bid'])] ?? 0);
     $query = "
 INSERT INTO vouchers
 (voucher_id, date, type, person_type, orga, member,

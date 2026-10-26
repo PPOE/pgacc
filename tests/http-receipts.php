@@ -193,6 +193,112 @@ foreach ($uploads as $upload) {
     assert_receipt_download($adminCookies, $id, $content, $type, $fileNumber, "$name download", true);
 }
 
+// A save takes no receipt number from the request: a new voucher starts
+// without a receipt, a revision keeps the receipt of the stored row it
+// revises (only a row of the voucher within the user's rights). A user of
+// organization 1 posts the receipt number of the organization 2 receipt of
+// 9101 (also as the row of organization 2 of a voucher with both
+// organizations) and cannot download it.
+function receipt_voucher_form($comment, $bid, $file)
+{
+    return [
+        'speichern' => 'Speichern', 'parts' => '1', 'bid0' => strval($bid), 'dir0' => 'out',
+        'in_type0' => '8', 'out_type0' => '20', 'wk_type0' => '20', 'date0' => '2024-09-15',
+        'person_type0' => '1', 'lo0' => '1', 'amount0' => '-1.00', 'gegenkonto0' => 'SYNTHETIC001',
+        'konto0' => 'TESTACCOUNT1', 'vkonto0' => 'TESTVIRTUAL1', 'comment0' => $comment,
+        'commentgf0' => '', 'mitgliedsnummer0' => '0', 'name0' => 'Synthetic Supplier',
+        'street0' => 'Test Street 1', 'plz0' => '0000', 'city0' => 'Test City', 'file0' => strval($file),
+    ];
+}
+
+function assert_receipt_number($expected, $actual, $label)
+{
+    if ($actual !== $expected) {
+        fail_test("$label stored receipt number " . var_export($actual, true) . ", expected $expected");
+    }
+}
+
+function current_receipt_row($database, $comment)
+{
+    $rows = receipts_query(
+        $database,
+        'SELECT id, voucher_id, file FROM vouchers WHERE comment = $1 AND NOT deleted',
+        [$comment],
+        "current row of $comment",
+    );
+    if (count($rows) !== 1) {
+        fail_test("$comment has " . count($rows) . ' current rows, expected 1');
+    }
+    return $rows[0];
+}
+
+function assert_receipt_refused($cookies, $id, $content, $label)
+{
+    $response = http_request('/index.php?action=file&id=' . $id, 'GET', [], $cookies);
+    if ($response['body'] === $content || response_header($response, 'Content-Disposition') !== null) {
+        fail_test("$label sent a receipt");
+    }
+}
+
+function revise_receipt_voucher($database, $cookies, $voucherId, $form, $label)
+{
+    $form += ['id' => strval($voucherId), 'changed' => '1', 'ack1' => '', 'ack2' => '', 'ack1_old' => '', 'ack2_old' => ''];
+    $response = http_request('/index.php?action=edit&id=' . $voucherId, 'POST', $form, $cookies);
+    assert_no_problems(redirect_problems($response, "index.php?action=edit&id=$voucherId&hint=5"), $label);
+}
+
+$unitOneCookies = login_user('synthetic-unit-one', 'unit-password');
+$foreignFile = receipt_file_number($database, 9101);
+$response = http_request('/index.php?action=new', 'POST', receipt_voucher_form('Synthetic voucher with a posted receipt number', 0, $foreignFile), $unitOneCookies);
+assert_contains($response['body'], 'Buchung erfasst', 'new voucher with a posted receipt number');
+$posted = current_receipt_row($database, 'Synthetic voucher with a posted receipt number');
+assert_receipt_number('0', $posted['file'], 'new voucher with a posted receipt number');
+assert_receipt_refused($unitOneCookies, $posted['id'], $pdf, 'new voucher with a posted receipt number');
+
+receipts_query(
+    $database,
+    "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, committed,
+                           date, person_type, file, save_user, vaccount)
+     VALUES (9120, 4750, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision without a receipt', false,
+             timestamp '2024-09-15 00:00:00', 1, 0, 3, 'TESTVIRTUAL1'),
+            (9121, 4751, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision with a receipt', false,
+             timestamp '2024-09-15 00:00:00', 1, 99001, 3, 'TESTVIRTUAL1'),
+            (9122, 4752, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision of two organizations', false,
+             timestamp '2024-09-15 00:00:00', 1, 0, 3, 'TESTVIRTUAL1'),
+            (9123, 4752, 20, 2, false, -100, 'TESTACCOUNT2', 'Synthetic row of organization 2', false,
+             timestamp '2024-09-15 00:00:00', 1, $1, 1, 'TESTVIRTUAL2')",
+    [$foreignFile],
+    'vouchers of organization 1',
+);
+$revisions = [
+    // [voucher, posted row, posted file, comment, expected file]
+    [4750, 9120, $foreignFile, 'Synthetic revision without a receipt', '0'],
+    [4750, 9101, $foreignFile, 'Synthetic revision without a receipt', '0'],
+    [4752, 9123, $foreignFile, 'Synthetic revision of two organizations', '0'],
+    [4751, 9121, $foreignFile, 'Synthetic revision with a receipt', '99001'],
+    [4751, 0, 0, 'Synthetic revision with a receipt', '0'],
+];
+foreach ($revisions as $i => $revision) {
+    list($voucherId, $bid, $file, $comment, $expected) = $revision;
+    $row = current_receipt_row($database, $comment);
+    if ($bid !== 0 && $bid !== 9101 && $bid !== 9123) {
+        $bid = intval($row['id']);
+    }
+    $label = "revision $i of voucher $voucherId with a posted receipt number";
+    revise_receipt_voucher($database, $unitOneCookies, $voucherId, receipt_voucher_form($comment, $bid, $file), $label);
+    $row = current_receipt_row($database, $comment);
+    assert_receipt_number($expected, $row['file'], $label);
+    assert_receipt_refused($unitOneCookies, $row['id'], $pdf, $label);
+}
+// A revision posting the stored row and no receipt number keeps the receipt.
+$row = current_receipt_row($database, 'Synthetic revision with a receipt');
+receipts_query($database, 'UPDATE vouchers SET file = 99001 WHERE id = $1', [$row['id']], 'receipt of the revision');
+$form = receipt_voucher_form('Synthetic revision with a receipt', $row['id'], 0);
+unset($form['file0']);
+revise_receipt_voucher($database, $unitOneCookies, 4751, $form, 'revision without a posted receipt number');
+assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'revision without a posted receipt number');
+assert_receipt_download($adminCookies, 9101, $pdf, 'application/pdf', $foreignFile, 'receipt after the posted receipt numbers', true);
+
 // A merge changes the voucher ID of the merged rows. A <n>.v2.aes is keyed on
 // the file number, so its receipt still downloads afterwards.
 $fileNumber = upload_receipt($database, $adminCookies, 9109, 4740, 'merged.pdf', 'application/pdf', $pdf);
