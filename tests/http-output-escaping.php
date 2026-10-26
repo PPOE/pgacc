@@ -152,13 +152,13 @@ foreach (['vaccount', 'ackold1', 'ackold2'] as $field) {
 $csv = page('/index.php?action=all&filter_date=2024&format=csv', $admin);
 $csvRow = "9001\t9001\t2024-07-01\t" . payload('type-in') . "\tPiratenpartei " . payload('lo') . "\tNein\t" . payload('contra') . "\t"
     . payload('account') . "\t" . payload('vaccount') . "\t12,34€\t" . payload('comment') . "\t" . payload('commentgf') . "\tNein\t"
-    . payload('ack1') . ' ' . payload('ack2') . "\t<del>" . payload('ackold1') . '</del> <del>' . payload('ackold2') . "</del>\tNein\tNein\t"
+    . payload('ack1') . ' ' . payload('ack2') . "\t" . payload('ackold1') . ' ' . payload('ackold2') . "\tNein\tNein\t"
     . payload('name') . ' ' . payload('street') . ' ' . payload('plz') . ' ' . payload('city') . "\t\n";
 assert_contains($csv, "\n" . $csvRow, 'CSV row with markup');
 assert_not_contains($csv, '&lt;', 'CSV export');
 assert_not_contains($csv, '&quot;', 'CSV export');
-assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
-assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t'\"A B\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x  Tab  / CR @SUM(A1)\t\n", 'CSV row with formulas');
+assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
+assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t'\"A B\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t\tNein\tNein\t'+cmd|x  Tab  / CR @SUM(A1)\t\n", 'CSV row with formulas');
 
 // Filter values are reflected in the sort links and the filter inputs.
 $filters = ['filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_k',

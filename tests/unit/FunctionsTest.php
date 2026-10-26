@@ -248,6 +248,19 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertSame('0', html_escape('0'));
     }
 
+    public function testWrapEncodesHtmlAndDropsTheElementInCsv()
+    {
+        $GLOBALS['make_csv'] = false;
+        self::assertSame('<del>&lt;b&gt;O&#039;Brien &amp; Jörg&lt;/b&gt;</del>', wrap('del', "<b>O'Brien & Jörg</b>"));
+        self::assertSame('<i>Kontodaten</i>', wrap('i', 'Kontodaten'));
+        self::assertSame('<del></del>', wrap('del', null));
+        $GLOBALS['make_csv'] = true;
+        self::assertSame("<b>O'Brien & Jörg</b>", wrap('del', "<b>O'Brien & Jörg</b>"));
+        self::assertSame('Kontodaten', wrap('i', 'Kontodaten'));
+        self::assertSame('', wrap('del', null));
+        self::assertSame('0', wrap('del', 0));
+    }
+
     public function testListingTextEscapesHtmlButNotCsv()
     {
         $GLOBALS['make_csv'] = false;

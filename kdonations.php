@@ -32,7 +32,7 @@ function kdonations_page_listing_line($line)
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
     echo tag("td", $line2["name"]);
     pg_free_result($result2);
-    echo tag_raw("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));
+    echo tag_raw("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" " . wrap("i", "Kontodaten") . " "], listing_text($line["comment"]))));
     echo tag("td", format_amount($line["amount"], "€"));
     echo tag("td", $line["name"]);
     if ($make_csv) {

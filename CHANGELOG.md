@@ -83,6 +83,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The CSV exports no longer contain HTML markup: the old acknowledgements
+  of the ledger listings are the plain names separated by a space (an empty
+  cell when there are none, instead of `<del></del> <del></del>`), and the
+  spendings and in-kind donation lists write `Privatperson` and `Kontodaten`
+  without `<i>`. The HTML pages are unchanged.
 - Listings (ledger views, transactions, spendings, in-kind donations, and
   their CSV exports) left out the type or organization cell of a booking
   line whose type or organization has no row in the lookup table, so the
