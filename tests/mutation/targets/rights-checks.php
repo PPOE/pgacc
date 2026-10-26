@@ -50,16 +50,24 @@ return [
         [
             'id' => 'revision-receipt-numbers-without-rights',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id;";',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id;";',
             'rationale' => 'A revision takes no receipt from a row of another organization of the voucher.',
         ],
         [
             'id' => 'revision-receipt-numbers-of-any-voucher',
             'file' => 'edit.php',
-            'search' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
-            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted;";',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE TRUE $rightssql;";',
             'rationale' => 'A revision takes no receipt from a row of another voucher.',
+        ],
+        [
+            'id' => 'revision-receipt-numbers-current-rows-only',
+            'file' => 'edit.php',
+            'search' => '$query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";',
+            'replace' => '$query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";',
+            'rationale' => 'A form opened before another save posts an old revision\'s row: it keeps '
+                . 'that row\'s receipt.',
         ],
         [
             'id' => 'new-save-rights-dropped',

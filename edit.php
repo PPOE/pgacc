@@ -236,10 +236,11 @@ function page_edit_save($rights)
     }
     pg_free_result($result);
 
-    // The receipt numbers of the revised rows, from the current rows the
-    // user sees (page_save_buchung() ignores posted ones).
+    // The receipt numbers of the revised rows, from the rows of this voucher
+    // the user sees (page_save_buchung() ignores posted ones); also old
+    // revisions, for a form opened before another save.
     $stored_files = [];
-    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
+    $query = "SELECT id, file FROM vouchers WHERE voucher_id = $id $rightssql;";
     $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $stored_files[intval($line['id'])] = intval($line['file']);

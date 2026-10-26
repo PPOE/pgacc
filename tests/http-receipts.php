@@ -271,18 +271,25 @@ receipts_query(
     'vouchers of organization 1',
 );
 $revisions = [
-    // [voucher, posted row, posted file, comment, expected file]
-    [4750, 9120, $foreignFile, 'Synthetic revision without a receipt', '0'],
+    // [voucher, posted row (null: the current one, a comment: the current
+    // row of that voucher), posted file, comment, expected file]
+    [4750, null, $foreignFile, 'Synthetic revision without a receipt', '0'],
     [4750, 9101, $foreignFile, 'Synthetic revision without a receipt', '0'],
     [4752, 9123, $foreignFile, 'Synthetic revision of two organizations', '0'],
+    // The row of another voucher of organization 1, with a receipt.
+    [4750, 'Synthetic revision with a receipt', 0, 'Synthetic revision without a receipt', '0'],
+    [4751, null, $foreignFile, 'Synthetic revision with a receipt', '99001'],
+    // A form opened before the last save posts the old revision's row.
     [4751, 9121, $foreignFile, 'Synthetic revision with a receipt', '99001'],
     [4751, 0, 0, 'Synthetic revision with a receipt', '0'],
 ];
 foreach ($revisions as $i => $revision) {
     list($voucherId, $bid, $file, $comment, $expected) = $revision;
     $row = current_receipt_row($database, $comment);
-    if ($bid !== 0 && $bid !== 9101 && $bid !== 9123) {
+    if ($bid === null) {
         $bid = intval($row['id']);
+    } elseif (is_string($bid)) {
+        $bid = intval(current_receipt_row($database, $bid)['id']);
     }
     $label = "revision $i of voucher $voucherId with a posted receipt number";
     revise_receipt_voucher($database, $unitOneCookies, $voucherId, receipt_voucher_form($comment, $bid, $file), $label);
