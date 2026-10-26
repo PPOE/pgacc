@@ -22,6 +22,19 @@ add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
+## Member list: no shared table
+
+From the release after 2.0.0 each request keeps the member list of the
+membership system in a temporary table of its own database connection. The
+database user no longer needs to create tables in the `public` schema (only
+the `TEMPORARY` privilege on the database, which PostgreSQL grants to every
+user by default). The shared `ppmembers` table of earlier releases is no
+longer used; after the deploy it can be dropped:
+
+```sql
+DROP TABLE IF EXISTS ppmembers;
+```
+
 ## Upgrade to 2.0.0
 
 2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for

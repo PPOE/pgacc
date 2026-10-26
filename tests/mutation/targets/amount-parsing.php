@@ -267,8 +267,8 @@ return [
         [
             'id' => 'edit-save-amounts-unchecked',
             'file' => 'edit.php',
-            'search' => "    if (!posted_amounts_valid(\$parts, \$rights)) {",
-            'replace' => '    if (false) {',
+            'search' => "    \$amounts_valid = posted_amounts_valid(\$parts, \$rights);",
+            'replace' => '    $amounts_valid = true;',
             'rationale' => 'A revision with an invalid amount writes nothing (no revision, no approval reset).',
         ],
         [

@@ -19,12 +19,16 @@ function getusers_query($query)
     return $error;
 }
 
+// Loads the member list of the membership system into ppmembers, a
+// temporary table of this connection (other requests neither see nor replace
+// it). Returns null, or the error message for the page (the cause of a failed
+// fetch goes to the error log); the caller decides how to stop.
 function getUsers()
 {
     global $datakey,$dbconn;
     // Certificate verification stays on (PHP defaults). The member list is
     // replaced only by a complete, valid response, in one transaction; on any
-    // error the previous ppmembers table stays as it was. Redirects are not
+    // error the connection's previous list (if any) stays as it was. Redirects are not
     // followed (a 3xx is an error), so the list never comes from another host or
     // over plain HTTP. ignore_errors: an HTTP error status is checked here
     // instead of raising a warning.
@@ -36,18 +40,18 @@ function getUsers()
     if ($sData === false || !is_array($headers) || !preg_match('#^HTTP/\S+ 200( |$)#', $headers[0])) {
         $error = error_get_last();
         error_log('getusers: ' . ($sData === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
-        die('Mitgliederliste konnte nicht abgerufen werden!');
+        return 'Mitgliederliste konnte nicht abgerufen werden!';
     }
     if (strlen($datakey) == 0) {
-        die('Kein Passwort!');
+        return 'Kein Passwort!';
     }
 
     if (strlen($sData) < 1000) {
-        die('Daten von Mitgliederverwaltung zu kurz!');
+        return 'Daten von Mitgliederverwaltung zu kurz!';
     }
 
     $decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
-    $query = 'INSERT INTO ppmembers (id, name, lo, paid) VALUES ';
+    $query = 'INSERT INTO pg_temp.ppmembers (id, name, lo, paid) VALUES ';
     $lines = explode("\n", $decrypted);
     $count = 0;
     foreach ($lines as $line) {
@@ -57,7 +61,7 @@ function getUsers()
         $values = explode("\t", $line);
         // A line without the five fields means a damaged or undecryptable list.
         if (count($values) < 5) {
-            die('Daten von Mitgliederverwaltung ungültig!');
+            return 'Daten von Mitgliederverwaltung ungültig!';
         }
         $id = intval($values[1]);
         $name = stripslashes(iconv('ISO-8859-15', 'UTF-8', $values[2]));
@@ -93,7 +97,7 @@ function getUsers()
         $count++;
     }
     if ($count == 0) {
-        die('Daten von Mitgliederverwaltung ungültig!');
+        return 'Daten von Mitgliederverwaltung ungültig!';
     }
     $query .= ';';
 
@@ -102,8 +106,8 @@ function getUsers()
     $nested = pg_transaction_status($dbconn) != PGSQL_TRANSACTION_IDLE;
     $queries = [
         $nested ? 'SAVEPOINT getusers;' : 'BEGIN;',
-        'DROP TABLE IF EXISTS ppmembers;',
-        'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer);',
+        'CREATE TEMP TABLE IF NOT EXISTS ppmembers (id integer, name text, lo integer, paid integer) ON COMMIT PRESERVE ROWS;',
+        'DELETE FROM pg_temp.ppmembers;',
         $query,
         $nested ? 'RELEASE SAVEPOINT getusers;' : 'COMMIT;',
     ];
@@ -116,9 +120,10 @@ function getUsers()
             if ($started) {
                 getusers_query($nested ? 'ROLLBACK TO SAVEPOINT getusers;' : 'ROLLBACK;');
             }
-            die('Abfrage fehlgeschlagen: ' . $error);
+            return 'Abfrage fehlgeschlagen: ' . $error;
         }
         $started = true;
     }
+    return null;
 
 }

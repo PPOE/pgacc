@@ -110,19 +110,8 @@ function posted_amounts_valid($parts, $rights)
     }
     return true;
 }
-// Loads the member list (getusers(): the membership system, ppmembers) when a
-// posted part is a member's, before the voucher is written (a revision: before
-// its transaction). Returns whether it was loaded; members_drop() removes it
-// afterwards.
-function members_load($parts, $rights)
-{
-    if (posted_member_part($parts, $rights)) {
-        getusers();
-        return true;
-    }
-    return false;
-}
-// Whether a posted part is a member's.
+// Whether a posted part is a member's: the save needs the member list
+// (getusers()), loaded before the voucher is written.
 function posted_member_part($parts, $rights)
 {
     for ($part = 0; $part < $parts; $part++) {
@@ -132,12 +121,21 @@ function posted_member_part($parts, $rights)
     }
     return false;
 }
-function members_drop($loaded)
+// The message of a save refused because the member list could not be loaded
+// ($error from getusers(), logged).
+function members_unavailable($error)
 {
-    global $dbconn;
-    if ($loaded) {
-        db_exec($dbconn, 'DROP TABLE IF EXISTS ppmembers;');
+    error_log('pgacc: member list not loaded: ' . $error);
+    return 'Die Mitgliederverwaltung ist nicht erreichbar. Bitte später erneut speichern.';
+}
+// The posted row IDs of the parts (bid<n>): 0 for a new part.
+function posted_bids($parts)
+{
+    $bids = [];
+    for ($part = 0; $part < $parts; $part++) {
+        $bids[$part] = intval(get_param($part, 'bid', 0, '/^\d+$/D'));
     }
+    return $bids;
 }
 // The page shown instead of saving a voucher with an invalid amount.
 function amount_refused()
@@ -147,10 +145,11 @@ function amount_refused()
 // Each correction of a posted value is also added to $warnings ('date',
 // 'refund', 'purpose'), for the redirect of the revision. The receipt number
 // is never taken from the request: a revised row takes the one of the stored
-// row it revises from $stored_files (row ID => file number, from the
-// database; empty for a new voucher), at most once, and removes it there.
-// Any other row starts without a receipt (the upload attaches one).
-function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old, &$warnings, &$stored_files)
+// row it revises ($bid, posted_bids()) from $stored_files (row ID => file
+// number, from the database; empty for a new voucher), at most once, and
+// removes it there. Any other row starts without a receipt (the upload
+// attaches one). The member list (ppmembers) is loaded by the caller.
+function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old, &$warnings, &$stored_files, $bid)
 {
     global $dbconn;
     $voucher = get_voucher($part, $rights);
@@ -175,7 +174,6 @@ function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old
         $voucher['purpose'] = 'false';
     }
 
-    // The member list (ppmembers) is loaded by the caller (members_load()).
     if ($voucher['member'] == 'true') {
         if ($voucher['mitgliedsnummer'] == 0) {
             $queries = [];
@@ -220,7 +218,6 @@ function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old
             pg_free_result($result);
         }
     }
-    $bid = intval($voucher['bid']);
     $voucher['file'] = $stored_files[$bid] ?? 0;
     unset($stored_files[$bid]);
     $query = "
@@ -267,7 +264,11 @@ function page_new_save($rights)
         page_new($form_rights);
         return;
     }
-    $members = members_load($parts, $rights);
+    if (posted_member_part($parts, $rights) && ($members_error = getusers()) !== null) {
+        echo '<div class="slot_error" id="slot_error">FEHLER: ' . members_unavailable($members_error) . '</div><br /><br /><br />';
+        page_new($form_rights);
+        return;
+    }
     $voucher_number = db_next_value($dbconn, 'voucher_number');
 
     echo "<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>";
@@ -276,9 +277,8 @@ function page_new_save($rights)
     $warnings = [];
     $stored_files = [];
     for ($i = 0; $i < $parts; $i++) {
-        page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files);
+        page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files, 0);
     }
-    members_drop($members);
 }
 function page_new_file($rights)
 {
