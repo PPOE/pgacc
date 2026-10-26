@@ -7,13 +7,13 @@ function transactions_page_listing_header($action)
     if (!$make_csv) {
         echo '<table>';
     }
-    echo tag(
+    echo tag_raw(
         "tr",
-        tag("td", tag("b", sortlink($action, 'datea', 'Datum')))
-. tag("td", tag("b", sortlink($action, 'typea', 'Art')))
-. tag("td", tag("b", sortlink($action, 'loa', 'LO')))
-. tag("td", tag("b", sortlink($action, 'ka', 'Konto')))
-. tag("td", tag("b", sortlink($action, 'ama', 'Betrag'))),
+        tag_raw("td", tag_raw("b", sortlink($action, 'datea', 'Datum')))
+. tag_raw("td", tag_raw("b", sortlink($action, 'typea', 'Art')))
+. tag_raw("td", tag_raw("b", sortlink($action, 'loa', 'LO')))
+. tag_raw("td", tag_raw("b", sortlink($action, 'ka', 'Konto')))
+. tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Betrag'))),
     );
 }
 
@@ -28,14 +28,14 @@ function transactions_page_listing_line($line, $action = "edit")
     $result2 = db_query($dbconn, $query2);
     // One cell also without a matching row (empty cell).
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
+    echo tag("td", str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"]));
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
     $result2 = db_query($dbconn, $query2);
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text($line2["name"]));
+    echo tag("td", $line2["name"]);
     pg_free_result($result2);
-    echo tag("td", listing_text(str_replace([
+    echo tag("td", str_replace([
         '50110117369',
         '10110123642',
         '50110117318',
@@ -67,7 +67,7 @@ function transactions_page_listing_line($line, $action = "edit")
         'Sachspenden Kärnten',
         'Piratenpartei Österreichs (Bank Austria)',
         'Piratenpartei Österreichs (Altes BAWAG Konto)',
-    ], $line["account"] ?? '')));
+    ], $line["account"] ?? ''));
     echo tag("td", format_amount($line["amount"], "€"));
     if ($make_csv) {
         echo "\n";

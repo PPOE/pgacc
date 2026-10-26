@@ -6,12 +6,12 @@ function kdonations_page_listing_header($action)
     if (!$make_csv) {
         echo '<table>';
     }
-    echo tag("tr", tag("td", tag("b", sortlink($action, 'datea', 'Datum')))
-    . tag("td", tag("b", sortlink($action, 'typea', 'Art')))
-    . tag("td", tag("b", sortlink($action, 'loa', 'LO')))
-    . tag("td", tag("b", sortlink($action, 'texta', 'Text')))
-    . tag("td", tag("b", sortlink($action, 'ama', 'Wert')))
-    . tag("td", tag("b", sortlink($action, 'namea', 'Name'))));
+    echo tag_raw("tr", tag_raw("td", tag_raw("b", sortlink($action, 'datea', 'Datum')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'typea', 'Art')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'loa', 'LO')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'texta', 'Text')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Wert')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'namea', 'Name'))));
 }
 
 function kdonations_page_listing_line($line)
@@ -25,16 +25,16 @@ function kdonations_page_listing_line($line)
     $result2 = db_query($dbconn, $query2);
     // One cell also without a matching row (empty cell).
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
+    echo tag("td", str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"]));
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
     $result2 = db_query($dbconn, $query2);
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text($line2["name"]));
+    echo tag("td", $line2["name"]);
     pg_free_result($result2);
-    echo tag("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));
+    echo tag_raw("td", preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'], [''], preg_replace(['/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));
     echo tag("td", format_amount($line["amount"], "€"));
-    echo tag("td", listing_text($line["name"]));
+    echo tag("td", $line["name"]);
     if ($make_csv) {
         echo "\n";
     } else {

@@ -7,14 +7,14 @@ function spendings_page_listing_header($action)
     if (!$make_csv) {
         echo '<table>';
     }
-    echo tag("tr", tag("td", tag("b", sortlink($action, 'idd', 'Buchung')))
-    . tag("td", tag("b", sortlink($action, 'datea', 'Datum')))
-    . tag("td", tag("b", sortlink($action, 'typea', 'Art')))
-    . tag("td", tag("b", sortlink($action, 'loa', 'LO')))
+    echo tag_raw("tr", tag_raw("td", tag_raw("b", sortlink($action, 'idd', 'Buchung')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'datea', 'Datum')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'typea', 'Art')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'loa', 'LO')))
     // removed for legal reasons.
     //tag("td",tag("b",sortlink($action,'texta','Text'))) .
-    . tag("td", tag("b", sortlink($action, 'ama', 'Betrag')))
-    . tag("td", tag("b", sortlink($action, 'ama', 'Name'))));
+    . tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Betrag')))
+    . tag_raw("td", tag_raw("b", sortlink($action, 'ama', 'Name'))));
 }
 
 function spendings_page_listing_line($line)
@@ -29,18 +29,18 @@ function spendings_page_listing_line($line)
     $result2 = db_query($dbconn, $query2);
     // One cell also without a matching row (empty cell).
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
+    echo tag("td", str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"]));
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
     $result2 = db_query($dbconn, $query2);
     $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
-    echo tag("td", listing_text($line2["name"]));
+    echo tag("td", $line2["name"]);
     pg_free_result($result2);
     // removed for legal reasons
     //echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
 
     echo tag("td", format_amount($line["amount"], "€"));
-    echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");
+    echo tag_raw("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");
     if ($make_csv) {
         echo "\n";
     } else {

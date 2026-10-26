@@ -146,13 +146,37 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     #[PHPUnit\Framework\Attributes\DataProvider('tagProvider')]
-    public function testTagRendersHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
+    public function testTagRawRendersHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
     {
         list($tagName, $text) = $args;
         $GLOBALS['make_csv'] = false;
-        self::assertSame($expectedHtml, tag($tagName, $text));
+        self::assertSame($expectedHtml, tag_raw($tagName, $text));
+        $GLOBALS['make_csv'] = true;
+        self::assertSame($expectedCsv, tag_raw($tagName, $text));
+    }
+
+    // tag() encodes its text for HTML; the CSV cell is the same as tag_raw().
+    #[PHPUnit\Framework\Attributes\DataProvider('tagProvider')]
+    public function testTagEncodesHtmlAndKeepsCsv(array $args, $expectedHtml, $expectedCsv)
+    {
+        list($tagName, $text) = $args;
+        $GLOBALS['make_csv'] = false;
+        self::assertSame("<$tagName>" . html_escape($text) . "</$tagName>\n", tag($tagName, $text));
         $GLOBALS['make_csv'] = true;
         self::assertSame($expectedCsv, tag($tagName, $text));
+    }
+
+    public function testTagEncodesMarkupAndTagRawKeepsIt()
+    {
+        $text = '<b>Jörg "Q" O\'Brien & Co</b>';
+        $GLOBALS['make_csv'] = false;
+        self::assertSame("<td>&lt;b&gt;Jörg &quot;Q&quot; O&#039;Brien &amp; Co&lt;/b&gt;</td>\n", tag('td', $text));
+        self::assertSame("<td>$text</td>\n", tag_raw('td', $text));
+        self::assertSame("<td>&amp;amp;</td>\n", tag('td', '&amp;'));
+        $GLOBALS['make_csv'] = true;
+        self::assertSame("$text\t", tag('td', $text));
+        self::assertSame("$text\t", tag_raw('td', $text));
+        self::assertSame("'=1&2\t", tag('td', '=1&2'));
     }
 
     public static function tagProvider()

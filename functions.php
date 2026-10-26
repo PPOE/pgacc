@@ -112,7 +112,19 @@ function getfilter()
     }
     return $filter;
 }
+// A listing cell or element: $text is plain text, encoded for HTML (the CSV
+// export writes it unchanged apart from the cell rules in tag_raw()).
 function tag($tag, $text)
+{
+    global $make_csv;
+    if (!$make_csv) {
+        $text = html_escape($text);
+    }
+    return tag_raw($tag, $text);
+}
+// Like tag(), but $text is markup (links, forms, nested tags) and is written
+// as is; the caller encodes every value in it.
+function tag_raw($tag, $text)
 {
     global $make_csv;
     if ($make_csv) {
