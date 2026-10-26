@@ -342,7 +342,7 @@ function page_edit_form($part, $voucher, $rights)
     // An invalid entered amount is shown again as entered, with the error; a
     // missing one (a new form, a NULL amount in the database) as 0.00.
     $amount_invalid = $voucher['amount'] === null && isset($voucher['amount_input']);
-    $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : sprintf("%1.2f", ($voucher['amount'] ?? 0) / 100.0);
+    $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : format_amount($voucher['amount'] ?? 0);
     $amount_error = $amount_invalid ? ' <span class="slot_error">FEHLER: Ungültiger Betrag</span>' : '';
     if ($voucher['dir'] == 'bel' && $part == 0) {
         $voucher['dir'] = 'in';
