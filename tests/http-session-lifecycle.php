@@ -181,8 +181,12 @@ if ($scenario === 'all' || $scenario === 'length') {
     }
     // The old short password still logs in; 12 characters (24 bytes) are enough.
     $shortCookies = login_user('synthetic-short-old', 'short');
-    $accepted = http_request('/index.php?action=accounts', 'POST',
-        ['submit' => 'Benutzer 54 aktualisieren', 'password54' => str_repeat('ä', 12)], $shortCookies);
+    $accepted = http_request(
+        '/index.php?action=accounts',
+        'POST',
+        ['submit' => 'Benutzer 54 aktualisieren', 'password54' => str_repeat('ä', 12)],
+        $shortCookies,
+    );
     assert_status($accepted, 200, 'own 12-character password');
     if (strpos((string) lifecycle_hash($database, 54), '$2a$10$') !== 0) {
         fail_test('12-character password was not stored as bcrypt');

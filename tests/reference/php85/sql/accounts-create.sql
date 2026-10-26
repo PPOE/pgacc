@@ -40,7 +40,7 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-INSERT INTO users (name,hash,rights) VALUES ('synthetic-created', crypt('created-password', gen_salt('md5')), '3');
+INSERT INTO users (name,hash,rights) VALUES ('synthetic-created', crypt('created-password', gen_salt('bf', 10)), '3');
 -- next
 SELECT * FROM users  ORDER BY rights DESC,id ASC
 -- next
