@@ -38,7 +38,11 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT id, file, receipt_received, (TRUE ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ORDER BY id;
+-- next
 BEGIN;
+-- next
+SELECT pg_advisory_xact_lock(1, 5000);
 -- next
 SELECT id, file, receipt_received, (TRUE ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ORDER BY id FOR UPDATE;
 -- next

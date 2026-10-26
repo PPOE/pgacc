@@ -23,6 +23,13 @@ function getusers_query($query)
 // temporary table of this connection (other requests neither see nor replace
 // it). Returns null, or the error message for the page (the cause of a failed
 // fetch goes to the error log); the caller decides how to stop.
+// An error of getUsers(), logged once (a failed fetch logs its cause instead).
+function getusers_failed($message)
+{
+    error_log('getusers: ' . $message);
+    return $message;
+}
+
 function getUsers()
 {
     global $datakey,$dbconn;
@@ -43,11 +50,11 @@ function getUsers()
         return 'Mitgliederliste konnte nicht abgerufen werden!';
     }
     if (strlen($datakey) == 0) {
-        return 'Kein Passwort!';
+        return getusers_failed('Kein Passwort!');
     }
 
     if (strlen($sData) < 1000) {
-        return 'Daten von Mitgliederverwaltung zu kurz!';
+        return getusers_failed('Daten von Mitgliederverwaltung zu kurz!');
     }
 
     $decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
@@ -61,7 +68,7 @@ function getUsers()
         $values = explode("\t", $line);
         // A line without the five fields means a damaged or undecryptable list.
         if (count($values) < 5) {
-            return 'Daten von Mitgliederverwaltung ungültig!';
+            return getusers_failed('Daten von Mitgliederverwaltung ungültig!');
         }
         $id = intval($values[1]);
         $name = stripslashes(iconv('ISO-8859-15', 'UTF-8', $values[2]));
@@ -97,7 +104,7 @@ function getUsers()
         $count++;
     }
     if ($count == 0) {
-        return 'Daten von Mitgliederverwaltung ungültig!';
+        return getusers_failed('Daten von Mitgliederverwaltung ungültig!');
     }
     $query .= ';';
 
@@ -120,7 +127,7 @@ function getUsers()
             if ($started) {
                 getusers_query($nested ? 'ROLLBACK TO SAVEPOINT getusers;' : 'ROLLBACK;');
             }
-            return 'Abfrage fehlgeschlagen: ' . $error;
+            return getusers_failed('Abfrage fehlgeschlagen: ' . $error);
         }
         $started = true;
     }

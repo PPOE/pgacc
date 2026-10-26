@@ -38,6 +38,8 @@ SELECT * FROM users WHERE id = 2 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 2 AND login > now() - '24 hours'::interval
 -- next
+SELECT pg_advisory_lock(1, 5000);
+-- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
 -- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;

@@ -35,6 +35,11 @@ longer used; after the deploy it can be dropped:
 DROP TABLE IF EXISTS ppmembers;
 ```
 
+The temporary table lives as long as the request's database connection, so
+pgacc needs a session of its own per request: do not put a connection pooler
+in transaction or statement mode between pgacc and PostgreSQL (session
+pooling, or none, is fine).
+
 ## Upgrade to 2.0.0
 
 2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for

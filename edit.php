@@ -36,6 +36,9 @@ function page_edit_merge($rights)
     }
     $rightssql = rights2orgasql($rights);
 
+    // Both vouchers' locks, in the order of their numbers (voucher_lock()).
+    voucher_lock(min($bid1, $bid2));
+    voucher_lock(max($bid1, $bid2));
     $name = pg_escape_string($dbconn, checklogin('name'));
     $query = "UPDATE vouchers SET voucher_id = $bid1 WHERE voucher_id = $bid2 $rightssql;";
     $merged = db_exec($dbconn, $query);
@@ -49,10 +52,7 @@ function page_edit_merge($rights)
 function page_edit_drop_acks($rights)
 {
     global $dbconn;
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = $_POST["parts"];
-    }
+    $parts = posted_parts();
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -64,6 +64,8 @@ function page_edit_drop_acks($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
         return;
     }
+    // Writers of a voucher's rows take its lock (voucher_lock()).
+    voucher_lock($id);
 
     if (!has_right($rights, 'bgf')) {
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
@@ -95,10 +97,7 @@ function page_edit_ack($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
     }
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = $_POST["parts"];
-    }
+    $parts = posted_parts();
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -110,6 +109,8 @@ function page_edit_ack($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
         return;
     }
+    // Writers of a voucher's rows take its lock (voucher_lock()).
+    voucher_lock($id);
 
     $rightssql = rights2orgasql($rights);
     // A user who sees no current (not deleted) row of the voucher gets the
@@ -159,20 +160,15 @@ function page_edit_ack($rights)
     db_exec($dbconn, $query);
     relocate("index.php?action=edit&id=$id&hint=4");
 }
-// The message of a refused revision; the caller shows the form again with
-// the posted values (page_edit($form_rights, true)) where it can.
-function revision_refused($message)
-{
-    echo '<div class="slot_error" id="slot_error">FEHLER: ' . $message . '</div><br /><br /><br />';
-}
-// Locks the current rows of voucher $id in the order of their IDs and returns
-// them (id, file, receipt_received, mine: whether the user sees the row);
-// null when PostgreSQL aborts the statement for a deadlock (the caller rolls
-// the transaction back). Any other failure ends the request (db_fail()).
-function edit_lock_rows($id, $rightssql)
+// The current rows of voucher $id in the order of their IDs (id, file,
+// receipt_received, mine: whether the user sees the row); with $lock locked
+// FOR UPDATE, and null when PostgreSQL aborts that for a deadlock (the caller
+// rolls the transaction back). Any other failure ends the request
+// (db_fail()).
+function edit_voucher_rows($id, $rightssql, $lock)
 {
     global $dbconn;
-    $query = "SELECT id, file, receipt_received, (TRUE $rightssql) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = $id ORDER BY id FOR UPDATE;";
+    $query = "SELECT id, file, receipt_received, (TRUE $rightssql) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = $id ORDER BY id" . ($lock ? ' FOR UPDATE' : '') . ';';
     $result = pg_send_query($dbconn, $query) ? pg_get_result($dbconn) : false;
     // One statement, one result: this ends the query.
     while (pg_get_result($dbconn) !== false) {
@@ -190,7 +186,7 @@ function edit_lock_rows($id, $rightssql)
     pg_free_result($result);
     return $rows;
 }
-// The user's rows of edit_lock_rows(): row ID => receipt number.
+// The user's rows of edit_voucher_rows(): row ID => receipt number.
 function edit_user_files($rows)
 {
     $files = [];
@@ -201,19 +197,91 @@ function edit_user_files($rows)
     }
     return $files;
 }
+// Why a revision with the posted parts ($parts, row IDs $bids) is refused, as
+// [message, whether the form is shown again], or null. $rows are the
+// voucher's current rows (edit_voucher_rows()), $files the user's ones (row ID
+// => receipt number). Checked without the lock before the member list is
+// loaded, and again on the locked rows.
+function revision_refusal($rows, $files, $parts, $bids, $organizations_allowed, $amounts_valid)
+{
+    // Only a voucher of which the user sees a current row; a finalized row
+    // blocks the revision of the whole voucher, also a row of another
+    // organization.
+    if (count($files) == 0) {
+        return ['Buchung nicht gefunden.', false];
+    }
+    if (in_array('t', array_column($rows, 'receipt_received'), true)) {
+        return ['Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.', false];
+    }
+    if (!$organizations_allowed) {
+        return ['Keine Zugriffsrechte.', false];
+    }
+    // A posted row of another organization (current, but not the user's).
+    $current = array_map('intval', array_column($rows, 'id'));
+    foreach ($bids as $bid) {
+        if ($bid > 0 && !array_key_exists($bid, $files) && in_array($bid, $current, true)) {
+            return ['Keine Berechtigung für diese Buchungszeile.', false];
+        }
+    }
+    if (!$amounts_valid) {
+        return [null, true];
+    }
+    if ($parts < 1) {
+        return ['Keine Buchungszeile angegeben.', true];
+    }
+    // Another posted row is no current row: the form was opened before
+    // another save (page_save_buchung() takes the receipt numbers of the
+    // posted current rows; posted ones are ignored).
+    foreach ($bids as $bid) {
+        if ($bid > 0 && !array_key_exists($bid, $files)) {
+            return ['Die Buchung wurde inzwischen geändert. Bitte neu laden.', 'current'];
+        }
+    }
+    // A row with a receipt must be posted again, so that no receipt is dropped.
+    foreach ($files as $bid => $file) {
+        if ($file != 0 && !in_array($bid, $bids, true)) {
+            return ['Eine Buchungszeile mit Beleg kann nicht entfernt werden.', true];
+        }
+    }
+    return null;
+}
+// Shows a refused revision: the message; the form with the posted values
+// (true), the voucher's current form with a read-only summary of the posted
+// parts (a stale form: 'current'), or nothing more (false). An invalid amount
+// (message null) has its own message (amount_refused()).
+function revision_refused($refusal, $parts, $rights, $form_rights)
+{
+    list($message, $form) = $refusal;
+    if ($message === null) {
+        amount_refused();
+    } else {
+        save_refused($message);
+    }
+    if ($form === 'current') {
+        echo '<h2>Nicht gespeicherte Eingaben</h2><table><tr><th>Zeile</th><th>Datum</th><th>Betrag</th><th>Name</th><th>Kommentar</th><th>Kommentar GF</th></tr>';
+        for ($i = 0; $i < $parts; $i++) {
+            $voucher = get_voucher($i, $rights, false);
+            echo '<tr><td>' . ($i + 1) . '</td><td>' . html_escape($voucher['date']) . '</td><td>' . html_escape($voucher['amount_input'])
+                . '</td><td>' . html_escape($voucher['name']) . '</td><td>' . html_escape($voucher['comment']) . '</td><td>' . html_escape($voucher['commentgf']) . '</td></tr>';
+        }
+        echo '</table>';
+        // The voucher as stored: the form ignores the posted parts.
+        $_POST = array_intersect_key($_POST, ['id' => true, 'csrf_token' => true]);
+        page_edit($form_rights);
+    } elseif ($form) {
+        page_edit($form_rights, true);
+    }
+}
 function page_edit_save($rights)
 {
     global $dbconn;
     $form_rights = $rights;
     $rights = write_rights($rights);
     if ($rights === false) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        save_refused('Keine Zugriffsrechte.');
         return;
     }
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = $_POST["parts"];
-    }
+    $parts = posted_parts();
 
     $id = -1;
     if (isset($_GET["id"])) {
@@ -222,7 +290,7 @@ function page_edit_save($rights)
         $id = $_POST["id"];
     }
     if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
+        save_refused('Buchung nicht gefunden.');
         return;
     }
     $rightssql = rights2orgasql($rights);
@@ -230,78 +298,40 @@ function page_edit_save($rights)
     $amounts_valid = posted_amounts_valid($parts, $rights);
     $bids = posted_bids($parts);
 
+    // Checked first without the lock, so that a refused revision does not
+    // contact the membership system.
+    $rows = edit_voucher_rows($id, $rightssql, false);
+    $refusal = revision_refusal($rows, edit_user_files($rows), $parts, $bids, $organizations_allowed, $amounts_valid);
+    if ($refusal !== null) {
+        revision_refused($refusal, $parts, $rights, $form_rights);
+        return;
+    }
     // The member list of a member's part is loaded before the transaction (no
-    // external call while the rows are locked); when it is missing, the
-    // revision is refused after the checks that do not need it.
+    // external call while the voucher is locked); when it is missing, the
+    // revision is refused after the other checks.
     $members_error = posted_member_part($parts, $rights) ? getusers() : null;
 
-    // The checks, the approval reset, the replacement of the user's rows and
-    // the new rows are one transaction on the locked current rows of the
-    // voucher; a refusal rolls it back and writes nothing.
+    // The voucher's lock (voucher_lock(), for the transaction), then its
+    // current rows, locked: the checks, the approval reset, the replacement of
+    // the user's rows and the new rows are one transaction on them, and rows
+    // of a save that committed meanwhile are seen. A refusal rolls back and
+    // writes nothing.
     db_exec($dbconn, 'BEGIN;');
-    $rows = edit_lock_rows($id, $rightssql);
-    // A concurrent save that replaced the user's rows while this one waited
-    // for the lock: the old rows are no longer current and its new ones were
-    // not visible to the statement. A second lock sees them (the posted rows
-    // are then refused below as stale).
-    if ($rows !== null && count(edit_user_files($rows)) == 0) {
-        $rows = edit_lock_rows($id, $rightssql);
-    }
+    db_exec($dbconn, 'SELECT pg_advisory_xact_lock(1, ' . voucher_lock_key($id) . ');');
+    $rows = edit_voucher_rows($id, $rightssql, true);
     if ($rows === null) {
+        $refusal = ['Die Buchung wird gerade gleichzeitig geändert. Bitte erneut speichern.', true];
+    } else {
+        // The user's current rows (row ID => receipt number).
+        $stored_files = edit_user_files($rows);
+        $refusal = revision_refusal($rows, $stored_files, $parts, $bids, $organizations_allowed, $amounts_valid);
+    }
+    if ($refusal === null && $members_error !== null) {
+        $refusal = [MEMBERS_UNAVAILABLE, true];
+    }
+    if ($refusal !== null) {
         db_exec($dbconn, 'ROLLBACK;');
-        revision_refused('Die Buchung wird gerade gleichzeitig geändert. Bitte erneut speichern.');
-        page_edit($form_rights, true);
-        return;
-    }
-    // The user's current rows (row ID => receipt number).
-    $stored_files = edit_user_files($rows);
-    // Only a voucher of which the user sees a current row; a finalized row
-    // blocks the revision of the whole voucher, also a row of another
-    // organization.
-    $message = null;
-    if (count($stored_files) == 0) {
-        $message = 'Buchung nicht gefunden.';
-    } elseif (in_array('t', array_column($rows, 'receipt_received'), true)) {
-        $message = 'Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.';
-    } elseif (!$organizations_allowed) {
-        $message = 'Keine Zugriffsrechte.';
-    }
-    if ($message !== null) {
-        db_exec($dbconn, 'ROLLBACK;');
-        revision_refused($message);
-        return;
-    }
-    // Nothing is written (no revision, no approval reset): the form again.
-    if (!$amounts_valid) {
-        db_exec($dbconn, 'ROLLBACK;');
-        amount_refused();
-        page_edit($form_rights, true);
-        return;
-    }
-    // The posted rows must be current rows of the user (page_save_buchung()
-    // takes their receipt numbers, posted ones are ignored); another row
-    // means a form opened before another save. A row with a receipt must be
-    // posted again, so that no receipt is dropped. Last, the member list.
-    if ($parts < 1) {
-        $message = 'Keine Buchungszeile angegeben.';
-    }
-    foreach ($bids as $bid) {
-        if ($bid > 0 && !array_key_exists($bid, $stored_files)) {
-            $message = 'Die Buchung wurde inzwischen geändert. Bitte neu laden.';
-        }
-    }
-    foreach ($stored_files as $bid => $file) {
-        if ($message === null && $file != 0 && !in_array($bid, $bids, true)) {
-            $message = 'Eine Buchungszeile mit Beleg kann nicht entfernt werden.';
-        }
-    }
-    if ($message === null && $members_error !== null) {
-        $message = members_unavailable($members_error);
-    }
-    if ($message !== null) {
-        db_exec($dbconn, 'ROLLBACK;');
-        revision_refused($message);
-        page_edit($form_rights, true);
+        revision_refused($refusal, $parts, $rights, $form_rights);
         return;
     }
 

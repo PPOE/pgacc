@@ -38,12 +38,6 @@ SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
-BEGIN;
--- next
-SELECT id, file, receipt_received, (TRUE  AND orga IN ('1') ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ORDER BY id FOR UPDATE;
--- next
-SELECT id, file, receipt_received, (TRUE  AND orga IN ('1') ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ORDER BY id FOR UPDATE;
--- next
-ROLLBACK;
+SELECT id, file, receipt_received, (TRUE  AND orga IN ('1') ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 1004 ORDER BY id;
 -- next
 SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval

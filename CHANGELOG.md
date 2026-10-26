@@ -103,12 +103,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Saving a voucher keeps its stored receipt; a receipt number in the request
   is ignored. A new voucher starts without a receipt (the upload attaches
   one), and a revised row keeps the receipt of the current row it replaces.
-- A voucher revision is saved in one database transaction on its locked
-  rows. It is refused, changes nothing and shows the form again when the form
-  was opened before another save of the voucher, also one that ran at the
-  same time ("Die Buchung wurde inzwischen geändert. Bitte neu laden."), when
-  it drops a row with a receipt, when it has no rows, or when locking its rows
-  ends in a deadlock ("Bitte erneut speichern").
+- A voucher revision is saved in one database transaction under the
+  voucher's lock, which receipt uploads and imports, approvals, merges and
+  recoveries take too. It is refused and changes nothing when the form was
+  opened before another save of the voucher, also one that ran at the same
+  time ("Die Buchung wurde inzwischen geändert. Bitte neu laden.": the current
+  voucher is shown with the unsaved entries listed below the message), when
+  it posts a row of another organization ("Keine Berechtigung für diese
+  Buchungszeile."), when it drops a row with a receipt, when it has no rows,
+  or when locking its rows ends in a deadlock ("Bitte erneut speichern").
 - Each request keeps its own member list (a temporary table), so concurrent
   page views, imports and saves no longer replace or wait for each other's
   list ([UPGRADING.md](UPGRADING.md)). When the membership system is

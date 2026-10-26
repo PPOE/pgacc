@@ -274,8 +274,8 @@ return [
         [
             'id' => 'edit-save-refused-without-form',
             'file' => 'edit.php',
-            'search' => "        amount_refused();\n        page_edit(\$form_rights, true);",
-            'replace' => "        amount_refused();\n        ;",
+            'search' => "    if (!\$amounts_valid) {\n        return [null, true];",
+            'replace' => "    if (!\$amounts_valid) {\n        return [null, false];",
             'rationale' => 'The refused revision shows the edit form again with the entered values.',
         ],
         [
@@ -288,8 +288,8 @@ return [
         [
             'id' => 'edit-refused-marked-saved',
             'file' => 'edit.php',
-            'search' => "        amount_refused();\n        page_edit(\$form_rights, true);",
-            'replace' => "        amount_refused();\n        page_edit(\$form_rights, false);",
+            'search' => "    } elseif (\$form) {\n        page_edit(\$form_rights, true);",
+            'replace' => "    } elseif (\$form) {\n        page_edit(\$form_rights, false);",
             'rationale' => 'The refused revision is shown as unsaved.',
         ],
         [
