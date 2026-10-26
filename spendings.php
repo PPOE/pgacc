@@ -27,15 +27,14 @@ function spendings_page_listing_line($line)
     echo tag("td", format_date($line["date"]));
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
     $result2 = db_query($dbconn, $query2);
-    while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
-    }
+    // One cell also without a matching row (empty cell).
+    $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
+    echo tag("td", listing_text(str_replace(['Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)'], ['Spenden'], $line2["name"])));
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
     $result2 = db_query($dbconn, $query2);
-    while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo tag("td", listing_text($line2["name"]));
-    }
+    $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
+    echo tag("td", listing_text($line2["name"]));
     pg_free_result($result2);
     // removed for legal reasons
     //echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');

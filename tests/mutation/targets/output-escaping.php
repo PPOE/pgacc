@@ -521,15 +521,15 @@ $callSites = [
     [
         'id' => 'closed-listing-text-line2-name',
         'file' => 'closed.php',
-        'search' => "    while (\$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC)) {\n        if (listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {\n            echo tag(\"td\", listing_text(\$line2[\"name\"]));\n        }\n    }\n    pg_free_result(\$result2);\n    \$query2 = \"SELECT name FROM lo WHERE id = \" . intval(\$line[\"orga\"]);",
-        'replace' => "    while (\$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC)) {\n        if (listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {\n            echo tag(\"td\", (\$line2[\"name\"]));\n        }\n    }\n    pg_free_result(\$result2);\n    \$query2 = \"SELECT name FROM lo WHERE id = \" . intval(\$line[\"orga\"]);",
+        'search' => "    \$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC) ?: ['name' => ''];\n    if (listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {\n        echo tag(\"td\", listing_text(\$line2[\"name\"]));\n    }\n    pg_free_result(\$result2);\n    \$query2 = \"SELECT name FROM lo WHERE id = \" . intval(\$line[\"orga\"]);",
+        'replace' => "    \$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC) ?: ['name' => ''];\n    if (listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {\n        echo tag(\"td\", (\$line2[\"name\"]));\n    }\n    pg_free_result(\$result2);\n    \$query2 = \"SELECT name FROM lo WHERE id = \" . intval(\$line[\"orga\"]);",
         'rationale' => 'Unescaped output: listing_text() removed around $line2["name"].',
     ],
     [
         'id' => 'closed-listing-text-line2-name-2',
         'file' => 'closed.php',
-        'search' => "    while (\$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC)) {\n        if (listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {\n            echo tag(\"td\", listing_text(\$line2[\"name\"]));\n        }\n    }\n    pg_free_result(\$result2);\n    if (listing_column_hidden(\$tabc++)) {",
-        'replace' => "    while (\$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC)) {\n        if (listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {\n            echo tag(\"td\", (\$line2[\"name\"]));\n        }\n    }\n    pg_free_result(\$result2);\n    if (listing_column_hidden(\$tabc++)) {",
+        'search' => "    \$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC) ?: ['name' => ''];\n    if (listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {\n        echo tag(\"td\", listing_text(\$line2[\"name\"]));\n    }\n    pg_free_result(\$result2);\n    if (listing_column_hidden(\$tabc++)) {",
+        'replace' => "    \$line2 = pg_fetch_array(\$result2, null, PGSQL_ASSOC) ?: ['name' => ''];\n    if (listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {\n        echo tag(\"td\", (\$line2[\"name\"]));\n    }\n    pg_free_result(\$result2);\n    if (listing_column_hidden(\$tabc++)) {",
         'rationale' => 'Unescaped output: listing_text() removed around $line2["name"].',
     ],
     [
@@ -731,15 +731,15 @@ $callSites = [
     [
         'id' => 'kdonations-listing-text-str-replace-array-spenden-mit-ausnahme-der-von',
         'file' => 'kdonations.php',
-        'search' => '        echo tag("td", listing_text(str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
-        'replace' => '        echo tag("td", (str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
+        'search' => '    echo tag("td", listing_text(str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
+        'replace' => '    echo tag("td", (str_replace([\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachspenden)\'], [\'Spenden\'], $line2["name"])));',
         'rationale' => 'Unescaped output: listing_text() removed around str_replace(array(\'Spenden (mit Ausnahme der von lebenden Subventionen und Sachs.',
     ],
     [
         'id' => 'kdonations-listing-text-line2-name',
         'file' => 'kdonations.php',
-        'search' => '        echo tag("td", listing_text($line2["name"]));',
-        'replace' => '        echo tag("td", ($line2["name"]));',
+        'search' => '    echo tag("td", listing_text($line2["name"]));',
+        'replace' => '    echo tag("td", ($line2["name"]));',
         'rationale' => 'Unescaped output: listing_text() removed around $line2["name"].',
     ],
     [

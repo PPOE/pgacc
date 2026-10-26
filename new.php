@@ -436,6 +436,10 @@ function page_edit_form($part, $voucher, $rights)
 ';
     }
     pg_free_result($result);
+    if (!empty($voucher['type_unknown'])) {
+        echo '<option value="' . html_escape($voucher['type']) . '" selected="selected">Unbekannt (' . html_escape($voucher['type']) . ')</option>
+';
+    }
     echo '
 </select>
 </div>
