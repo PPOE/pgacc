@@ -9,7 +9,12 @@ function page_mb($rights)
     }
     $year = date('Y');
     $previousYear = $year - 1;
-    getusers();
+    // The member list of this request (a temporary table, getusers()); a
+    // failed refresh stops the page with its message.
+    $members_error = getusers();
+    if ($members_error !== null) {
+        die($members_error);
+    }
     $query = "SELECT id,paid FROM ppmembers WHERE paid = 1;";
     $result = db_query($dbconn, $query);
     $ids = [];
@@ -48,13 +53,13 @@ function page_mb($rights)
         $avg = sprintf("%1.2f €", $line['amount'] / 100.0 / $line['count']);
         $lo = html_escape($line['name']);
         $Samount += $line['amount'];
-        $amount = sprintf("%1.2f €", $line['amount'] / 100.0);
+        $amount = format_amount($line['amount'], " €");
         $count = $line['count'];
         $Scount += $count;
         echo "<tr><td>$lo</td><td>$count</td><td>$amount</td><td>$avg</td></tr>";
     }
     $Savg = sprintf("%1.2f €", $Scount > 0 ? $Samount / 100.0 / $Scount : 0);
-    $Samount = sprintf("%1.2f €", $Samount / 100.0);
+    $Samount = format_amount($Samount, " €");
     echo "<tr><td>Summe</td><td>$Scount</td><td>$Samount</td><td>$Savg</td></tr>";
     echo "</table><br />";
 
@@ -66,7 +71,7 @@ function page_mb($rights)
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $i++;
         $lo = html_escape($line['name']);
-        $amount = sprintf("%1.2f €", $line['amount'] / 100.0);
+        $amount = format_amount($line['amount'], " €");
         echo "<tr><td>$lo</td><td>$amount</td></tr>";
     }
     echo "</table><br />";
@@ -120,7 +125,4 @@ function page_mb($rights)
     }
     echo "</table>";
     pg_free_result($result);
-
-    $query = 'DROP TABLE IF EXISTS ppmembers;';
-    db_exec($dbconn, $query);
 }

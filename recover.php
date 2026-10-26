@@ -30,6 +30,7 @@ function page_recover($rights)
     }
 
     if ($doit) {
+        voucher_lock($id);
         echo "<h1>Buchung Nr. $id / Buchungszeile Nr. $bid wiederhergestellt!</h1>";
 
         $query = "UPDATE vouchers SET deleted = false WHERE voucher_id = $id AND id = $bid;";

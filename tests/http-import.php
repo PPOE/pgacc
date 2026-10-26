@@ -371,13 +371,12 @@ if (import_count($database, 'Synthetic Handkassa line after blank lines') !== 1 
     fail_test('blank lines: wrong lines imported');
 }
 
-// getusers() replaces the member list (ppmembers) only with a complete,
-// valid response of the membership stub (HTTPS, compose.test.yaml). A failed
-// fetch (an HTTP error, a redirect, a refused certificate), a short or an
-// undecryptable response, or an SQL error stops the page with an error and
-// leaves the table as it was. The member-fee and import pages drop the
-// table after each view, so a table left in place (such as one of a
-// concurrent request) is planted here.
+// getusers() loads the member list into ppmembers, a temporary table of the
+// request's connection, only from a complete, valid response of the
+// membership stub (HTTPS, compose.test.yaml). A failed fetch (an HTTP error,
+// a redirect, a refused certificate), a short or an undecryptable response,
+// or an SQL error stops the page with an error. A shared ppmembers table (as
+// earlier releases kept one, planted here) is never read or changed.
 function membership_stub_mode($mode)
 {
     $answer = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=' . $mode);
@@ -462,21 +461,32 @@ foreach ($failures as $mode => $message) {
     }
 }
 membership_stub_mode('ok');
-// An SQL error in the refresh (here: ppmembers is a view, which DROP TABLE
-// refuses) rolls the transaction back.
-foreach (['DROP TABLE ppmembers', "CREATE VIEW ppmembers AS SELECT 8803 AS id, 'Synthetic View Member'::text AS name, 1 AS lo, 1 AS paid"] as $query) {
-    if (@pg_query($database, $query) === false) {
-        fail_test('planting the ppmembers view failed: ' . pg_last_error($database));
+// Requests do not share the member list: while another connection holds the
+// shared table locked (as an earlier release's refresh did with DROP and
+// CREATE) and has a member list of its own, the member-fee page and the
+// import load theirs and neither list changes.
+$other = pg_connect(pgacc_test_connection_string(), PGSQL_CONNECT_FORCE_NEW);
+foreach (['CREATE TEMP TABLE ppmembers (id integer, name text, lo integer, paid integer)',
+    "INSERT INTO pg_temp.ppmembers VALUES (8803, 'Synthetic Other Request', 1, 1)", 'BEGIN', 'LOCK TABLE public.ppmembers IN ACCESS EXCLUSIVE MODE'] as $query) {
+    if (@pg_query($other, $query) === false) {
+        fail_test('the other connection failed: ' . pg_last_error($other));
     }
 }
-$members = member_rows($database);
-$failed = http_request('/index.php?action=mb', 'GET', [], $adminCookies);
-assert_contains($failed['body'], 'Abfrage fehlgeschlagen: ', 'mb with a ppmembers view');
-if (member_rows($database) !== $members) {
-    fail_test('mb with a ppmembers view changed it');
+foreach (['mb' => '<td>Anna Synthetisch-Müller</td>', 'import' => 'Importieren'] as $action => $expected) {
+    $page = http_request("/index.php?action=$action", 'GET', [], $adminCookies);
+    assert_contains($page['body'], $expected, "$action while another request holds the shared member table");
 }
-if (@pg_query($database, 'DROP VIEW ppmembers') === false) {
-    fail_test('dropping the ppmembers view failed: ' . pg_last_error($database));
+$otherRows = pg_fetch_all(pg_query($other, 'SELECT id FROM pg_temp.ppmembers'));
+pg_query($other, 'ROLLBACK');
+pg_close($other);
+if ($otherRows !== [['id' => '8803']]) {
+    fail_test('the other request\'s member list changed: ' . var_export($otherRows, true));
+}
+if (member_rows($database) !== $members) {
+    fail_test('the shared member table changed');
+}
+if (@pg_query($database, 'DROP TABLE ppmembers') === false) {
+    fail_test('dropping the shared ppmembers failed: ' . pg_last_error($database));
 }
 
 // The BAWAG fixtures: every known account (organizations 2-10), an

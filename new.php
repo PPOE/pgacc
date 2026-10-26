@@ -40,7 +40,7 @@ function voucher_text($value, $escape)
 function get_voucher($part, $rights, $escape = true)
 {
     $filepart = $part;
-    $voucher['bid'] = get_param($part, 'bid', 0, '/^\d+$/');
+    $voucher['bid'] = posted_bid($part);
     $voucher['dir'] = get_param($part, 'dir', 'in', '/^(in|out|wk|bel)$/');
     $voucher['in_type'] = get_param($part, 'in_type', 0, '/^\d+$/');
     $voucher['out_type'] = get_param($part, 'out_type', 0, '/^\d+$/');
@@ -110,14 +110,77 @@ function posted_amounts_valid($parts, $rights)
     }
     return true;
 }
+// Whether a posted part is a member's: the save needs the member list
+// (getusers()), loaded before the voucher is written.
+function posted_member_part($parts, $rights)
+{
+    for ($part = 0; $part < $parts; $part++) {
+        if (get_voucher($part, $rights, false)['member'] == 'true') {
+            return true;
+        }
+    }
+    return false;
+}
+// The message of a save refused because the member list could not be loaded
+// (getusers() logged the cause).
+const MEMBERS_UNAVAILABLE = 'Die Mitgliederverwaltung ist nicht erreichbar. Bitte später erneut speichern.';
+// The number of posted parts (parts; 1 when missing or invalid).
+function posted_parts()
+{
+    if (isset($_POST["parts"]) && is_string($_POST["parts"]) && preg_match('/^\d+$/D', $_POST["parts"]) == 1) {
+        return intval($_POST["parts"]);
+    }
+    return 1;
+}
+// The posted row ID of a part (bid<n>): 0 for a new part or an invalid value.
+function posted_bid($part)
+{
+    return intval(get_param($part, 'bid', 0, '/^\d+$/D'));
+}
+function posted_bids($parts)
+{
+    $bids = [];
+    for ($part = 0; $part < $parts; $part++) {
+        $bids[$part] = posted_bid($part);
+    }
+    return $bids;
+}
+// The message of a refused save; the caller shows the form again where it can.
+function save_refused($message)
+{
+    echo '<div class="slot_error" id="slot_error">FEHLER: ' . $message . '</div><br /><br /><br />';
+}
+// The lock of voucher $id (an advisory lock, key space 1) that every writer of
+// its rows takes before it reads them: the revision for its transaction
+// (voucher_xact_lock()), the other writers until voucher_unlock() or the end
+// of the request.
+function voucher_lock_key($id)
+{
+    return intval($id) % 2147483648;
+}
+function voucher_lock($id)
+{
+    global $dbconn;
+    db_exec($dbconn, 'SELECT pg_advisory_lock(1, ' . voucher_lock_key($id) . ');');
+}
+function voucher_unlock($id)
+{
+    global $dbconn;
+    db_exec($dbconn, 'SELECT pg_advisory_unlock(1, ' . voucher_lock_key($id) . ');');
+}
 // The page shown instead of saving a voucher with an invalid amount.
 function amount_refused()
 {
-    echo '<div class="slot_error" id="slot_error">FEHLER: Ungültiger Betrag (Euro mit höchstens zwei Dezimalstellen, z. B. 12,50). Die Buchung wurde nicht gespeichert.</div><br /><br /><br />';
+    save_refused('Ungültiger Betrag (Euro mit höchstens zwei Dezimalstellen, z. B. 12,50). Die Buchung wurde nicht gespeichert.');
 }
 // Each correction of a posted value is also added to $warnings ('date',
-// 'refund', 'purpose'), for the redirect of the revision.
-function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null, $ack2_old = null, &$warnings = null)
+// 'refund', 'purpose'), for the redirect of the revision. The receipt number
+// is never taken from the request: a revised row takes the one of the stored
+// row it revises ($bid, posted_bids()) from $stored_files (row ID => file
+// number, from the database; empty for a new voucher), at most once, and
+// removes it there. Any other row starts without a receipt (the upload
+// attaches one). The member list (ppmembers) is loaded by the caller.
+function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old, &$warnings, &$stored_files, $bid)
 {
     global $dbconn;
     $voucher = get_voucher($part, $rights);
@@ -143,7 +206,6 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
     }
 
     if ($voucher['member'] == 'true') {
-        getusers();
         if ($voucher['mitgliedsnummer'] == 0) {
             $queries = [];
             if (strlen($voucher['name']) > 0) {
@@ -186,13 +248,9 @@ function page_save_buchung($voucher_number, $rights, $part = 0, $ack1_old = null
             }
             pg_free_result($result);
         }
-
-        $query = 'DROP TABLE IF EXISTS ppmembers;';
-        db_exec($dbconn, $query);
     }
-    if ($voucher['file'] == -1) {
-        $voucher['file'] = 0;
-    }
+    $voucher['file'] = $stored_files[$bid] ?? 0;
+    unset($stored_files[$bid]);
     $query = "
 INSERT INTO vouchers
 (voucher_id, date, type, person_type, orga, member,
@@ -220,16 +278,13 @@ function page_new_save($rights)
     $form_rights = $rights;
     $rights = write_rights($rights);
     if ($rights === false) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        save_refused('Keine Zugriffsrechte.');
         return;
     }
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = $_POST["parts"];
-    }
+    $parts = posted_parts();
 
     if (!posted_organizations_allowed($parts, $rights)) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        save_refused('Keine Zugriffsrechte.');
         return;
     }
     if (!posted_amounts_valid($parts, $rights)) {
@@ -237,12 +292,20 @@ function page_new_save($rights)
         page_new($form_rights);
         return;
     }
+    if (posted_member_part($parts, $rights) && getusers() !== null) {
+        save_refused(MEMBERS_UNAVAILABLE);
+        page_new($form_rights);
+        return;
+    }
     $voucher_number = db_next_value($dbconn, 'voucher_number');
 
     echo "<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>";
 
+    // A new voucher has no stored receipts.
+    $warnings = [];
+    $stored_files = [];
     for ($i = 0; $i < $parts; $i++) {
-        page_save_buchung($voucher_number, $rights, $i);
+        page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files, 0);
     }
 }
 function page_new_file($rights)
@@ -253,10 +316,7 @@ function page_new_file($rights)
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
     }
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = intval($_POST["parts"]);
-    }
+    $parts = posted_parts();
 
     $bid = -1;
     $file = -1;
@@ -284,6 +344,8 @@ function page_new_file($rights)
         return;
     }
     $rightssql = rights2orgasql($rights);
+    // Writers of a voucher's rows take its lock (voucher_lock()).
+    voucher_lock($id);
 
     // Only a current row of this voucher that the user sees; checked before the
     // finalized check, so that other organizations learn nothing about it.
@@ -342,7 +404,7 @@ function page_edit_form($part, $voucher, $rights)
     // An invalid entered amount is shown again as entered, with the error; a
     // missing one (a new form, a NULL amount in the database) as 0.00.
     $amount_invalid = $voucher['amount'] === null && isset($voucher['amount_input']);
-    $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : sprintf("%1.2f", ($voucher['amount'] ?? 0) / 100.0);
+    $amount_value = $amount_invalid ? html_escape($voucher['amount_input']) : format_amount($voucher['amount'] ?? 0);
     $amount_error = $amount_invalid ? ' <span class="slot_error">FEHLER: Ungültiger Betrag</span>' : '';
     if ($voucher['dir'] == 'bel' && $part == 0) {
         $voucher['dir'] = 'in';
@@ -650,10 +712,7 @@ function clicked(init)
 
 function page_new($rights)
 {
-    $parts = 1;
-    if (isset($_POST["parts"]) && preg_match('/^\d+$/', $_POST["parts"]) == 1) {
-        $parts = $_POST["parts"];
-    }
+    $parts = posted_parts();
     if (isset($_POST["add"]) || isset($_POST["addB"])) {
         $parts++;
     }

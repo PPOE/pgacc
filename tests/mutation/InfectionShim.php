@@ -5,16 +5,17 @@
  *
  * Infection (checked through 0.35.8) only mutates code inside classes; global
  * functions such as those in functions.php are never eligible. This class
- * writes a disposable, line-aligned copy of functions.php for Infection:
+ * writes disposable, line-aligned copies of functions.php and of library files
+ * in src/ for Infection, each in the same place under an output directory:
  *
  * - every top-level `function name(` becomes `public static function name(`
- *   of one final class, on the same line as in functions.php;
+ *   of one final class per file, on the same line as in the original;
  * - after the class, each original global function is redefined as a
  *   one-line delegate that forwards its arguments to the class method.
  *
  * Tests and helpers still call the global names, so behavior, defaults,
  * `global` statements and output are unchanged; reported line numbers match
- * functions.php. Input that cannot be wrapped faithfully is refused with a
+ * the original file. Input that cannot be wrapped faithfully is refused with a
  * RuntimeException. The repository is never modified.
  *
  * It is itself a class so that Infection can mutate it
@@ -25,35 +26,48 @@ final class PgaccInfectionShim
     public const CLASS_NAME = 'PgaccFunctionsMutationShim';
 
     /**
-     * Command line entry: wrap <functions.php> into <output dir>/functions.php.
+     * Command line entry: wrap each <file> (a path relative to the
+     * application directory) into <output directory>/<file>, with the class
+     * named by className().
      */
     public static function main(array $arguments)
     {
-        if (count($arguments) !== 3) {
-            throw new InvalidArgumentException('Usage: php infection-shim.php <functions.php> <output directory>');
+        if (count($arguments) < 4) {
+            throw new InvalidArgumentException('Usage: php infection-shim.php <application directory> <output directory> <file>...');
         }
-        $source = $arguments[1];
-        $output = $arguments[2];
-        $code = @file_get_contents($source);
-        if ($code === false) {
-            throw new RuntimeException('Cannot read ' . $source);
+        foreach (array_slice($arguments, 3) as $file) {
+            $source = $arguments[1] . '/' . $file;
+            $target = $arguments[2] . '/' . $file;
+            $code = @file_get_contents($source);
+            if ($code === false) {
+                throw new RuntimeException('Cannot read ' . $source);
+            }
+            $wrapped = self::wrap($code, $source, self::className($file));
+            if (!is_dir(dirname($target)) && !@mkdir(dirname($target), 0777, true)) {
+                throw new RuntimeException('Cannot create ' . dirname($target));
+            }
+            if (@file_put_contents($target, $wrapped) !== strlen($wrapped)) {
+                throw new RuntimeException('Cannot write ' . $target);
+            }
+            printf("Wrapped %d functions from %s for Infection\n", count(self::functionNames($wrapped)), $source);
         }
-        $wrapped = self::wrap($code, $source);
-        if (!is_dir($output) && !@mkdir($output, 0777, true)) {
-            throw new RuntimeException('Cannot create ' . $output);
-        }
-        if (@file_put_contents($output . '/functions.php', $wrapped) !== strlen($wrapped)) {
-            throw new RuntimeException('Cannot write ' . $output . '/functions.php');
-        }
-        printf("Wrapped %d functions from %s for Infection\n", count(self::functionNames($wrapped)), $source);
+    }
+
+    /**
+     * The class of a file's copy: functions.php is CLASS_NAME, src/format.php
+     * PgaccSrcFormatMutationShim.
+     */
+    public static function className($file)
+    {
+        $words = preg_split('/[^A-Za-z0-9]+/', preg_replace('/\.php$/', '', $file), -1, PREG_SPLIT_NO_EMPTY);
+        return 'Pgacc' . implode('', array_map('ucfirst', $words)) . 'MutationShim';
     }
 
     /**
      * Returns the wrapped code; throws RuntimeException for unsupported input.
      */
-    public static function wrap($code, $source = 'input')
+    public static function wrap($code, $source = 'input', $class = self::CLASS_NAME)
     {
-        $class = self::CLASS_NAME;
         $result = '';
         $depth = 0;
         $functions = [];
@@ -110,6 +124,11 @@ final class PgaccInfectionShim
             if (in_array($text, ['__FUNCTION__', '__METHOD__', '__CLASS__', 'func_get_args', 'func_get_arg', 'func_num_args'], true)
                 || $id === T_STATIC) {
                 throw new RuntimeException('Scope-sensitive construct is not supported: ' . $text);
+            }
+            // The copy is in another directory (src/db.php derives the
+            // application directory from its own).
+            if ($id === T_DIR || $id === T_FILE) {
+                throw new RuntimeException('Location-sensitive construct is not supported: ' . $text);
             }
             $result .= $text;
         }

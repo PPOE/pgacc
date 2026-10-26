@@ -33,7 +33,10 @@
  * /__stub/list serves the member list on both ports (the redirect targets)
  * and counts its requests: GET http://.../__stub/list-requests answers the
  * count since the last mode switch, so the tests can prove that no redirect
- * was followed. /__stub/health answers 200 for the health check; anything
+ * was followed. GET http://.../__stub/names-requests counts the member-list
+ * requests (adm_names.php) the same way, so the tests can prove that a
+ * refused save did not fetch the list. /__stub/health answers 200 for the
+ * health check; anything
  * else is 404.
  *
  * Response format, as getusers.php reads it (inferred from the code, never
@@ -53,6 +56,7 @@ if ($http === false) {
 $modeFile = '/tmp/pgacc-membership-stub-mode';
 $bodyFile = '/tmp/pgacc-membership-stub-body';
 $listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
+$namesRequestsFile = '/tmp/pgacc-membership-stub-names-requests';
 $modes = ['ok', 'short', 'garbage', 'empty', 'flow', 'overflow', 'body', 'redirect', 'redirect-http',
     'selfsigned', 'wrongname', 'error'];
 $certificates = [
@@ -82,7 +86,7 @@ function membership_stub_mode($modeFile)
 
 function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bodyFile, $modes)
 {
-    global $listRequestsFile;
+    global $listRequestsFile, $namesRequestsFile;
     $path = parse_url($uri, PHP_URL_PATH);
     if ($path === '/__stub/health') {
         return ['200 OK', "ok\n"];
@@ -100,11 +104,16 @@ function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bod
             }
             file_put_contents($modeFile, $mode);
             @unlink($listRequestsFile);
+            @unlink($namesRequestsFile);
             return ['200 OK', "mode $mode\n"];
         }
         if ($path === '/__stub/list-requests') {
             clearstatcache();
             return ['200 OK', (is_file($listRequestsFile) ? filesize($listRequestsFile) : 0) . "\n"];
+        }
+        if ($path === '/__stub/names-requests') {
+            clearstatcache();
+            return ['200 OK', (is_file($namesRequestsFile) ? filesize($namesRequestsFile) : 0) . "\n"];
         }
         if ($path === '/__stub/body' && $method === 'POST') {
             file_put_contents($bodyFile, $body);
@@ -116,6 +125,7 @@ function membership_stub_response($secure, $method, $uri, $body, $modeFile, $bod
     if ($path !== '/adm_api/adm_names.php') {
         return ['404 Not Found', "not found\n"];
     }
+    file_put_contents($namesRequestsFile, "x", FILE_APPEND);
     $list = file_get_contents(__DIR__ . '/adm_names.b64');
     switch (membership_stub_mode($modeFile)) {
         case 'short':

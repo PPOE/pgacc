@@ -43,11 +43,13 @@ if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabu
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 
-// src/db.php only defines functions: a direct request prints nothing (the
-// web server denies src/; the test server ignores .htaccess).
-$library = http_request('/src/db.php');
-if ($library['body'] !== '') {
-    fail_test('src/db.php: a direct request printed ' . var_export($library['body'], true));
+// The library files only define functions: a direct request prints nothing
+// (the web server denies src/; the test server ignores .htaccess).
+foreach (['src/db.php', 'src/format.php'] as $path) {
+    $library = http_request('/' . $path);
+    if ($library['body'] !== '') {
+        fail_test($path . ': a direct request printed ' . var_export($library['body'], true));
+    }
 }
 
 // A failed statement ends the request with the pages' message, through each

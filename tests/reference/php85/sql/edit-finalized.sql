@@ -38,9 +38,13 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
+SELECT id, file, receipt_received, (TRUE ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ORDER BY id;
 -- next
-SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
+BEGIN;
+-- next
+SELECT pg_advisory_xact_lock(1, 5000);
+-- next
+SELECT id, file, receipt_received, (TRUE ) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ORDER BY id FOR UPDATE;
 -- next
 
     UPDATE vouchers
@@ -57,7 +61,7 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5
 -- next
 SELECT ack1_old, ack2_old FROM vouchers WHERE NOT deleted AND voucher_id = 5000  ORDER BY id ASC LIMIT 1;
 -- next
-UPDATE vouchers SET deleted = true WHERE voucher_id = 5000 ;
+UPDATE vouchers SET deleted = true WHERE NOT deleted AND voucher_id = 5000 AND id IN (1000);
 -- next
 
 INSERT INTO vouchers
@@ -72,3 +76,5 @@ VALUES
   'Test City',-9999,'TESTACCOUNT2',
   'TESTVIRTUAL2','Reference blocked revision','Reference workflow',
   false,0,false,'synthetic-admin',NULL);
+-- next
+COMMIT;

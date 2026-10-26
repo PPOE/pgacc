@@ -40,7 +40,7 @@ function spendings_page_listing_line($line)
     // removed for legal reasons
     //echo tag("td", ($line["refund"] != 't') ? preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d{9}|\d{5}.\d+)/'),array(''),preg_replace(array('/((BG|FE|ZE|VB|OG|IG)\/\d+(\s\d+)+)|(((BG|FE|ZE|VB|OG|IG)\/\d+)?[A-Z]{8} [A-Z]{2}\d+)/'),array(" <i>Kontodaten</i> "),$line["comment"])) : '<i>Kostenrückerstattung</i>');
 
-    echo tag("td", sprintf("%1.2f", $line["amount"] / 100.0) . "€");
+    echo tag("td", format_amount($line["amount"], "€"));
     echo tag("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");
     if ($make_csv) {
         echo "\n";

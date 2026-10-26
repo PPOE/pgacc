@@ -34,6 +34,7 @@ function checklogin($get = 'name', $redir = true)
 $root = dirname(dirname(__DIR__));
 require $root . '/functions.php';
 require $root . '/src/db.php';
+require $root . '/src/format.php';
 require $root . '/donations.php';
 require $root . '/import.php';
 require $root . '/new.php';
@@ -298,7 +299,7 @@ function idiom_import_amount($amount)
 {
     return intval(str_replace(['.', ','], ['', ''], $amount));
 }
-// report.php, tinyreport.php, ...: sprintf("%1.2f", $line['sum'] / 100.0).
+// report.php, tinyreport.php, ...: sprintf("%1.2f", $line['sum'] / 100.0), now format_amount().
 function idiom_money($sum)
 {
     return sprintf('%1.2f', $sum / 100.0);

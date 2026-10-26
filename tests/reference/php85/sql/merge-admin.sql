@@ -38,6 +38,10 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT pg_advisory_lock(1, 5003);
+-- next
+SELECT pg_advisory_lock(1, 5004);
+-- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 UPDATE vouchers SET voucher_id = 5003 WHERE voucher_id = 5004 ;

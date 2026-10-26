@@ -30,7 +30,12 @@ function import_date_valid($date)
 function page_import($rights)
 {
     global $dbconn;
-    getusers();
+    // The member list of this request (a temporary table, getusers()); a
+    // failed refresh stops the page with its message.
+    $members_error = getusers();
+    if ($members_error !== null) {
+        die($members_error);
+    }
     block_start();
     echo "<table>\n";
     $csv_mimetypes = [
@@ -355,6 +360,4 @@ function page_import($rights)
 <input type="submit" value="Importieren" />
 </form>';
     block_end();
-    $query = 'DROP TABLE IF EXISTS ppmembers;';
-    db_exec($dbconn, $query);
 }

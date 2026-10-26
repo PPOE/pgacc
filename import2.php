@@ -183,6 +183,8 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
     $id = $voucher["voucher_id"];
     $bid = $voucher["id"];
 
+    // The voucher's lock (voucher_lock()), released before the next file.
+    voucher_lock($id);
     $file_number = db_next_value($dbconn, 'file_number');
 
     // The receipt is stored only for a row that the scoped update matched.
@@ -192,12 +194,14 @@ function page_import2_match_voucher($rights, $i, $id, $date, $account = null)
     $sourcepath = $_FILES["upload"]["tmp_name"][$i];
     if ($updated != 1 || !receipt_store(getcwd() . '/files', $file_number, $sourcepath)) {
         db_exec($dbconn, "UPDATE vouchers SET file = 0 WHERE NOT deleted AND id = $bid AND file = $file_number;");
+        voucher_unlock($id);
         echo "Beleg konnte nicht gespeichert werden.<br />";
         return;
     }
 
     // An import resets the approvals of the whole voucher.
     vouchers_reset_ack($id, '');
+    voucher_unlock($id);
 
     echo 'done: <a href="index.php?action=edit&id=' . $voucher["voucher_id"] . '&bid=' . $voucher["id"] . '">' . $voucher["voucher_id"] . "</a><br />";
 }

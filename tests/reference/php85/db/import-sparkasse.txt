@@ -6,7 +6,7 @@
 ## import
 + Giro;20.02.2024;+99,99;EUR;20.02.2024;Gutschrift;Spende;SyntheticSparer;REF1;;ER1;AT00;STSPAT2G;SyntheticSparer;AT999999999999999999;STSPAT2GXXX
 + Giro;22.02.2024;-10,00;EUR;22.02.2024;Lastschrift;Gebühr;;;;;;;SyntheticBank;;
-## ppmembers
+## pg_temp
 (absent before and after)
 ## vouchers
 + 1024	5021	8	6	f	0	AT999999999999999999 STSPAT2GXXX	Synthetic Sparer				9999	20815 6659403	Gutschrift; Spende; Synthetic Sparer	f	f	f	2024-02-20 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N

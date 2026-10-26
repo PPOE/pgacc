@@ -22,6 +22,24 @@ add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
+## Member list: no shared table
+
+From the release after 2.0.0 each request keeps the member list of the
+membership system in a temporary table of its own database connection. The
+database user no longer needs to create tables in the `public` schema (only
+the `TEMPORARY` privilege on the database, which PostgreSQL grants to every
+user by default). The shared `ppmembers` table of earlier releases is no
+longer used; after the deploy it can be dropped:
+
+```sql
+DROP TABLE IF EXISTS ppmembers;
+```
+
+The temporary table lives as long as the request's database connection, so
+pgacc needs a session of its own per request: do not put a connection pooler
+in transaction or statement mode between pgacc and PostgreSQL (session
+pooling, or none, is fine).
+
 ## Upgrade to 2.0.0
 
 2.0.0 runs only on PHP 8.5 with PostgreSQL 18; 1.0.0 is the last release for
@@ -32,9 +50,9 @@ PHP 5.3 and PostgreSQL 8.4.
 2. Check the PHP extensions. In the unpacked release directory run
    `composer check-platform-reqs --no-dev` with the target PHP (Composer is
    needed only for this check, not to install). It must report `ext-iconv` and
-   `ext-zlib` (the PDF receipt import, `smalot/pdfparser`) and PHP 8.5 as
-   present. Without Composer, `php -m` must list `iconv`, `zlib`, `openssl` and
-   `pgsql`.
+   `ext-zlib` (the PDF receipt import, `smalot/pdfparser`), `ext-sodium` (the
+   receipt key fingerprint) and PHP 8.5 as present. Without Composer, `php -m`
+   must list `iconv`, `zlib`, `sodium`, `openssl` and `pgsql`.
 3. Outgoing HTTPS to the membership system must work with a trusted CA bundle
    (the member list is fetched over verified HTTPS).
 4. Upgrade the database to PostgreSQL 18 if needed: dump the `accounting`
@@ -101,39 +119,103 @@ PHP 5.3 and PostgreSQL 8.4.
 
 ## Receipt migration (`migrate-receipt-key.php`)
 
-Run every step as the web server's user (file owner and database role), from
-any directory. The script works only on the command line.
+Run every step as the web server's user (the owner of `files/` and the
+database role), from any directory, on the server whose `constants.php` the
+web application uses, with the final `$key`. The script works only on the
+command line. Do not post migration transcripts publicly.
 
-1. Dry run: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
-   It lists each legacy file as "would migrate" or "not migrated" (with the
-   reason) and writes nothing. Note the key fingerprint in the summary; do
-   not post migration transcripts publicly.
-2. Migrate: `sudo -u <web user> php migrate-receipt-key.php`, optionally in
-   batches (`--limit=500`). Files above `--max-size` (default `memory_limit`
-   / 8) are skipped; for large receipts run with `php -d memory_limit=1G` (or
-   set `--max-size`). Legacy files are kept. Exit status 1 means a file
-   failed; rerun until the summary shows 0 migrated and 0 failed.
-3. Run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy` also runs
-   `sync` itself before it deletes anything and stops if that fails).
-4. Verify: spot-check several migrated receipts (PDF and JPEG) in the
-   browser, before deleting anything, and search the web server's error log
-   for downloads that fell back to the legacy file:
+1. Back up `files/` (and `constants.php`) first, to a separate place, and
+   keep the backup until the legacy files have been deleted and the
+   receipts checked.
+2. Get the **key fingerprint from the application**: log in as root and
+   open the user administration (Benutzerverwaltung). It shows "Fingerabdruck
+   des Beleg-Schlüssels" (8 hex digits, a slow Argon2id derivation of the
+   `$key` the application uses, never the key itself; it also warns if the
+   key has fewer than 32 characters). Every run that writes or deletes needs
+   it as `--key-fingerprint=<fingerprint>`; a run with another `$key`
+   (another `constants.php`, another installation) then stops without
+   changing anything.
+3. Dry run: `sudo -u <web user> php migrate-receipt-key.php --dry-run
+   --key-fingerprint=<fingerprint>`. It writes nothing and lists each legacy
+   file as "would migrate" or "skipped, legacy kept" with the reason; the
+   last line shows the fingerprint of the key the script read.
+4. Review the skipped files listed at the end ("Skipped, legacy kept: ...").
+   They keep working as legacy files. Optional, also as a dry run first:
+   - `--include-unusual` also migrates files that decrypt to another
+     recognized type (PNG, GIF, TIFF), to an empty file, or to a PDF or JPEG
+     that looks incomplete or has data after its end. The download sends
+     the same bytes as before; PDFs and JPEGs also keep their type, but the
+     legacy download sent everything else as `image/jpeg`: a migrated PNG or
+     GIF is shown as `image/png` or `image/gif`, a TIFF, an empty file and
+     other types are offered as a download `<n>.bin`.
+   - `--search-voucher-ids` tries the other voucher IDs for files that no
+     voucher ID of their rows decrypts (after a voucher merge) and migrates
+     a file only if one decrypts it to a complete PDF or JPEG; the line
+     names the voucher ID found. (Such a receipt downloaded as unreadable
+     bytes before; afterwards it is the original receipt.) It costs one
+     single-block decryption per file and candidate ID (all voucher IDs up
+     to the highest one; roughly 0.15 ms each, so 20,000 IDs take about 3 s
+     per file); IDs found for one file are tried first for the next. Run it
+     after the normal migration, when only the skipped files are left.
+   Pass the same options again to `--delete-legacy` (step 7).
+5. Migrate: `sudo -u <web user> php migrate-receipt-key.php
+   --key-fingerprint=<fingerprint>`, optionally in batches (`--limit=500`).
+   Files above `--max-size` (default `memory_limit` / 8) are skipped; for
+   large receipts run with `php -d memory_limit=1G` (or set `--max-size`).
+   Legacy files are kept. Finish with a run without `--limit`, and rerun
+   until the summary shows 0 migrated and 0 failed.
+   - Before writing, each run checks the MAC of up to 16 existing
+     `<n>.v2.aes`, first receipts without a legacy file (uploaded since the
+     upgrade). If any of them does not verify, the run stops and lists them:
+     the key is probably wrong. If the key is certainly right and the files
+     are damaged, keep a copy of them and either re-create those that still
+     have a legacy file with `--recreate-unverified` (which then checks
+     every existing `<n>.v2.aes` before writing, also in `--limit` batches),
+     or leave them alone with `--ignore-unverified=<n>,...` (listed as
+     skipped).
+   - A run without `--limit` also checks every other existing `<n>.v2.aes`
+     it reaches; one that does not verify is kept and reported as failed.
+     `--limit` batches do not read the already migrated files again (listed
+     as "not checked again").
+   - Run as the web server's user: each new `<n>.v2.aes` gets the mode of
+     its `<n>.aes` (the umask does not matter) and its group where the user
+     may set it; if the owner or group still differ, the line warns, and if
+     the owner or group of `<n>.aes` could not read the new file, it is not
+     written. Run as root (a warning is printed), the new file gets the
+     owner, group and mode of `<n>.aes`.
+6. Verify: run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy`
+   also runs `sync` itself and stops if that fails). Spot-check several
+   migrated receipts (PDF and JPEG, and any migrated with the options of
+   step 4) in the browser, before deleting anything, and search the web
+   server's error log for downloads that fell back to the legacy file:
    `grep 'pgacc: receipt .*; sent the legacy'` (each line is `pgacc: receipt
    <n>.v2.aes <reason>; sent the legacy <n>.aes`). While the legacy files
-   exist, the old file is still served, so only the log shows the problem.
-   The reason is `could not be decrypted (wrong key or modified file)` (e.g.
-   a key mismatch between the web application and the migration), `could
-   not be opened` (missing, unreadable or not a regular file, e.g. file
-   permissions) or `not decrypted: no valid receipt key ($key) configured`.
-   Refused downloads are logged as `pgacc: receipt <n>: no readable stored
-   file` or `pgacc: receipt <n>.v2.aes <reason>; no readable <n>.aes`.
-5. Later, delete the legacy files: `sudo -u <web user> php
-   migrate-receipt-key.php --delete-legacy` (also with `--dry-run` first; it
-   repeats the reminder). Each `<n>.aes` is deleted only after `<n>.v2.aes`
-   decrypted to the same content with the key the run read. Its key
-   fingerprint must match the one of steps 1 and 2.
-6. Keep the `files/` backup from the upgrade's step 1 until the spot checks
-   are done. Skipped files stay legacy `<n>.aes` and keep working as before.
+   exist, a key mismatch between the web application and the migration
+   still serves the old file, so only the log shows the problem. The reason
+   is `could not be decrypted (wrong key or modified file)` (e.g. a key
+   mismatch), `could not be opened` (missing, unreadable or not a regular
+   file, e.g. file permissions) or `not decrypted: no valid receipt key
+   ($key) configured`. Also look for refused downloads, logged as `pgacc:
+   receipt <n>: no readable stored file` or `pgacc: receipt <n>.v2.aes
+   <reason>; no readable <n>.aes`.
+7. Only then delete the legacy files: `sudo -u <web user> php
+   migrate-receipt-key.php --delete-legacy --key-fingerprint=<fingerprint>`
+   (with `--dry-run` first; it repeats the reminder). Each `<n>.aes` is
+   deleted only when `<n>.v2.aes` verifies with the key of the run and
+   decrypts to exactly the content of `<n>.aes`. Legacy files without
+   `<n>.v2.aes` are listed as "skipped, legacy kept" (skipped by the
+   migration or not migrated yet; a run without `--delete-legacy` lists the
+   reason) and keep their legacy file.
+8. Keep the `files/` backup of step 1 until the spot checks are done.
+
+Exit status of every run:
+
+| Status | Meaning |
+|---|---|
+| 0 | done; nothing skipped |
+| 1 | a file failed (listed under "Failed: ..."); fix the cause and run again |
+| 2 | not run, nothing changed (usage, invalid key, missing or wrong `--key-fingerprint`, a checked `<n>.v2.aes` does not verify (step 5), lock, database, `sync`) |
+| 3 | done, but legacy files were skipped (with `--delete-legacy`: every legacy file without `<n>.v2.aes`; also those of `--ignore-unverified`); listed at the end, their legacy files are kept |
 
 ## Rollback
 
@@ -142,7 +224,7 @@ any directory. The script works only on the command line.
   `mcrypt`). Receipts uploaded since the upgrade exist only as `<n>.v2.aes`
   and cannot be read by the previous code; keep those files and the `$key` for
   a later upgrade.
-- After `--delete-legacy`: restore `files/` from the backup of step 1 before
-  redeploying the previous code.
+- After `--delete-legacy`: restore `files/` from the backup (upgrade step 1)
+  before redeploying the previous code.
 - Restore the database from the backup only if needed; it also undoes the
   bookings made since the upgrade. Users log in again after a rollback.

@@ -46,6 +46,31 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   selector instead of a row of year links: previous year, a drop-down of all
   years (current year first, down to 2012, the shown year marked) and next
   year. No JavaScript; the same years and link targets as before.
+- Receipt migration (`migrate-receipt-key.php`): a run that writes or
+  deletes needs `--key-fingerprint=<8 hex digits>`, the key fingerprint
+  that the user administration page now shows root (never the key; it also
+  warns about a key of fewer than 32 characters); without it, or with
+  another one, nothing is changed. The fingerprint is now a slow Argon2id
+  derivation (requires the `sodium` extension, part of standard PHP
+  builds); earlier fingerprints no longer match. Skipped files are
+  listed by file number at the end and give exit status 3 (1 a file failed,
+  2 not run); the delete phase reports every legacy file without
+  `<n>.v2.aes` as "skipped, legacy kept". New options: `--include-unusual`
+  also migrates other recognized types (PNG, GIF, TIFF), empty files and
+  PDFs or JPEGs that look incomplete (same bytes; PNG and GIF then download
+  as images, other types as a download instead of `image/jpeg`);
+  `--search-voucher-ids` tries other voucher IDs for files of merged
+  vouchers and accepts only a complete PDF or JPEG; `--recreate-unverified`
+  and `--ignore-unverified=<n,...>` (see Fixed). `--limit` batches no longer
+  re-check already migrated files (the run without `--limit` and the delete
+  phase do). New `<n>.v2.aes` files get the owner, group and mode of their
+  legacy file when run as root (with a warning); run as the web server's
+  user, its mode and, where permitted, its group, with a warning if owner or
+  group differ, and not written if the legacy file's owner or group could
+  not read them. Operator steps in [UPGRADING.md](UPGRADING.md).
+- Receipt download: a `<n>.v2.aes` receipt that is a PNG or GIF image is
+  shown as `image/png` or `image/gif` instead of being offered as a
+  download `<n>.bin`.
 
 ### Removed
 
@@ -54,6 +79,15 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Receipt migration: a run with another `$key` no longer re-creates existing
+  `<n>.v2.aes` files that do not verify with it. Such a file is kept and
+  reported. Before writing, each run checks the MAC of up to 16 existing
+  files, receipts uploaded since the upgrade first, and stops with their
+  list if one does not verify, unless `--recreate-unverified` (re-creates
+  those with a legacy file; then all files are checked) or
+  `--ignore-unverified` (leaves them alone) is given. `--delete-legacy` deletes a legacy file
+  only when its `<n>.v2.aes` verifies with the confirmed key and decrypts to
+  exactly its content.
 - A receipt download whose stored file is missing or unreadable answers with
   the existing error ("FEHLER: Der Beleg konnte nicht entschlüsselt werden.",
   HTTP 500) instead of an empty JPEG and PHP warnings.
@@ -64,7 +98,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   download is logged once with the file number and the reason the newer
   receipt file was not used; a receipt file that cannot be opened (also a
   directory) is no longer logged as a wrong key. The migration check in
-  UPGRADING.md (step 4) searches for every fallback line.
+  UPGRADING.md (step 6) searches for every fallback line.
 - Logging in without a login target no longer ends on a blank page (empty
   redirect).
 - The import pages (`?action=import`, `?action=import2`) show the upload form
@@ -108,6 +142,24 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A BAWAG export with an empty line (for example at the end of the file) is
   imported completely; the empty line is skipped instead of stopping the
   import as an invalid line.
+- Saving a voucher keeps its stored receipt; a receipt number in the request
+  is ignored. A new voucher starts without a receipt (the upload attaches
+  one), and a revised row keeps the receipt of the current row it replaces.
+- A voucher revision is saved in one database transaction under the
+  voucher's lock, which receipt uploads and imports, approvals, merges and
+  recoveries take too. It is refused and changes nothing when the form was
+  opened before another save of the voucher, also one that ran at the same
+  time ("Die Buchung wurde inzwischen geändert. Bitte neu laden.": the current
+  voucher is shown with the unsaved entries listed below the message), when
+  it posts a row of another organization ("Keine Berechtigung für diese
+  Buchungszeile."), when it drops a row with a receipt, when it has no rows,
+  or when locking its rows ends in a deadlock ("Bitte erneut speichern").
+- Each request keeps its own member list (a temporary table), so concurrent
+  page views, imports and saves no longer replace or wait for each other's
+  list ([UPGRADING.md](UPGRADING.md)). When the membership system is
+  unreachable or answers with invalid data, saving a member's voucher is
+  refused with the form shown again ("Die Mitgliederverwaltung ist nicht
+  erreichbar. Bitte später erneut speichern.") instead of ending the page.
 
 ### Removed
 

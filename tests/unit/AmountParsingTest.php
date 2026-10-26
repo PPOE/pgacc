@@ -1,7 +1,7 @@
 <?php
 
 /*
- * amount_cents() (functions.php): exact amount parsing of the voucher form
+ * amount_cents() (src/format.php): exact amount parsing of the voucher form
  * and of every bank import format (Paypal and Sparkasse in either separator
  * convention), limited to the integer column
  * vouchers.amount; and the year range of donations.php date_condition().

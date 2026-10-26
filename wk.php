@@ -26,7 +26,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
                 } else {
                     echo "<tr><td>" . html_escape($line['name']) . "</td><td>";
                 }
-                echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+                echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
             }
         }
         pg_free_result($result2);
@@ -41,7 +41,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '
@@ -64,7 +64,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
             if (intval($line2['sum']) != 0 || $print_empty) {
                 echo "<tr><td><a href=\"index.php?action=spendings&type={$line['id']}&from=$from&to=$to&unit=$unit\">" . html_escape($line['name']) . "</a></td><td>";
-                echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+                echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
             }
         }
         pg_free_result($result2);
@@ -79,7 +79,7 @@ function wk_unit_report($prevcond, $cond, $condall, $unit = 10, $year = 2012, $t
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted {$unit_s} AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '

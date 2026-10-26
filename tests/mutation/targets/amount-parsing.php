@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Exact amount parsing: amount_cents() (functions.php) and its call sites,
+ * Exact amount parsing: amount_cents() (src/format.php) and its call sites,
  * the voucher form (new.php get_voucher(), the refused save in
  * page_new_save() and page_edit_save(), the amount field shown again) and
  * every bank import format (import.php, invalid lines skipped, zero lines
@@ -13,7 +13,7 @@
  */
 return [
     'description' => 'Exact amount parsing of the voucher form and the bank imports, year range of date_condition()',
-    'file' => 'functions.php',
+    'file' => 'src/format.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'AmountParsingTest', 'file' => 'tests/unit/AmountParsingTest.php'],
         ['type' => 'http', 'script' => 'tests/http-donations.php'],
@@ -267,15 +267,15 @@ return [
         [
             'id' => 'edit-save-amounts-unchecked',
             'file' => 'edit.php',
-            'search' => "    if (!posted_amounts_valid(\$parts, \$rights)) {",
-            'replace' => '    if (false) {',
+            'search' => "    \$amounts_valid = posted_amounts_valid(\$parts, \$rights);",
+            'replace' => '    $amounts_valid = true;',
             'rationale' => 'A revision with an invalid amount writes nothing (no revision, no approval reset).',
         ],
         [
             'id' => 'edit-save-refused-without-form',
             'file' => 'edit.php',
-            'search' => "        amount_refused();\n        page_edit(\$form_rights, true);",
-            'replace' => "        amount_refused();\n        ;",
+            'search' => "    if (!\$amounts_valid) {\n        return [null, true];",
+            'replace' => "    if (!\$amounts_valid) {\n        return [null, false];",
             'rationale' => 'The refused revision shows the edit form again with the entered values.',
         ],
         [
@@ -288,8 +288,8 @@ return [
         [
             'id' => 'edit-refused-marked-saved',
             'file' => 'edit.php',
-            'search' => "        page_edit(\$form_rights, true);",
-            'replace' => "        page_edit(\$form_rights, false);",
+            'search' => "    } elseif (\$form) {\n        page_edit(\$form_rights, true);",
+            'replace' => "    } elseif (\$form) {\n        page_edit(\$form_rights, false);",
             'rationale' => 'The refused revision is shown as unsaved.',
         ],
         [

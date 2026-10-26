@@ -6,7 +6,7 @@
 ## import
 + 15.03.2024,10:00:00,CET,SyntheticPayPalDonor,Spende,Abgeschlossen,EUR,25.00,-0.78,24.22,donor@example.invalid,spende@piratenpartei.at,SYNTH0000000001,,,SpendeWahlkampf,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,
 + 16.03.2024,11:00:00,CET,SyntheticRefund,Rückzahlung,Abgeschlossen,EUR,-5.00,0.20,-4.80,spende@piratenpartei.at,refund@example.invalid,SYNTH0000000002,,,,,,,,,,,,,,,,,,,,,,0.00,,,,,,,,
-## ppmembers
+## pg_temp
 (absent before and after)
 ## vouchers
 + 1026	5023	8	10	f	0	donor@example.invalid	Synthetic PayPal Donor				2500	spende@piratenpartei.at	Spende Wahlkampf; Transaktion: SYNTH0000000001; Brutto: 25.00€; Gebühr: -0.78€; Synthetic PayPal Donor	f	f	f	2024-03-15 00:00:00	\N	\N	2	0	{{save_date}}	\N		f		\N	\N	\N	\N	\N	\N

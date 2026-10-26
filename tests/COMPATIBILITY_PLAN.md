@@ -1307,7 +1307,7 @@ differences above are only visible for out-of-range input.
     legacy download is the number of bytes sent (the decrypted size, equal
     to the file size, as only whole blocks are sent). The
     log lines name the file only, never the key or its fingerprint. v2
-    responses: Content-Type from the magic bytes (PDF, JPEG, otherwise
+    responses: Content-Type from the magic bytes (PDF, JPEG, PNG, GIF, otherwise
     `application/octet-stream` with `Content-Disposition: attachment;
     filename="<n>.bin"`), `X-Content-Type-Options: nosniff` (correct types
     render as before; checked by headers only, not in a browser),
@@ -1316,23 +1316,49 @@ differences above are only visible for out-of-range input.
     are never decrypted with the legacy scheme.
   - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3
     has no fsync): a normal run writes and verifies `<n>.v2.aes` and keeps
-    `<n>.aes`; it checks an existing `<n>.v2.aes` like a download (MAC, then
-    chunked decryption) and re-creates an invalid one from `<n>.aes`, or
-    reports it (exit status 1); it never deletes anything. `--delete-legacy`
+    `<n>.aes`; it checks the MAC of an existing `<n>.v2.aes` (re-created
+    from `<n>.aes` only with `--recreate-unverified`); it never deletes
+    anything. Hardened against
+    operator mistakes: writing and deleting runs need `--key-fingerprint`
+    (shown to root on the user administration page, `accounts.php`); an
+    existing `<n>.v2.aes` that does not verify is kept unless
+    `--recreate-unverified`; before writing, the MAC of up to 16 existing
+    `<n>.v2.aes` (uploads first; all with `--recreate-unverified`) is
+    checked, and the run stops with the list if one does not verify (a
+    wrong key), unless `--recreate-unverified` (files with a legacy file)
+    or `--ignore-unverified=<n,...>` covers it; `--limit` batches do not
+    re-check migrated files (the run without `--limit` and the delete phase,
+    which decrypts each file once, do); skipped files
+    are listed and give exit status 3 (the delete phase reports every
+    legacy file without `<n>.v2.aes` as "skipped, legacy kept", without
+    decrypting it); `--include-unusual` and `--search-voucher-ids` migrate
+    other recognized types and merged vouchers (search candidates fetched
+    once per run); new files get the owner, group and mode of their legacy
+    file through `receipt_write_file()`'s `$prepare` as root (warning);
+    as another user its mode and, where permitted, its group, refused only
+    if the legacy file's owner or group could not read it. Without
+    `--include-unusual` a file is judged by its first decrypted block; the
+    search tries found IDs first. The key fingerprint is Argon2id
+    (libsodium, `ext-sodium`, interactive limits, fixed salt) so that a
+    fingerprint seen on the root page is no fast test for guessed keys; the
+    root page also warns about a key of fewer than 32 characters. `<n>.v2.aes` downloads now also send PNG and GIF inline as
+    `image/png`/`image/gif`. Genuine legacy files of
+    the original code on PHP 5.3.3: `tests/fixtures/legacy-php53/`.
+    `--delete-legacy`
     first runs `sync` (`--sync=COMMAND`; nothing is deleted if it fails),
     then decrypts both files again, the new one through the download's
     chunked path, and deletes `<n>.aes` only where the plain texts match; it
     prints a reminder to check receipts first. It reads `$key` like `index.php` (an explicit
     relative `--constants` or `--files` is relative to the working
     directory), refuses invalid keys, prints the key fingerprint (first 8 hex
-    digits of `HMAC-SHA256($key, "pgacc-key-fingerprint")`, only in its own
-    output), holds an exclusive lock (`files/.migrate-receipt-key.lock`),
+    digits of an Argon2id derivation of `$key`, see `receipt_key_fingerprint()`;
+    in its own output and on the root user administration page), holds an exclusive lock (`files/.migrate-receipt-key.lock`),
     never removes a `<n>.v2.aes` it did not just write, probes the first
     block per candidate voucher ID and then requires a complete PDF
     (`%%EOF` near the end) or JPEG (`FF D9`) with consistent zero padding,
     skips files above `--max-size` (default `memory_limit` / 8), names that
-    are not canonical file numbers in PostgreSQL's integer range (listed,
-    exit status unchanged) and other types, and exits 2 when it cannot read
+    are not canonical file numbers in PostgreSQL's integer range and other
+    types (listed, exit status 3), and exits 2 when it cannot read
     the directory. Its first statement stops any server API but the
     command line (404 for web requests, a message for php-cgi from a shell,
     exit status 1), before any include; `.htaccess` also denies it (defence
@@ -1342,7 +1368,9 @@ differences above are only visible for out-of-range input.
     writes, store and read); `ReceiptImportTest.php` (the import's
     `<n>.v2.aes`; import and upload refused without a valid key);
     `ReceiptMigrationTest.php` (dry run, migration with skips, complete
-    receipts and the size limit, idempotent reruns, the delete phase,
+    receipts and the size limit, idempotent reruns, the delete phase, a
+    wrong key, the fingerprint, exit statuses, unusual files, the voucher ID
+    search, ownership, the genuine PHP 5.3 files,
     failures, `--limit`, the lock, refusals, key loading, relative paths,
     php-cgi; also on PHP 5.3) and `ReceiptMigrationCommandTest.php` (the
     command); `tests/http-receipts.php`
@@ -1358,7 +1386,9 @@ differences above are only visible for out-of-range input.
   - [ ] Known bug `KB-RECEIPT-LEGACY-MERGE`, not changed: a legacy `<n>.aes`
     is keyed on the voucher ID, so after a merge (which changes the merged
     rows' voucher ID) its download sends unreadable bytes as `image/jpeg`,
-    and the migration cannot find its key either (skipped and listed).
+    and the migration cannot find its key either (skipped and listed;
+    `--search-voucher-ids` recovers it when another voucher ID decrypts it
+    to a complete PDF or JPEG).
     Characterized in `tests/http-receipts.php`. A `<n>.v2.aes` is not
     affected.
   - Open: a download that finds no `<n>.v2.aes` while a migration renames it
@@ -1393,37 +1423,60 @@ differences above are only visible for out-of-range input.
      another key. (Earlier drafts of `<n>.v2.aes` were never deployed, so no
      such files exist.)
   3. Deploy. From now on new receipts are `files/<n>.v2.aes`.
-  4. Dry run, as the web server's user (file owner and database role), from
-     any directory: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
-     It lists each legacy file as "would migrate" or "not migrated" (with the
-     reason) and writes nothing. Note the key fingerprint in the summary; do
-     not post migration transcripts publicly.
-  5. Migrate: `sudo -u <web user> php migrate-receipt-key.php`, optionally in
-     batches (`--limit=500`). Files above `--max-size` (default
-     `memory_limit` / 8) are skipped; for large receipts run with
+  4. Back up `files/` again right before the migration. Copy the key
+     fingerprint from the application (root, user administration page:
+     "Fingerabdruck des Beleg-Schlüssels"). Dry run, as the web server's
+     user (owner of `files/` and database role), from any directory:
+     `sudo -u <web user> php migrate-receipt-key.php --dry-run
+     --key-fingerprint=<fingerprint>`. It lists each legacy file as "would
+     migrate" or "skipped, legacy kept" (with the reason) and writes
+     nothing. Do not post migration transcripts publicly.
+  5. Review the skipped files (listed at the end). Optional, dry run first:
+     `--include-unusual` (other recognized types, empty files, PDFs or JPEGs
+     that look incomplete; same bytes, but PNG/GIF then download as
+     image/png/image/gif and other types as `<n>.bin` instead of
+     image/jpeg) and `--search-voucher-ids` (merged vouchers: other voucher
+     IDs, only a complete PDF or JPEG is accepted). Repeat the options for
+     step 8.
+  6. Migrate: `sudo -u <web user> php migrate-receipt-key.php
+     --key-fingerprint=<fingerprint>`, optionally in batches
+     (`--limit=500`), finishing with a run without `--limit`. Without the
+     matching fingerprint nothing is written. Files above `--max-size`
+     (default `memory_limit` / 8) are skipped; for large receipts run with
      `php -d memory_limit=1G` (or set `--max-size`). Legacy files are kept.
-     Exit status 1 means a file failed; rerun until the summary shows 0
-     migrated and 0 failed.
-  6. Run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy` also runs
-     `sync` itself before it deletes anything and stops if that fails).
-  7. Spot-check several migrated receipts (PDF and JPEG) in the browser,
-     before deleting anything, and search the web server's error log for
-     downloads that fell back to the legacy file:
-     `grep 'pgacc: receipt .*; sent the legacy'` (each line is `pgacc:
-     receipt <n>.v2.aes <reason>; sent the legacy <n>.aes`; the reasons are
-     listed under "Download" above, e.g. a key mismatch between the web
-     application and the migration gives `could not be decrypted (wrong key
-     or modified file)`). While the legacy files exist, the old file is
-     still served, so only the log shows the problem. Same check as
-     UPGRADING.md, step 4 (`tests/http-receipts.php` checks that both give
+     Each run first checks the MAC of up to 16 existing `<n>.v2.aes`
+     (uploads first) and stops with the list if one does not verify
+     (probably a wrong key; `--recreate-unverified`, which checks all, or
+     `--ignore-unverified=<n,...>` only if the key is certainly right); a run
+     without `--limit` checks the others it reaches and keeps and reports one
+     that does not verify. New files get the owner, group
+     and mode of their legacy file as root; as the web server's user their
+     mode and group where permitted (a warning if owner or group differ; not
+     written if the legacy file's owner or group could not read them). Rerun until the
+     summary shows 0 migrated and 0 failed.
+  7. Run `sync` once more (`--delete-legacy` also runs `sync` itself before
+     it deletes anything and stops if that fails). Spot-check several
+     migrated receipts (PDF and JPEG) in the browser, before deleting
+     anything, and search the web server's error log for downloads that
+     fell back to the legacy file: `grep 'pgacc: receipt .*; sent the
+     legacy'` (each line is `pgacc: receipt <n>.v2.aes <reason>; sent the
+     legacy <n>.aes`; the reasons are listed under "Download" above, e.g. a
+     key mismatch between the web application and the migration gives
+     `could not be decrypted (wrong key or modified file)`), and for refused
+     downloads (`pgacc: receipt <n>: no readable stored file`, `... no
+     readable <n>.aes`). While the legacy files exist, a key mismatch still
+     serves the old file, so only the log shows it. Same check as
+     UPGRADING.md, step 6 (`tests/http-receipts.php` checks that both give
      this pattern and that it finds every fallback line).
   8. Delete the legacy files: `sudo -u <web user> php migrate-receipt-key.php
-     --delete-legacy` (also with `--dry-run` first; it repeats the reminder).
-     Each `<n>.aes` is deleted only after `<n>.v2.aes` decrypted to the same
-     content with the key the run read. Its key fingerprint must match the
-     one of steps 4 and 5.
-  9. Keep the `files/` backup from step 1 until the spot checks are done.
-     Skipped files stay legacy `<n>.aes` and keep working as before.
+     --delete-legacy --key-fingerprint=<fingerprint>` (also with `--dry-run`
+     first; it repeats the reminder). Each `<n>.aes` is deleted only when
+     `<n>.v2.aes` verifies with the key of the run and decrypts to exactly
+     the content of `<n>.aes`. Legacy files without `<n>.v2.aes` are listed
+     as "skipped, legacy kept" (not decrypted) and keep working as before.
+  9. Keep the `files/` backup until the spot checks are done. Exit status:
+     0 done, 1 a file failed, 2 not run (nothing changed), 3 done with
+     skipped legacy files.
 
 ## Planned security follow-ups
 
@@ -1500,26 +1553,32 @@ differences above are only visible for out-of-range input.
   error log), a short response (unchanged), a line of five or more
   characters without the five tab-separated fields, or a list without any
   member line ("Daten von Mitgliederverwaltung ungültig!") stops the page
-  before the table is touched.
+  before the table is touched (since the temporary table below: `getusers()`
+  returns the message, the member-fee and import pages stop with it, a
+  voucher save refuses and shows the form again).
   Behaviour change, accepted by the owner (merged in #25): before, such
   a line was imported as member 0 with PHP warnings, and a list without
-  member lines left an empty table. Drop, create and insert run in one
-  transaction (a savepoint inside a caller's transaction, as in the unit
-  tests); an SQL error rolls back and stops the page. The member-fee, import
-  and voucher pages still drop `ppmembers` after each view, so a failed
-  refresh shows the error instead of serving an older list. Tests:
+  member lines left an empty table. The refresh runs in one transaction (a
+  savepoint inside a caller's transaction, as in the unit tests); an SQL
+  error rolls back and stops the page. Tests:
   `tests/http-import.php` (stub modes `short`, `garbage`, `empty`, `error`,
   `redirect`, `redirect-http`, `selfsigned`, `wrongname`, `overflow` for a
-  failed INSERT after DROP and CREATE, a `ppmembers` view for the SQL error,
-  a member match with the `flow` list), `GetUsersTest` (exact rows of the
+  failed INSERT, a member match with the `flow` list, a locked shared table
+  that no page waits for), `GetUsersTest` (exact rows of the
   `flow` list over HTTPS); the stub speaks HTTPS with a per-build test CA
   (`tests/README.md`).
-- [ ] Planned (not now): a per-connection `TEMP` table instead of the shared
-  `ppmembers`, so that concurrent requests do not drop each other's list.
+- [x] Member list per request: `ppmembers` is a temporary table of the
+  request's connection (`CREATE TEMP TABLE … ON COMMIT PRESERVE ROWS`),
+  so concurrent requests neither drop nor wait for each other's list and the
+  database user needs no `CREATE` on `public` (`UPGRADING.md`). `getusers()`
+  returns its error instead of ending the request. A voucher save loads the
+  list before its transaction and, without it, refuses with "Die
+  Mitgliederverwaltung ist nicht erreichbar. Bitte später erneut speichern."
+  (form shown again, nothing written).
 - [ ] Open follow-up (not changed with the HTTPS refresh): the member list is
   still fetched on every GET of the import and member-fee pages (`import.php`
   `page_import()`, `mb.php` `page_mb()`) and when a member voucher is saved
-  (`new.php`). Moving the refresh off GET (an explicit action, or a cache
+  (`new.php`, `edit.php`). Moving the refresh off GET (an explicit action, or a cache
   with an age) is a separate owner decision.
 - [ ] Deferred (owner decision): the arithmetic check on the public donor pages
   (`donations.php`, `kdonations.php`) is no real bot protection, since its
