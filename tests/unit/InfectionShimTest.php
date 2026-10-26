@@ -94,6 +94,7 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
     {
         return [
             'functions.php' => ['functions.php', 15],
+            'src/format.php' => ['src/format.php', 1],
         ];
     }
 

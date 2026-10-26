@@ -34,6 +34,7 @@ function checklogin($get = 'name', $redir = true)
 $root = dirname(dirname(__DIR__));
 require $root . '/functions.php';
 require $root . '/src/db.php';
+require $root . '/src/format.php';
 require $root . '/donations.php';
 require $root . '/import.php';
 require $root . '/new.php';

@@ -44,6 +44,7 @@
       <file>check.php</file>
       <file>functions.php</file>
       <file>src/db.php</file>
+      <file>src/format.php</file>
       <file>getusers.php</file>
       <file>donations.php</file>
       <file>import.php</file>

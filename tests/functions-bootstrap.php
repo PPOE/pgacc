@@ -37,3 +37,4 @@ require_once pgacc_test_source('functions.php');
 
 // Database helpers, loaded after functions.php as in index.php.
 require_once pgacc_test_source('src/db.php');
+require_once pgacc_test_source('src/format.php');

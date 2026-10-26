@@ -3,7 +3,7 @@
 Two tools, both on the PHP 8.5 lane (the only lane after `php5-last`):
 
 - [Infection](https://infection.github.io/) generates mutants for the
-  PHPUnit-tested helpers in `functions.php` (through a class wrapper) and
+  PHPUnit-tested helpers in `functions.php` and `src/format.php` (through a class wrapper) and
   reports a mutation score. It is a report, not a CI gate yet. Use it for
   broad coverage of helpers that PHPUnit calls directly. See [Infection](#infection).
 - `run.sh`, the target-driven runner, applies hand-written, reviewable
@@ -36,7 +36,7 @@ run or a `--min-msi`/`--min-covered-msi` option. CI runs both
 targets (`functions`, `shim`) on full runs only, with `continue-on-error`, and
 uploads the reports.
 
-Run Infection once for a finished `functions.php` helper change, not after
+Run Infection once for a finished `functions.php` or `src/format.php` helper change, not after
 every edit.
 
 ### Versions
@@ -400,7 +400,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
 | `year-nav` | year selector `year_nav()` (range, previous and next year, marked year, "Alle Jahre", escaped links) and its call sites in `report.php` and `donations.php` | `YearNavTest`, `http-smoke.php`, `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
-| `amount-parsing` | `amount_cents()` in `functions.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
+| `amount-parsing` | `amount_cents()` in `src/format.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
 | `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 | `booking-progress` | `percent_of_bookings()` in `functions.php`: column order, the bar's segment widths, `aria-hidden`, no table without bookings | PHPUnit `testPercentOfBookings*` |

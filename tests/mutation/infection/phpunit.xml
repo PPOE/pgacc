@@ -20,6 +20,7 @@
   <testsuites>
     <testsuite name="functions.php">
       <file>/app/tests/unit/FunctionsTest.php</file>
+      <file>/app/tests/unit/AmountParsingTest.php</file>
       <file>/app/tests/unit/CryptoTest.php</file>
       <file>/app/tests/unit/LoginSessionTest.php</file>
       <file>/app/tests/unit/ReceiptStorageTest.php</file>
@@ -28,6 +29,7 @@
   <source>
     <include>
       <file>/tmp/infection-src/functions.php</file>
+      <file>/tmp/infection-src/src/format.php</file>
     </include>
   </source>
 </phpunit>

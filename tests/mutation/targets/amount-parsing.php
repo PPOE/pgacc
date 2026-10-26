@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Exact amount parsing: amount_cents() (functions.php) and its call sites,
+ * Exact amount parsing: amount_cents() (src/format.php) and its call sites,
  * the voucher form (new.php get_voucher(), the refused save in
  * page_new_save() and page_edit_save(), the amount field shown again) and
  * every bank import format (import.php, invalid lines skipped, zero lines
@@ -13,7 +13,7 @@
  */
 return [
     'description' => 'Exact amount parsing of the voucher form and the bank imports, year range of date_condition()',
-    'file' => 'functions.php',
+    'file' => 'src/format.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'AmountParsingTest', 'file' => 'tests/unit/AmountParsingTest.php'],
         ['type' => 'http', 'script' => 'tests/http-donations.php'],
