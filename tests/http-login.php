@@ -251,18 +251,26 @@ function stored_hash($userId)
     return $result === false || pg_num_rows($result) !== 1 ? null : pg_fetch_result($result, 0, 0);
 }
 
-// The fixture users have MD5-crypt hashes (accounts from before bcrypt): a
-// valid login replaces the hash with bcrypt, a rejected one does not.
-$md5Before = stored_hash(1);
-check('fixture user has an MD5-crypt hash', strpos((string) $md5Before, '$1$') === 0 ? [] : ['hash was not $1$']);
-login_request('synthetic-admin', 'wrong-password');
-check('rejected login keeps the MD5-crypt hash', stored_hash(1) === $md5Before ? [] : ['hash changed']);
-$login = login_request('synthetic-admin', 'correct-password');
+// A user with an MD5-crypt hash (accounts from before bcrypt), created here
+// so no other test has upgraded it yet: a valid login replaces the hash with
+// bcrypt, a rejected one does not.
+@pg_query(database_connection(), 'DELETE FROM users WHERE id = 93 OR name = \'synthetic-md5-legacy\'');
+if (@pg_query(database_connection(), "INSERT INTO users (id, name, hash, rights, hide) VALUES "
+    . "(93, 'synthetic-md5-legacy', crypt('legacy-password', gen_salt('md5')), '2', '')") === false) {
+    fail_test('could not create the MD5-crypt user');
+}
+$md5Before = stored_hash(93);
+$reviewerHash = stored_hash(2);
+login_request('synthetic-md5-legacy', 'wrong-password');
+check('rejected login keeps the MD5-crypt hash', stored_hash(93) === $md5Before ? [] : ['hash changed']);
+check('MD5-crypt user logs in', login_response_problems(login_request('synthetic-md5-legacy', 'legacy-password'), 'index.php', 93));
 check(
     'valid login upgrades the MD5-crypt hash to bcrypt',
-    strpos((string) stored_hash(1), '$2a$10$') === 0 ? [] : ['hash was not $2a$10$'],
+    strpos((string) stored_hash(93), '$2a$10$') === 0 ? [] : ['hash was not $2a$10$'],
 );
-$reviewerHash = stored_hash(2);
+check('upgraded user logs in again', login_response_problems(login_request('synthetic-md5-legacy', 'legacy-password'), 'index.php', 93));
+@pg_query(database_connection(), 'DELETE FROM users WHERE id = 93 OR name = \'synthetic-md5-legacy\'');
+$login = login_request('synthetic-admin', 'correct-password');
 check('valid login', array_merge(login_response_problems($login, 'index.php', 1), redirect_body_problems($login)));
 check('valid login cookie attributes', login_cookie_attribute_problems($login));
 check('valid login database state', login_state_problems($login, 1));

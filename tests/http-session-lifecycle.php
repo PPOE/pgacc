@@ -166,6 +166,8 @@ if ($scenario === 'all' || $scenario === 'length') {
     $refused = [
         'own short password' => [['submit' => 'Benutzer 54 aktualisieren', 'password54' => str_repeat('ä', 11)], $shortCookies],
         'own empty password' => [['submit' => 'Benutzer 54 aktualisieren', 'password54' => ''], $shortCookies],
+        'own missing password' => [['submit' => 'Benutzer 54 aktualisieren'], $shortCookies],
+        'own array password' => [['submit' => 'Benutzer 54 aktualisieren', 'password54' => ['long-enough-password']], $shortCookies],
         'root short password' => [['submit' => 'Benutzer 54 aktualisieren', 'password54' => 'elevenchars', 'rights54' => '2'], $adminCookies],
         'root short new user' => [['submit' => 'Benutzer -1 erstellen', 'name-1' => 'synthetic-short-new',
             'password-1' => 'elevenchars', 'rights-1' => '2'], $adminCookies],
