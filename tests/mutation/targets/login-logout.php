@@ -50,6 +50,37 @@ return [
             'rationale' => 'Only a matching password hash may log in.',
         ],
         [
+            'id' => 'login-md5-not-upgraded',
+            'region' => $login,
+            'search' => "if (\$line['md5'] == 't' && \$line['success'] == 't') {",
+            'replace' => 'if (false) {',
+            'rationale' => 'A valid login replaces an MD5-crypt hash with bcrypt.',
+        ],
+        [
+            'id' => 'login-md5-upgraded-on-wrong-password',
+            'region' => $login,
+            'search' => "if (\$line['md5'] == 't' && \$line['success'] == 't') {",
+            'replace' => "if (\$line['md5'] == 't') {",
+            'rationale' => 'Only a valid password is stored; a wrong one must not replace the hash.',
+        ],
+        [
+            'id' => 'login-md5-upgraded-to-md5',
+            'region' => $login,
+            'search' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('bf', 10))",
+            'replace' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('md5'))",
+            'rationale' => 'The upgraded hash is bcrypt.',
+        ],
+        [
+            'id' => 'login-unknown-user-skips-dummy-hash',
+            'region' => $login,
+            'search' => 'if (pg_num_rows($data) === 0) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'An unknown user name costs one bcrypt like a known one (no timing difference).',
+            'equivalent' => ['reason' => 'Only the response time changes; the HTTP tests do not measure timing. '
+                . 'The unknown-user login of tests/http-login.php executes the dummy crypt() (coverage), '
+                . 'and the reference recording shows its SQL.'],
+        ],
+        [
             'id' => 'login-password-check-removed',
             'region' => $login,
             'search' => "if (\$line['success'] == 't' &&",

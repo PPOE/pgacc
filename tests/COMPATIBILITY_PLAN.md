@@ -554,26 +554,36 @@ with synthetic users and covered by a mutation target.
   was carried to this fork: `edit.php` is byte-identical to that reviewed
   version, and the equivalent was reconfirmed separately from the other 62
   killed rights-check mutants.
-- [x] Password hashing and length (owner decision): `accounts.php` stores new
-  and changed passwords with `crypt(pw, gen_salt('bf', 10))` (pgcrypto's
-  default bcrypt cost is 6) instead of `gen_salt('md5')`. Login is unchanged
-  (`crypt(pw, hash)` reads the algorithm from the stored hash), so existing
-  MD5-crypt hashes, like the synthetic fixtures in `tests/fixtures/data.sql`
-  and `tests/http-session-lifecycle.php`, keep working. Setting a password
-  (new user, root change, own change) needs at least 12 characters
-  (`mb_strlen()`, UTF-8), otherwise "FEHLER: Das Passwort muss mindestens 12
-  Zeichen lang sein." and nothing is saved; "******" still means unchanged,
-  and login does not check the length. bcrypt reads only the first 72 bytes.
-  Tests: `tests/http-session-lifecycle.php length` (MD5 user logs in, short,
-  empty and 11-character UTF-8 passwords refused for all three paths, 12
-  `ä` accepted and stored as `$2a$10$`) and the `password` scenario checks
-  the bcrypt prefix; mutants `accounts-password-length-unchecked` and
-  `accounts-own-password-md5` in `rights-checks`.
   **Separate inherited test gap:** `new-save-read-only-allowed` survives in
   both parent `69ac7c3` and this follow-up; the other 12 read-only mutants are
   killed. No voucher code changed here, and no new equivalence was assumed
   for that case. Resolve it with the security integration rather than
   expanding this login task. Raw mutation results remain visible.
+- [x] Password hashing and length (owner decision): `accounts.php` stores new
+  and changed passwords with `crypt(pw, gen_salt('bf', 10))` (pgcrypto's
+  default bcrypt cost is 6) instead of `gen_salt('md5')`. Login
+  (`index.php`) still compares `crypt(pw, hash)`, which reads the algorithm
+  from the stored hash, so MD5-crypt hashes, like the synthetic fixtures in
+  `tests/fixtures/data.sql` and `tests/http-session-lifecycle.php`, keep
+  working; a valid login replaces an MD5-crypt hash (`$1$`) with bcrypt
+  (only that user, only the hash). An unknown user name runs one `crypt()`
+  against a fixed bcrypt (cost 10) dummy hash, so it costs the same as a
+  known bcrypt account; the failure is the same. Setting a password (new
+  user, root change, own change) needs at least 12 characters
+  (`mb_strlen()`, UTF-8), otherwise "FEHLER: Das Passwort muss mindestens 12
+  Zeichen lang sein." with the form again, and nothing is saved; the form
+  shows "(mindestens 12 Zeichen)" next to "Passwort". "******" still means
+  unchanged; login does not check the length. bcrypt reads only the first
+  72 bytes. Tests: `tests/http-login.php` (MD5 fixture upgraded by a valid
+  login, kept by a wrong one, other users untouched, unknown user rejected
+  like before), `tests/http-session-lifecycle.php` (`password`: bcrypt
+  after own and root change; `length`: short, empty and 11-character UTF-8
+  passwords refused on all three paths, 12 `ä` and a new user stored as
+  `$2a$10$`). Mutants in `rights-checks` (length in bytes, MD5 on each of
+  the three paths) and `login-logout` (no upgrade, upgrade on a wrong
+  password, upgrade to MD5; skipping the dummy hash is equivalent for the
+  HTTP tests since only timing changes, its line is covered by the
+  unknown-user login and recorded in the reference SQL).
 - [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
   with `setcookie()` and only an expiry: readable by scripts, sent over plain
   HTTP and on cross-site requests. `index.php` now sends both Set-Cookie

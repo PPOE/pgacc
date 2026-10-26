@@ -389,6 +389,20 @@ return [
             'rationale' => 'Changed passwords are stored as bcrypt, not MD5-crypt.',
         ],
         [
+            'id' => 'accounts-root-password-md5',
+            'file' => 'accounts.php',
+            'search' => "\", hash = crypt('\$pass', gen_salt('bf', 10)), cookie = NULL\"",
+            'replace' => "\", hash = crypt('\$pass', gen_salt('md5')), cookie = NULL\"",
+            'rationale' => 'A password set by root is stored as bcrypt, not MD5-crypt.',
+        ],
+        [
+            'id' => 'accounts-new-user-md5',
+            'file' => 'accounts.php',
+            'search' => "VALUES ('\$name', crypt('\$pass', gen_salt('bf', 10)),",
+            'replace' => "VALUES ('\$name', crypt('\$pass', gen_salt('md5')),",
+            'rationale' => 'A new user is stored with a bcrypt hash, not MD5-crypt.',
+        ],
+        [
             'id' => 'accounts-own-id-rechecked',
             'file' => 'accounts.php',
             'search' => '$id = $ownId;',

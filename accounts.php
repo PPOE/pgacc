@@ -16,16 +16,19 @@ function page_accounts($rights)
                 return;
             }
             // New passwords need 12 characters (UTF-8); "******" keeps the
-            // stored password. Login does not check the length.
+            // stored password. Login does not check the length. A refused
+            // password saves nothing; the form is shown again.
             $rawPass = isset($_POST["password$id"]) && is_string($_POST["password$id"]) ? $_POST["password$id"] : '';
-            if ($rawPass !== "******" && mb_strlen($rawPass, 'UTF-8') < 12) {
-                echo '<div class="slot_error" id="slot_error">FEHLER: Das Passwort muss mindestens 12 Zeichen lang sein.</div><br /><br /><br />';
-                return;
+            $tooShort = $rawPass !== "******" && mb_strlen($rawPass, 'UTF-8') < 12;
+            if ($tooShort) {
+                echo '<div class="slot_error" id="slot_error">FEHLER: Das Passwort muss mindestens 12 Zeichen lang sein.</div><br />';
             }
-            $pass = isset($_POST["password$id"]) ? pg_escape_string($dbconn, $_POST["password$id"]) : '';
+            $pass = pg_escape_string($dbconn, $rawPass);
             $name = isset($_POST["name$id"]) ? pg_escape_string($dbconn, $_POST["name$id"]) : '';
             $nrights = isset($_POST["rights$id"]) ? pg_escape_string($dbconn, $_POST["rights$id"]) : '';
-            if (has_right($rights, 'root') && $id == -1) {
+            if ($tooShort) {
+                $query = "SELECT 1";
+            } elseif (has_right($rights, 'root') && $id == -1) {
                 if ($pass != "******") {
                     $query = "INSERT INTO users (name,hash,rights) VALUES ('$name', crypt('$pass', gen_salt('bf', 10)), '$nrights');";
                 } else {
@@ -57,7 +60,7 @@ function page_accounts($rights)
     }
     block_start();
     echo '<form action="index.php?action=accounts" method="POST">' . csrf_field() . '<table>
-<tr><td><b>Name</b></td><td><b>Passwort</b></td>' . (has_right($rights, 'root') ? '<td><b>Rechte</b></td>' : '') . '</tr>
+<tr><td><b>Name</b></td><td><b>Passwort</b> (mindestens 12 Zeichen)</td>' . (has_right($rights, 'root') ? '<td><b>Rechte</b></td>' : '') . '</tr>
 ';
     $id = $ownId;
     $restrict = "";

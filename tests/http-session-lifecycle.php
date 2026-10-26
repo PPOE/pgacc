@@ -116,6 +116,10 @@ if ($scenario === 'all' || $scenario === 'password') {
     if (lifecycle_row($database, 55)['rights'] !== '2') {
         fail_test('own password change changed the rights');
     }
+    // Checked before the next login, which would also upgrade an MD5 hash.
+    if (strpos((string) lifecycle_hash($database, 55), '$2a$10$') !== 0) {
+        fail_test('own changed password is not stored as bcrypt');
+    }
     login_user('synthetic-own-password', 'own-password-changed');
 
     $otherChange = http_request(
@@ -126,12 +130,10 @@ if ($scenario === 'all' || $scenario === 'password') {
     );
     assert_status($otherChange, 200, 'password change by root');
     lifecycle_ended($database, 56, $otherCookies, 'password change by root');
-    login_user('synthetic-other-password', 'other-password-changed');
-    foreach ([55, 56] as $changedId) {
-        if (strpos((string) lifecycle_hash($database, $changedId), '$2a$10$') !== 0) {
-            fail_test('changed password of user ' . $changedId . ' is not stored as bcrypt');
-        }
+    if (strpos((string) lifecycle_hash($database, 56), '$2a$10$') !== 0) {
+        fail_test('password changed by root is not stored as bcrypt');
     }
+    login_user('synthetic-other-password', 'other-password-changed');
     if (!lifecycle_accepted($adminCookies)) {
         fail_test('changing another password ended the root session');
     }
@@ -155,8 +157,9 @@ if ($scenario === 'all' || $scenario === 'password') {
 if ($scenario === 'all' || $scenario === 'length') {
     $adminCookies = login_user('synthetic-admin', 'correct-password');
     $shortCookies = lifecycle_user($database, 54, 'synthetic-short-old', 'short', '2');
-    if (strpos((string) lifecycle_hash($database, 54), '$1$') !== 0) {
-        fail_test('synthetic legacy user does not have an MD5-crypt hash');
+    // The login replaced the MD5-crypt hash with bcrypt.
+    if (strpos((string) lifecycle_hash($database, 54), '$2a$10$') !== 0) {
+        fail_test('login did not upgrade the MD5-crypt hash to bcrypt');
     }
     $before = lifecycle_hash($database, 54);
     // 11 characters (22 bytes in UTF-8) are too short, empty too.
@@ -171,6 +174,9 @@ if ($scenario === 'all' || $scenario === 'length') {
         $response = http_request('/index.php?action=accounts', 'POST', $post, $cookies);
         assert_status($response, 200, $label);
         assert_contains($response['body'], 'FEHLER: Das Passwort muss mindestens 12 Zeichen lang sein.', $label);
+        // The form is shown again, with the hint.
+        assert_contains($response['body'], 'value="Benutzer 54 aktualisieren"', $label);
+        assert_contains($response['body'], '<b>Passwort</b> (mindestens 12 Zeichen)', $label);
     }
     $created = pg_query_params($database, 'SELECT 1 FROM users WHERE name = $1', ['synthetic-short-new']);
     if (lifecycle_hash($database, 54) !== $before || $created === false || pg_num_rows($created) !== 0) {
@@ -181,6 +187,7 @@ if ($scenario === 'all' || $scenario === 'length') {
     }
     // The old short password still logs in; 12 characters (24 bytes) are enough.
     $shortCookies = login_user('synthetic-short-old', 'short');
+    $before = lifecycle_hash($database, 54);
     $accepted = http_request(
         '/index.php?action=accounts',
         'POST',
@@ -188,14 +195,23 @@ if ($scenario === 'all' || $scenario === 'length') {
         $shortCookies,
     );
     assert_status($accepted, 200, 'own 12-character password');
-    if (strpos((string) lifecycle_hash($database, 54), '$2a$10$') !== 0) {
+    $after = lifecycle_hash($database, 54);
+    if ($after === $before || strpos((string) $after, '$2a$10$') !== 0) {
         fail_test('12-character password was not stored as bcrypt');
     }
     login_user('synthetic-short-old', str_repeat('ä', 12));
+    // A new user gets a bcrypt hash.
+    $create = http_request('/index.php?action=accounts', 'POST', ['submit' => 'Benutzer -1 erstellen',
+        'name-1' => 'synthetic-long-new', 'password-1' => 'long-new-password', 'rights-1' => '2'], $adminCookies);
+    assert_status($create, 200, 'new user with a 12-character password');
+    $created = pg_query_params($database, 'SELECT hash FROM users WHERE name = $1', ['synthetic-long-new']);
+    if ($created === false || pg_num_rows($created) !== 1 || strpos((string) pg_fetch_result($created, 0, 0), '$2a$10$') !== 0) {
+        fail_test('new user is not stored with a bcrypt hash');
+    }
     echo "Password length regressions passed\n";
 }
 
-pg_query($database, 'DELETE FROM users WHERE id IN (54, 55, 56, 57, 58)');
+pg_query($database, "DELETE FROM users WHERE id IN (54, 55, 56, 57, 58) OR name IN ('synthetic-short-new', 'synthetic-long-new')");
 pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Session lifecycle tests passed ($scenario)\n";
