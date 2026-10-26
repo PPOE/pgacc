@@ -26,7 +26,7 @@ function tiny_report($konto, $date_begin, $date_end)
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+            echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
         }
         pg_free_result($result2);
     }
@@ -35,7 +35,7 @@ function tiny_report($konto, $date_begin, $date_end)
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income = 1) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '
@@ -52,7 +52,7 @@ function tiny_report($konto, $date_begin, $date_end)
         $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype = {$line['id']} " . $cond;
         $result2 = db_query($dbconn, $query2);
         while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-            echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+            echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
         }
         pg_free_result($result2);
     }
@@ -61,7 +61,7 @@ function tiny_report($konto, $date_begin, $date_end)
     $query2 = "SELECT SUM(amount) AS sum FROM vouchers LEFT JOIN type T ON T.id = type WHERE NOT deleted AND realtype IN (SELECT id FROM type WHERE income <= 0) " . $cond;
     $result2 = db_query($dbconn, $query2);
     while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        echo sprintf("%1.2f", $line2['sum'] / 100.0) . "&nbsp;€</td></tr>\n";
+        echo format_amount($line2['sum'], "&nbsp;€") . "</td></tr>\n";
     }
     pg_free_result($result2);
     echo '
