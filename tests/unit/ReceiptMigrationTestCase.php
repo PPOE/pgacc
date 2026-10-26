@@ -15,6 +15,8 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
 
     protected $directory;
     protected $connection;
+    // The key whose fingerprint migrate() confirms by default.
+    protected $confirmedKey = self::TEST_KEY;
 
     #[PHPUnit\Framework\Attributes\Before]
     public function prepare()
@@ -103,15 +105,18 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         return receipt_v2_decrypt(self::TEST_KEY, $number, file_get_contents($this->directory . "/files/$number.v2.aes"));
     }
 
-    // array(exit status, output, errors) of receipt_migration_main().
-    protected function migrate($arguments, $defaults = true)
+    // array(exit status, output, errors) of receipt_migration_main(); by
+    // default with the test directory, database and the fingerprint of
+    // $confirmedKey. The warning of a run as root is checked and removed
+    // from the errors (testWarnsWhenRunAsRoot).
+    protected function migrate($arguments, $defaults = true, $fingerprint = true)
     {
         if ($defaults) {
             $arguments = array_merge([
                 '--files=' . $this->directory . '/files',
                 '--constants=' . $this->directory . '/constants.php',
                 '--database=' . pgacc_test_connection_string(),
-            ], $arguments);
+            ], $fingerprint ? ['--key-fingerprint=' . self::fingerprint($this->confirmedKey)] : [], $arguments);
         }
         $out = fopen('php://memory', 'w+');
         $err = fopen('php://memory', 'w+');
@@ -132,7 +137,12 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
         self::assertSame([], $diagnostics);
         rewind($out);
         rewind($err);
-        $result = [$status, stream_get_contents($out), stream_get_contents($err)];
+        $errors = stream_get_contents($err);
+        if (receipt_migration_euid() === 0 && $errors !== receipt_migration_usage()) {
+            self::assertStringStartsWith(self::rootWarning(), $errors);
+            $errors = substr($errors, strlen(self::rootWarning()));
+        }
+        $result = [$status, stream_get_contents($out), $errors];
         self::assertStringNotContainsString(self::TEST_KEY, $result[1] . $result[2]);
         return $result;
     }
@@ -163,6 +173,12 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     {
         $result = $this->migrate($arguments);
         return $result[0];
+    }
+
+    protected static function rootWarning()
+    {
+        return "Warning: running as root. Each new <n>.v2.aes gets the owner, group and mode of its <n>.aes; "
+            . "running as the web server's user is preferred.\n";
     }
 
     // The reminder that every --delete-legacy run prints first.

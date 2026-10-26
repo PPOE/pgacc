@@ -11,40 +11,77 @@ require_once __DIR__ . '/ReceiptMigrationTestCase.php';
 
 final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
 {
-    public function testCommandLine()
+    // array(exit status, output, errors) of the script with $arguments
+    // (shell words), run with $prefix (e.g. another user).
+    private static function command($arguments, $prefix = '')
     {
         $script = dirname(dirname(__DIR__)) . '/migrate-receipt-key.php';
+        $process = proc_open(
+            $prefix . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' ' . $arguments,
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+        );
+        $output = stream_get_contents($pipes[1]);
+        $errors = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        return [proc_close($process), $output, $errors];
+    }
+
+    public function testCommandLine()
+    {
         $files = $this->directory . '/files';
         $receipt = "%PDF synthetic command-line receipt\n%%EOF\n";
         $this->put('42.aes', receipt_encrypt('1003', '', $receipt));
-        $command = function ($arguments) use ($script) {
-            $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-            $process = proc_open(
-                escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' ' . $arguments,
-                $descriptors,
-                $pipes,
-            );
-            $output = stream_get_contents($pipes[1]);
-            $errors = stream_get_contents($pipes[2]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            return [proc_close($process), $output, $errors];
-        };
         $fingerprint = self::fingerprint(self::TEST_KEY);
+        $warning = receipt_migration_euid() === 0 ? self::rootWarning() : '';
 
         self::assertSame(
-            [2, '', "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"],
-            $command('--files=' . escapeshellarg($this->directory . '/missing')),
+            [2, '', $warning . "Cannot read the receipt directory {$this->directory}/missing. Nothing was changed.\n"],
+            self::command("--key-fingerprint=$fingerprint --files=" . escapeshellarg($this->directory . '/missing')),
         );
+        self::assertSame([2, ''], array_slice(self::command('--files=' . escapeshellarg($files)), 0, 2));
 
         self::assertSame([0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy\n"
             . "1 migrated, 0 already migrated, 0 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
-            . "key fingerprint $fingerprint\n", ''], $command('--files=' . escapeshellarg($files)));
+            . "key fingerprint $fingerprint\n", $warning], self::command("--key-fingerprint=$fingerprint --files=" . escapeshellarg($files)));
         self::assertSame([0, self::deleteReminder() . "42.aes: verified; deleted 42.aes\n"
             . "0 migrated, 0 already migrated, 1 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
-            . "key fingerprint $fingerprint\n", ''], $command('--delete-legacy --files=' . escapeshellarg($files)));
+            . "key fingerprint $fingerprint\n", $warning], self::command("--delete-legacy --key-fingerprint=$fingerprint --files=" . escapeshellarg($files)));
         self::assertSame(['.migrate-receipt-key.lock', '42.v2.aes'], array_keys($this->files()));
         self::assertSame(rijndael256_zero_pad($receipt), $this->v2Plain('42'));
+    }
+
+    public function testRunAsAnotherUser()
+    {
+        // Not root: a new <n>.v2.aes can only get the owner of <n>.aes if the
+        // run has it; otherwise nothing is written.
+        exec('command -v setpriv', $found, $missing);
+        if ($missing !== 0 || receipt_migration_euid() !== 0) {
+            self::markTestSkipped('needs root and setpriv');
+        }
+        $files = $this->directory . '/files';
+        chmod($this->directory, 0755);
+        chmod($files, 0777);
+        chmod($this->directory . '/constants.php', 0644);
+        $this->put('42.aes', receipt_encrypt('1003', '', "%PDF synthetic\n%%EOF\n"));
+        $legacy = "$files/42.aes";
+        chmod($legacy, 0644);
+        $nobody = 'setpriv --reuid=65534 --regid=65534 --clear-groups ';
+        $arguments = '--key-fingerprint=' . self::fingerprint(self::TEST_KEY) . ' --files=' . escapeshellarg($files)
+            . ' --constants=' . escapeshellarg($this->directory . '/constants.php');
+
+        self::assertSame([1, "42.aes: 42.v2.aes could not be given the owner, group and mode of 42.aes "
+            . "(run as the owner of 42.aes, or as root); 42.aes kept\nFailed: 42\n"
+            . self::summary([0, 0, 0, 0, 0, 1]), ''], self::command($arguments, $nobody));
+        self::assertSame(['.migrate-receipt-key.lock', '42.aes'], array_keys($this->files()));
+
+        chown($legacy, 65534);
+        chgrp($legacy, 65534);
+        chmod($legacy, 0640);
+        self::assertSame(0, self::command($arguments, $nobody)[0]);
+        clearstatcache();
+        self::assertSame([65534, 65534, 0640], [fileowner("$files/42.v2.aes"), filegroup("$files/42.v2.aes"), fileperms("$files/42.v2.aes") & 07777]);
     }
 
     public function testVerifiesALargeV2FileInBoundedMemory()

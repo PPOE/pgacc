@@ -46,6 +46,18 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   selector instead of a row of year links: previous year, a drop-down of all
   years (current year first, down to 2012, the shown year marked) and next
   year. No JavaScript; the same years and link targets as before.
+- Receipt migration (`migrate-receipt-key.php`): a run that writes or
+  deletes needs `--key-fingerprint=<8 hex digits>`, the key fingerprint the
+  dry run printed; without it, or with another one, nothing is changed.
+  Skipped files are listed by file number at the end and give exit status 3
+  (1 a file failed, 2 not run); the delete phase reports them as "skipped,
+  legacy kept". New options: `--include-unusual` also migrates other
+  recognized types (PNG, GIF, TIFF), empty files and PDFs or JPEGs that look
+  incomplete, byte-identical to their download; `--search-voucher-ids` tries
+  other voucher IDs for files of merged vouchers and accepts only a complete
+  PDF or JPEG; `--recreate-unverified` (see Fixed). New `<n>.v2.aes` files
+  get the owner, group and mode of their legacy file; a run as root prints a
+  warning. Operator steps in [UPGRADING.md](UPGRADING.md).
 
 ### Removed
 
@@ -54,6 +66,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Receipt migration: a run with another `$key` no longer re-creates existing
+  `<n>.v2.aes` files that do not verify with it. Such a file is kept and
+  reported as failed (re-created only with `--recreate-unverified`), and if
+  two or more, and at least half, of the existing files do not verify, the
+  run stops before writing anything. `--delete-legacy` deletes a legacy file
+  only when its `<n>.v2.aes` verifies with the confirmed key and decrypts to
+  exactly its content.
 - A receipt download whose stored file is missing or unreadable answers with
   the existing error ("FEHLER: Der Beleg konnte nicht entschlüsselt werden.",
   HTTP 500) instead of an empty JPEG and PHP warnings.
