@@ -1284,23 +1284,32 @@ differences above are only visible for out-of-range input.
     entschlüsselt werden."). The same 500 when the voucher has a file
     number but no stored file can be read: neither file exists, `<n>.aes` is
     a directory, unreadable, deleted after the check (e.g. by
-    `--delete-legacy`) or shorter than one 32-byte block (mcrypt and
-    `receipt_encrypt()` pad even an empty receipt to one block, so a stored
-    legacy file never is); the read itself is checked. That used to send an
-    empty or short `image/jpeg` with PHP warnings; the 500 sends none of the
-    download headers. Logged as `pgacc: receipt <n>: no readable stored
-    file`; a `<n>.v2.aes` that exists but cannot be opened is logged as such,
-    not as a wrong key (`tests/http-receipts.php`,
-    `tests/unit/ReceiptStorageTest.php`, mutation target `receipt-crypto`;
-    the unreadable cases need a server without root rights and are skipped
-    otherwise). Content-Length of a legacy download is the number of bytes
-    sent (the decrypted, zero-padded size: the file size for every stored
-    file, which is whole blocks). The log lines name the file only, never
-    the key or its fingerprint. v2 responses: Content-Type from the magic
-    bytes (PDF, JPEG, otherwise `application/octet-stream` with
-    `Content-Disposition: attachment; filename="<n>.bin"`),
-    `X-Content-Type-Options: nosniff` (correct types render as before;
-    checked by headers only, not in a browser), Content-Length is the plain text size. Without `<n>.v2.aes`,
+    `--delete-legacy`), not read to its end (a read error;
+    `receipt_read_file()` compares the bytes read with the file size) or
+    shorter than one 32-byte block (mcrypt and `receipt_encrypt()` pad even
+    an empty receipt to one block, so a stored legacy file never is). That
+    used to send an empty or short `image/jpeg` with PHP warnings; the 500
+    sends none of the download headers. A directory or unreadable file at
+    `<n>.v2.aes` counts as not opened (no notice). One log line per failed
+    or fallback download: `pgacc: receipt <n>: no readable stored file`
+    without `<n>.v2.aes`, otherwise `pgacc: receipt <n>.v2.aes <reason>;`
+    followed by `sent the legacy <n>.aes` or `no readable <n>.aes`, where
+    the reason is `could not be opened`, `not decrypted: no valid receipt
+    key ($key) configured` or `could not be decrypted (wrong key or modified
+    file)` (`tests/http-receipts.php` reads the log of a second server it
+    starts; `tests/unit/ReceiptStorageTest.php`; mutation target
+    `receipt-crypto`; the unreadable-file cases run only on that second
+    server and only without root rights, as root ignores the mode). The v2
+    reads need no size check: the MAC covers every byte and
+    `receipt_v2_decrypt_chunks()` stops on a short read. Content-Length of a
+    legacy download is the number of bytes sent (the decrypted, zero-padded
+    size: the file size for every stored file, which is whole blocks). The
+    log lines name the file only, never the key or its fingerprint. v2
+    responses: Content-Type from the magic bytes (PDF, JPEG, otherwise
+    `application/octet-stream` with `Content-Disposition: attachment;
+    filename="<n>.bin"`), `X-Content-Type-Options: nosniff` (correct types
+    render as before; checked by headers only, not in a browser),
+    Content-Length is the plain text size. Without `<n>.v2.aes`,
     the legacy `<n>.aes` exactly as before (no new headers). The v2 bytes
     are never decrypted with the legacy scheme.
   - `migrate-receipt-key.php` re-encrypts legacy files in two phases (PHP 5.3

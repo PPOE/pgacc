@@ -35,7 +35,7 @@ if (!receipt_store($directory . '/files', 77, $source)) {
     fwrite(STDERR, "receipt_store() failed\n");
     exit(1);
 }
-$receipt = receipt_v2_open($directory . '/files/77.v2.aes', 77);
+[$receipt] = receipt_v2_open($directory . '/files/77.v2.aes', 77);
 if ($receipt === false || $receipt['length'] !== $size || receipt_content_type($receipt['head']) !== 'application/pdf') {
     fwrite(STDERR, "receipt_v2_open() failed\n");
     exit(1);

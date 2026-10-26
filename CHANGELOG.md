@@ -58,10 +58,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the existing error ("FEHLER: Der Beleg konnte nicht entschlüsselt werden.",
   HTTP 500) instead of an empty JPEG and PHP warnings.
 - The same error for a receipt whose stored file cannot be read (a directory,
-  a file removed while the download runs, a read error) or is empty or
-  shorter than one encrypted block, instead of a short JPEG; the error sends
-  no download headers. Such downloads are logged with the file number, and a
-  receipt file that cannot be opened is no longer logged as a wrong key.
+  a file removed while the download runs, a read error or a file not read to
+  its end) or is empty or shorter than one encrypted block, instead of a short
+  JPEG; the error sends no download headers. Each failed or fallback download
+  is logged once with the file number and the reason the newer receipt file
+  was not used; a receipt file that cannot be opened (also a directory) is no
+  longer logged as a wrong key.
 - Logging in without a login target no longer ends on a blank page (empty
   redirect).
 - The import pages (`?action=import`, `?action=import2`) show the upload form

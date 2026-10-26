@@ -616,51 +616,69 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $fingerprints = $fingerprints['fingerprints'];
 
         $GLOBALS['key'] = self::TEST_KEY;
-        list($receipt, $log) = self::logged(function () use ($path) {
+        list($opened, $log, $diagnostics) = self::logged(function () use ($path) {
             return receipt_v2_open($path, '42');
         });
+        list($receipt, $problem) = $opened;
         self::assertSame(strlen(self::plain($vector)), $receipt['length']);
+        self::assertNull($problem);
         fclose($receipt['handle']);
         self::assertSame('', $log);
-
-        // Read as another file number (a copied file): rejected and logged.
-        list($receipt, $log) = self::logged(function () use ($path) {
-            return receipt_v2_open($path, '43');
-        });
-        self::assertFalse($receipt);
-        // Neither the key nor its fingerprint goes to the web server's log.
-        self::assertStringContainsString('pgacc: receipt 43.v2.aes could not be decrypted (wrong key or modified file)', $log);
-        self::assertStringNotContainsString('could not be opened', $log);
-        self::assertStringNotContainsString(self::TEST_KEY, $log);
-        self::assertStringNotContainsString($fingerprints[self::TEST_KEY], $log);
-        self::assertStringNotContainsString('fingerprint', $log);
-
-        $GLOBALS['key'] = self::OTHER_KEY;
-        list($receipt, $log) = self::logged(function () use ($path) {
-            return receipt_v2_open($path, '42');
-        });
-        self::assertFalse($receipt);
-        self::assertStringContainsString('pgacc: receipt 42.v2.aes could not be decrypted (wrong key or modified file)', $log);
-        self::assertStringNotContainsString($fingerprints[self::OTHER_KEY], $log);
-
-        $GLOBALS['key'] = self::TEST_KEY;
-        $missing = $this->directory . '/missing.v2.aes';
-        list($receipt, $log, $diagnostics) = self::logged(function () use ($missing) {
-            return receipt_v2_open($missing, '44');
-        });
-        self::assertFalse($receipt);
-        // A file that cannot be opened (missing, e.g. deleted after the check,
-        // or unreadable) is not reported as a wrong key.
-        self::assertStringContainsString('pgacc: receipt 44.v2.aes could not be opened', $log);
-        self::assertStringNotContainsString('wrong key', $log);
         self::assertSame([], $diagnostics);
 
-        $GLOBALS['key'] = 'CHANGE-ME';
-        list($receipt, $log) = self::logged(function () use ($path) {
-            return receipt_v2_open($path, '42');
+        // The reason goes to the caller's log line: it names neither the key
+        // nor its fingerprint. receipt_v2_open() logs nothing itself.
+        $GLOBALS['key'] = self::OTHER_KEY;
+        $missing = $this->directory . '/missing.v2.aes';
+        $directory = $this->directory . '/43.v2.aes';
+        mkdir($directory);
+        $cases = [
+            // Read as another file number (a copied file) or with another key.
+            'another file number' => [self::TEST_KEY, $path, '43', 'could not be decrypted (wrong key or modified file)'],
+            'another key' => [self::OTHER_KEY, $path, '42', 'could not be decrypted (wrong key or modified file)'],
+            // Missing (e.g. deleted after the check) or a directory: not a
+            // wrong key, and no notice from reading a directory.
+            'missing file' => [self::TEST_KEY, $missing, '44', 'could not be opened'],
+            'directory' => [self::TEST_KEY, $directory, '43', 'could not be opened'],
+            'placeholder key' => ['CHANGE-ME', $path, '42', 'not decrypted: no valid receipt key ($key) configured'],
+        ];
+        foreach ($cases as $label => $case) {
+            $GLOBALS['key'] = $case[0];
+            list($opened, $log, $diagnostics) = self::logged(function () use ($case) {
+                return receipt_v2_open($case[1], $case[2]);
+            });
+            self::assertSame([false, $case[3]], $opened, $label);
+            self::assertSame('', $log, $label);
+            self::assertSame([], $diagnostics, $label);
+            self::assertStringNotContainsString(self::TEST_KEY, $case[3], $label);
+            self::assertStringNotContainsString($fingerprints[self::TEST_KEY], $case[3], $label);
+            self::assertStringNotContainsString($fingerprints[self::OTHER_KEY], $case[3], $label);
+        }
+        rmdir($directory);
+    }
+
+    public function testReadFileRefusesWhatIsNotReadCompletely()
+    {
+        $path = $this->directory . '/7.aes';
+        file_put_contents($path, str_repeat("\x01", 64));
+        self::assertSame(str_repeat("\x01", 64), receipt_read_file($path));
+        file_put_contents($path, '');
+        self::assertSame('', receipt_read_file($path));
+        list($read, $log, $diagnostics) = self::logged(function () {
+            return [receipt_read_file($this->directory . '/missing.aes'), receipt_read_file($this->directory)];
         });
-        self::assertFalse($receipt);
-        self::assertStringContainsString('pgacc: receipt 42.v2.aes not decrypted: no valid receipt key ($key) configured', $log);
+        self::assertSame([false, false], $read, 'missing file and directory');
+        self::assertSame([], $diagnostics);
+        // A read error mid-file returns the bytes read so far: a file that
+        // ends after 40 of its 64 bytes is refused.
+        ShortReadStream::register();
+        file_put_contents($path, str_repeat("\x01", 64));
+        $short = 'pgacc-short://' . $path;
+        self::assertTrue(is_file($short));
+        self::assertSame(str_repeat("\x01", 64), receipt_read_file($short));
+        ShortReadStream::$end = 40;
+        self::assertFalse(receipt_read_file($short));
+        ShortReadStream::$end = null;
     }
 
     public function testMemoryStaysBoundedForA20MegabyteReceipt()
