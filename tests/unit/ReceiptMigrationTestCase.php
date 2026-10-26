@@ -151,7 +151,7 @@ abstract class ReceiptMigrationTestCase extends FunctionsTestCase
     {
         return ($dryRun ? 'Dry run, nothing written: ' : '')
             . "{$counts[0]} migrated, {$counts[1]} already migrated, {$counts[2]} legacy deleted, "
-            . "{$counts[3]} not yet migrated, {$counts[4]} skipped, {$counts[5]} failed; "
+            . "{$counts[3]} skipped, {$counts[4]} failed; "
             . 'key fingerprint ' . self::fingerprint($key) . "\n";
     }
 

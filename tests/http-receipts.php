@@ -157,6 +157,18 @@ $otherKey = 'another-synthetic-receipt-key';
 
 $database = receipts_database();
 $adminCookies = login_user('synthetic-admin', 'correct-password');
+
+// The user administration shows root the fingerprint of the configured key
+// (for the migration's --key-fingerprint), never the key; others see neither.
+$fingerprintLine = '<p>Fingerabdruck des Beleg-Schlüssels (für migrate-receipt-key.php --key-fingerprint): '
+    . receipt_key_fingerprint($testKey) . '</p>';
+$accounts = http_request('/index.php?action=accounts', 'GET', [], $adminCookies);
+assert_status($accounts, 200, 'user administration as root');
+assert_contains($accounts['body'], $fingerprintLine, 'key fingerprint for root');
+assert_not_contains($accounts['body'], $testKey, 'key on the user administration page');
+$accounts = http_request('/index.php?action=accounts', 'GET', [], login_user('synthetic-reviewer', 'reviewer-password'));
+assert_status($accounts, 200, 'user administration as another user');
+assert_not_contains($accounts['body'], 'Fingerabdruck', 'key fingerprint for another user');
 insert_receipt_voucher($database, 9101, 4711, 'Synthetic PDF receipt upload');
 insert_receipt_voucher($database, 9102, 815, 'Synthetic JPEG receipt upload');
 insert_receipt_voucher($database, 9103, 4712, 'Synthetic bank import AB/123456789');
@@ -214,7 +226,9 @@ $storedCases = [
         'v2.aes' => receipt_v2_encrypt($testKey, 990003, $jpeg)], $jpeg, 'image/jpeg', 'JPEG download with both formats'],
     // Another type is sent as a download, not refused.
     [9107, 4711, 990004, ['v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)],
-        $png, 'application/octet-stream', 'v2 receipt of another type'],
+        $png, 'image/png', 'v2 PNG receipt'],
+    [9121, 4711, 990015, ['v2.aes' => receipt_v2_encrypt($testKey, 990015, "II*\0synthetic")],
+        "II*\0synthetic", 'application/octet-stream', 'v2 receipt of another type'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
     // before, and logged.
@@ -442,6 +456,58 @@ assert_status($migration, 404, 'migration script over HTTP');
 if ($migration['body'] !== '') {
     fail_test('migration script over HTTP answered ' . var_export($migration['body'], true));
 }
+
+// Genuine legacy files of the original code (tests/fixtures/legacy-php53),
+// stored under new file numbers: the legacy download sends what the original
+// download sent; after the migration (in a separate directory, the new
+// <n>.v2.aes then copied next to the legacy file) the same bytes, PDF and
+// JPEG as before, PNG as image/png and an empty file as a download.
+$fixture = dirname(__DIR__) . '/tests/fixtures/legacy-php53';
+$originalDownloads = [];
+foreach (file("$fixture/downloads.txt", FILE_IGNORE_NEW_LINES) as $line) {
+    if ($line[0] !== '#') {
+        [$name, $type, , $sha256] = explode(' ', $line);
+        $originalDownloads[$name] = [$type, $sha256];
+    }
+}
+// Fixture file => [voucher ID now, type after the migration].
+$fixtureCases = [1 => [701, 'application/pdf'], 3 => [703, 'image/jpeg'], 7 => [707, 'application/octet-stream'],
+    9 => [709, 'image/png'], 10 => [710, 'image/jpeg'], 11 => [799, 'application/pdf']];
+$migrationFiles = sys_get_temp_dir() . '/pgacc-http-migration-' . getmypid();
+mkdir($migrationFiles);
+foreach ($fixtureCases as $case => [$voucherId, $type]) {
+    $id = 9600 + $case;
+    $fileNumber = 990100 + $case;
+    insert_receipt_voucher($database, $id, $voucherId, "Synthetic legacy fixture $case");
+    receipts_query($database, 'UPDATE vouchers SET file = $1 WHERE id = $2', [$fileNumber, $id], "fixture $case");
+    copy("$fixture/files/$case.aes", receipt_files_directory() . "/$fileNumber.aes");
+    copy("$fixture/files/$case.aes", "$migrationFiles/$fileNumber.aes");
+    $response = http_request("/index.php?action=file&id=$id", 'GET', [], $adminCookies);
+    assert_status($response, 200, "legacy fixture $case");
+    if ([response_header($response, 'Content-Type'), hash('sha256', $response['body'])] !== $originalDownloads[$case]) {
+        fail_test("legacy fixture $case does not download as the original code sent it");
+    }
+}
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__) . '/migrate-receipt-key.php') . ' --include-unusual --search-voucher-ids'
+    . ' --key-fingerprint=' . receipt_key_fingerprint($testKey) . ' --files=' . escapeshellarg($migrationFiles)
+    . ' --constants=' . escapeshellarg(__DIR__ . '/runtime/test-constants.php')
+    . ' --database=' . escapeshellarg(pgacc_test_connection_string()) . ' 2>&1', $migrationOutput, $migrationStatus);
+if ($migrationStatus !== 0) {
+    fail_test("fixture migration exited with $migrationStatus: " . implode("\n", $migrationOutput));
+}
+foreach ($fixtureCases as $case => [$voucherId, $type]) {
+    $fileNumber = 990100 + $case;
+    copy("$migrationFiles/$fileNumber.v2.aes", receipt_files_directory() . "/$fileNumber.v2.aes");
+    $original = $originalDownloads[$case === 11 ? '11-before-merge' : $case];
+    $response = http_request('/index.php?action=file&id=' . (9600 + $case), 'GET', [], $adminCookies);
+    assert_status($response, 200, "migrated fixture $case");
+    if (hash('sha256', $response['body']) !== $original[1] || response_header($response, 'Content-Type') !== $type
+        || response_header($response, 'X-Content-Type-Options') !== 'nosniff') {
+        fail_test("migrated fixture $case does not download as expected");
+    }
+}
+array_map('unlink', array_merge(glob("$migrationFiles/*"), ["$migrationFiles/.migrate-receipt-key.lock"]));
+rmdir($migrationFiles);
 
 // Membership export (mbapi.php): members whose acknowledged membership fees
 // since October of the previous year reach 20.00, as "<SHA-1>\n<base64>".

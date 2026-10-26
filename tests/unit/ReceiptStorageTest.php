@@ -194,7 +194,10 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame('application/pdf', receipt_content_type('%PDF'));
         self::assertSame('image/jpeg', receipt_content_type("\xFF\xD8\xFF\xE0\x00\x10JFIF"));
         self::assertSame('image/jpeg', receipt_content_type("\xFF\xD8\xFF"));
-        foreach (['%PD', "\xFF\xD8", "\xFF\xD8\xFE", ' %PDF', "\x89PNG\r\n", '', str_repeat("\0", 32)] as $plain) {
+        self::assertSame('image/png', receipt_content_type("\x89PNG\r\n\x1A\n\0\0\0\rIHDR"));
+        self::assertSame('image/gif', receipt_content_type('GIF87a'));
+        self::assertSame('image/gif', receipt_content_type("GIF89a\x01\0"));
+        foreach (['%PD', "\xFF\xD8", "\xFF\xD8\xFE", ' %PDF', "\x89PNG\r\n", "\x89PNG\r\n\x1A", 'GIF88a', 'GIF8', "II*\0", '', str_repeat("\0", 32)] as $plain) {
             self::assertSame('application/octet-stream', receipt_content_type($plain), bin2hex($plain));
             self::assertFalse(receipt_has_known_type($plain), bin2hex($plain));
         }
@@ -512,6 +515,25 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame(['7.v2.aes'], $this->names());
         self::assertSame('', $log);
         self::assertSame([], $diagnostics);
+    }
+
+    public function testWriteFilePreparesTheTemporaryFile()
+    {
+        // $prepare gets the written temporary file before the rename; if it
+        // returns false, nothing is renamed and the temporary file is removed.
+        $path = $this->directory . '/10.v2.aes';
+        $seen = [];
+        $prepare = function ($temp) use (&$seen) {
+            $seen[] = file_get_contents($temp);
+            return chmod($temp, 0640);
+        };
+        self::assertTrue(receipt_write_file($path, 'prepared', $prepare));
+        clearstatcache();
+        self::assertSame([['prepared'], 0640], [$seen, fileperms($path) & 0777]);
+        self::assertFalse(receipt_write_file($this->directory . '/11.v2.aes', 'refused', function ($temp) {
+            return false;
+        }));
+        self::assertSame(['10.v2.aes'], $this->names());
     }
 
     public function testWriteFileFailures()

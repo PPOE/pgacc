@@ -2,9 +2,10 @@
 
 Genuine legacy receipt files `files/<n>.aes`, written by the original upload
 code of pgacc (commit `6458a4d`, the last commit with `mcrypt`; its
-encryption lines are unchanged since 2013) on PHP 5.3.3 with `mcrypt`, as on
-the old production server. Synthetic content only. Used by
-`tests/unit/ReceiptMigrationTest.php` (`testGenuineLegacyFilesOfTheOriginalCode`):
+encryption lines are unchanged since 2013) on PHP 5.3.3 with `mcrypt`
+through `php-cgi` (Debian 6 packages, i386). Synthetic content only. Used by
+`tests/unit/ReceiptMigrationTest.php` (`testGenuineLegacyFilesOfTheOriginalCode`)
+and `tests/http-receipts.php` (downloads before and after the migration):
 the legacy read and every migrated `<n>.v2.aes` must give exactly the bytes
 the original download sent.
 
@@ -32,15 +33,14 @@ sh tests/fixtures/legacy-php53/generate.sh
 ```
 
 It needs Docker and the git history. It builds the PHP 5.3.3 image of
-`Dockerfile` (Debian 6 squeeze, i386, the package versions of the old
-server), extracts `new.php`, `edit.php`, `file.php` and `functions.php` of
-commit `6458a4d`, and starts a PostgreSQL 18 container with
-`tests/fixtures/schema.sql` on an internal network. For each case it inserts
-a voucher row, sets the `file_number` sequence to the number of `cases.txt`,
-and runs `request.php` through `php-cgi` (the production server API), which
+`Dockerfile` (Debian 6 packages, i386), extracts `new.php`, `edit.php`,
+`file.php` and `functions.php` of commit `6458a4d`, and starts a PostgreSQL
+18 container with `tests/fixtures/schema.sql` on an internal network. For
+each case it inserts a voucher row, sets the `file_number` sequence to the
+number of `cases.txt`, and runs `request.php` through `php-cgi`, which
 includes `fixture-constants.php` (a configured `$key`, as `index.php`
-includes `constants.php`) and calls the original `page_new_file()`. Then it downloads file 11 with the original
-`download_file()`, merges its voucher, downloads every file, and writes
-`files/` and `downloads.txt`. The output is deterministic; a rerun must
-leave `git status` clean. Remove the image afterwards with
-`docker rmi pgacc-legacy-php53`.
+includes `constants.php`) and calls the original `page_new_file()`. Then it
+downloads file 11 with the original `download_file()`, merges its voucher,
+downloads every file, and writes `files/` and `downloads.txt`. The output is
+deterministic; a rerun must leave `git status` clean. Remove the image
+afterwards with `docker rmi pgacc-legacy-php53`.

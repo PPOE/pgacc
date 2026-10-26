@@ -1,6 +1,6 @@
-# PHP 5.3.3 with mcrypt, as on the old production server (Debian 6 squeeze,
-# i386); same base image and package pins as tests/php53/runtime.Dockerfile
-# at the tag php5-last. Used only by generate.sh.
+# PHP 5.3.3 with mcrypt and php-cgi (Debian 6 packages, i386); same base
+# image and package pins as tests/php53/runtime.Dockerfile at the tag
+# php5-last. Used only by generate.sh.
 FROM --platform=linux/386 debian/eol:squeeze@sha256:4a306675b658d01a453bb89404daa87367f894b6ee62ea8f8980484099ca9bea
 RUN printf 'deb http://archive.debian.org/debian squeeze main\ndeb http://archive.debian.org/debian-security squeeze/updates main\n' >/etc/apt/sources.list \
     && printf 'Acquire::Check-Valid-Until "false";\n' >/etc/apt/apt.conf.d/99archive \

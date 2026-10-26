@@ -766,14 +766,21 @@ function receipt_legacy_path($directory, $number)
     return $directory . '/' . $number . '.aes';
 }
 
-// PDF and JPEG by their magic bytes; anything else is sent as a download.
+// PDF, JPEG, PNG and GIF by their magic bytes; anything else is sent as a
+// download.
 function receipt_content_type($plain)
 {
-    if (str_starts_with($plain, '%PDF')) {
-        return 'application/pdf';
-    }
-    if (str_starts_with($plain, "\xFF\xD8\xFF")) {
-        return 'image/jpeg';
+    $types = [
+        '%PDF' => 'application/pdf',
+        "\xFF\xD8\xFF" => 'image/jpeg',
+        "\x89PNG\r\n\x1A\n" => 'image/png',
+        'GIF87a' => 'image/gif',
+        'GIF89a' => 'image/gif',
+    ];
+    foreach ($types as $magic => $type) {
+        if (str_starts_with($plain, $magic)) {
+            return $type;
+        }
     }
     return 'application/octet-stream';
 }
@@ -917,11 +924,13 @@ function receipt_temp_path($path)
 }
 
 // Writes a temporary file next to $path and renames it over $path, so readers
-// never see a partly written file. Only the temporary file is ever removed.
-function receipt_write_file($path, $bytes)
+// never see a partly written file. $prepare (optional) is called with the
+// temporary file's path before the rename and must return true. Only the
+// temporary file is ever removed.
+function receipt_write_file($path, $bytes, $prepare = null)
 {
     $temp = receipt_temp_path($path);
-    if (@file_put_contents($temp, $bytes) === strlen($bytes) && @rename($temp, $path)) {
+    if (@file_put_contents($temp, $bytes) === strlen($bytes) && ($prepare === null || $prepare($temp)) && @rename($temp, $path)) {
         return true;
     }
     @unlink($temp);

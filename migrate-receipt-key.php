@@ -31,8 +31,9 @@ if (PHP_SAPI !== 'cli') {
  *   --dry-run        report only; writes, deletes and locks nothing
  *   --key-fingerprint=HEX
  *                    required for every run that writes or deletes: the key
- *                    fingerprint (8 hex digits) that the dry run printed; the
- *                    run stops if the configured key has another one
+ *                    fingerprint (8 hex digits) that the user administration
+ *                    page shows root; the run stops if the configured key
+ *                    of the run has another one
  *   --delete-legacy  the second phase
  *   --recreate-unverified
  *                    re-create an existing <n>.v2.aes that does not verify
@@ -42,7 +43,9 @@ if (PHP_SAPI !== 'cli') {
  *                    also migrate files that the voucher ID decrypts to
  *                    another recognized type (PNG, GIF, TIFF), to an empty
  *                    file, or to a PDF or JPEG that looks incomplete or has
- *                    data after its end; the download stays byte-identical
+ *                    data after its end; the download sends the same bytes
+ *                    (PNG and GIF as image/png and image/gif, other types
+ *                    as a download instead of image/jpeg)
  *   --search-voucher-ids
  *                    for a file that no voucher ID of its rows decrypts (a
  *                    merged voucher), try every other voucher ID of the
@@ -65,17 +68,21 @@ if (PHP_SAPI !== 'cli') {
  * The --include-unusual and --search-voucher-ids of the migration run must
  * be repeated for --delete-legacy, which decrypts the legacy files the same
  * way. One run at a time: a run holds an exclusive lock on
- * files/.migrate-receipt-key.lock. Safe to run again. Every existing
- * <n>.v2.aes is checked like a download (MAC, then chunked decryption) before
- * anything is written; when two or more, and at least half of them, do not
- * verify, the key is probably wrong and the run stops. The first phase never
- * deletes anything. A new <n>.v2.aes gets the owner, group and mode of its
- * <n>.aes (or is not written). Before --delete-legacy deletes anything it
- * runs --sync (default: sync), because PHP 5.3 cannot fsync the new files.
- * The summary shows the key fingerprint (only here; the web application
- * never logs it); the key itself is never printed. Exit status: 0 done, 1 a
- * file failed, 2 not run (nothing changed), 3 done, but legacy files were
- * skipped (or, in the delete phase, are not migrated yet); the summary lists
+ * files/.migrate-receipt-key.lock. Safe to run again. Before anything is
+ * written or deleted, up to 16 existing <n>.v2.aes (first those without a
+ * legacy file, e.g. uploads since the upgrade) are checked like a download
+ * (MAC, then chunked decryption); when two or more, and at least half of
+ * them, do not verify, or none of the checked ones without a legacy file
+ * does, the key is probably wrong and the run stops. A run without --limit
+ * also checks every other <n>.v2.aes it reaches; the delete phase decrypts
+ * each one before deleting. The first phase never deletes anything. A new
+ * <n>.v2.aes gets the owner, group and mode of its <n>.aes (or is not
+ * written). Before --delete-legacy deletes anything it runs --sync (default:
+ * sync), because PHP 5.3 cannot fsync the new files. The summary shows the
+ * key fingerprint (also shown to root on the user administration page); the
+ * key itself is never printed. Exit status: 0 done, 1 a file failed, 2 not
+ * run (nothing changed), 3 done, but legacy files were skipped (in the
+ * delete phase: every legacy file without <n>.v2.aes); the summary lists
  * them.
  *
  * Runs on PHP 5.3 and newer.
@@ -249,13 +256,42 @@ function receipt_migration_search_ids($connection)
 }
 
 /*
- * Decrypts a legacy receipt: array('ok', voucher ID, padded plain text,
- * note) with the first voucher that references the file, decrypts its first
- * block to a PDF or JPEG and the whole file to a complete one (or, with
- * --include-unusual, to an unusual type, or with --search-voucher-ids, with
- * another voucher ID to a complete one); otherwise array(status, message).
+ * The first of the voucher $ids that decrypts $legacy (of $size bytes) to a
+ * complete PDF or JPEG: array(voucher ID, padded plain text, ''). The first
+ * block is probed per ID (CBC: it decrypts on its own). With $unusual, an ID
+ * that decrypts it to what --include-unusual accepts is returned as
+ * array(voucher ID, plain text, description) if no ID gives a complete one.
+ * Otherwise null.
  */
-function receipt_migration_legacy($connection, $options, $number)
+function receipt_migration_decrypt($ids, $legacy, $size, $unusual)
+{
+    $found = null;
+    foreach ($ids as $id) {
+        $head = receipt_decrypt($id, '', substr($legacy, 0, 32));
+        $type = $unusual ? receipt_migration_unusual_type($head, $size) : (receipt_has_known_type($head) ? '' : null);
+        if ($type === null) {
+            continue;
+        }
+        $plain = receipt_decrypt($id, '', $legacy);
+        if (receipt_has_known_type($head) && receipt_migration_is_complete($plain)) {
+            return [$id, $plain, ''];
+        }
+        if ($unusual) {
+            $found = $found ?? [$id, $plain, $type];
+        }
+    }
+    return $found;
+}
+
+/*
+ * Decrypts a legacy receipt: array('ok', voucher ID, padded plain text,
+ * note) with a voucher that references the file and decrypts it to a
+ * complete PDF or JPEG (or, with --include-unusual, to an unusual type, or
+ * with --search-voucher-ids, with another voucher ID to a complete one);
+ * otherwise array(status, message). $candidates: the voucher IDs of the
+ * search, fetched once per run (null until needed).
+ */
+function receipt_migration_legacy($connection, $options, $number, &$candidates)
 {
     $path = receipt_legacy_path($options['files'], $number);
     $size = filesize($path);
@@ -273,84 +309,80 @@ function receipt_migration_legacy($connection, $options, $number)
     }
     $ids = pg_fetch_all_columns($result, 0);
     pg_free_result($result);
-    $unusual = null;
-    foreach ($ids as $id) {
-        // CBC: the first block decrypts on its own, without the whole file.
-        $head = receipt_decrypt($id, '', substr($legacy, 0, 32));
-        $type = receipt_migration_unusual_type($head, $size);
-        if ($type === null) {
-            continue;
-        }
-        $plain = receipt_decrypt($id, '', $legacy);
-        if (receipt_has_known_type($head) && receipt_migration_is_complete($plain)) {
-            return ['ok', $id, $plain, ''];
-        }
-        $unusual = $unusual ?? [$id, $plain, $type];
+    $found = receipt_migration_decrypt($ids, $legacy, $size, true);
+    if ($found !== null && ($found[2] === '' || $options['include-unusual'])) {
+        return ['ok', $found[0], $found[1], $found[2] === '' ? '' : ", unusual: {$found[2]}"];
     }
-    if ($unusual !== null) {
-        return $options['include-unusual'] ? ['ok', $unusual[0], $unusual[1], ", unusual: {$unusual[2]}"]
-            : ['skipped', "voucher {$unusual[0]} decrypts it to {$unusual[2]}, not a complete PDF or JPEG (--include-unusual migrates it)"];
+    if ($found !== null) {
+        return ['skipped', "voucher {$found[0]} decrypts it to {$found[2]}, not a complete PDF or JPEG (--include-unusual migrates it)"];
     }
     $message = 'no voucher with this file decrypts it to a complete PDF or JPEG';
     if (!$options['search-voucher-ids']) {
         return ['skipped', "$message (--search-voucher-ids tries the other voucher IDs)"];
     }
-    $candidates = receipt_migration_search_ids($connection);
+    $candidates = $candidates ?? receipt_migration_search_ids($connection);
     if ($candidates === false) {
         return ['failed', 'database query failed: ' . pg_last_error($connection)];
     }
+    $found = receipt_migration_decrypt(array_diff($candidates, $ids), $legacy, $size, false);
     $rows = $ids === [] ? 'no voucher has this file' : 'its rows have voucher ' . implode(', ', $ids);
-    foreach (array_diff($candidates, $ids) as $id) {
-        if (!receipt_has_known_type(receipt_decrypt($id, '', substr($legacy, 0, 32)))) {
-            continue;
-        }
-        $plain = receipt_decrypt($id, '', $legacy);
-        if (receipt_migration_is_complete($plain)) {
-            return ['ok', $id, $plain, ", found by --search-voucher-ids; $rows"];
-        }
-    }
-    return ['skipped', "$message, and no other voucher ID does"];
+    return $found === null ? ['skipped', "$message, and no other voucher ID does"] : ['ok', $found[0], $found[1], ", found by --search-voucher-ids; $rows"];
 }
 
 /*
- * Writes $bytes as $path with the owner, group and mode of the legacy file
- * $legacyPath, through a renamed temporary file: '' on success, otherwise
- * what failed. Only the temporary file is ever removed.
+ * Writes $bytes as $path (receipt_write_file()) with the owner, group and
+ * mode of the legacy file $legacyPath, set on the temporary file before the
+ * rename: '' on success, otherwise what failed.
  */
 function receipt_migration_write($path, $bytes, $legacyPath)
 {
-    $temp = receipt_temp_path($path);
     $stat = stat($legacyPath);
+    $owned = true;
+    $prepare = function ($temp) use ($stat, &$owned) {
+        $owned = @chmod($temp, $stat['mode'] & 0777) && (fileowner($temp) === $stat['uid'] || @chown($temp, $stat['uid']))
+            && (filegroup($temp) === $stat['gid'] || @chgrp($temp, $stat['gid']));
+        return $owned;
+    };
     $name = basename($legacyPath);
-    $written = @file_put_contents($temp, $bytes) === strlen($bytes);
-    $owned = $written && @chmod($temp, $stat['mode'] & 0777) && (fileowner($temp) === $stat['uid'] || @chown($temp, $stat['uid']))
-        && (filegroup($temp) === $stat['gid'] || @chgrp($temp, $stat['gid']));
     // One statement: as root, chown() and chgrp() cannot be made to fail in
     // the tests (ReceiptMigrationCommandTest runs that case as another user).
-    $problem = !$written ? 'could not be written' : (!$owned ? "could not be given the owner, group and mode of $name (run as the owner of $name, or as root)" : (@rename($temp, $path) ? '' : 'could not be written'));
-    if ($problem !== '') {
-        @unlink($temp);
-    }
-    return $problem;
+    return receipt_write_file($path, $bytes, $prepare) ? '' : ($owned ? 'could not be written' : "could not be given the owner, group and mode of $name (run as the owner of $name, or as root)");
 }
 
 /*
  * One legacy file: array(status, message); status is a summary counter.
- * $verified: whether <n>.v2.aes verified with the key of the run, null if
- * there is none.
+ * $verified: whether <n>.v2.aes verified with the key of the run in the key
+ * check (receipt_migration_check_key()), null if it was not checked there.
  */
-function receipt_migration_file($connection, $options, $key, $number, $verified)
+function receipt_migration_file($connection, $options, $key, $number, $verified, &$candidates)
 {
     $v2Path = receipt_v2_path($options['files'], $number);
-    if ($verified === false && ($options['delete-legacy'] || !$options['recreate-unverified'])) {
+    $hasV2 = is_file($v2Path);
+    if (!$hasV2 && $options['delete-legacy']) {
+        // Not decrypted: whether the migration skipped it or has not reached
+        // it yet, its legacy file stays.
+        return ['skipped', "skipped, legacy kept: no $number.v2.aes (skipped by the migration or not migrated yet; "
+            . 'a run without --delete-legacy lists why)'];
+    }
+    // The first phase checks the other existing files like a download, but
+    // not in --limit batches (the run without --limit and the delete phase
+    // check each file).
+    if ($hasV2 && !$options['delete-legacy']) {
+        $verified = $verified ?? ($options['limit'] > 0 ? 'unchecked' : receipt_v2_verify_with($key, $number, $v2Path));
+    }
+    if ($verified === 'unchecked') {
+        return ['present', "already migrated (not checked again in a --limit run); $number.aes kept until --delete-legacy"];
+    }
+    if ($verified === true && !$options['delete-legacy']) {
+        return ['present', "already migrated; $number.aes kept until --delete-legacy"];
+    }
+    $invalid = $hasV2 && $verified === false;
+    if ($invalid && ($options['delete-legacy'] || !$options['recreate-unverified'])) {
         return ['failed', "$number.v2.aes does not verify with this key; both kept"
             . ($options['delete-legacy'] ? '' : " (check the key; --recreate-unverified re-creates it from $number.aes)")];
     }
-    if (!$options['delete-legacy'] && $verified === true) {
-        return ['present', "already migrated; $number.aes kept until --delete-legacy"];
-    }
-    $legacy = receipt_migration_legacy($connection, $options, $number);
-    if ($legacy[0] !== 'ok' && $verified === false) {
+    $legacy = receipt_migration_legacy($connection, $options, $number, $candidates);
+    if ($legacy[0] !== 'ok' && $invalid) {
         return ['failed', "$number.v2.aes does not verify, and $number.aes cannot replace it ({$legacy[1]}); both kept"];
     }
     if ($legacy[0] !== 'ok') {
@@ -359,9 +391,6 @@ function receipt_migration_file($connection, $options, $key, $number, $verified)
     [, $id, $plain, $note] = $legacy;
 
     if ($options['delete-legacy']) {
-        if ($verified === null) {
-            return ['pending', "not migrated yet (run the migration first); $number.aes kept"];
-        }
         if (receipt_v2_read_with($key, $number, $v2Path) !== $plain) {
             return ['failed', "$number.v2.aes does not decrypt to the content of $number.aes with this key; both kept"];
         }
@@ -372,7 +401,7 @@ function receipt_migration_file($connection, $options, $key, $number, $verified)
         return @unlink(receipt_legacy_path($options['files'], $number)) ? ['deleted', "verified; deleted $number.aes"] : ['failed', "verified, but $number.aes could not be deleted"];
     }
 
-    $recreate = $verified === false ? "$number.v2.aes does not verify; " : '';
+    $recreate = $invalid ? "$number.v2.aes does not verify; " : '';
     if ($options['dry-run']) {
         return ['migrated', $recreate === '' ? "would migrate (voucher $id$note)" : $recreate . "would re-create it (voucher $id$note)"];
     }
@@ -385,30 +414,58 @@ function receipt_migration_file($connection, $options, $key, $number, $verified)
     return receipt_v2_read_with($key, $number, $v2Path) !== $plain ? (@unlink($v2Path) ? ['failed', "$number.v2.aes did not verify and was removed; $number.aes kept"] : ['failed', "$number.v2.aes did not verify and could not be removed; $number.aes kept"]) : ['migrated', ($recreate === '' ? 'migrated' : $recreate . 're-created it') . " (voucher $id$note); $number.aes kept until --delete-legacy"];
 }
 
+/*
+ * The key check before anything is written or deleted: up to $limit
+ * existing <n>.v2.aes are verified, first those without a legacy file
+ * (written by the application, or whose legacy file was deleted), then the
+ * migrated ones, by ascending number. Returns array(verified per number,
+ * message): the message is not '' when two or more, and at least half, of
+ * the checked files do not verify, or when none of the checked files
+ * without a legacy file does; the key is then probably wrong. A bounded
+ * sample, so that each --limit batch does not read every receipt again; a
+ * wrong key fails every file, so a sample finds it.
+ */
+function receipt_migration_check_key($options, $key, $names, $numbers, $limit)
+{
+    $standalone = [];
+    $migrated = [];
+    $legacy = array_flip($numbers);
+    foreach ($names as $name) {
+        $number = substr($name, 0, -7);
+        if (str_ends_with($name, '.v2.aes') && receipt_migration_is_number($number) && is_file(receipt_v2_path($options['files'], $number))) {
+            isset($legacy[$number]) ? $migrated[] = $number : $standalone[] = $number;
+        }
+    }
+    sort($standalone, SORT_NUMERIC);
+    sort($migrated, SORT_NUMERIC);
+    $verified = [];
+    foreach (array_slice(array_merge($standalone, $migrated), 0, $limit) as $number) {
+        $verified[$number] = receipt_v2_verify_with($key, $number, receipt_v2_path($options['files'], $number));
+    }
+    $unverified = count(array_keys($verified, false, true));
+    $checkedStandalone = array_intersect_key($verified, array_flip($standalone));
+    $canary = $checkedStandalone !== [] && !in_array(true, $checkedStandalone, true);
+    if (($unverified < 2 || $unverified * 2 < count($verified)) && !$canary) {
+        return [$verified, ''];
+    }
+    return [$verified, "$unverified of the " . count($verified) . ' checked <n>.v2.aes files do not verify with the key of this run '
+        . '(key fingerprint ' . receipt_key_fingerprint($key) . ')'
+        . ($canary ? ', among them every checked one without a legacy file (written by the application)' : '')
+        . ': the key is probably not the one they were written with. '
+        . "Nothing was changed. Check \$key in {$options['constants']}; if it is right, move the damaged files away "
+        . "(keep a copy) and run again.\n"];
+}
+
 // Migrates the listed files; returns the exit status.
 function receipt_migration_run($connection, $options, $key, $names, $out, $err)
 {
-    $counts = ['migrated' => 0, 'present' => 0, 'deleted' => 0, 'pending' => 0, 'skipped' => 0, 'failed' => 0];
-    $lists = ['skipped' => [], 'pending' => [], 'failed' => []];
+    $counts = ['migrated' => 0, 'present' => 0, 'deleted' => 0, 'skipped' => 0, 'failed' => 0];
+    $lists = ['skipped' => [], 'failed' => []];
     $changed = 0;
     [$numbers, $others] = receipt_migration_numbers($options['files'], $names);
-    // Every existing <n>.v2.aes (also those without a legacy file) is
-    // checked like a download, before anything is written or deleted.
-    $verified = [];
-    foreach ($names as $name) {
-        $number = substr($name, 0, -7);
-        $v2Path = receipt_v2_path($options['files'], $number);
-        if (str_ends_with($name, '.v2.aes') && receipt_migration_is_number($number) && is_file($v2Path)) {
-            $verified[$number] = receipt_v2_verify_with($key, $number, $v2Path);
-        }
-    }
-    $existing = count($verified);
-    $unverified = count(array_keys($verified, false, true));
-    if ($unverified >= 2 && $unverified * 2 >= $existing) {
-        fwrite($err, "$unverified of the $existing existing <n>.v2.aes files do not verify with the key of this run "
-            . '(key fingerprint ' . receipt_key_fingerprint($key) . '): the key is probably not the one they were written with. '
-            . "Nothing was changed. Check \$key in {$options['constants']}; if it is right, move the damaged files away "
-            . "(keep a copy) and run again.\n");
+    [$verified, $message] = receipt_migration_check_key($options, $key, $names, $numbers, 16);
+    if ($message !== '') {
+        fwrite($err, $message);
         return 2;
     }
     if ($options['delete-legacy']) {
@@ -420,12 +477,13 @@ function receipt_migration_run($connection, $options, $key, $names, $out, $err)
         $lists['skipped'][] = $name;
         fwrite($out, "$name: skipped, legacy kept: not a file number\n");
     }
+    $candidates = null;
     foreach ($numbers as $number) {
         if ($options['limit'] > 0 && $changed >= $options['limit']) {
             fwrite($out, "Stopped after --limit={$options['limit']}; run again for the remaining files.\n");
             break;
         }
-        [$status, $message] = receipt_migration_file($connection, $options, $key, $number, $verified[$number] ?? null);
+        [$status, $message] = receipt_migration_file($connection, $options, $key, $number, $verified[$number] ?? null, $candidates);
         $counts[$status]++;
         if (isset($lists[$status])) {
             $lists[$status][] = $number;
@@ -435,7 +493,7 @@ function receipt_migration_run($connection, $options, $key, $names, $out, $err)
         }
         fwrite($out, "$number.aes: $message\n");
     }
-    $labels = ['skipped' => 'Skipped, legacy kept', 'pending' => 'Not migrated yet', 'failed' => 'Failed'];
+    $labels = ['skipped' => 'Skipped, legacy kept', 'failed' => 'Failed'];
     foreach ($lists as $status => $list) {
         if ($list !== []) {
             fwrite($out, "{$labels[$status]}: " . implode(', ', $list) . "\n");
@@ -443,9 +501,9 @@ function receipt_migration_run($connection, $options, $key, $names, $out, $err)
     }
     fwrite($out, ($options['dry-run'] ? 'Dry run, nothing written: ' : '')
         . "{$counts['migrated']} migrated, {$counts['present']} already migrated, {$counts['deleted']} legacy deleted, "
-        . "{$counts['pending']} not yet migrated, {$counts['skipped']} skipped, {$counts['failed']} failed; "
+        . "{$counts['skipped']} skipped, {$counts['failed']} failed; "
         . 'key fingerprint ' . receipt_key_fingerprint($key) . "\n");
-    return $counts['failed'] > 0 ? 1 : ($counts['skipped'] + $counts['pending'] > 0 ? 3 : 0);
+    return $counts['failed'] > 0 ? 1 : ($counts['skipped'] > 0 ? 3 : 0);
 }
 
 // Runs the flush command; true if it succeeded.
@@ -480,8 +538,9 @@ function receipt_migration_main($arguments, $out, $err)
     }
     $fingerprint = receipt_key_fingerprint($key);
     if ($options['key-fingerprint'] === null && !$options['dry-run']) {
-        fwrite($err, "A run that writes or deletes needs --key-fingerprint=<8 hex digits>: run with --dry-run first, "
-            . "check that the key fingerprint it prints is the one of the earlier runs, and pass it. Nothing was changed.\n");
+        fwrite($err, "A run that writes or deletes needs --key-fingerprint=<8 hex digits>: the key fingerprint that the "
+            . "user administration page (Benutzerverwaltung) shows root, from the application whose receipts these are. "
+            . "Nothing was changed.\n");
         return 2;
     }
     if ($options['key-fingerprint'] !== null && $options['key-fingerprint'] !== $fingerprint) {

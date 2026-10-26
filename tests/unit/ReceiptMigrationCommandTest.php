@@ -43,10 +43,10 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
         self::assertSame([2, ''], array_slice(self::command('--files=' . escapeshellarg($files)), 0, 2));
 
         self::assertSame([0, "42.aes: migrated (voucher 1003); 42.aes kept until --delete-legacy\n"
-            . "1 migrated, 0 already migrated, 0 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
+            . "1 migrated, 0 already migrated, 0 legacy deleted, 0 skipped, 0 failed; "
             . "key fingerprint $fingerprint\n", $warning], self::command("--key-fingerprint=$fingerprint --files=" . escapeshellarg($files)));
         self::assertSame([0, self::deleteReminder() . "42.aes: verified; deleted 42.aes\n"
-            . "0 migrated, 0 already migrated, 1 legacy deleted, 0 not yet migrated, 0 skipped, 0 failed; "
+            . "0 migrated, 0 already migrated, 1 legacy deleted, 0 skipped, 0 failed; "
             . "key fingerprint $fingerprint\n", $warning], self::command("--delete-legacy --key-fingerprint=$fingerprint --files=" . escapeshellarg($files)));
         self::assertSame(['.migrate-receipt-key.lock', '42.v2.aes'], array_keys($this->files()));
         self::assertSame(rijndael256_zero_pad($receipt), $this->v2Plain('42'));
@@ -73,7 +73,7 @@ final class ReceiptMigrationCommandTest extends ReceiptMigrationTestCase
 
         self::assertSame([1, "42.aes: 42.v2.aes could not be given the owner, group and mode of 42.aes "
             . "(run as the owner of 42.aes, or as root); 42.aes kept\nFailed: 42\n"
-            . self::summary([0, 0, 0, 0, 0, 1]), ''], self::command($arguments, $nobody));
+            . self::summary([0, 0, 0, 0, 1]), ''], self::command($arguments, $nobody));
         self::assertSame(['.migrate-receipt-key.lock', '42.aes'], array_keys($this->files()));
 
         chown($legacy, 65534);

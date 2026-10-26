@@ -3,7 +3,7 @@ set -eu
 
 # Regenerates files/<n>.aes and downloads.txt with the original pgacc upload
 # and download code (commit 6458a4d) on PHP 5.3.3 with mcrypt, through
-# php-cgi as on the old production server (README.md). Needs Docker and the
+# php-cgi (Debian 6 packages, i386; README.md). Needs Docker and the
 # git history; synthetic inputs only (inputs/, cases.txt).
 #
 #   sh tests/fixtures/legacy-php53/generate.sh

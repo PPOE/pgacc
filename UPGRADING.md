@@ -109,57 +109,70 @@ command line. Do not post migration transcripts publicly.
 1. Back up `files/` (and `constants.php`) first, to a separate place, and
    keep the backup until the legacy files have been deleted and the
    receipts checked.
-2. Dry run: `sudo -u <web user> php migrate-receipt-key.php --dry-run`.
-   It writes nothing and lists each legacy file as "would migrate" or
-   "skipped, legacy kept" with the reason. Note the **key fingerprint** in
-   the last line (8 hex digits). Every later run must show the same one; a
-   different fingerprint means another `$key` (another `constants.php`, or
-   another server's configuration): stop and check.
-3. Review the skipped files listed at the end ("Skipped, legacy kept: ...").
+2. Get the **key fingerprint from the application**: log in as root and
+   open the user administration (Benutzerverwaltung). It shows "Fingerabdruck
+   des Beleg-Schlüssels" (8 hex digits) of the `$key` the application uses
+   (never the key itself). Every run that writes or deletes needs it as
+   `--key-fingerprint=<fingerprint>`; a run with another `$key` (another
+   `constants.php`, another installation) then stops without changing
+   anything.
+3. Dry run: `sudo -u <web user> php migrate-receipt-key.php --dry-run
+   --key-fingerprint=<fingerprint>`. It writes nothing and lists each legacy
+   file as "would migrate" or "skipped, legacy kept" with the reason; the
+   last line shows the fingerprint of the key the script read.
+4. Review the skipped files listed at the end ("Skipped, legacy kept: ...").
    They keep working as legacy files. Optional, also as a dry run first:
    - `--include-unusual` also migrates files that decrypt to another
      recognized type (PNG, GIF, TIFF), to an empty file, or to a PDF or JPEG
-     that looks incomplete or has data after its end. The migrated receipt
-     downloads exactly as before.
+     that looks incomplete or has data after its end. The download sends
+     the same bytes as before; PDFs and JPEGs also keep their type, but the
+     legacy download sent everything else as `image/jpeg`: a migrated PNG or
+     GIF is shown as `image/png` or `image/gif`, a TIFF, an empty file and
+     other types are offered as a download `<n>.bin`.
    - `--search-voucher-ids` tries the other voucher IDs for files that no
      voucher ID of their rows decrypts (after a voucher merge) and migrates
      a file only if one decrypts it to a complete PDF or JPEG; the line
-     names the voucher ID found.
-   Pass the same options again to `--delete-legacy` (step 6).
-4. Migrate: `sudo -u <web user> php migrate-receipt-key.php
-   --key-fingerprint=<fingerprint of step 2>`, optionally in batches
-   (`--limit=500`). Without the matching `--key-fingerprint` nothing is
-   written. Files above `--max-size` (default `memory_limit` / 8) are
-   skipped; for large receipts run with `php -d memory_limit=1G` (or set
-   `--max-size`). Legacy files are kept. Rerun until the summary shows 0
-   migrated and 0 failed.
-   - An existing `<n>.v2.aes` that does not verify with the key is kept and
-     reported as failed. If two or more, and at least half, of the existing
-     files do not verify, the run stops before writing anything: the key is
-     probably not the one they were written with. Only if the key is
-     certainly right, re-create such files from the legacy file with
-     `--recreate-unverified`.
+     names the voucher ID found. (Such a receipt downloaded as unreadable
+     bytes before; afterwards it is the original receipt.)
+   Pass the same options again to `--delete-legacy` (step 7).
+5. Migrate: `sudo -u <web user> php migrate-receipt-key.php
+   --key-fingerprint=<fingerprint>`, optionally in batches (`--limit=500`).
+   Files above `--max-size` (default `memory_limit` / 8) are skipped; for
+   large receipts run with `php -d memory_limit=1G` (or set `--max-size`).
+   Legacy files are kept. Finish with a run without `--limit`, and rerun
+   until the summary shows 0 migrated and 0 failed.
+   - Before writing, each run checks up to 16 existing `<n>.v2.aes`, first
+     receipts without a legacy file (uploaded since the upgrade). If two or
+     more, and at least half, of them do not verify, or none of the checked
+     uploads does, the run stops: the key is probably not the one they were
+     written with.
+   - A run without `--limit` also checks every other existing `<n>.v2.aes`
+     it reaches; one that does not verify is kept and reported as failed.
+     `--limit` batches do not read the already migrated files again (listed
+     as "not checked again"). Only if the key is certainly right, re-create
+     a damaged file from the legacy file with `--recreate-unverified`.
    - Each new `<n>.v2.aes` gets the owner, group and mode of its `<n>.aes`
      (the umask does not matter). If that is not possible (another user, not
      root), the file is not written and the line says so. Running as root
      works but prints a warning; prefer the web server's user.
-5. Verify: run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy`
+6. Verify: run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy`
    also runs `sync` itself and stops if that fails). Spot-check several
    migrated receipts (PDF and JPEG, and any migrated with the options of
-   step 3) in the browser, and check the web server's error log for lines
+   step 4) in the browser, and check the web server's error log for lines
    matching `pgacc: receipt .*; sent the legacy` (for example `pgacc:
    receipt <n>.v2.aes could not be decrypted; sent the legacy <n>.aes`) and
    `pgacc: receipt .*: no readable stored file`: while the legacy files
    exist, a key mismatch between the web application and the migration
    still serves the old file, so only the log shows it.
-6. Only then delete the legacy files: `sudo -u <web user> php
+7. Only then delete the legacy files: `sudo -u <web user> php
    migrate-receipt-key.php --delete-legacy --key-fingerprint=<fingerprint>`
    (with `--dry-run` first; it repeats the reminder). Each `<n>.aes` is
    deleted only when `<n>.v2.aes` verifies with the key of the run and
-   decrypts to exactly the content of `<n>.aes`. Skipped files are listed
-   as "skipped, legacy kept", files without `<n>.v2.aes` as "not migrated
-   yet"; both keep their legacy file.
-7. Keep the `files/` backup of step 1 until the spot checks are done.
+   decrypts to exactly the content of `<n>.aes`. Legacy files without
+   `<n>.v2.aes` are listed as "skipped, legacy kept" (skipped by the
+   migration or not migrated yet; a run without `--delete-legacy` lists the
+   reason) and keep their legacy file.
+8. Keep the `files/` backup of step 1 until the spot checks are done.
 
 Exit status of every run:
 
@@ -167,8 +180,8 @@ Exit status of every run:
 |---|---|
 | 0 | done; nothing skipped |
 | 1 | a file failed (listed under "Failed: ..."); fix the cause and run again |
-| 2 | not run, nothing changed (usage, invalid key, missing or wrong `--key-fingerprint`, most existing files do not verify, lock, database, `sync`) |
-| 3 | done, but legacy files were skipped (or, with `--delete-legacy`, are not migrated yet); listed at the end, their legacy files are kept |
+| 2 | not run, nothing changed (usage, invalid key, missing or wrong `--key-fingerprint`, the key check of step 5 failed, lock, database, `sync`) |
+| 3 | done, but legacy files were skipped (with `--delete-legacy`: every legacy file without `<n>.v2.aes`); listed at the end, their legacy files are kept |
 
 ## Rollback
 
