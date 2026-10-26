@@ -780,6 +780,21 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame($before, $files);
     }
 
+    public function testUnreadableLegacyFileFails()
+    {
+        // Not read as an empty file (which --include-unusual would migrate).
+        if (receipt_migration_euid() === 0) {
+            self::markTestSkipped('root ignores the file mode');
+        }
+        $this->put('901.aes', $this->legacyPdf());
+        chmod($this->directory . '/files/901.aes', 0);
+        list($status, $output) = $this->migrate(['--include-unusual']);
+        chmod($this->directory . '/files/901.aes', 0644);
+        self::assertSame(1, $status);
+        self::assertSame("901.aes: 901.aes could not be read\nFailed: 901\n" . self::summary([0, 0, 0, 0, 1]), $output);
+        self::assertFileDoesNotExist($this->directory . '/files/901.v2.aes');
+    }
+
     public function testDatabaseFailure()
     {
         // The test's transaction is aborted, so the voucher query fails.

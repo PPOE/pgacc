@@ -771,7 +771,7 @@ $storedCases = [
     // Another type is sent as a download, not refused.
     [9107, 4711, 990004, ['v2.aes' => receipt_v2_encrypt($testKey, 990004, $png)],
         $png, 'image/png', 'v2 PNG receipt'],
-    [9121, 4711, 990015, ['v2.aes' => receipt_v2_encrypt($testKey, 990015, "II*\0synthetic")],
+    [9129, 4711, 990023, ['v2.aes' => receipt_v2_encrypt($testKey, 990023, "II*\0synthetic")],
         "II*\0synthetic", 'application/octet-stream', 'v2 receipt of another type'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as

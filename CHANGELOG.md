@@ -98,7 +98,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   download is logged once with the file number and the reason the newer
   receipt file was not used; a receipt file that cannot be opened (also a
   directory) is no longer logged as a wrong key. The migration check in
-  UPGRADING.md (step 6) searches for every fallback line.
+  UPGRADING.md (step 6) searches for every fallback line. The migration
+  reports a legacy file it cannot read completely as failed instead of
+  reading it as empty (which `--include-unusual` would have migrated).
 - Logging in without a login target no longer ends on a blank page (empty
   redirect).
 - The import pages (`?action=import`, `?action=import2`) show the upload form

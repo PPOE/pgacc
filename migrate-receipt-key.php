@@ -313,7 +313,12 @@ function receipt_migration_legacy($connection, $options, $number, &$search)
     if ($options['max-size'] > 0 && $size > $options['max-size']) {
         return ['skipped', "$size bytes, above --max-size={$options['max-size']}"];
     }
-    $legacy = (string) @file_get_contents($path);
+    // Unreadable or not read to its end: not decrypted (an empty or cut-off
+    // read could otherwise be migrated with --include-unusual).
+    $legacy = receipt_read_file($path);
+    if ($legacy === false) {
+        return ['failed', "$number.aes could not be read"];
+    }
     $result = @pg_query_params(
         $connection,
         'SELECT DISTINCT voucher_id FROM vouchers WHERE file = $1 ORDER BY voucher_id',
