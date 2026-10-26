@@ -431,11 +431,19 @@ function page_edit_form($part, $voucher, $rights)
 ';
     $query = "SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC";
     $result = db_query($dbconn, $query);
+    $type_listed = false;
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         echo '<option value="' . ($voucher['type'] == $line['id'] ? $line['id'] . '" selected="selected"' : $line['id'] . '"') . '>' . html_escape($line['name']) . '</option>
 ';
+        $type_listed = $type_listed || $voucher['type'] == $line['id'];
     }
     pg_free_result($result);
+    // A type id without a type row (stored, or posted again): offered as
+    // unknown type, so that saving keeps it.
+    if ($voucher['dir'] == 'in' && !$type_listed && intval($voucher['type']) > 0) {
+        echo '<option value="' . html_escape($voucher['type']) . '" selected="selected">Unbekannt (' . html_escape($voucher['type']) . ')</option>
+';
+    }
     echo '
 </select>
 </div>

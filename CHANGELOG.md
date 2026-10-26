@@ -79,6 +79,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Listings (ledger views, transactions, spendings, in-kind donations, and
+  their CSV exports) left out the type or organization cell of a booking
+  line whose type or organization has no row in the lookup table, so the
+  following cells moved one column to the left. Such a cell is now empty.
+- Edit form: a booking line whose type has no row in the type table gave
+  "Undefined array key" warnings and no preselected direction. It now shows
+  the direction "Einnahme" with the type as "Unbekannt (<id>)", selected,
+  so saving keeps the type unless another one is chosen.
 - Receipt migration: a run with another `$key` no longer re-creates existing
   `<n>.v2.aes` files that do not verify with it. Such a file is kept and
   reported. Before writing, each run checks the MAC of up to 16 existing

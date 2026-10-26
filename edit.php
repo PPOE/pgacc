@@ -393,6 +393,10 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
         $result = db_query($dbconn, $query);
         if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
             $voucher['dir'] = $line['income'] == 1 ? 'in' : ($line['income'] == 0 ? 'out' : 'wk');
+        } else {
+            // A type id without a type row: the form's default direction
+            // (new.php offers the id as unknown type).
+            $voucher['dir'] = 'in';
         }
         pg_free_result($result);
         $voucher['bid'] = $vouchers[$part]['id'];

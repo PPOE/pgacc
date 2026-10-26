@@ -10,9 +10,6 @@
  */
 $hidden = "if (listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {";
 $shown = "if (!listing_column_hidden(\$tabc++)) {\n        echo emptytag(\"td\");\n    } else {";
-// The same inside the type and lo query loops (one level deeper).
-$hiddenLoop = "if (listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {";
-$shownLoop = "if (!listing_column_hidden(\$tabc++)) {\n            echo emptytag(\"td\");\n        } else {";
 
 $mutations = [
     [
@@ -131,16 +128,16 @@ foreach ($filters as $col => $input) {
     ];
 }
 
-// Voucher rows: one inverted check per column. Columns 4 and 5 print the same
-// statement inside their type/lo query loops, so they need a region.
+// Voucher rows: one inverted check per column. Columns 4 and 5 (type and
+// organization lookup) print the same statement, so they need a region.
 $typeLoop = ['start' => '$query2 = "SELECT name FROM type', 'end' => '$query2 = "SELECT name FROM lo'];
 $loLoop = ['start' => '$query2 = "SELECT name FROM lo', 'end' => '? $line["member_id"] : \'Nein\');'];
 $cells = [
     1 => ["\n        if (\$make_csv) {\n            echo tag(\"td\", \$line[\"voucher_id\"]);", null],
     2 => ["\n        echo tag(\"td\", \$line[\"id\"]);", null],
     3 => ["\n        echo tag(\"td\", format_date(", null],
-    4 => ["\n            echo tag(\"td\", listing_text(\$line2[\"name\"]));", $typeLoop],
-    5 => ["\n            echo tag(\"td\", listing_text(\$line2[\"name\"]));", $loLoop],
+    4 => ["\n        echo tag(\"td\", listing_text(\$line2[\"name\"]));", $typeLoop],
+    5 => ["\n        echo tag(\"td\", listing_text(\$line2[\"name\"]));", $loLoop],
     6 => ["\n        if (\$make_csv) {\n            echo tag(\"td\", \$line[\"member\"]", null],
     7 => ["\n        echo tag(\"td\", listing_text(\$line[\"contra_account\"]));", null],
     8 => ["\n        echo tag(\"td\", listing_text(\$line[\"account\"]));", null],
@@ -158,8 +155,8 @@ $cells = [
 foreach ($cells as $col => $cell) {
     $mutation = [
         'id' => "row-$col-check-inverted",
-        'search' => ($cell[1] === null ? $hidden : $hiddenLoop) . $cell[0],
-        'replace' => ($cell[1] === null ? $shown : $shownLoop) . $cell[0],
+        'search' => $hidden . $cell[0],
+        'replace' => $shown . $cell[0],
         'rationale' => "Row cell $col is empty exactly when the column is hidden (in CSV: omitted).",
     ];
     if ($cell[1] !== null) {

@@ -242,22 +242,21 @@ function page_listing_line($line, $action = "edit")
     }
     $query2 = "SELECT name FROM type WHERE id = " . intval($line["type"]);
     $result2 = db_query($dbconn, $query2);
-    while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        if (listing_column_hidden($tabc++)) {
-            echo emptytag("td");
-        } else {
-            echo tag("td", listing_text($line2["name"]));
-        }
+    // One cell also without a matching row (empty cell).
+    $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
+    if (listing_column_hidden($tabc++)) {
+        echo emptytag("td");
+    } else {
+        echo tag("td", listing_text($line2["name"]));
     }
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
     $result2 = db_query($dbconn, $query2);
-    while ($line2 = pg_fetch_array($result2, null, PGSQL_ASSOC)) {
-        if (listing_column_hidden($tabc++)) {
-            echo emptytag("td");
-        } else {
-            echo tag("td", listing_text($line2["name"]));
-        }
+    $line2 = pg_fetch_array($result2, null, PGSQL_ASSOC) ?: ['name' => ''];
+    if (listing_column_hidden($tabc++)) {
+        echo emptytag("td");
+    } else {
+        echo tag("td", listing_text($line2["name"]));
     }
     pg_free_result($result2);
     if (listing_column_hidden($tabc++)) {

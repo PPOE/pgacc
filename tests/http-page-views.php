@@ -182,6 +182,76 @@ $numeric = page_view('/index.php?action=vreport', $admin, 'root,bgf')['body'];
 assert_contains($numeric, "<li><a href=\"vreport?konto=AT12%203456%207890\">Konto 'AT12 3456 7890'</a></li>", 'vreport numeric account');
 page_views_query($database, 'DELETE FROM vouchers WHERE id = 9150');
 
+// A type or organization id without a row in its lookup table (the schema has
+// no foreign keys): the listing row still has one cell per column, the type
+// or organization cell is empty. Type 1 (membership fee) exists, like in the
+// production data; 77 is an unknown type and organization.
+page_views_query($database, "INSERT INTO type (id, name, used, income, realtype) VALUES (1, 'Synthetic membership fee', 1, 1, 1)");
+page_views_query($database, "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, date, person_type, file, vaccount, ack1, ack2)
+    VALUES (9151, 4781, 1, 1, false, 4781, 'TEST-ACCOUNT-1', 'Synthetic known lookups', timestamp '2024-09-16 00:00:00', 2, 0, 'TEST-VIRTUAL-1', 'reviewer-a', 'reviewer-b'),
+    (9152, 4782, 77, 1, false, 4782, 'TEST-ACCOUNT-1', 'Synthetic unknown type', timestamp '2024-09-16 00:00:00', 2, 0, 'TEST-VIRTUAL-1', 'reviewer-a', 'reviewer-b'),
+    (9153, 4783, 8, 77, false, 4783, 'TEST-ACCOUNT-1', 'Synthetic unknown organization', timestamp '2024-09-16 00:00:00', 2, 0, 'TEST-VIRTUAL-1', 'reviewer-a', 'reviewer-b'),
+    (9154, 4784, NULL, NULL, false, 4784, 'TEST-ACCOUNT-1', 'Synthetic no type and organization', timestamp '2024-09-16 00:00:00', 2, 0, 'TEST-VIRTUAL-1', 'reviewer-a', 'reviewer-b')");
+// Cells of the listing row (HTML) or line (CSV) that contains $marker.
+function lookup_row_cells($body, $marker, $csv, $label)
+{
+    $rows = $csv ? explode("\n", $body) : preg_split('/<tr[\s>]/', $body);
+    foreach ($rows as $row) {
+        if (strpos($row, $marker) !== false) {
+            if ($csv) {
+                return explode("\t", rtrim($row, "\t"));
+            }
+            preg_match_all('#<td[^>]*?(?:/>|>(.*?)</td>)#s', $row, $cells);
+            return $cells[1];
+        }
+    }
+    fail_test("$label: no row with $marker");
+}
+$listings = [
+    'transactions' => ['/index.php?action=transactions', [], 'anonymous'],
+    'transactions csv' => ['/index.php?action=transactions&format=csv', [], 'anonymous'],
+    'all' => ['/index.php?action=all&filter_date=2024', $users['root,bgf'], 'root,bgf'],
+    'all csv' => ['/index.php?action=all&format=csv&filter_date=2024', $users['root,bgf'], 'root,bgf'],
+];
+foreach ($listings as $label => $listing) {
+    $csv = strpos($listing[0], 'format=csv') !== false;
+    $body = page_view($listing[0], $listing[1], $listing[2])['body'];
+    $known = lookup_row_cells($body, $csv ? '47,81' : '47.81', $csv, $label);
+    if (!in_array('Synthetic membership fee', $known, true) || !in_array('Synthetic National Unit', $known, true)) {
+        fail_test("$label: known type/organization row " . var_export($known, true));
+    }
+    foreach (['47,82' => ['Synthetic National Unit'], '47,83' => ['Synthetic donation'], '47,84' => []] as $amount => $names) {
+        $cells = lookup_row_cells($body, $csv ? $amount : strtr($amount, ',', '.'), $csv, $label);
+        $typeIndex = array_search('Synthetic membership fee', $known, true);
+        $loIndex = array_search('Synthetic National Unit', $known, true);
+        $wanted = $known;
+        $wanted[$typeIndex] = in_array('Synthetic donation', $names, true) ? 'Synthetic donation' : '';
+        $wanted[$loIndex] = in_array('Synthetic National Unit', $names, true) ? 'Synthetic National Unit' : '';
+        if (count($cells) !== count($known) || $cells[$typeIndex] !== $wanted[$typeIndex] || $cells[$loIndex] !== $wanted[$loIndex]) {
+            fail_test("$label: row $amount " . var_export($cells, true) . ', expected the cells of ' . var_export($known, true) . ' with type/organization ' . var_export([$wanted[$typeIndex], $wanted[$loIndex]], true));
+        }
+    }
+}
+// Edit form of a line with an unknown type: direction "Einnahme", the type
+// selected as unknown, without diagnostics.
+$edit = page_view('/index.php?action=edit&id=4782', $users['root,bgf'], 'root,bgf')['body'];
+assert_contains($edit, '<option value="in" selected>Einnahme</option>', 'unknown type: direction');
+assert_contains($edit, "<option value=\"77\" selected=\"selected\">Unbekannt (77)</option>", 'unknown type: type');
+// Also when the form is shown again (here: a booking line added).
+$again = http_request('/index.php?action=edit&id=4782', 'POST', [
+    'changed' => '1', 'parts' => '1', 'bid0' => '9152', 'dir0' => 'in', 'in_type0' => '77', 'out_type0' => '20',
+    'wk_type0' => '21', 'date0' => '16.09.2024', 'person_type0' => '2', 'lo0' => '1', 'amount0' => '47,82',
+    'id' => '4782', 'add' => 'Neue Buchungszeile',
+], $users['root,bgf']);
+assert_status($again, 200, 'unknown type: form shown again');
+assert_contains($again['body'], '<option value="77" selected="selected">Unbekannt (77)</option>', 'unknown type: form shown again');
+// A known type is not marked.
+$edit = page_view('/index.php?action=edit&id=4781', $users['root,bgf'], 'root,bgf')['body'];
+assert_contains($edit, '<option value="1" selected="selected">Synthetic membership fee</option>', 'known type 1');
+assert_not_contains($edit, 'Unbekannt (', 'known type 1');
+page_views_query($database, 'DELETE FROM vouchers WHERE id IN (9151, 9152, 9153, 9154)');
+page_views_query($database, 'DELETE FROM type WHERE id = 1');
+
 // The report lists the balance of a "Piratenpartei" organization on the
 // last day of the year.
 page_views_query($database, "INSERT INTO lo (id, name) VALUES (93, 'Piratenpartei Synthetic Balance Unit')");
