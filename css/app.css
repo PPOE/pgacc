@@ -238,13 +238,50 @@
      as wide as the box, columns in workflow order (unbearbeitet, bearbeitet,
      abgeschlossen) and a decorative stacked bar per year whose segment widths
      are the percentages (inline styles). The header swatches are the legend.
-     Narrow windows: each percentage goes below its count, the bar below the
-     row, and the header words break at their soft hyphens. */
+     Narrow windows: each percentage goes below its count (up to md, so the
+     fixed columns keep room for it), the bar below the row, and the header
+     words break at their soft hyphens. Older years sit
+     in a second table under <details>; fixed column widths (<colgroup>) line
+     both tables up (narrow windows: the rows' shared grid does). */
   .motd .progress {
     @apply mt-2 overflow-x-auto;
 
     & table {
-      @apply w-full;
+      @apply w-full sm:table-fixed;
+    }
+
+    & col.year {
+      @apply sm:w-14;
+    }
+
+    & col.bar {
+      @apply sm:w-[30%];
+    }
+
+    /* The older years' table: caption and head for screen readers only. */
+    & table.older caption,
+    & table.older thead {
+      @apply sr-only;
+    }
+
+    /* "Weitere Jahre anzeigen": a subtle link button. Opening is final: the
+       summary goes away and the older rows continue the table seamlessly
+       (keyboard focus falls back to the document, and Tab moves on from
+       there). */
+    & summary {
+      @apply mt-1 inline-flex cursor-pointer list-none items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-accent-dark select-none hover:bg-white/50 hover:underline;
+
+      &::-webkit-details-marker {
+        @apply hidden;
+      }
+
+      &::before {
+        @apply content-['▸'];
+      }
+    }
+
+    & details[open] > summary {
+      @apply hidden;
     }
 
     & caption {
@@ -265,12 +302,12 @@
     }
 
     & thead th {
-      @apply border-b border-motd-border text-right align-bottom sm:whitespace-nowrap;
+      @apply border-b border-motd-border text-right align-bottom;
     }
 
     & thead th:first-child,
     & tbody th {
-      @apply w-[1%] pl-0 text-left;
+      @apply pl-0 text-left;
     }
 
     & tbody th {
@@ -286,7 +323,7 @@
     }
 
     & .percent {
-      @apply block text-right text-muted sm:inline-block sm:min-w-[8ch];
+      @apply block text-right text-muted md:inline-block md:min-w-[8ch];
     }
 
     /* Legend swatches before the column names. */
@@ -311,7 +348,7 @@
     }
 
     & td.bar {
-      @apply w-[30%] pr-0 max-sm:col-span-full max-sm:w-auto max-sm:pt-0 max-sm:pb-1.5 max-sm:pl-0;
+      @apply pr-0 max-sm:col-span-full max-sm:pt-0 max-sm:pb-1.5 max-sm:pl-0;
 
       /* Segments without padding or borders: a 0% segment is not drawn. */
       & > span {

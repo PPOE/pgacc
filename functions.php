@@ -595,7 +595,7 @@ function getoppsort($sortn)
 function percent_of_bookings()
 {
     global $dbconn;
-    $text = "";
+    $rows = [];
     $startYear = 2012;
     $endYear = date('Y') + 1;
     for ($currentYear = $startYear; $currentYear < $endYear + 1; $currentYear++) {
@@ -612,7 +612,7 @@ function percent_of_bookings()
             $ap = round($a * 100 / (1.0 * $c), 2);
             $d = $c - $b - $a;
             $dp = round($d * 100 / (1.0 * $c), 2);
-            $text .= '<tr><th scope="row">' . html_escape($currentYear) . '</th><td>' . html_escape($c) . '</td>'
+            $rows[$currentYear] = '<tr><th scope="row">' . html_escape($currentYear) . '</th><td>' . html_escape($c) . '</td>'
                 . '<td>' . html_escape($d) . ' <span class="percent">(' . html_escape("$dp %") . ')</span></td>'
                 . '<td>' . html_escape($b) . ' <span class="percent">(' . html_escape("$bp %") . ')</span></td>'
                 . '<td>' . html_escape($a) . ' <span class="percent">(' . html_escape("$ap %") . ')</span></td>'
@@ -624,16 +624,46 @@ function percent_of_bookings()
         }
         pg_free_result($result);
     }
-    if ($text === "") {
+    if ($rows === []) {
         return "";
     }
-    return '<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption>'
+    // Newest first. Shown: the current and the previous year, at least the
+    // two most recent years with bookings; older years behind <details>.
+    $rows = array_reverse($rows, true);
+    $shown = 0;
+    foreach (array_keys($rows) as $year) {
+        if ($year >= $endYear - 2) {
+            $shown++;
+        }
+    }
+    $shown = max($shown, min(2, count($rows)));
+    $older = array_slice($rows, $shown, null, true);
+    $text = progress_table('Bearbeitungsstand der Buchungszeilen je Jahr', '', array_slice($rows, 0, $shown, true));
+    if ($older !== []) {
+        $years = array_keys($older);
+        $range = html_escape(end($years));
+        if (count($years) > 1) {
+            $range .= '&ndash;' . html_escape($years[0]);
+        }
+        $text .= '<details class="more"><summary>Weitere Jahre anzeigen (' . $range . ')</summary>'
+            . progress_table('Bearbeitungsstand der Buchungszeilen, weitere Jahre', ' class="older"', $older)
+            . '</details>';
+    }
+    return '<div class="progress">' . $text . '</div>';
+}
+
+// One table of the booking progress. Both tables have the same columns and
+// widths; the older years' table hides its caption and head visually.
+function progress_table($caption, $attributes, $rows)
+{
+    return '<table' . $attributes . '><caption>' . $caption . '</caption>'
+        . '<colgroup><col class="year" /><col span="4" /><col class="bar" /></colgroup>'
         . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungs&shy;zeilen</th>'
         . '<th scope="col"><span class="open" aria-hidden="true"></span>unbe&shy;arbeitet</th>'
         . '<th scope="col"><span class="edited" aria-hidden="true"></span>bear&shy;beitet</th>'
         . '<th scope="col"><span class="closed" aria-hidden="true"></span>abge&shy;schlossen</th>'
         . '<th class="bar" aria-hidden="true"></th></tr></thead>'
-        . '<tbody>' . $text . '</tbody></table></div>';
+        . '<tbody>' . implode('', $rows) . '</tbody></table>';
 }
 
 function eyes()

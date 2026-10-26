@@ -2,12 +2,13 @@
 
 /*
  * The booking progress table in the notice box (percent_of_bookings() in
- * functions.php): columns in workflow order and the stacked bar whose
- * segment widths repeat the rounded percentages. See tests/mutation/README.md
- * for the format.
+ * functions.php): columns in workflow order, the stacked bar whose segment
+ * widths repeat the rounded percentages, and the year selection (the current
+ * and the previous year, at least the two most recent years; older years in a
+ * <details> table). See tests/mutation/README.md for the format.
  */
 return [
-    'description' => 'functions.php percent_of_bookings() progress table and bar',
+    'description' => 'functions.php percent_of_bookings() progress table, bar and year selection',
     'file' => 'functions.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'testPercentOfBookings'],
@@ -41,9 +42,63 @@ return [
         ],
         [
             'id' => 'empty-table',
-            'search' => '    if ($text === "") {' . "\n" . '        return "";',
+            'search' => '    if ($rows === []) {' . "\n" . '        return "";',
             'replace' => '    if (false) {' . "\n" . '        return "";',
             'rationale' => 'Without bookings an empty table is shown.',
+        ],
+        [
+            'id' => 'years-ascending',
+            'search' => '    $rows = array_reverse($rows, true);',
+            'replace' => '    $rows = $rows;',
+            'rationale' => 'The years are listed oldest first, so the oldest years are shown.',
+        ],
+        [
+            'id' => 'shown-current-year-only',
+            'search' => '        if ($year >= $endYear - 2) {',
+            'replace' => '        if ($year >= $endYear - 1) {',
+            'rationale' => 'The previous year is hidden when the next year has bookings.',
+        ],
+        [
+            'id' => 'shown-three-years',
+            'search' => '        if ($year >= $endYear - 2) {',
+            'replace' => '        if ($year >= $endYear - 3) {',
+            'rationale' => 'The year before the previous one is shown too.',
+        ],
+        [
+            'id' => 'no-fallback',
+            'search' => '    $shown = max($shown, min(2, count($rows)));',
+            'replace' => '    $shown = $shown;',
+            'rationale' => 'Without bookings in the current and previous year no year is shown.',
+        ],
+        [
+            'id' => 'fallback-three-years',
+            'search' => '    $shown = max($shown, min(2, count($rows)));',
+            'replace' => '    $shown = max($shown, min(3, count($rows)));',
+            'rationale' => 'The fallback shows three years instead of two.',
+        ],
+        [
+            'id' => 'details-always',
+            'search' => '    if ($older !== []) {',
+            'replace' => '    if (true) {',
+            'rationale' => 'An empty <details> is shown when there are no older years.',
+        ],
+        [
+            'id' => 'range-single-year',
+            'search' => '        if (count($years) > 1) {',
+            'replace' => '        if (count($years) > 0) {',
+            'rationale' => 'A single older year is shown as the range 2012–2012.',
+        ],
+        [
+            'id' => 'range-reversed',
+            'search' => '        $range = html_escape(end($years));',
+            'replace' => '        $range = html_escape(reset($years));',
+            'rationale' => 'The summary range starts with the newest older year.',
+        ],
+        [
+            'id' => 'older-head-visible',
+            'search' => "            . progress_table('Bearbeitungsstand der Buchungszeilen, weitere Jahre', ' class=\"older\"', \$older)",
+            'replace' => "            . progress_table('Bearbeitungsstand der Buchungszeilen, weitere Jahre', '', \$older)",
+            'rationale' => 'The older years\' table repeats its caption and head visibly.',
         ],
     ],
 ];

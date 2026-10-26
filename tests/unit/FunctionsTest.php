@@ -698,6 +698,7 @@ final class FunctionsTest extends FunctionsTestCase
         $text = percent_of_bookings();
         self::assertStringStartsWith(
             '<div class="progress"><table><caption>Bearbeitungsstand der Buchungszeilen je Jahr</caption>'
+            . '<colgroup><col class="year" /><col span="4" /><col class="bar" /></colgroup>'
             . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungs&shy;zeilen</th>'
             . '<th scope="col"><span class="open" aria-hidden="true"></span>unbe&shy;arbeitet</th>'
             . '<th scope="col"><span class="edited" aria-hidden="true"></span>bear&shy;beitet</th>'
@@ -705,7 +706,9 @@ final class FunctionsTest extends FunctionsTestCase
             . '<th class="bar" aria-hidden="true"></th></tr></thead><tbody><tr>',
             $text,
         );
+        // Only two years of synthetic bookings: no older years to hide.
         self::assertStringEndsWith('</tr></tbody></table></div>', $text);
+        self::assertStringNotContainsString('<details', $text);
         // Workflow order: unbearbeitet, bearbeitet, abgeschlossen; the bar
         // repeats the rounded percentages as segment widths.
         self::assertStringContainsString(
@@ -717,6 +720,92 @@ final class FunctionsTest extends FunctionsTestCase
             $text,
         );
         self::assertStringNotContainsString('>2023<', $text);
+    }
+
+    public function testPercentOfBookingsHidesOlderYearsInATableWithTheSameColumns()
+    {
+        $year = intval(date('Y'));
+        $text = self::percentOfBookingsForYears([2012, 2013, $year - 2, $year - 1, $year]);
+        $older = substr($text, strpos($text, '<details'));
+        $head = '<colgroup><col class="year" /><col span="4" /><col class="bar" /></colgroup>'
+            . '<thead><tr><th scope="col">Jahr</th><th scope="col">Buchungs&shy;zeilen</th>'
+            . '<th scope="col"><span class="open" aria-hidden="true"></span>unbe&shy;arbeitet</th>'
+            . '<th scope="col"><span class="edited" aria-hidden="true"></span>bear&shy;beitet</th>'
+            . '<th scope="col"><span class="closed" aria-hidden="true"></span>abge&shy;schlossen</th>'
+            . '<th class="bar" aria-hidden="true"></th></tr></thead><tbody>';
+        self::assertStringStartsWith(
+            '<details class="more"><summary>Weitere Jahre anzeigen (2012&ndash;' . ($year - 2) . ')</summary>'
+            . '<table class="older"><caption>Bearbeitungsstand der Buchungszeilen, weitere Jahre</caption>' . $head
+            . '<tr><th scope="row">' . ($year - 2) . '</th><td>1</td><td>1 <span class="percent">(100 %)</span></td>',
+            $older,
+        );
+        self::assertStringContainsString('</caption>' . $head . '<tr><th scope="row">' . $year . '</th>', $text);
+        self::assertSame(1, substr_count($text, '<details'));
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('progressYearsProvider')]
+    public function testPercentOfBookingsShowsTheTwoMostRecentYears(array $offsets, array $shown, array $older, $summary)
+    {
+        $year = intval(date('Y'));
+        $relative = function (array $offsets) use ($year) {
+            return array_map(function ($offset) use ($year) {
+                return abs($offset) < 100 ? $year + $offset : $offset;
+            }, $offsets);
+        };
+        $text = self::percentOfBookingsForYears($relative($offsets));
+        $details = strpos($text, '<details');
+        $visible = $details === false ? $text : substr($text, 0, $details);
+        $hidden = $details === false ? '' : substr($text, $details);
+        self::assertSame($relative($shown), self::progressRowYears($visible));
+        self::assertSame($relative($older), self::progressRowYears($hidden));
+        if ($summary === null) {
+            self::assertFalse($details);
+        } else {
+            $summary = preg_replace_callback('/\{(-?\d+)\}/', function ($match) use ($year) {
+                return strval($year + intval($match[1]));
+            }, $summary);
+            self::assertStringContainsString('<summary>Weitere Jahre anzeigen (' . $summary . ')</summary>', $hidden);
+        }
+    }
+
+    // Years: offsets from the current year (0, -1, ...) or absolute years.
+    public static function progressYearsProvider()
+    {
+        return [
+            'current and previous year' => [[2012, 2013, -2, -1, 0], [0, -1], [-2, 2013, 2012], '2012&ndash;{-2}'],
+            'next year is shown too' => [[2012, -1, 0, 1], [1, 0, -1], [2012], '2012'],
+            'previous year missing' => [[2012, -3, -2, 0], [0, -2], [-3, 2012], '2012&ndash;{-3}'],
+            'current year missing' => [[2012, -3, -2, -1], [-1, -2], [-3, 2012], '2012&ndash;{-3}'],
+            'both missing' => [[2012, 2013, 2014], [2014, 2013], [2012], '2012'],
+            'two years only' => [[2012, 0], [0, 2012], [], null],
+            'one year only' => [[2013], [2013], [], null],
+        ];
+    }
+
+    // percent_of_bookings() with one unacknowledged booking in each year.
+    private static function percentOfBookingsForYears(array $years)
+    {
+        $connection = pg_connect(pgacc_test_connection_string());
+        self::assertNotFalse($connection);
+        pg_query($connection, 'BEGIN');
+        try {
+            pg_query($connection, 'UPDATE vouchers SET deleted = true');
+            foreach ($years as $year) {
+                // An explicit id: the rollback does not reset the id sequence,
+                // and later workflow tests expect its values.
+                pg_query_params($connection, 'INSERT INTO vouchers (id, voucher_id, date, deleted) VALUES ($1, $1, $2, false)', [987654000 + $year, "$year-06-15"]);
+            }
+            return percent_of_bookings();
+        } finally {
+            // The shared default link stays open for later tests.
+            pg_query($connection, 'ROLLBACK');
+        }
+    }
+
+    private static function progressRowYears($html)
+    {
+        preg_match_all('#<tr><th scope="row">(\d+)</th>#', $html, $matches);
+        return array_map('intval', $matches[1]);
     }
 
     public function testPercentOfBookingsWithoutBookingsIsEmpty()
