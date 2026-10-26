@@ -237,6 +237,14 @@ foreach ($listings as $label => $listing) {
 $edit = page_view('/index.php?action=edit&id=4782', $users['root,bgf'], 'root,bgf')['body'];
 assert_contains($edit, '<option value="in" selected>Einnahme</option>', 'unknown type: direction');
 assert_contains($edit, "<option value=\"77\" selected=\"selected\">Unbekannt (77)</option>", 'unknown type: type');
+// Also when the form is shown again (here: a booking line added).
+$again = http_request('/index.php?action=edit&id=4782', 'POST', [
+    'changed' => '1', 'parts' => '1', 'bid0' => '9152', 'dir0' => 'in', 'in_type0' => '77', 'out_type0' => '20',
+    'wk_type0' => '21', 'date0' => '16.09.2024', 'person_type0' => '2', 'lo0' => '1', 'amount0' => '47,82',
+    'id' => '4782', 'add' => 'Neue Buchungszeile',
+], $users['root,bgf']);
+assert_status($again, 200, 'unknown type: form shown again');
+assert_contains($again['body'], '<option value="77" selected="selected">Unbekannt (77)</option>', 'unknown type: form shown again');
 // A known type is not marked.
 $edit = page_view('/index.php?action=edit&id=4781', $users['root,bgf'], 'root,bgf')['body'];
 assert_contains($edit, '<option value="1" selected="selected">Synthetic membership fee</option>', 'known type 1');

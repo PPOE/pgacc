@@ -394,10 +394,9 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
         if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
             $voucher['dir'] = $line['income'] == 1 ? 'in' : ($line['income'] == 0 ? 'out' : 'wk');
         } else {
-            // A type id without a type row: the form's default direction,
-            // and the id is offered as unknown type (new.php).
+            // A type id without a type row: the form's default direction
+            // (new.php offers the id as unknown type).
             $voucher['dir'] = 'in';
-            $voucher['type_unknown'] = isset($vouchers[$part]['type']);
         }
         pg_free_result($result);
         $voucher['bid'] = $vouchers[$part]['id'];
@@ -405,7 +404,6 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
         $voucher['type'] = $vouchers[$part]['type'];
         if ($voucher['type'] == 45) {
             $voucher['dir'] = 'bel';
-            $voucher['type_unknown'] = false;
         }
         $voucher['person_type'] = $vouchers[$part]['person_type'];
         $voucher['lo'] = $vouchers[$part]['orga'];
@@ -430,7 +428,6 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
         $voucher['amount'] = 0;
         $voucher['dir'] = 'bel';
         $voucher['type'] = 45;
-        $voucher['type_unknown'] = false;
     }
     page_edit_form($part, $voucher, $rights);
 }
