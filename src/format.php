@@ -58,3 +58,10 @@ function format_date($date)
     }
     return $date;
 }
+// An amount in cents as euros with two decimals ("1234" as "12.34", null as
+// "0.00"), followed by $unit: "€" in the listings (tag() writes the decimal
+// point as a comma in the CSV export), "&nbsp;€" in the reports.
+function format_amount($cents, $unit = '')
+{
+    return sprintf("%1.2f", $cents / 100.0) . $unit;
+}

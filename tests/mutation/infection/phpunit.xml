@@ -21,6 +21,7 @@
     <testsuite name="functions.php">
       <file>/app/tests/unit/FunctionsTest.php</file>
       <file>/app/tests/unit/AmountParsingTest.php</file>
+      <file>/app/tests/unit/FormatTest.php</file>
       <file>/app/tests/unit/CryptoTest.php</file>
       <file>/app/tests/unit/LoginSessionTest.php</file>
       <file>/app/tests/unit/ReceiptStorageTest.php</file>

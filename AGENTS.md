@@ -126,7 +126,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
 | `functions.php` | Shared helpers: `acc_header`/`acc_footer`, `getfilter`, `getsort`, `rights2orgasql` (rights to SQL) |
 | `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure and log the calling page's file:line); web access denied (`src/.htaccess`); loaded by `index.php` and `mbapi.php` after `functions.php` |
-| `src/format.php` | Formatting and parsing helpers: `amount_cents()` (exact amount parsing), `format_date()`; loaded by `index.php` after `src/db.php` |
+| `src/format.php` | Formatting and parsing helpers: `amount_cents()` (exact amount parsing), `format_date()`, `format_amount()` (cents as `12.34` plus a unit); loaded by `index.php` after `src/db.php` |
 | `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), merge, revisions (finalization removed) |
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |

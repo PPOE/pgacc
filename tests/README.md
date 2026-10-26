@@ -237,7 +237,7 @@ the test container.
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets
 `error_reporting=-1`, `failOnNotice` and `failOnWarning`, so notices and
 warnings fail the run (PHPUnit 13 reports them per test instead of throwing). The suite covers `functions.php` (utility,
-rendering and the two PostgreSQL helpers), `src/format.php` (`AmountParsingTest.php`,
+rendering and the two PostgreSQL helpers), `src/format.php` (`AmountParsingTest.php`, `FormatTest.php`,
 `format_date()` in `FunctionsTest.php`), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
 (vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
