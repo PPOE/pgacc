@@ -1285,12 +1285,14 @@ differences above are only visible for out-of-range input.
     number but no stored file can be read: neither file exists, `<n>.aes` is
     a directory, unreadable, deleted after the check (e.g. by
     `--delete-legacy`), not read to its end (a read error;
-    `receipt_read_file()` compares the bytes read with the file size) or
-    shorter than one 32-byte block (mcrypt and `receipt_encrypt()` pad even
-    an empty receipt to one block, so a stored legacy file never is). That
-    used to send an empty or short `image/jpeg` with PHP warnings; the 500
-    sends none of the download headers. A directory or unreadable file at
-    `<n>.v2.aes` counts as not opened (no notice). One log line per failed
+    `receipt_read_file()` compares the bytes read with the file size), empty
+    or not a whole number of 32-byte blocks (mcrypt and `receipt_encrypt()`
+    zero-pad every receipt, even an empty one, to whole blocks, so a stored
+    legacy file never is). That used to send an empty, short or zero-padded
+    `image/jpeg` or PDF with PHP warnings; the 500 sends none of the
+    download headers. A directory or unreadable file at `<n>.v2.aes` counts
+    as not opened, on every open path (`receipt_open_regular()`, also the
+    migration's read and verify; no notice). One log line per failed
     or fallback download: `pgacc: receipt <n>: no readable stored file`
     without `<n>.v2.aes`, otherwise `pgacc: receipt <n>.v2.aes <reason>;`
     followed by `sent the legacy <n>.aes` or `no readable <n>.aes`, where
@@ -1302,8 +1304,8 @@ differences above are only visible for out-of-range input.
     server and only without root rights, as root ignores the mode). The v2
     reads need no size check: the MAC covers every byte and
     `receipt_v2_decrypt_chunks()` stops on a short read. Content-Length of a
-    legacy download is the number of bytes sent (the decrypted, zero-padded
-    size: the file size for every stored file, which is whole blocks). The
+    legacy download is the number of bytes sent (the decrypted size, equal
+    to the file size, as only whole blocks are sent). The
     log lines name the file only, never the key or its fingerprint. v2
     responses: Content-Type from the magic bytes (PDF, JPEG, otherwise
     `application/octet-stream` with `Content-Disposition: attachment;
@@ -1405,11 +1407,16 @@ differences above are only visible for out-of-range input.
   6. Run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy` also runs
      `sync` itself before it deletes anything and stops if that fails).
   7. Spot-check several migrated receipts (PDF and JPEG) in the browser,
-     before deleting anything, and check the web server's error log for
-     `pgacc: receipt <n>.v2.aes could not be decrypted; sent the legacy
-     <n>.aes`: while the legacy files exist, a key mismatch between the web
-     application and the migration still serves the old file, so only the
-     log shows it.
+     before deleting anything, and search the web server's error log for
+     downloads that fell back to the legacy file:
+     `grep 'pgacc: receipt .*; sent the legacy'` (each line is `pgacc:
+     receipt <n>.v2.aes <reason>; sent the legacy <n>.aes`; the reasons are
+     listed under "Download" above, e.g. a key mismatch between the web
+     application and the migration gives `could not be decrypted (wrong key
+     or modified file)`). While the legacy files exist, the old file is
+     still served, so only the log shows the problem. Same check as
+     UPGRADING.md, step 4 (`tests/http-receipts.php` checks that both give
+     this pattern and that it finds every fallback line).
   8. Delete the legacy files: `sudo -u <web user> php migrate-receipt-key.php
      --delete-legacy` (also with `--dry-run` first; it repeats the reminder).
      Each `<n>.aes` is deleted only after `<n>.v2.aes` decrypted to the same

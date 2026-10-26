@@ -36,12 +36,14 @@ function download_file($rights)
         // (see tests/COMPATIBILITY_PLAN.md); anything but a PDF is sent as JPEG.
         // Also sent while <n>.aes is kept and <n>.v2.aes does not decrypt (e.g. a
         // key mismatch before the migration deletes the legacy files).
-        // A stored <n>.aes is at least one 32-byte block: mcrypt and
-        // receipt_encrypt() pad even an empty receipt to one block. A directory,
-        // a file deleted after the check (e.g. by migrate-receipt-key.php
-        // --delete-legacy) or a read error give false (receipt_read_file()).
+        // A stored <n>.aes is whole 32-byte blocks, at least one: mcrypt and
+        // receipt_encrypt() zero-pad the receipt (even an empty one) to whole
+        // blocks. A directory, a file deleted after the check (e.g. by
+        // migrate-receipt-key.php --delete-legacy) or a read error give false
+        // (receipt_read_file()), counted as empty.
         $ciphertext = receipt_read_file(receipt_legacy_path($directory, $file));
-        if (strlen((string) $ciphertext) < 32) {
+        $size = strlen((string) $ciphertext);
+        if ($size === 0 || $size % 32 !== 0) {
             // No usable <n>.v2.aes and no readable <n>.aes (also neither file at all).
             error_log($problem === null ? "pgacc: receipt $file: no readable stored file"
               : "pgacc: receipt $file.v2.aes $problem; no readable $file.aes");

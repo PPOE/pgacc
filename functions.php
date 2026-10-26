@@ -1019,9 +1019,9 @@ function receipt_v2_open($path, $number)
     if ($receiptKey === '') {
         return [false, 'not decrypted: no valid receipt key ($key) configured'];
     }
-    // Missing (e.g. deleted after the check), unreadable or not a regular file
-    // (a directory opens, but its reads fail): not a wrong key.
-    $in = is_file($path) ? @fopen($path, 'rb') : false;
+    // Missing (e.g. deleted after the check), unreadable or not a regular file:
+    // not a wrong key.
+    $in = receipt_open_regular($path);
     if ($in === false) {
         return [false, 'could not be opened'];
     }
@@ -1033,7 +1033,7 @@ function receipt_v2_open($path, $number)
 // opened or is not read completely (a read error returns the bytes so far).
 function receipt_read_file($path)
 {
-    $in = is_file($path) ? @fopen($path, 'rb') : false;
+    $in = receipt_open_regular($path);
     if ($in === false) {
         return false;
     }
@@ -1043,9 +1043,17 @@ function receipt_read_file($path)
     return is_string($data) && strlen($data) === $stat['size'] ? $data : false;
 }
 
+// A stored receipt file opened for reading, or false if it is missing,
+// unreadable or not a regular file (a directory opens on Linux, but its reads
+// raise a notice), without a PHP warning.
+function receipt_open_regular($path)
+{
+    return is_file($path) ? @fopen($path, 'rb') : false;
+}
+
 function receipt_v2_open_with($key, $number, $path)
 {
-    $in = @fopen($path, 'rb');
+    $in = receipt_open_regular($path);
     if ($in === false) {
         return false;
     }

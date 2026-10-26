@@ -657,6 +657,25 @@ final class ReceiptStorageTest extends FunctionsTestCase
         rmdir($directory);
     }
 
+    public function testEveryOpenPathRefusesADirectory()
+    {
+        // The migration's read and verify (receipt_v2_open_with()) refuse a
+        // directory at <n>.v2.aes like downloads do, without a notice.
+        $directory = $this->directory . '/42.v2.aes';
+        mkdir($directory);
+        list($results, $log, $diagnostics) = self::logged(function () use ($directory) {
+            return [receipt_open_regular($directory), receipt_v2_open_with(self::TEST_KEY, '42', $directory),
+                receipt_v2_verify_with(self::TEST_KEY, '42', $directory), receipt_v2_read_with(self::TEST_KEY, '42', $directory)];
+        });
+        self::assertSame([false, false, false, false], $results);
+        self::assertSame(['', []], [$log, $diagnostics]);
+        rmdir($directory);
+        file_put_contents($directory, 'x');
+        $in = receipt_open_regular($directory);
+        self::assertSame('x', fread($in, 8));
+        fclose($in);
+    }
+
     public function testReadFileRefusesWhatIsNotReadCompletely()
     {
         $path = $this->directory . '/7.aes';

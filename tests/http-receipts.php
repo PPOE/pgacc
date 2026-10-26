@@ -110,7 +110,11 @@ function assert_undecryptable_download($cookies, $id, $label, $baseUrl = null)
 
 // What the server logs (error_log()) for one download: the request goes to a
 // second server started by this script, whose standard error the test can
-// read (the application service's log is not shared with the test).
+// read (the application service's log is not shared with the test). Its fixed
+// port and log file cannot collide with another run: every run
+// (PGACC_TEST_ID) has its own test container, with its own network namespace
+// and /tmp, and runs its HTTP test files one after another; the other files
+// use ports 8081 to 8083.
 function receipt_download_log($cookies, $id)
 {
     static $baseUrl = null;
@@ -288,11 +292,12 @@ $storedCases = [
     // One block, the shortest stored legacy receipt: sent.
     [9124, 4711, 990018, ['aes' => hex2bin($receiptVectors['pdf 32 bytes']['cipher'])],
         hex2bin($receiptVectors['pdf 32 bytes']['plain']), 'application/pdf', 'one-block legacy receipt'],
-    // A damaged <n>.aes that is not whole blocks (no stored file is) decrypts
-    // zero-padded; Content-Length is what is sent, not the file size.
+    // A damaged <n>.aes that is not whole 32-byte blocks (no stored file is):
+    // refused, not sent with a zero-padded last block.
     [9125, 4711, 990019, ['aes' => substr(hex2bin($receiptVectors['pdf document']['cipher']), 0, 95)],
-        receipt_decrypt('4711', '', substr(hex2bin($receiptVectors['pdf document']['cipher']), 0, 95)), 'application/pdf',
-        'legacy file that is not whole blocks'],
+        null, null, 'legacy file that is not whole blocks'],
+    [9128, 4711, 990022, ['aes' => substr(hex2bin($receiptVectors['pdf document']['cipher']), 0, 48)],
+        null, null, 'legacy file of one and a half blocks'],
     // A directory at <n>.v2.aes cannot be opened (no notice, not a wrong
     // key): the legacy file is sent if there is one, otherwise refused.
     [9126, 4711, 990020, ['v2.aes' => null, 'aes' => hex2bin($receiptVectors['pdf document']['cipher'])],
@@ -317,7 +322,7 @@ foreach ($storedCases as $case) {
 // The log names the file number of a receipt without a readable stored file,
 // or why <n>.v2.aes was not used (a verification failure is not logged as a
 // missing file).
-foreach ([9120 => 990014, 9121 => 990015, 9122 => 990016, 9123 => 990017] as $id => $fileNumber) {
+foreach ([9120 => 990014, 9121 => 990015, 9122 => 990016, 9123 => 990017, 9125 => 990019, 9128 => 990022] as $id => $fileNumber) {
     $response = assert_receipt_log(
         $adminCookies,
         $id,
@@ -350,15 +355,18 @@ foreach ($logCases as $id => $logCase) {
 // not as a wrong key, and the readable <n>.aes is sent. The modes are restored
 // even if an assertion fails.
 if (function_exists('posix_geteuid') && posix_geteuid() !== 0) {
-    $unreadable = ["$filesDirectory/990001.aes", "$filesDirectory/990012.v2.aes"];
-    $restore = function () use ($unreadable) {
-        foreach ($unreadable as $name) {
-            @chmod($name, 0644);
+    $modes = [];
+    foreach (["$filesDirectory/990001.aes", "$filesDirectory/990012.v2.aes"] as $name) {
+        $modes[$name] = fileperms($name) & 07777;
+    }
+    $restore = function () use ($modes) {
+        foreach ($modes as $name => $mode) {
+            @chmod($name, $mode);
         }
     };
     register_shutdown_function($restore);
     try {
-        chmod($unreadable[0], 0);
+        chmod("$filesDirectory/990001.aes", 0);
         $response = assert_receipt_log(
             $adminCookies,
             9104,
@@ -367,7 +375,7 @@ if (function_exists('posix_geteuid') && posix_geteuid() !== 0) {
             'log of an unreadable legacy file',
         );
         assert_status($response, 500, 'unreadable legacy file');
-        chmod($unreadable[1], 0);
+        chmod("$filesDirectory/990012.v2.aes", 0);
         $response = assert_receipt_log(
             $adminCookies,
             9117,
@@ -379,6 +387,48 @@ if (function_exists('posix_geteuid') && posix_geteuid() !== 0) {
     } finally {
         $restore();
     }
+}
+
+// UPGRADING.md and the runbook in tests/COMPATIBILITY_PLAN.md tell operators
+// to grep the log for downloads that fell back to <n>.aes before
+// --delete-legacy: both give the same pattern, and it finds every fallback
+// line above (each reason) and no other receipt line.
+$patterns = [];
+foreach (['UPGRADING.md', 'tests/COMPATIBILITY_PLAN.md'] as $document) {
+    $text = preg_replace('/\s+/', ' ', (string) file_get_contents(dirname(__DIR__) . '/' . $document));
+    if (preg_match_all("/`grep '(pgacc: receipt [^']*)'/", $text, $found) !== 1) {
+        fail_test("$document should give exactly one grep pattern for the receipt fallback log line");
+    }
+    $patterns[$document] = $found[1][0];
+}
+if (count(array_unique($patterns)) !== 1) {
+    fail_test('the documented grep patterns differ: ' . var_export($patterns, true));
+}
+$pattern = '/' . str_replace('/', '\/', $patterns['UPGRADING.md']) . '/';
+$fallbackLines = [
+    "pgacc: receipt 990012.v2.aes $wrongKey; sent the legacy 990012.aes",
+    'pgacc: receipt 990020.v2.aes could not be opened; sent the legacy 990020.aes',
+];
+// The reason without a configured key, as receipt_v2_open() gives it.
+$GLOBALS['key'] = 'CHANGE-ME';
+list(, $noKey) = receipt_v2_open("$filesDirectory/990012.v2.aes", '990012');
+unset($GLOBALS['key']);
+$fallbackLines[] = "pgacc: receipt 990012.v2.aes $noKey; sent the legacy 990012.aes";
+foreach ($fallbackLines as $line) {
+    if (preg_match($pattern, $line) !== 1) {
+        fail_test("the documented grep pattern $pattern does not find " . var_export($line, true));
+    }
+}
+foreach (['pgacc: receipt 990005.v2.aes ' . $wrongKey . '; no readable 990005.aes',
+    'pgacc: receipt 990014: no readable stored file'] as $line) {
+    if (preg_match($pattern, $line) === 1) {
+        fail_test("the documented grep pattern $pattern also finds " . var_export($line, true));
+    }
+}
+// The fallback lines checked above are the ones the server writes.
+list(, $log) = receipt_download_log($adminCookies, 9126);
+if (strpos($log, $fallbackLines[1]) === false || preg_match($pattern, $log) !== 1) {
+    fail_test('the fallback log line changed: ' . var_export($log, true));
 }
 
 // Known bug KB-RECEIPT-LEGACY-MERGE (tests/COMPATIBILITY_PLAN.md), not

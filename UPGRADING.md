@@ -116,11 +116,17 @@ any directory. The script works only on the command line.
 3. Run `sync` once more (PHP 5.3 cannot fsync; `--delete-legacy` also runs
    `sync` itself before it deletes anything and stops if that fails).
 4. Verify: spot-check several migrated receipts (PDF and JPEG) in the
-   browser, before deleting anything, and check the web server's error log
-   for `pgacc: receipt <n>.v2.aes could not be decrypted; sent the legacy
-   <n>.aes`: while the legacy files exist, a key mismatch between the web
-   application and the migration still serves the old file, so only the log
-   shows it.
+   browser, before deleting anything, and search the web server's error log
+   for downloads that fell back to the legacy file:
+   `grep 'pgacc: receipt .*; sent the legacy'` (each line is `pgacc: receipt
+   <n>.v2.aes <reason>; sent the legacy <n>.aes`). While the legacy files
+   exist, the old file is still served, so only the log shows the problem.
+   The reason is `could not be decrypted (wrong key or modified file)` (e.g.
+   a key mismatch between the web application and the migration), `could
+   not be opened` (missing, unreadable or not a regular file, e.g. file
+   permissions) or `not decrypted: no valid receipt key ($key) configured`.
+   Refused downloads are logged as `pgacc: receipt <n>: no readable stored
+   file` or `pgacc: receipt <n>.v2.aes <reason>; no readable <n>.aes`.
 5. Later, delete the legacy files: `sudo -u <web user> php
    migrate-receipt-key.php --delete-legacy` (also with `--dry-run` first; it
    repeats the reminder). Each `<n>.aes` is deleted only after `<n>.v2.aes`
