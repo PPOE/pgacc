@@ -263,18 +263,36 @@ function revise_receipt_voucher($database, $cookies, $voucherId, $form, $label)
     assert_no_problems(redirect_problems($response, "index.php?action=edit&id=$voucherId&hint=5"), $label);
 }
 
-// A refused revision writes nothing: the voucher keeps its rows.
-function assert_revision_refused($database, $cookies, $voucherId, $form, $label)
+// A refused revision writes nothing (the voucher keeps its rows) and shows
+// the message and the form again with the posted values.
+function revision_refused_message($message)
 {
-    $before = receipts_query($database, 'SELECT * FROM vouchers WHERE voucher_id = $1 ORDER BY id', [$voucherId], $label);
-    $response = revision_request($cookies, $voucherId, $form);
+    return '<div class="slot_error" id="slot_error">FEHLER: ' . $message . '</div>';
+}
+
+function voucher_state($database, $voucherId, $label)
+{
+    return receipts_query($database, 'SELECT * FROM vouchers WHERE voucher_id = $1 ORDER BY id', [$voucherId], $label);
+}
+
+function assert_refused_response($database, $response, $voucherId, $before, $form, $message, $label)
+{
     assert_status($response, 200, $label);
-    assert_contains($response['body'], '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde inzwischen geändert. Bitte neu laden.</div>', $label);
-    assert_contains($response['body'], '<a href="index.php?action=edit&id=' . $voucherId . '">Zurück zur Buchung</a>', $label);
+    assert_contains($response['body'], revision_refused_message($message), $label);
     assert_not_contains($response['body'], 'Buchung aktualisiert', $label);
-    if (receipts_query($database, 'SELECT * FROM vouchers WHERE voucher_id = $1 ORDER BY id', [$voucherId], $label) !== $before) {
+    if (isset($form['comment0'])) {
+        assert_contains($response['body'], 'value="' . $form['comment0'] . '"', $label);
+    }
+    if (voucher_state($database, $voucherId, $label) !== $before) {
         fail_test("$label changed the voucher");
     }
+}
+
+function assert_revision_refused($database, $cookies, $voucherId, $form, $label, $message = 'Die Buchung wurde inzwischen geändert. Bitte neu laden.')
+{
+    $before = voucher_state($database, $voucherId, $label);
+    $response = revision_request($cookies, $voucherId, $form);
+    assert_refused_response($database, $response, $voucherId, $before, $form, $message, $label);
 }
 
 $unitOneCookies = login_user('synthetic-unit-one', 'unit-password');
@@ -331,21 +349,31 @@ $refused = [
 ];
 foreach ($refused as $label => $case) {
     list($voucherId, $comment, $bid) = $case;
-    assert_revision_refused($database, $unitOneCookies, $voucherId, receipt_voucher_form($comment, $bid, $foreignFile), "revision posting the $label");
+    $form = receipt_voucher_form($comment, $bid, $foreignFile);
+    $form['comment0'] = "Synthetic refused revision ($label)";
+    assert_revision_refused($database, $unitOneCookies, $voucherId, $form, "revision posting the $label");
 }
+// A row with a receipt that is not posted again (a removed part) is not
+// dropped: refused. No part at all is refused too.
+$form = receipt_voucher_form('Synthetic revision dropping a receipt', 0, 0);
+assert_revision_refused($database, $unitOneCookies, 4781, $form, 'revision without the row with a receipt', 'Eine Buchungszeile mit Beleg kann nicht entfernt werden.');
+$form = receipt_voucher_form('Synthetic revision without parts', 0, 0);
+$form['parts'] = '0';
+unset($form['comment0']);
+assert_revision_refused($database, $unitOneCookies, 4780, $form, 'revision without parts', 'Keine Buchungszeile angegeben.');
 assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'receipt after the refused revisions');
 assert_receipt_number($foreignFile, receipts_query($database, 'SELECT file FROM vouchers WHERE id = 9183', [], 'row of organization 2')[0]['file'], 'receipt of organization 2 after the refused revisions');
 
 // Each stored receipt goes to one revised row at most: a row posted twice
 // keeps its receipt once, swapped rows keep their own receipts.
 list($first, $second) = current_receipt_rows($database, 'Synthetic revision with two receipts');
-revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$first['id'], $first['id']], 0), 'revision posting a row twice');
-$files = array_column(current_receipt_rows($database, 'Synthetic revision with two receipts'), 'file');
-sort($files);
-if ($files !== ['0', '99003']) {
-    fail_test('revision posting a row twice stored receipts ' . var_export($files, true));
+revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$first['id'], $first['id'], $second['id']], 0), 'revision posting a row twice');
+$rows = current_receipt_rows($database, 'Synthetic revision with two receipts');
+if (array_column($rows, 'file') !== ['99003', '0', '99004']) {
+    fail_test('revision posting a row twice stored receipts ' . var_export(array_column($rows, 'file'), true));
 }
-receipts_query($database, "UPDATE vouchers SET file = CASE WHEN id = (SELECT min(id) FROM vouchers WHERE voucher_id = 4783 AND NOT deleted) THEN 99003 ELSE 99004 END WHERE voucher_id = 4783 AND NOT deleted", [], 'receipts of the swapped rows');
+// The row without a receipt can be removed.
+revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$rows[0]['id'], $rows[2]['id']], 0), 'revision removing a row without a receipt');
 list($first, $second) = current_receipt_rows($database, 'Synthetic revision with two receipts');
 revise_receipt_voucher($database, $unitOneCookies, 4783, receipt_voucher_form('Synthetic revision with two receipts', [$second['id'], $first['id']], 0), 'revision with swapped rows');
 $files = array_column(current_receipt_rows($database, 'Synthetic revision with two receipts'), 'file');
@@ -353,6 +381,95 @@ if ($files !== ['99004', '99003']) {
     fail_test('revision with swapped rows stored receipts ' . var_export($files, true));
 }
 assert_receipt_download($adminCookies, 9101, $pdf, 'application/pdf', $foreignFile, 'receipt after the posted receipt numbers', true);
+
+// A revision whose row lock PostgreSQL aborts for a deadlock is rolled back
+// and shown again with a message to save again. The test holds the lock of
+// the second row and, once the save waits for it while holding the first
+// one, requests the first row: the save (waiting first) is the deadlock's
+// victim. The request is sent without waiting for its answer (the test
+// server answers one request at a time).
+function http_request_start($path, $form, $cookies)
+{
+    $form['csrf_token'] = session_csrf_token($cookies);
+    $url = parse_url(getenv('PGACC_TEST_BASE_URL'));
+    $socket = @stream_socket_client('tcp://' . $url['host'] . ':' . ($url['port'] ?? 80), $errno, $error, 10);
+    if ($socket === false) {
+        fail_test("could not connect to the application: $error");
+    }
+    $cookieParts = [];
+    foreach ($cookies as $name => $value) {
+        $cookieParts[] = "$name=$value";
+    }
+    $content = http_build_query($form, '', '&');
+    fwrite($socket, "POST $path HTTP/1.0\r\nHost: pgacc.test\r\nX-Forwarded-Proto: https\r\n"
+        . 'X-Pgacc-Test-Request: ' . next_diagnostics_request_id() . "\r\n"
+        . 'Cookie: ' . implode('; ', $cookieParts) . "\r\n"
+        . "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: " . strlen($content) . "\r\n\r\n$content");
+    return $socket;
+}
+
+function http_request_finish($socket)
+{
+    stream_set_timeout($socket, 20);
+    $raw = stream_get_contents($socket);
+    fclose($socket);
+    $parts = explode("\r\n\r\n", $raw, 2);
+    if (count($parts) !== 2 || preg_match('#^HTTP/\S+ (\d+)#', $parts[0], $matches) !== 1) {
+        fail_test('the application sent no HTTP response');
+    }
+    return ['status' => intval($matches[1]), 'body' => $parts[1]];
+}
+
+receipts_query(
+    $database,
+    "INSERT INTO vouchers (id, voucher_id, type, orga, member, amount, account, comment, committed,
+                           date, person_type, file, save_user, vaccount)
+     VALUES (9186, 4784, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision in a deadlock', false,
+             timestamp '2024-09-15 00:00:00', 1, 0, 3, 'TESTVIRTUAL1'),
+            (9187, 4784, 20, 1, false, -100, 'TESTACCOUNT1', 'Synthetic revision in a deadlock', false,
+             timestamp '2024-09-15 00:00:00', 1, 99005, 3, 'TESTVIRTUAL1')",
+    [],
+    'voucher of the deadlock',
+);
+$locker = pg_connect(pgacc_test_connection_string(), PGSQL_CONNECT_FORCE_NEW);
+receipts_query($locker, 'BEGIN', [], 'lock of the second row');
+receipts_query($locker, 'SELECT id FROM vouchers WHERE id = 9187 FOR UPDATE', [], 'lock of the second row');
+$before = voucher_state($database, 4784, 'voucher of the deadlock');
+$form = receipt_voucher_form('Synthetic revision in a deadlock', [9186, 9187], 0);
+$form['comment0'] = 'Synthetic revised in a deadlock';
+$form += ['id' => '4784', 'changed' => '1', 'ack1' => '', 'ack2' => '', 'ack1_old' => '', 'ack2_old' => ''];
+$socket = http_request_start('/index.php?action=edit&id=4784', $form, $unitOneCookies);
+// The save waits for the second row (holding the first one).
+$waiting = false;
+for ($try = 0; $try < 100 && !$waiting; $try++) {
+    usleep(50000);
+    $waiting = receipts_query($database, "SELECT count(*) AS n FROM pg_locks WHERE NOT granted AND locktype = 'transactionid'", [], 'waiting save')[0]['n'] !== '0';
+}
+if (!$waiting) {
+    fail_test('the revision did not wait for the locked row');
+}
+@pg_query($locker, 'SELECT id FROM vouchers WHERE id = 9186 FOR UPDATE');
+receipts_query($locker, 'ROLLBACK', [], 'end of the lock');
+pg_close($locker);
+$response = http_request_finish($socket);
+assert_refused_response($database, $response, 4784, $before, $form, 'Die Buchung wird gerade gleichzeitig geändert. Bitte erneut speichern.', 'revision in a deadlock');
+// Saved again, it is stored.
+revise_receipt_voucher($database, $unitOneCookies, 4784, receipt_voucher_form('Synthetic revision after a deadlock', [9186, 9187], 0), 'revision after a deadlock');
+if (array_column(current_receipt_rows($database, 'Synthetic revision after a deadlock'), 'file') !== ['0', '99005']) {
+    fail_test('revision after a deadlock lost a receipt');
+}
+// Any other failure of the row lock ends the request with the pages'
+// message, as every failed statement does, and writes nothing (here: a
+// column renamed for the test).
+$before = voucher_state($database, 4784, 'voucher before a failed lock');
+receipts_query($database, 'ALTER TABLE vouchers RENAME COLUMN receipt_received TO receipt_received_renamed', [], 'renamed column');
+$response = revision_request($unitOneCookies, 4784, receipt_voucher_form('Synthetic revision with a failed lock', [9186, 9187], 0));
+receipts_query($database, 'ALTER TABLE vouchers RENAME COLUMN receipt_received_renamed TO receipt_received', [], 'restored column');
+assert_contains($response['body'], 'Abfrage fehlgeschlagen: ERROR:  column "receipt_received" does not exist', 'revision with a failed lock');
+assert_not_contains($response['body'], 'Buchung aktualisiert', 'revision with a failed lock');
+if (voucher_state($database, 4784, 'voucher after a failed lock') !== $before) {
+    fail_test('revision with a failed lock changed the voucher');
+}
 
 // A merge changes the voucher ID of the merged rows. A <n>.v2.aes is keyed on
 // the file number, so its receipt still downloads afterwards.

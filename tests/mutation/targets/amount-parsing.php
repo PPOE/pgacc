@@ -288,8 +288,8 @@ return [
         [
             'id' => 'edit-refused-marked-saved',
             'file' => 'edit.php',
-            'search' => "        page_edit(\$form_rights, true);",
-            'replace' => "        page_edit(\$form_rights, false);",
+            'search' => "        amount_refused();\n        page_edit(\$form_rights, true);",
+            'replace' => "        amount_refused();\n        page_edit(\$form_rights, false);",
             'rationale' => 'The refused revision is shown as unsaved.',
         ],
         [

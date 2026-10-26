@@ -110,6 +110,27 @@ function posted_amounts_valid($parts, $rights)
     }
     return true;
 }
+// Loads the member list (getusers(): the membership system, ppmembers) when a
+// posted part is a member's, before the voucher is written (a revision: before
+// its transaction). Returns whether it was loaded; members_drop() removes it
+// afterwards.
+function members_load($parts, $rights)
+{
+    for ($part = 0; $part < $parts; $part++) {
+        if (get_voucher($part, $rights, false)['member'] == 'true') {
+            getusers();
+            return true;
+        }
+    }
+    return false;
+}
+function members_drop($loaded)
+{
+    global $dbconn;
+    if ($loaded) {
+        db_exec($dbconn, 'DROP TABLE IF EXISTS ppmembers;');
+    }
+}
 // The page shown instead of saving a voucher with an invalid amount.
 function amount_refused()
 {
@@ -146,8 +167,8 @@ function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old
         $voucher['purpose'] = 'false';
     }
 
+    // The member list (ppmembers) is loaded by the caller (members_load()).
     if ($voucher['member'] == 'true') {
-        getusers();
         if ($voucher['mitgliedsnummer'] == 0) {
             $queries = [];
             if (strlen($voucher['name']) > 0) {
@@ -190,9 +211,6 @@ function page_save_buchung($voucher_number, $rights, $part, $ack1_old, $ack2_old
             }
             pg_free_result($result);
         }
-
-        $query = 'DROP TABLE IF EXISTS ppmembers;';
-        db_exec($dbconn, $query);
     }
     $bid = intval($voucher['bid']);
     $voucher['file'] = $stored_files[$bid] ?? 0;
@@ -241,6 +259,7 @@ function page_new_save($rights)
         page_new($form_rights);
         return;
     }
+    $members = members_load($parts, $rights);
     $voucher_number = db_next_value($dbconn, 'voucher_number');
 
     echo "<h1>Buchung erfasst - Buchung Nr. $voucher_number - AUF BELEG NOTIEREN!</h1>";
@@ -251,6 +270,7 @@ function page_new_save($rights)
     for ($i = 0; $i < $parts; $i++) {
         page_save_buchung($voucher_number, $rights, $i, null, null, $warnings, $stored_files);
     }
+    members_drop($members);
 }
 function page_new_file($rights)
 {

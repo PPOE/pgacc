@@ -103,9 +103,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Saving a voucher keeps its stored receipt; a receipt number in the request
   is ignored. A new voucher starts without a receipt (the upload attaches
   one), and a revised row keeps the receipt of the current row it replaces.
-  A form opened before another save of the voucher is refused ("Die Buchung
-  wurde inzwischen geändert. Bitte neu laden.") and changes nothing. A
-  revision is saved in one database transaction.
+  A revision is refused, changes nothing and shows the form again when the
+  form was opened before another save of the voucher ("Die Buchung wurde
+  inzwischen geändert. Bitte neu laden."), when it drops a row with a
+  receipt, when it has no rows, or when locking its rows ends in a deadlock
+  with a concurrent change ("Bitte erneut speichern"). A revision is saved in one database
+  transaction; the member list is fetched before it.
 
 ### Removed
 

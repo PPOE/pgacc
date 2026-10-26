@@ -159,6 +159,42 @@ function page_edit_ack($rights)
     db_exec($dbconn, $query);
     relocate("index.php?action=edit&id=$id&hint=4");
 }
+// A refused revision: the message, then the form with the posted values.
+function revision_refused($message)
+{
+    echo '<div class="slot_error" id="slot_error">FEHLER: ' . $message . '</div><br /><br /><br />';
+}
+function edit_save_rollback($members)
+{
+    global $dbconn;
+    db_exec($dbconn, 'ROLLBACK;');
+    members_drop($members);
+}
+// Locks the current rows of voucher $id in the order of their IDs and returns
+// them (id, file, receipt_received, mine: whether the user sees the row);
+// null when PostgreSQL aborts the statement for a deadlock (the transaction
+// is then rolled back by the caller).
+function edit_lock_rows($id, $rightssql)
+{
+    global $dbconn;
+    $query = "SELECT id, file, receipt_received, (TRUE $rightssql) AS mine FROM vouchers WHERE NOT deleted AND voucher_id = $id ORDER BY id FOR UPDATE;";
+    pg_send_query($dbconn, $query);
+    $result = pg_get_result($dbconn);
+    // One statement, one result: this ends the query.
+    while (pg_get_result($dbconn) !== false) {
+    }
+    $state = pg_result_error_field($result, PGSQL_DIAG_SQLSTATE);
+    if ($state === '40P01') {
+        pg_free_result($result);
+        return null;
+    }
+    if ($state !== null) {
+        db_fail($dbconn, null);
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows;
+}
 function page_edit_save($rights)
 {
     global $dbconn;
@@ -185,65 +221,84 @@ function page_edit_save($rights)
     }
     $rightssql = rights2orgasql($rights);
 
-    // Only a voucher of which the user sees a current row; a finalized row
+    // The member list is loaded before the transaction (no external call
+    // while the rows are locked).
+    $members = members_load($parts, $rights);
+    // The checks, the approval reset, the replacement of the user's rows and
+    // the new rows are one transaction on the locked current rows of the
+    // voucher; a refusal rolls it back and writes nothing.
+    db_exec($dbconn, 'BEGIN;');
+    $rows = edit_lock_rows($id, $rightssql);
+    if ($rows === null) {
+        edit_save_rollback($members);
+        revision_refused('Die Buchung wird gerade gleichzeitig geändert. Bitte erneut speichern.');
+        page_edit($form_rights, true);
+        return;
+    }
+    // The user's current rows (row ID => receipt number); a finalized row
     // blocks the revision of the whole voucher, also a row of another
     // organization.
-    $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
-    $result = db_query($dbconn, $query);
-    if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
+    $stored_files = [];
+    $finalized = false;
+    foreach ($rows as $line) {
+        if ($line['mine'] == 't') {
+            $stored_files[intval($line['id'])] = intval($line['file']);
+        }
+        if ($line['receipt_received'] == 't') {
+            $finalized = true;
+        }
+    }
+    // Only a voucher of which the user sees a current row.
+    if (count($stored_files) == 0) {
+        edit_save_rollback($members);
         echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
-        pg_free_result($result);
         return;
     }
-    pg_free_result($result);
-
-    $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
-    $result = db_query($dbconn, $query);
-    if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+    if ($finalized) {
+        edit_save_rollback($members);
         echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
-        pg_free_result($result);
         return;
     }
-    pg_free_result($result);
 
     if (!posted_organizations_allowed($parts, $rights)) {
+        edit_save_rollback($members);
         echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
         return;
     }
     // Nothing is written (no revision, no approval reset): the form again.
     if (!posted_amounts_valid($parts, $rights)) {
+        edit_save_rollback($members);
         amount_refused();
         page_edit($form_rights, true);
         return;
     }
-    // The snapshot of the user's current rows, the approval reset, the
-    // replacement of the rows and the new rows are one transaction; the rows
-    // stay locked against a concurrent upload or save until the commit.
-    db_exec($dbconn, 'BEGIN;');
-    // All current rows of the voucher (also of other organizations, whose
-    // approvals are reset too), locked in the order of their IDs.
-    db_exec($dbconn, "SELECT id FROM vouchers WHERE NOT deleted AND voucher_id = $id ORDER BY id FOR UPDATE;");
-    // The receipt numbers of the revised rows: only current rows of this
-    // voucher that the user sees pass theirs on (page_save_buchung() ignores
-    // posted ones). A posted row that is not one of them (a form opened
-    // before another save) refuses the save.
-    $stored_files = [];
-    $query = "SELECT id, file FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
-    $result = db_query($dbconn, $query);
-    while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        $stored_files[intval($line['id'])] = intval($line['file']);
-    }
-    pg_free_result($result);
+    // The posted rows must be current rows of the user (page_save_buchung()
+    // takes their receipt numbers, posted ones are ignored); another row
+    // means a form opened before another save. A row with a receipt must be
+    // posted again, so that no receipt is dropped.
+    $posted = [];
     for ($i = 0; $i < $parts; $i++) {
-        $bid = intval(get_param($i, 'bid', 0, '/^\d+$/'));
+        $posted[] = intval(get_param($i, 'bid', 0, '/^\d+$/'));
+    }
+    $message = null;
+    if ($parts < 1) {
+        $message = 'Keine Buchungszeile angegeben.';
+    }
+    foreach ($posted as $bid) {
         if ($bid > 0 && !array_key_exists($bid, $stored_files)) {
-            db_exec($dbconn, 'ROLLBACK;');
-            echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde inzwischen geändert. Bitte neu laden.</div><br /><br /><br />';
-            block_start();
-            echo "<a href=\"index.php?action=edit&id=$id\">Zurück zur Buchung</a>";
-            block_end();
-            return;
+            $message = 'Die Buchung wurde inzwischen geändert. Bitte neu laden.';
         }
+    }
+    foreach ($stored_files as $bid => $file) {
+        if ($message === null && $file != 0 && !in_array($bid, $posted, true)) {
+            $message = 'Eine Buchungszeile mit Beleg kann nicht entfernt werden.';
+        }
+    }
+    if ($message !== null) {
+        edit_save_rollback($members);
+        revision_refused($message);
+        page_edit($form_rights, true);
+        return;
     }
 
     echo "<h1>Buchung aktualisiert - Buchung Nr. $id</h1>";
@@ -266,7 +321,8 @@ function page_edit_save($rights)
     }
     pg_free_result($result);
 
-    $query = "UPDATE vouchers SET deleted = true WHERE voucher_id = $id $rightssql;";
+    // Only the user's locked current rows.
+    $query = "UPDATE vouchers SET deleted = true WHERE NOT deleted AND voucher_id = $id AND id IN (" . implode(',', array_keys($stored_files)) . ");";
     db_exec($dbconn, $query);
 
     $voucher_warnings = [];
@@ -274,6 +330,7 @@ function page_edit_save($rights)
         page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files);
     }
     db_exec($dbconn, 'COMMIT;');
+    members_drop($members);
     // Corrected values are named in the redirect (warn=) for the edit page.
     $warn = '';
     if (count($voucher_warnings) > 0) {
