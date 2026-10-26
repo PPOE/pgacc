@@ -22,8 +22,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The booking progress lists the newest year first and shows only the current
   and the previous year (at least the two most recent years with bookings,
   plus the next year if it already has bookings). Older years open with
-  "Weitere Jahre anzeigen" below the table, without JavaScript, in a table
-  with the same columns.
+  "Weitere Jahre anzeigen" below the table, without JavaScript: the link
+  disappears and the older years continue the table with the same columns.
 - Logged-in users see the donor lists without the arithmetic check.
 - The virtual-account chart uses Chart.js; jQuery and Flot are removed.
 - The Impressum links to the party's legal notice and to pgacc's LICENSE,

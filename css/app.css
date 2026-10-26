@@ -264,7 +264,10 @@
       @apply sr-only;
     }
 
-    /* "Weitere Jahre anzeigen": a subtle link button with a turning marker. */
+    /* "Weitere Jahre anzeigen": a subtle link button. Opening is final: the
+       summary goes away and the older rows continue the table seamlessly
+       (keyboard focus falls back to the document, and Tab moves on from
+       there). */
     & summary {
       @apply mt-1 inline-flex cursor-pointer list-none items-center gap-1 rounded px-1.5 py-0.5 font-semibold text-accent-dark select-none hover:bg-white/50 hover:underline;
 
@@ -273,12 +276,12 @@
       }
 
       &::before {
-        @apply inline-block transition-transform content-['▸'] motion-reduce:transition-none;
+        @apply content-['▸'];
       }
     }
 
-    & details[open] > summary::before {
-      @apply rotate-90;
+    & details[open] > summary {
+      @apply hidden;
     }
 
     & caption {

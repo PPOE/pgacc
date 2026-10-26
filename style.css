@@ -734,22 +734,12 @@
   }
 
   .motd .progress summary:before {
-    transition-property: transform, translate, scale, rotate;
-    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
-    transition-duration: var(--tw-duration, var(--default-transition-duration));
     --tw-content: "▸";
     content: var(--tw-content);
-    display: inline-block;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .motd .progress summary:before {
-      transition-property: none;
-    }
-  }
-
-  .motd .progress details[open] > summary:before {
-    rotate: 90deg;
+  .motd .progress details[open] > summary {
+    display: none;
   }
 
   .motd .progress caption {
