@@ -238,8 +238,9 @@
      as wide as the box, columns in workflow order (unbearbeitet, bearbeitet,
      abgeschlossen) and a decorative stacked bar per year whose segment widths
      are the percentages (inline styles). The header swatches are the legend.
-     Narrow windows: each percentage goes below its count, the bar below the
-     row, and the header words break at their soft hyphens. Older years sit
+     Narrow windows: each percentage goes below its count (up to md, so the
+     fixed columns keep room for it), the bar below the row, and the header
+     words break at their soft hyphens. Older years sit
      in a second table under <details>; fixed column widths (<colgroup>) line
      both tables up (narrow windows: the rows' shared grid does). */
   .motd .progress {
@@ -319,7 +320,7 @@
     }
 
     & .percent {
-      @apply block text-right text-muted sm:inline-block sm:min-w-[8ch];
+      @apply block text-right text-muted md:inline-block md:min-w-[8ch];
     }
 
     /* Legend swatches before the column names. */

@@ -835,7 +835,7 @@
     display: block;
   }
 
-  @media (min-width: 40rem) {
+  @media (min-width: 48rem) {
     .motd .progress .percent {
       min-width: 8ch;
       display: inline-block;
