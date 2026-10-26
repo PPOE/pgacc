@@ -1,7 +1,9 @@
 #!/bin/sh
 set -eu
 
-# Infection mutation testing for functions.php on the PHP 8.5 lane.
+# Infection mutation testing for functions.php and the library files in src/
+# (except src/db.php: db_caller() derives the application directory from its
+# own location; the db-helpers target covers it) on the PHP 8.5 lane.
 # Uses a fresh synthetic PostgreSQL database because some helpers query it.
 # Extra arguments are passed to Infection, e.g. --min-msi=90 --threads=1.
 # Reports are written to tests/mutation/results/<lane> (or
@@ -93,11 +95,11 @@ docker run --rm \
   --env PGPASSWORD=pgacc_test \
   --env TZ=UTC \
   --volume "$results:/results" \
-  --env PGACC_FUNCTIONS_FILE=/tmp/infection-src/functions.php \
+  --env PGACC_INFECTION_SOURCE=/tmp/infection-src \
   --env PGACC_INFECTION_CONFIG="$config" \
   --workdir /tmp \
   "$image" \
   sh -c 'php -d xdebug.mode=off /app/tests/mutation/infection-shim.php \
-      /app/functions.php /tmp/infection-src \
+      /app /tmp/infection-src functions.php \
     && exec php -d memory_limit=1G "$(command -v infection)" --configuration="$PGACC_INFECTION_CONFIG" "$@"' \
   infection --threads="$(nproc)" --no-progress --show-mutations $lane_options "$@"

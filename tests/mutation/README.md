@@ -56,28 +56,34 @@ every edit.
 No Infection release (checked up to 0.35.8) mutates functions outside a class,
 so `functions.php` alone gives 0 mutants. `infection-shim.php` (command-line
 entry for `PgaccInfectionShim` in `InfectionShim.php`) writes a disposable copy
-to `/tmp/infection-src/functions.php` in the container:
+of each file that `infection.sh` lists (`functions.php` and the library files in
+`src/`) to the same path under `/tmp/infection-src` in the container:
 
 - each top-level `function name(` becomes `public static function name(` of
-  one final class, on the same line;
+  one final class per file (`PgaccFunctionsMutationShim`,
+  `PgaccSrcFormatMutationShim`, ...), on the same line;
 - after the class, each global name is a one-line delegate,
   `function name(...$arguments) { return Class::name(...$arguments); }`.
 
 Tests keep calling the global names, so defaults, `global`, output and return
-values are unchanged, and reported line numbers are `functions.php` lines. The
+values are unchanged, and reported line numbers are those of the original file. The
 wrapper refuses what it cannot wrap faithfully: other top-level code,
-by-reference parameters or returns, any `static`, and
-`__FUNCTION__`/`func_get_args()`-style constructs. `PGACC_FUNCTIONS_FILE` makes
-`tests/functions-bootstrap.php` load the copy; `infection/phpunit.xml` mirrors
-`phpunit.xml` with coverage on it. `@function_signature` mutators are disabled
+by-reference parameters or returns, any `static`,
+`__FUNCTION__`/`func_get_args()`-style constructs, and `__DIR__`/`__FILE__`
+(the copy is elsewhere; so `src/db.php`, whose `db_caller()` derives the
+application directory from its own, is left to the `db-helpers` target).
+`PGACC_INFECTION_SOURCE` makes `tests/functions-bootstrap.php` load the copies
+(`pgacc_test_source()`), `infection-bootstrap.php` loads them for Infection, and
+`infection/phpunit.xml` mirrors `phpunit.xml` with coverage on them. `@function_signature` mutators are disabled
 (they only break the wrapper). Mutants are reported against the `/tmp` path, so
 `--git-diff-lines` does not apply.
 
 `tests/unit/InfectionShimTest.php` (in the normal suite) checks exact output
-for small inputs, that every function of `functions.php` and of
-`tests/fixtures/infection-shim/functions.php` keeps its line and the result
+for small inputs, the class name of each file, that every function of the wrapped
+application files and of `tests/fixtures/infection-shim/functions.php` keeps its line and the result
 passes `php -l`, that the wrapped fixture behaves like the original (in
-separate `php -n` processes), each refusal message, and the command-line entry.
+separate `php -n` processes, also together with `src/fixture.php`), each refusal
+message, and the command-line entry.
 Its own coverage (100% of lines and branches):
 
 ```sh

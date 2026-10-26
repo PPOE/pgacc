@@ -64,17 +64,51 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         self::assertSame(29, count($wrappedLines));
     }
 
-    public function testFunctionsPhpKeepsEveryFunctionOnItsLine()
+    public function testWrapsWithTheGivenClass()
     {
-        $original = file_get_contents(dirname(dirname(__DIR__)) . '/functions.php');
-        $wrapped = PgaccInfectionShim::wrap($original);
+        self::assertSame(
+            "<?php  final class C { public static function a() {}\n}\n"
+            . "function a(...\$arguments) { return C::a(...\$arguments); }\n",
+            PgaccInfectionShim::wrap("<?php function a() {}", 'x.php', 'C'),
+        );
+    }
+
+    public static function classNameProvider()
+    {
+        return [
+            'functions.php' => ['functions.php', self::SHIM],
+            'src/format.php' => ['src/format.php', 'PgaccSrcFormatMutationShim'],
+            'separators' => ['a-b_c/d.php', 'PgaccABCDMutationShim'],
+            'only the extension is dropped' => ['aphp.php', 'PgaccAphpMutationShim'],
+            'not at the end' => ['a.php.b', 'PgaccAPhpBMutationShim'],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('classNameProvider')]
+    public function testClassName($file, $class)
+    {
+        self::assertSame($class, PgaccInfectionShim::className($file));
+    }
+
+    public static function applicationFileProvider()
+    {
+        return [
+            'functions.php' => ['functions.php', 15],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('applicationFileProvider')]
+    public function testApplicationFileKeepsEveryFunctionOnItsLine($file, $minimum)
+    {
+        $original = file_get_contents(dirname(dirname(__DIR__)) . '/' . $file);
+        $wrapped = PgaccInfectionShim::wrap($original, $file, PgaccInfectionShim::className($file));
         $lines = self::functionLines($original);
 
-        self::assertGreaterThan(15, count($lines));
+        self::assertGreaterThan($minimum, count($lines));
         self::assertSame($lines, self::functionLines($wrapped));
         self::assertSame(array_keys($lines), PgaccInfectionShim::functionNames($wrapped));
-        // functions.php has no closing tag: the class is closed on two
-        // added lines after the last one, then one delegate per function.
+        // The file has no closing tag: the class is closed on two added
+        // lines after the last one, then one delegate per function.
         self::assertSame(
             substr_count($original, "\n") + 2 + count($lines),
             substr_count($wrapped, "\n"),
@@ -119,6 +153,7 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
     public static function refusalProvider()
     {
         $scope = 'Scope-sensitive construct is not supported: ';
+        $location = 'Location-sensitive construct is not supported: ';
         $reference = 'By-reference parameters or returns are not supported';
         return [
             'statement' => ["<?php\n\$x = 1;\nfunction a() {}\n", 'Unsupported top-level code: $x'],
@@ -138,6 +173,8 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
             'func_get_args' => ["<?php\nfunction a() { return func_get_args(); }\n", $scope . 'func_get_args'],
             'func_get_arg' => ["<?php\nfunction a() { return func_get_arg(0); }\n", $scope . 'func_get_arg'],
             'func_num_args' => ["<?php\nfunction a() { return func_num_args(); }\n", $scope . 'func_num_args'],
+            '__DIR__' => ["<?php\nfunction a() { return __DIR__; }\n", $location . '__DIR__'],
+            '__FILE__' => ["<?php\nfunction a() { return __FILE__; }\n", $location . '__FILE__'],
             'empty' => ['', 'Could not wrap x.php'],
             'whitespace only' => [" \n", 'Could not wrap x.php'],
             'no functions' => ["<?php\n// none\n", 'Could not wrap x.php'],
@@ -157,20 +194,47 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         }
     }
 
-    public function testMainWritesWrappedCopyIntoNewDirectory()
+    public function testMainWritesWrappedCopiesIntoNewDirectories()
     {
         $output = self::temporaryPath() . '/a/b';
+        $library = dirname(self::fixture()) . '/src/fixture.php';
         ob_start();
-        $result = PgaccInfectionShim::main(['infection-shim.php', self::fixture(), $output]);
-        self::assertSame('Wrapped 3 functions from ' . self::fixture() . " for Infection\n", ob_get_clean());
+        $result = PgaccInfectionShim::main(['infection-shim.php', dirname(self::fixture()), $output, 'functions.php', 'src/fixture.php']);
+        self::assertSame(
+            'Wrapped 3 functions from ' . self::fixture() . " for Infection\n"
+            . 'Wrapped 1 functions from ' . $library . " for Infection\n",
+            ob_get_clean(),
+        );
         self::assertNull($result);
         self::assertSame(
             PgaccInfectionShim::wrap(file_get_contents(self::fixture())),
             file_get_contents($output . '/functions.php'),
         );
-        self::assertSame(['.', '..', 'functions.php'], scandir($output));
+        self::assertSame(
+            PgaccInfectionShim::wrap(file_get_contents($library), $library, 'PgaccSrcFixtureMutationShim'),
+            file_get_contents($output . '/src/fixture.php'),
+        );
+        self::assertSame(['.', '..', 'functions.php', 'src'], scandir($output));
+        self::assertSame(['.', '..', 'fixture.php'], scandir($output . '/src'));
+        self::assertSame(0777 & ~umask(), fileperms($output . '/src') & 0777);
         self::assertSame(0777 & ~umask(), fileperms($output) & 0777);
         self::assertSame(0777 & ~umask(), fileperms(dirname($output)) & 0777);
+    }
+
+    public function testWrappedCopiesLoadTogether()
+    {
+        $output = self::temporaryPath();
+        ob_start();
+        PgaccInfectionShim::main(['infection-shim.php', dirname(self::fixture()), $output, 'functions.php', 'src/fixture.php']);
+        ob_end_clean();
+        $driver = self::write(
+            "<?php\nrequire \$argv[1] . '/functions.php';\nrequire \$argv[1] . '/src/fixture.php';\n"
+            . "var_export(array(class_exists('PgaccSrcFixtureMutationShim', false), shim_fixture_library('PHP')));\n",
+        );
+
+        list($status, $output) = self::php([$driver, $output]);
+        self::assertSame(0, $status, $output);
+        self::assertSame("Hello, PHP!\n" . var_export([true, 6], true), $output);
     }
 
     public function testCommandLineEntryUsesExistingDirectory()
@@ -178,7 +242,7 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
         $output = self::temporaryPath();
         mkdir($output);
         file_put_contents($output . '/functions.php', 'old');
-        $argv = ['infection-shim.php', self::fixture(), $output];
+        $argv = ['infection-shim.php', dirname(self::fixture()), $output, 'functions.php'];
         ob_start();
         include dirname(__DIR__) . '/mutation/infection-shim.php';
         self::assertSame('Wrapped 3 functions from ' . self::fixture() . " for Infection\n", ob_get_clean());
@@ -191,11 +255,12 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
     public function testCommandLineExitStatus()
     {
         $script = dirname(__DIR__) . '/mutation/infection-shim.php';
-        list($status, $output) = self::php([$script, self::fixture(), self::temporaryPath()]);
+        list($status, $output) = self::php([$script, dirname(self::fixture()), self::temporaryPath(), 'functions.php']);
         self::assertSame(0, $status, $output);
         self::assertStringEndsWith(" for Infection\n", $output);
 
-        list($status, $output) = self::php([$script, self::write("<?php\n\$x = 1;\n"), self::temporaryPath()]);
+        $refused = self::write("<?php\n\$x = 1;\n");
+        list($status, $output) = self::php([$script, dirname($refused), self::temporaryPath(), basename($refused)]);
         self::assertNotSame(0, $status, $output);
         self::assertTrue(strpos($output, 'Unsupported top-level code: $x') !== false, $output);
     }
@@ -217,21 +282,25 @@ final class InfectionShimTest extends PHPUnit\Framework\TestCase
 
     public static function mainFailureProvider()
     {
-        $usage = 'Usage: php infection-shim.php <functions.php> <output directory>';
-        $fixture = self::fixture();
+        $usage = 'Usage: php infection-shim.php <application directory> <output directory> <file>...';
+        $fixture = dirname(self::fixture());
         $missing = self::temporaryPath();
         $file = self::write('not a directory');
         $blocked = self::temporaryPath();
         mkdir($blocked . '/functions.php', 0777, true);
         $refused = self::write("<?php\n");
+        $flat = self::temporaryPath();
+        mkdir($flat);
+        file_put_contents($flat . '/src', 'not a directory');
         return [
             'no arguments' => [['infection-shim.php'], 'InvalidArgumentException', $usage],
             'one argument' => [['infection-shim.php', $fixture], 'InvalidArgumentException', $usage],
-            'too many' => [['infection-shim.php', $fixture, $missing, 'x'], 'InvalidArgumentException', $usage],
-            'unreadable source' => [['infection-shim.php', $missing, $missing], 'RuntimeException', 'Cannot read ' . $missing],
-            'refused source' => [['infection-shim.php', $refused, $missing], 'RuntimeException', 'Could not wrap ' . $refused],
-            'output under a file' => [['infection-shim.php', $fixture, $file . '/out'], 'RuntimeException', 'Cannot create ' . $file . '/out'],
-            'unwritable output' => [['infection-shim.php', $fixture, $blocked], 'RuntimeException', 'Cannot write ' . $blocked . '/functions.php'],
+            'no files' => [['infection-shim.php', $fixture, $missing], 'InvalidArgumentException', $usage],
+            'unreadable source' => [['infection-shim.php', $missing, $missing, 'functions.php'], 'RuntimeException', 'Cannot read ' . $missing . '/functions.php'],
+            'refused source' => [['infection-shim.php', dirname($refused), $missing, basename($refused)], 'RuntimeException', 'Could not wrap ' . $refused],
+            'output under a file' => [['infection-shim.php', $fixture, $file . '/out', 'functions.php'], 'RuntimeException', 'Cannot create ' . $file . '/out'],
+            'subdirectory under a file' => [['infection-shim.php', $fixture, $flat, 'src/fixture.php'], 'RuntimeException', 'Cannot create ' . $flat . '/src'],
+            'unwritable output' => [['infection-shim.php', $fixture, $blocked, 'functions.php'], 'RuntimeException', 'Cannot write ' . $blocked . '/functions.php'],
         ];
     }
 

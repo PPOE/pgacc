@@ -5,6 +5,7 @@
         ],
         "excludes": [
             "infection",
+            "infection-bootstrap.php",
             "results",
             "targets",
             "lib.php",

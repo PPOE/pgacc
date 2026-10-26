@@ -25,9 +25,15 @@ if (function_exists('pg_connect') && getenv('PGHOST')) {
 // and membership encryption helpers need phpseclib from it.
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-// tests/mutation/infection.sh substitutes a class-wrapped copy for Infection.
-$functionsFile = getenv('PGACC_FUNCTIONS_FILE');
-require_once $functionsFile ? $functionsFile : dirname(__DIR__) . '/functions.php';
+// An application file, or the class-wrapped copy that
+// tests/mutation/infection.sh writes for Infection (PGACC_INFECTION_SOURCE).
+function pgacc_test_source($file)
+{
+    $copy = getenv('PGACC_INFECTION_SOURCE') . '/' . $file;
+    return getenv('PGACC_INFECTION_SOURCE') && is_file($copy) ? $copy : dirname(__DIR__) . '/' . $file;
+}
+
+require_once pgacc_test_source('functions.php');
 
 // Database helpers, loaded after functions.php as in index.php.
-require_once dirname(__DIR__) . '/src/db.php';
+require_once pgacc_test_source('src/db.php');

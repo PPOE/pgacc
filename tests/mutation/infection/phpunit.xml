@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- PHPUnit configuration used only by Infection (tests/mutation/infection.sh).
-     It runs the normal functions.php suite against the class-wrapped copy that
-     tests/mutation/infection-shim.php writes to /tmp/infection-src. -->
+     It runs the normal suite of functions.php and src/ against the class-wrapped
+     copies that tests/mutation/infection-shim.php writes to /tmp/infection-src. -->
 <!-- failOnNotice/failOnWarning: PHPUnit 10+ reports notices and warnings
      instead of failing the test; they still fail the run, as in PHPUnit 9. -->
 <phpunit bootstrap="/app/tests/phpunit-bootstrap.php"
