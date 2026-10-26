@@ -7,6 +7,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `tag()` (listing cells) encodes its text for HTML by default; markup goes
+  through the new `tag_raw()`. Listing callers no longer need to remember
+  `listing_text()` for database values. No visible change in the HTML pages
+  or the CSV export.
 - Library code starts moving to `src/`, first the database helpers
   (`src/db.php`). Deny web access to `src/` like `vendor/` and `tests/`
   ([UPGRADING.md](UPGRADING.md)); on Apache the shipped `src/.htaccess` does

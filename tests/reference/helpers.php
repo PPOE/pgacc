@@ -163,6 +163,14 @@ foreach ([false, true] as $csv) {
         }
     }
 }
+foreach ([false, true] as $csv) {
+    $GLOBALS['make_csv'] = $csv;
+    foreach (['td', 'tr', 'b'] as $tagName) {
+        foreach ($texts as $text) {
+            call('tag_raw', [$tagName, $text], $csv ? 'csv' : 'html');
+        }
+    }
+}
 $GLOBALS['make_csv'] = false;
 finish_group('tag');
 

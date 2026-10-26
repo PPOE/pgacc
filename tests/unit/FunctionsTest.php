@@ -146,13 +146,41 @@ final class FunctionsTest extends FunctionsTestCase
     }
 
     #[PHPUnit\Framework\Attributes\DataProvider('tagProvider')]
-    public function testTagRendersHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
+    public function testTagRendersRawHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
+    {
+        list($tagName, $text) = $args;
+        $GLOBALS['make_csv'] = false;
+        self::assertSame($expectedHtml, tag_raw($tagName, $text));
+        $GLOBALS['make_csv'] = true;
+        self::assertSame($expectedCsv, tag_raw($tagName, $text));
+    }
+
+    // tag() encodes its text for HTML; its CSV cell is the one of tag_raw().
+    #[PHPUnit\Framework\Attributes\DataProvider('tagEncodedProvider')]
+    public function testTagRendersEncodedHtmlAndCsv(array $args, $expectedHtml, $expectedCsv)
     {
         list($tagName, $text) = $args;
         $GLOBALS['make_csv'] = false;
         self::assertSame($expectedHtml, tag($tagName, $text));
         $GLOBALS['make_csv'] = true;
         self::assertSame($expectedCsv, tag($tagName, $text));
+        self::assertSame($expectedCsv, tag_raw($tagName, $text));
+    }
+
+    public static function tagEncodedProvider()
+    {
+        return [
+            'markup' => [['td', '<b>x</b>'], "<td>&lt;b&gt;x&lt;/b&gt;</td>\n", "<b>x</b>\t"],
+            'single quote' => [['td', "O'Brien"], "<td>O&#039;Brien</td>\n", "O'Brien\t"],
+            'double quote' => [['td', 'a"b'], "<td>a&quot;b</td>\n", "a\"b\t"],
+            'ampersand and entity' => [['td', 'A & B &amp;'], "<td>A &amp; B &amp;amp;</td>\n", "A & B &amp;\t"],
+            'umlauts unchanged' => [['td', 'Jörg Müßig €'], "<td>Jörg Müßig €</td>\n", "Jörg Müßig €\t"],
+            'formula with quote' => [['td', '=HYPERLINK("x")'], "<td>=HYPERLINK(&quot;x&quot;)</td>\n", "'=HYPERLINK(\"x\")\t"],
+            'row with markup' => [['tr', "<i>a</i>\nb"], "<tr>&lt;i&gt;a&lt;/i&gt;\nb</tr>\n", "<i>a</i> / b\n"],
+            'amount' => [['td', '-12.50€'], "<td>-12.50€</td>\n", "-12,50€\t"],
+            'integer' => [['td', 42], "<td>42</td>\n", "42\t"],
+            'null' => [['td', null], "<td></td>\n", "\t"],
+        ];
     }
 
     public static function tagProvider()

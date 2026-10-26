@@ -87,9 +87,9 @@ function gentab($tabc, $action, $s, $t)
         }
     }
     if (listing_column_hidden($tabc)) {
-        return tag("td", listing_column_form($action, -$tabc, 'add'));
+        return tag_raw("td", listing_column_form($action, -$tabc, 'add'));
     } else {
-        return tag("td", tag("b", sortlink($action, $s, $t) . listing_column_form($action, $tabc, 'delete')));
+        return tag_raw("td", tag_raw("b", sortlink($action, $s, $t) . listing_column_form($action, $tabc, 'delete')));
     }
 }
 function page_listing_header($action)
@@ -119,7 +119,7 @@ function page_listing_header($action)
     $tabs .= gentab($tabc++, $action, 'refunda', 'Rück.');
     $tabs .= gentab($tabc++, $action, 'bela', 'Datei');
     $tabs .= gentab($tabc++, $action, 'namea', 'Name/Adresse');
-    echo tag("tr", $tabs);
+    echo tag_raw("tr", $tabs);
     if (!$make_csv) {
         echo '<form action="index.php" method="GET"> <tr>
 <td><input type="hidden" name="action" value="' . $action . '" />
@@ -227,7 +227,7 @@ function page_listing_line($line, $action = "edit")
         if ($make_csv) {
             echo tag("td", $line["voucher_id"]);
         } else {
-            echo tag("td", '<a href="index.php?action=' . $action . '&id=' . $line["voucher_id"] . '&bid=' . $line["id"] . '">' . $line["voucher_id"] . "</a>");
+            echo tag_raw("td", '<a href="index.php?action=' . $action . '&id=' . $line["voucher_id"] . '&bid=' . $line["id"] . '">' . $line["voucher_id"] . "</a>");
         }
     }
     if (listing_column_hidden($tabc++)) {
@@ -247,7 +247,7 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line2["name"]));
+        echo tag("td", $line2["name"]);
     }
     pg_free_result($result2);
     $query2 = "SELECT name FROM lo WHERE id = " . intval($line["orga"]);
@@ -256,7 +256,7 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line2["name"]));
+        echo tag("td", $line2["name"]);
     }
     pg_free_result($result2);
     if (listing_column_hidden($tabc++)) {
@@ -265,23 +265,23 @@ function page_listing_line($line, $action = "edit")
         if ($make_csv) {
             echo tag("td", $line["member"] == 't' ? $line["member_id"] : 'Nein');
         } else {
-            echo tag("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
+            echo tag_raw("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
         }
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["contra_account"]));
+        echo tag("td", $line["contra_account"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["account"]));
+        echo tag("td", $line["account"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["vaccount"]));
+        echo tag("td", $line["vaccount"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
@@ -291,12 +291,12 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["comment"]));
+        echo tag("td", $line["comment"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["commentgf"]));
+        echo tag("td", $line["commentgf"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
@@ -306,12 +306,12 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["ack1"] . " " . $line["ack2"]));
+        echo tag("td", $line["ack1"] . " " . $line["ack2"]);
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");
+        echo tag_raw("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
@@ -326,7 +326,7 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag("td", listing_text($line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]));
+        echo tag("td", $line["name"] . ' ' . $line["street"] . ' ' . $line["plz"] . ' ' . $line["city"]);
     }
     if ($make_csv) {
         echo "\n";

@@ -674,9 +674,11 @@ Open security findings (not changed here; owner decisions):
   starts a new cell and escapes the formula guard. Options: name the file
   `.tsv`, add a `sep=` first line, or neutralize after separators too; owner
   decision.
-- [ ] `tag()` could encode its text by default (with an explicit raw
-  variant for markup) instead of each listing caller using
-  `listing_text()`, so a new caller cannot forget it.
+- [x] `tag()` encodes its text by default in HTML (CSV cells unchanged);
+  `tag_raw()` is the explicit variant for markup (sort links, column forms,
+  links, nested tags, `<del>`/`<i>` around encoded values). The listing
+  callers no longer wrap plain text in `listing_text()`, so a new caller
+  cannot forget it. HTML and CSV reference recordings byte-identical.
 - [x] Bug fix: the voucher form shown again from the posted values (adding
   or removing a part, `get_voucher()` in `new.php`) showed the SQL-escaped
   text, so `O'Brien` became `O''Brien` (and a backslash doubled on
