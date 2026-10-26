@@ -299,7 +299,7 @@ function idiom_import_amount($amount)
 {
     return intval(str_replace(['.', ','], ['', ''], $amount));
 }
-// report.php, tinyreport.php, ...: sprintf("%1.2f", $line['sum'] / 100.0).
+// report.php, tinyreport.php, ...: sprintf("%1.2f", $line['sum'] / 100.0), now format_amount().
 function idiom_money($sum)
 {
     return sprintf('%1.2f', $sum / 100.0);
