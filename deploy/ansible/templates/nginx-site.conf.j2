@@ -1,0 +1,52 @@
+# pgacc (deploy/ansible). Managed by Ansible.
+# Plain HTTP behind a TLS-terminating reverse proxy, which must send
+# X-Forwarded-Proto: https (index.php redirects otherwise). Only the proxy
+# and this host may connect, so the header is trusted only from them.
+server {
+    listen 80 default_server;
+{% if ansible_facts.all_ipv6_addresses | default([]) | length > 0 %}
+    listen [::]:80 default_server;
+{% endif %}
+    server_name _;
+
+    allow 127.0.0.1;
+    allow ::1;
+{% for address in pgacc_proxies %}
+    allow {{ address }};
+{% endfor %}
+    deny all;
+
+    root /srv/pgacc/current;
+    index index.php;
+    autoindex off;
+    server_tokens off;
+    client_max_body_size 20M;
+    access_log /var/log/nginx/pgacc.access.log;
+    error_log /var/log/nginx/pgacc.error.log;
+
+    # Not web content (UPGRADING.md): receipts, libraries, tests, command-line
+    # tools, configuration, Composer files, dot files.
+    location ~ ^/(files|vendor|tests|src|deploy)(/|$) {
+        deny all;
+    }
+    location ~ ^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$ {
+        deny all;
+    }
+    location ~ (^|/)\. {
+        deny all;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        include fastcgi_params;
+        # The resolved release directory, so a switch of the current symlink
+        # never mixes files of two releases.
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/run/php/pgacc-fpm.sock;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

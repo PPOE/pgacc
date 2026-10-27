@@ -1,58 +1,64 @@
 # Provisioning and deploying pgacc
 
-Two scripts for a dedicated Debian 13 (trixie) host:
+For a dedicated Debian 13 (trixie) host or container:
 
-- [`provision.sh`](provision.sh) (root, once, safe to run again) installs
-  and configures the host.
-- [`deploy.sh`](deploy.sh) (installed as `/usr/local/bin/pgacc-deploy`, run
-  as the `pgacc` user) deploys a build archive: a release tag or, on staging,
-  a commit.
+- [`ansible/playbook.yml`](ansible/playbook.yml) sets up the host (run it
+  again after changes; a second run changes nothing).
+- [`deploy.sh`](deploy.sh), installed as `pgacc-deploy`, deploys a release
+  tag.
+- [`staging-stub.sh`](staging-stub.sh) (optional, staging only) replaces the
+  membership system with the membership stub.
 
-Release notes and manual upgrade steps: [CHANGELOG.md](../CHANGELOG.md),
-[UPGRADING.md](../UPGRADING.md). The scripts are not part of the release
-archive (`.gitattributes`); run them from a checkout of the repository.
+They are not part of the release archive (`.gitattributes`); run them from a
+checkout of the repository. Release notes and manual upgrade steps:
+[CHANGELOG.md](../CHANGELOG.md), [UPGRADING.md](../UPGRADING.md).
 
-## What `provision.sh` sets up
+## Provisioning
+
+```sh
+cp deploy/ansible/inventory.example.yml ~/pgacc-inventory.yml   # and edit
+ansible-playbook -i ~/pgacc-inventory.yml deploy/ansible/playbook.yml
+```
+
+The target needs Python 3 and SSH (or another Ansible connection). Settings
+(inventory variables, see [inventory.example.yml](ansible/inventory.example.yml)):
+
+| Variable | Default | |
+| --- | --- | --- |
+| `pgacc_trusted_proxies` | none, required | Addresses or CIDR ranges of the TLS-terminating reverse proxy. |
+| `pgacc_timezone` | `UTC` | PHP `date.timezone`. |
+| `pgacc_backup_keep_days` | `7` | Days the nightly dumps are kept. |
+
+What it sets up:
 
 | Part | Details |
 | --- | --- |
-| Packages | PHP 8.5 (`php8.5-fpm`, `-cli`, `-pgsql`, `-mbstring`) from packages.sury.org and PostgreSQL 18 from apt.postgresql.org (Debian 13 ships PHP 8.4 and PostgreSQL 17), as deb822 sources with `Signed-By` keyrings in `/etc/apt/keyrings/`; the script checks each key's fingerprint. It then checks that PHP has `pgsql`, `mbstring`, `iconv`, `zlib`, `sodium` and `openssl`. |
-| User | System user and group `pgacc` (no login shell). |
-| Layout | `/srv/pgacc/releases/<tag or commit>/`, `/srv/pgacc/current` (symlink to the active release), `/srv/pgacc/shared/` with `constants.php`, `files/` (receipts) and `logs/` (`php-error.log`, `deploy.log`; rotated weekly). |
-| `constants.php` | Created only if none exists, with a random `$key`, and printed as a loud notice: back it up at once. Production: `$datakey` is a random placeholder that must be replaced with the key shared with the membership system. Staging: the synthetic key of the membership stub. An existing `constants.php`, `files/` or database is never changed. |
-| PHP-FPM | Pool `pgacc` (user `pgacc`, socket `/run/php/pgacc-fpm.sock`), production settings in `/etc/php/8.5/fpm/conf.d/90-pgacc.ini`: `display_errors` off, errors logged to `shared/logs/php-error.log`, `expose_php` off, `cgi.fix_pathinfo=0`, time zone, upload and memory limits. `allow_url_fopen` stays on: `getusers.php` fetches the member list over HTTPS. |
-| nginx | `/etc/nginx/sites-available/pgacc`: plain HTTP on `PGACC_HTTP_PORT`, document root `/srv/pgacc/current`, PHP through the pool with the resolved release path (`$realpath_root`). Denied as in [UPGRADING.md](../UPGRADING.md): `files/`, `vendor/`, `tests/`, `src/`, `deploy/`, `constants.php`, `migrate-receipt-key.php`, `check.php`, `composer.json`/`composer.lock`, and dot files; no directory listing. The default site is disabled. |
-| Database | Role `pgacc` (login over the local socket with peer authentication, no password) and the database `accounting` owned by it (UTF-8, `PGACC_DB_LOCALE`), with `pgcrypto` and the schema of [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. Created only if the database does not exist. |
-| Backups | `pgacc-backup.timer` (nightly, systemd) runs `pg_dump --format=custom` into `PGACC_BACKUP_DIR` and deletes dumps older than `PGACC_BACKUP_KEEP_DAYS`. Only the database: back up `constants.php` and `files/` separately. |
-| Deploy | `/usr/local/bin/pgacc-deploy`, its settings in `/etc/pgacc/pgacc.env`, and `/etc/sudoers.d/pgacc-deploy`, which lets `pgacc` run `systemctl reload php8.5-fpm.service` and nothing else. |
+| Packages | nginx; PostgreSQL 18 from apt.postgresql.org (set up with `apt.postgresql.org.sh` of Debian's `postgresql-common`); PHP 8.5 (`php8.5-fpm`, `-cli`, `-pgsql`, `-mbstring`) from packages.sury.org with its keyring package `debsuryorg-archive-keyring`. It checks the PHP extensions `pgsql`, `mbstring`, `iconv`, `zlib`, `sodium`, `openssl`. |
+| Users | `pgacc` runs PHP (the PHP-FPM pool) and is the database role. `pgacc-deploy` owns the releases and may run `systemctl reload php8.5-fpm.service` with sudo, nothing else. Both are system users without a login shell. |
+| Layout | `/srv/pgacc/releases/v<version>/` and the symlink `/srv/pgacc/current` belong to `pgacc-deploy`; PHP can read them but not write. `/srv/pgacc/shared/files/` (receipts) belongs to `pgacc` (mode 0700). `/srv/pgacc/shared/constants.php` is `root:pgacc` 0640: PHP reads it, nobody but root writes it. PHP errors go to `/var/log/pgacc/php-error.log` (rotated weekly). |
+| `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
+| PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`); `90-pgacc.ini`: `display_errors` off, `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on: `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
+| nginx | Port 80, `server_name _`, document root `/srv/pgacc/current`, PHP with the resolved release path (`$realpath_root`). Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Denied as in [UPGRADING.md](../UPGRADING.md): `files/`, `vendor/`, `tests/`, `src/`, `deploy/`, `constants.php`, `migrate-receipt-key.php`, `check.php`, `composer.json`/`.lock` and dot files. The default site is disabled. |
+| Database | Role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `C.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. Created only if it does not exist. If `accounting` exists but belongs to another role, the playbook stops. |
+| Dumps | `pgacc-backup.timer` runs `pg_dump --format=custom` nightly as `postgres` into `/var/backups/pgacc` (owner `postgres`, mode 0700; neither `pgacc` nor `pgacc-deploy` can write there) and deletes dumps older than `pgacc_backup_keep_days`. |
 
-The application connects with `pg_connect("dbname=accounting")` as the PHP
-process's user, and fetches the member list from the URL in
-`getusers.php`. Neither is configurable in the code, so they are not
-settings here either.
+TLS ends at the reverse proxy, which must send `X-Forwarded-Proto: https`
+(`index.php` redirects to HTTPS otherwise).
 
-TLS is terminated by a reverse proxy in front of nginx, which must send
-`X-Forwarded-Proto: https` (`index.php` redirects to HTTPS otherwise) and
-the original `Host`. nginx trusts that header from any client it accepts:
-set `PGACC_PROXY_ADDRESSES` to the proxy's addresses, or firewall the port.
+### Backups
 
-### Running it
+The local dumps only make restoring the database quick. The real backup is a
+snapshot of the whole host or container, taken from outside. It must cover
+`/srv/pgacc/shared/constants.php` and `/srv/pgacc/shared/files/` (and
+`/var/backups/pgacc`). Keep a copy of `constants.php` off the host as well:
+without its `$key` the stored receipts cannot be decrypted.
 
-```sh
-cp deploy/pgacc.conf.example /root/pgacc.conf   # and edit
-sudo sh deploy/provision.sh --config /root/pgacc.conf
-```
+### Moving an existing installation
 
-Settings: [pgacc.conf.example](pgacc.conf.example). Run it again after
-changing them; it rewrites only its own files (apt sources, nginx site,
-PHP-FPM pool and settings, systemd units, sudoers file,
-`/etc/pgacc/pgacc.env`) and restarts PHP-FPM and reloads nginx.
-
-Moving an existing installation: after the first provision run, before the
-first deploy, replace `shared/constants.php` with the existing one (owner
-`pgacc`, mode 0600) and copy the receipts into `shared/files/` (owner
-`pgacc`). The provisioned `accounting` database already has the schema, so
-replace it (only this new, empty one) with the dump:
+After the first playbook run and before the first deploy, replace
+`shared/constants.php` with the existing one (owner `root`, group `pgacc`,
+mode 0640) and copy the receipts into `shared/files/` (owner `pgacc`). Replace
+the new, empty `accounting` database with the dump:
 
 ```sh
 sudo -u postgres dropdb accounting
@@ -62,74 +68,69 @@ sudo -u postgres psql -d accounting -c 'REVOKE CONNECT, TEMPORARY ON DATABASE ac
 sudo -u postgres pg_restore --no-owner --role=pgacc --exit-on-error -d accounting accounting.dump
 ```
 
-(`pg_restore` reads a custom-format dump; a plain SQL dump goes through
-`sudo -u pgacc psql -v ON_ERROR_STOP=1 -d accounting -f dump.sql`.) Then
-follow [UPGRADING.md](../UPGRADING.md) for the releases in between.
-
-A new database has no users. The first administrator can be created with
-`psql` as `pgacc`:
+(A plain SQL dump: `sudo -u pgacc psql -v ON_ERROR_STOP=1 -d accounting -f dump.sql`.)
+Then follow [UPGRADING.md](../UPGRADING.md) for the releases in between. A new
+database has no users; the first administrator can be created as `pgacc`:
 
 ```sql
 INSERT INTO users (name, hash, rights, hide)
 VALUES ('admin', crypt('<password of 12 or more characters>', gen_salt('bf')), 'root', '');
 ```
 
-### Staging mode
-
-`PGACC_MODE=staging` never contacts the membership system. The host name of
-the membership URL in `getusers.php` is pointed to 127.0.0.1 in `/etc/hosts`,
-where nginx serves the synthetic member list of the membership stub
-([tests/reference/membership/](../tests/reference/membership/)) over HTTPS
-with a certificate of a local CA that the host trusts (`/etc/pgacc/staging-tls/`).
-A generated `constants.php` gets the stub's synthetic `$datakey`
-([tests/runtime/test-constants.php](../tests/runtime/test-constants.php)).
-Staging also allows commit deploys. Do not use staging mode on a production
-host: it redirects the membership host for the whole system. A production
-run after a staging run removes the `/etc/hosts` entry, the CA and the stub,
-and warns while `constants.php` still has the synthetic `$datakey`.
-
 ## Deploying
 
 ```sh
-sudo -u pgacc pgacc-deploy v2.1.0                  # a release tag
-sudo -u pgacc pgacc-deploy 1a2b3c4                 # a commit (staging only)
-sudo -u pgacc pgacc-deploy --file /path/to/pgacc-2.1.0.tar.gz   # a local archive
+sudo -u pgacc-deploy pgacc-deploy v2.1.0
+sudo -u pgacc-deploy pgacc-deploy --file /path/to/pgacc-2.1.0.tar.gz   # local archive (testing)
 ```
 
-1. The argument must be a tag `v<major>.<minor>.<patch>[-<pre-release>]` or a
-   commit of 7 to 40 hex digits; anything else is refused before it is used
-   in a URL or path. Commits are refused unless `PGACC_ALLOW_COMMIT_DEPLOY=1`
-   (staging); a short commit is resolved to the full one with the GitHub API.
-2. Archive locations (defined only in `deploy.sh`, `archive_location`):
+1. The argument must be a tag `v<major>.<minor>.<patch>[-<pre-release>]`.
+2. It downloads `pgacc-<version>.tar.gz` and `pgacc-<version>.tar.gz.sha256`
+   from the GitHub release of the tag (built by
+   [.github/workflows/release.yml](../.github/workflows/release.yml) with
+   [scripts/release.sh](../scripts/release.sh)), or takes the local file and
+   the `.sha256` next to it, and checks the checksum (`sha256sum -c`). **The
+   `.sha256` comes from the same release as the archive: it proves that the
+   download is intact, not who built it.** Signed archives or build
+   attestations are a later step.
+3. The archive may only contain files and directories under
+   `pgacc-<version>/`, no `..`, and no `constants.php` or `files/`. It is
+   unpacked into `releases/v<version>/`, with `constants.php` and `files`
+   linked to `shared/`.
+4. Database migrations: none. pgacc has no migration mechanism; the database
+   or configuration steps of a release are in [UPGRADING.md](../UPGRADING.md)
+   and are done by hand.
+5. `current` is switched atomically, PHP-FPM is reloaded and
+   `http://127.0.0.1/index.php?action=login` must answer with the login form.
+   Otherwise `current` goes back to the previous release (or is removed if
+   there was none), the new release directory is deleted, and the script
+   exits with 1.
+6. The newest 5 releases are kept, always including the current and the
+   previous one.
 
-   | Argument | Archive (and `.sha256`) | Top directory |
-   | --- | --- | --- |
-   | tag `v<version>` | `https://github.com/<repo>/releases/download/v<version>/pgacc-<version>.tar.gz`, built by the Release workflow ([.github/workflows/release.yml](../.github/workflows/release.yml), [scripts/release.sh](../scripts/release.sh)) | `pgacc-<version>/` |
-   | commit `<sha>` | `https://github.com/<repo>/releases/download/staging/pgacc-<40-hex sha>.tar.gz`, assets of a rolling pre-release `staging` (not built by CI yet) | `pgacc-<40-hex sha>/` |
-   | `--file <path>` | the file and `<path>.sha256`; named `pgacc-<version>.tar.gz` or `pgacc-<40-hex sha>.tar.gz` | as above |
+Deploying the current release again does nothing. Deploying a release that is
+still in `releases/` switches back to it without downloading (a manual
+rollback). Nothing is built on the host: the archive contains `vendor/`.
 
-   The `.sha256` line must name the archive and match it. The checksum comes
-   from the same release as the archive: it detects damaged downloads, not
-   a tampered release.
-3. The archive may only contain regular files and directories under its top
-   directory. It is unpacked into `releases/<tag or sha>/`, with
-   `constants.php` and `files` linked to `shared/`, and a record
-   `.pgacc-release` (kind, id, archive SHA-256, source, time).
-4. Database migrations: none. pgacc has no migration mechanism; database or
-   configuration steps of a release are listed in
-   [UPGRADING.md](../UPGRADING.md) and are done by hand, before or after the
-   deploy as described there.
-5. `current` is switched atomically (rename of a new symlink), PHP-FPM is
-   reloaded, and `index.php?action=login` is requested on 127.0.0.1 with the
-   host name and `X-Forwarded-Proto: https`. Unless it answers HTTP 200 with
-   the login form, `current` is switched back to the previous release (or
-   removed, if there was none), the new release directory is deleted and the
-   script exits with 1.
-6. The newest `PGACC_KEEP_RELEASES` (default 5) releases are kept; older
-   ones are deleted, never the current or the previous one.
+## Staging: membership stub
 
-Deploying the current release again does nothing. Deploying a release that
-is still in `releases/` switches back to it without downloading (a manual
-rollback). Each deploy and failure is logged in `shared/logs/deploy.log`.
-Nothing is built on the host: the archive contains `vendor/`, and the host
-needs neither git nor Composer.
+```sh
+sudo sh deploy/staging-stub.sh
+```
+
+Only on a staging host, after the playbook. It points the host name of the
+membership URL in `getusers.php` to 127.0.0.1 in `/etc/hosts`, where nginx
+serves the stub's synthetic member list
+([tests/reference/membership/](../tests/reference/membership/)) over HTTPS
+with a certificate of a local CA that the host trusts, and sets `$datakey` in
+`constants.php` to the stub's synthetic key
+([tests/runtime/test-constants.php](../tests/runtime/test-constants.php)).
+It changes the whole host's view of the membership system, so never run it on
+a production host, and build production hosts fresh rather than converting a
+staging host.
+
+## Fixed in the code
+
+The database name (`pg_connect("dbname=accounting")` in `index.php` and
+`mbapi.php`) and the membership URL (`getusers.php`) are fixed in the code,
+so they are not settings here.

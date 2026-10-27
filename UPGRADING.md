@@ -4,7 +4,7 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
-On a Debian 13 host set up with `deploy/provision.sh`, `deploy/deploy.sh`
+On a Debian 13 host set up with `deploy/ansible/playbook.yml`, `deploy/deploy.sh`
 verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.

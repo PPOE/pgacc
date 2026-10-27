@@ -1,0 +1,16 @@
+# Example inventory: copy it outside the repository and fill in your host.
+# 192.0.2.0/24 is a documentation range (RFC 5737), not a real address.
+all:
+  hosts:
+    pgacc:
+      ansible_host: 192.0.2.10
+      ansible_user: root
+  vars:
+    # Required: addresses or CIDR ranges of the TLS-terminating reverse proxy.
+    # nginx accepts connections (and X-Forwarded-Proto) only from these and
+    # from the host itself.
+    pgacc_trusted_proxies:
+      - 192.0.2.1
+    # Optional (defaults shown).
+    # pgacc_timezone: UTC
+    # pgacc_backup_keep_days: 7
