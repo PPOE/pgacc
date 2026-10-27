@@ -36,6 +36,12 @@ server {
         deny all;
     }
 
+    # Short page addresses the application links to (/donations,
+    # /vreport?konto=...): index.php?action=<name>, the query string appended.
+    location ~ ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ {
+        rewrite ^/(.+)$ /index.php?action=$1 last;
+    }
+
     location ~ \.php$ {
         try_files $uri =404;
         include fastcgi_params;

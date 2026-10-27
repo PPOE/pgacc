@@ -22,8 +22,20 @@ ansible-playbook -i ~/pgacc-inventory.yml deploy/ansible/playbook.yml -e pgacc_f
 
 The target needs Python 3 and an Ansible connection. For a Proxmox container
 the example inventory shows the `community.proxmox.proxmox_pct_remote`
-connection (SSH to the Proxmox host, then `pct exec`); run it with
-`--ask-become-pass`. Settings (inventory variables, see
+connection (SSH to the Proxmox host, then `pct exec`), which needs:
+
+- on the Proxmox host, sudo for `pct exec` of that one container without a
+  password (the plugin cannot answer a sudo prompt; `--ask-become-pass` only
+  applies inside the container), e.g. in `/etc/sudoers.d/`:
+  `<user> ALL=(root) NOPASSWD: /usr/sbin/pct exec <container ID> -- *`
+  (check it with `visudo -cf` before installing it);
+- `ansible_become: false`, as `pct exec` already runs as root in the
+  container, which may not have sudo before the first run;
+- an `ansible_host`/`ansible_port` that paramiko reaches directly: it does not
+  read `~/.ssh/config` (no host aliases, `AddressFamily`, `ProxyJump`), and
+  the host key must be in `~/.ssh/known_hosts` under that exact address.
+
+Settings (inventory variables, see
 [inventory.example.yml](ansible/inventory.example.yml)):
 
 | Variable | Default | |
@@ -46,7 +58,7 @@ What it sets up:
 | Layout | `/srv/pgacc/releases/v<version>/` and the symlink `/srv/pgacc/current` belong to `pgacc-deploy`; PHP can read them but not write. `/srv/pgacc/shared/files/` (receipts) belongs to `pgacc` (mode 0700). `/srv/pgacc/shared/constants.php` is `root:pgacc` 0640: PHP reads it, nobody but root writes it. PHP errors go to `/var/log/pgacc/php-error.log` (rotated weekly). |
 | `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
 | PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`, `display_errors` off, errors logged); Debian's default pool `www` is removed. `90-pgacc.ini`: `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on (Debian's default): `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
-| nginx | Port 80, `server_name _`, document root `/srv/pgacc/current`, PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Denied as in [UPGRADING.md](../UPGRADING.md): `files/`, `vendor/`, `tests/`, `src/`, `deploy/`, `constants.php`, `migrate-receipt-key.php`, `check.php`, `composer.json`/`.lock` and dot files. The default site is disabled. |
+| nginx | Port 80, `server_name _`, document root `/srv/pgacc/current`, PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). The short page addresses the application links to (`/donations`, `/kdonations`, `/spendings`, `/wk`, `/transactions`, `/vreport`, `/tinyreport`, each with an optional query string) are rewritten to `index.php?action=<name>`. Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Denied as in [UPGRADING.md](../UPGRADING.md): `files/`, `vendor/`, `tests/`, `src/`, `deploy/`, `constants.php`, `migrate-receipt-key.php`, `check.php`, `composer.json`/`.lock` and dot files. The default site is disabled. |
 | Database | PostgreSQL 18 with the `en_US.UTF-8` locale generated (the collation of the existing installation). A normal run never creates or changes a database. Only with `-e pgacc_fresh_install=true`: role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `en_US.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. It refuses if `accounting` exists already, with or without tables. |
 | Dumps | `pgacc-backup.timer` runs `pg_dump --format=custom` nightly as `postgres` into `/var/backups/pgacc` (owner `postgres`, mode 0700; neither `pgacc` nor `pgacc-deploy` can write there) and deletes dumps older than `pgacc_backup_keep_days`. |
 

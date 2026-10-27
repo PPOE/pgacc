@@ -27,6 +27,23 @@ add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
+## Web server: short page addresses
+
+The pages link to `/donations`, `/kdonations`, `/spendings`, `/wk`,
+`/transactions`, `/vreport` and `/tinyreport` (with an optional query string,
+e.g. `/donations?year=2024`). The web server has to rewrite them to
+`index.php?action=<name>`, keeping the query string; this was always needed
+but only lived in the server configuration. Lighttpd:
+
+```
+url.rewrite-once = (
+  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" => "index.php?action=$1",
+  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)\?(.*)$" => "index.php?action=$1&$2"
+)
+```
+
+The nginx site of `deploy/ansible/playbook.yml` has the same rule.
+
 ## Passwords: bcrypt and 12 characters
 
 From 2.1.0 new and changed passwords are stored as bcrypt

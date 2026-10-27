@@ -7,12 +7,16 @@ all:
       ansible_user: root
       # A Proxmox LXC container instead (laptop -> SSH to the Proxmox host ->
       # pct exec), with the community.proxmox collection and paramiko
-      # installed locally. Run ansible-playbook with --ask-become-pass: the
-      # plugin runs pct with sudo on the Proxmox host and needs that password.
+      # installed locally. The plugin runs `sudo pct exec` on the Proxmox host
+      # and cannot answer a password prompt: allow that one command without a
+      # password there (see README.md, "Provisioning").
       # ansible_connection: community.proxmox.proxmox_pct_remote
-      # ansible_host: <address of the Proxmox host>
+      # ansible_host: <address of the Proxmox host; paramiko ignores ~/.ssh/config>
+      # ansible_port: <SSH port of the Proxmox host>
       # ansible_user: <your user on the Proxmox host>
+      # ansible_become: false   # pct exec already runs as root in the container
       # proxmox_vmid: <container ID>
+      ansible_python_interpreter: /usr/bin/python3
   vars:
     # Required: addresses or CIDR ranges of the TLS-terminating reverse proxy.
     # nginx accepts connections (and X-Forwarded-Proto) only from these and

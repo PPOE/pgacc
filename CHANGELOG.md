@@ -18,6 +18,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   automatic rollback and pruning of old releases. See
   [deploy/README.md](deploy/README.md). The application is unchanged.
 
+### Documentation
+
+- [UPGRADING.md](UPGRADING.md) describes the rewrite of the short page
+  addresses (`/donations`, `/vreport?konto=...` and others) to
+  `index.php?action=<name>`, which the web server needs and which was only
+  part of the server configuration until now.
+
 ## [2.1.0] - 2026-10-26
 
 Security and data-integrity release: receipts, voucher saves and passwords.
