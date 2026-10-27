@@ -6,8 +6,6 @@ For a dedicated Debian 13 (trixie) host or container:
   again after changes; a second run changes nothing).
 - [`deploy.sh`](deploy.sh), installed as `pgacc-deploy`, deploys a release
   tag.
-- [`staging-stub.sh`](staging-stub.sh) (optional, staging only) replaces the
-  membership system with the membership stub.
 
 They are not part of the release archive (`.gitattributes`); run them from a
 checkout of the repository. Release notes and manual upgrade steps:
@@ -18,16 +16,26 @@ checkout of the repository. Release notes and manual upgrade steps:
 ```sh
 cp deploy/ansible/inventory.example.yml ~/pgacc-inventory.yml   # and edit
 ansible-playbook -i ~/pgacc-inventory.yml deploy/ansible/playbook.yml
+# new installation only, once: also create the database with the schema
+ansible-playbook -i ~/pgacc-inventory.yml deploy/ansible/playbook.yml -e pgacc_fresh_install=true
 ```
 
-The target needs Python 3 and SSH (or another Ansible connection). Settings
-(inventory variables, see [inventory.example.yml](ansible/inventory.example.yml)):
+The target needs Python 3 and an Ansible connection. For a Proxmox container
+the example inventory shows the `community.proxmox.proxmox_pct_remote`
+connection (SSH to the Proxmox host, then `pct exec`); run it with
+`--ask-become-pass`. Settings (inventory variables, see
+[inventory.example.yml](ansible/inventory.example.yml)):
 
 | Variable | Default | |
 | --- | --- | --- |
 | `pgacc_trusted_proxies` | none, required | Addresses or CIDR ranges of the TLS-terminating reverse proxy. |
 | `pgacc_timezone` | `UTC` | PHP `date.timezone`. |
 | `pgacc_backup_keep_days` | `7` | Days the nightly dumps are kept. |
+| `pgacc_disable_sshd` | `true` | Stops and disables the SSH server (`ssh.service`, `ssh.socket`): the host is administered through the container runtime. Set it to `false` if Ansible connects over SSH to the host itself. |
+| `pgacc_fresh_install` | `false` | Pass `-e pgacc_fresh_install=true` once to create the database (see below). |
+
+Defaults: time zone UTC and dumps kept 7 days (the settings above); uploads
+up to 20M (nginx and PHP) and PHP `memory_limit` 256M (fixed).
 
 What it sets up:
 
@@ -37,9 +45,9 @@ What it sets up:
 | Users | `pgacc` runs PHP (the PHP-FPM pool) and is the database role. `pgacc-deploy` owns the releases and may run `systemctl reload php8.5-fpm.service` with sudo, nothing else. Both are system users without a login shell. |
 | Layout | `/srv/pgacc/releases/v<version>/` and the symlink `/srv/pgacc/current` belong to `pgacc-deploy`; PHP can read them but not write. `/srv/pgacc/shared/files/` (receipts) belongs to `pgacc` (mode 0700). `/srv/pgacc/shared/constants.php` is `root:pgacc` 0640: PHP reads it, nobody but root writes it. PHP errors go to `/var/log/pgacc/php-error.log` (rotated weekly). |
 | `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
-| PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`); `90-pgacc.ini`: `display_errors` off, `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on: `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
+| PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`, `display_errors` off, errors logged); Debian's default pool `www` is removed. `90-pgacc.ini`: `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on (Debian's default): `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
 | nginx | Port 80, `server_name _`, document root `/srv/pgacc/current`, PHP with the resolved release path (`$realpath_root`). Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Denied as in [UPGRADING.md](../UPGRADING.md): `files/`, `vendor/`, `tests/`, `src/`, `deploy/`, `constants.php`, `migrate-receipt-key.php`, `check.php`, `composer.json`/`.lock` and dot files. The default site is disabled. |
-| Database | Role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `C.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. Created only if it does not exist. If `accounting` exists but belongs to another role, the playbook stops. |
+| Database | PostgreSQL 18 with the `en_US.UTF-8` locale generated (the collation of the existing installation). A normal run never creates or changes a database. Only with `-e pgacc_fresh_install=true`: role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `en_US.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. It refuses if `accounting` exists already, with or without tables. |
 | Dumps | `pgacc-backup.timer` runs `pg_dump --format=custom` nightly as `postgres` into `/var/backups/pgacc` (owner `postgres`, mode 0700; neither `pgacc` nor `pgacc-deploy` can write there) and deletes dumps older than `pgacc_backup_keep_days`. |
 
 TLS ends at the reverse proxy, which must send `X-Forwarded-Proto: https`
@@ -55,22 +63,22 @@ without its `$key` the stored receipts cannot be decrypted.
 
 ### Moving an existing installation
 
-After the first playbook run and before the first deploy, replace
-`shared/constants.php` with the existing one (owner `root`, group `pgacc`,
-mode 0640) and copy the receipts into `shared/files/` (owner `pgacc`). Replace
-the new, empty `accounting` database with the dump:
+After the first playbook run (without `pgacc_fresh_install`) and before the
+first deploy, replace `shared/constants.php` with the existing one (owner
+`root`, group `pgacc`, mode 0640) and copy the receipts into `shared/files/`
+(owner `pgacc`). Create the role and database and restore the dump:
 
 ```sh
-sudo -u postgres dropdb accounting
-sudo -u postgres createdb --owner=pgacc --encoding=UTF8 --locale=C.UTF-8 --template=template0 accounting
+sudo -u postgres createuser pgacc
+sudo -u postgres createdb --owner=pgacc --encoding=UTF8 --locale=en_US.UTF-8 --template=template0 accounting
 sudo -u postgres psql -d accounting -c 'REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC' \
   -c 'GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc'
 sudo -u postgres pg_restore --no-owner --role=pgacc --exit-on-error -d accounting accounting.dump
 ```
 
 (A plain SQL dump: `sudo -u pgacc psql -v ON_ERROR_STOP=1 -d accounting -f dump.sql`.)
-Then follow [UPGRADING.md](../UPGRADING.md) for the releases in between. A new
-database has no users; the first administrator can be created as `pgacc`:
+Then follow [UPGRADING.md](../UPGRADING.md) for the releases in between. A
+fresh database has no users; the first administrator can be created as `pgacc`:
 
 ```sql
 INSERT INTO users (name, hash, rights, hide)
@@ -112,22 +120,10 @@ Deploying the current release again does nothing. Deploying a release that is
 still in `releases/` switches back to it without downloading (a manual
 rollback). Nothing is built on the host: the archive contains `vendor/`.
 
-## Staging: membership stub
+## Staging
 
-```sh
-sudo sh deploy/staging-stub.sh
-```
-
-Only on a staging host, after the playbook. It points the host name of the
-membership URL in `getusers.php` to 127.0.0.1 in `/etc/hosts`, where nginx
-serves the stub's synthetic member list
-([tests/reference/membership/](../tests/reference/membership/)) over HTTPS
-with a certificate of a local CA that the host trusts, and sets `$datakey` in
-`constants.php` to the stub's synthetic key
-([tests/runtime/test-constants.php](../tests/runtime/test-constants.php)).
-It changes the whole host's view of the membership system, so never run it on
-a production host, and build production hosts fresh rather than converting a
-staging host.
+A staging host must not call the live membership system and must use
+synthetic data only.
 
 ## Fixed in the code
 

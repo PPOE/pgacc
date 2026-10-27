@@ -11,7 +11,7 @@ server {
 
     allow 127.0.0.1;
     allow ::1;
-{% for address in pgacc_proxies %}
+{% for address in pgacc_trusted_proxies %}
     allow {{ address }};
 {% endfor %}
     deny all;

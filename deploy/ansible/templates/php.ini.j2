@@ -1,11 +1,7 @@
 ; pgacc (deploy/ansible). Managed by Ansible.
-display_errors = Off
-display_startup_errors = Off
-log_errors = On
+; Debian's php.ini already has display_errors Off and log_errors On; the
+; pgacc pool enforces both for PHP-FPM.
 expose_php = Off
-allow_url_include = Off
-; getusers.php fetches the member list with file_get_contents() over HTTPS.
-allow_url_fopen = On
 cgi.fix_pathinfo = 0
 date.timezone = {{ pgacc_timezone | default("UTC") }}
 memory_limit = 256M

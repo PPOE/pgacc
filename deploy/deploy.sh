@@ -5,20 +5,12 @@
 #   sudo -u pgacc-deploy pgacc-deploy v<version>
 #   sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz
 #
-# Downloads pgacc-<version>.tar.gz and its .sha256 from the GitHub release of
-# the tag (or takes the local file and the .sha256 next to it), checks both,
-# unpacks into /srv/pgacc/releases/v<version>, links shared/constants.php and
-# shared/files, switches the current symlink atomically, reloads PHP-FPM and
-# requests the login page. If that fails, it switches back to the previous
-# release and exits 1. Keeps the newest 5 releases. pgacc has no database
-# migrations: the manual steps of UPGRADING.md stay manual.
+# Verifies and unpacks the release archive, switches /srv/pgacc/current
+# atomically, smoke-tests the login page and rolls back if it fails.
 set -eu
 
 root=/srv/pgacc
 releases=$root/releases
-repo=PPOE/pgacc
-fpm=php8.5-fpm.service
-keep=5
 
 say() { echo "deploy: $*"; }
 die() { echo "deploy: $*" >&2 && exit 1; }
@@ -60,7 +52,7 @@ if [ ! -d "$release" ]; then
     cp -- "$file" "$archive"
     cp -- "$file.sha256" "$archive.sha256"
   else
-    url=https://github.com/$repo/releases/download/$tag/$name.tar.gz
+    url=https://github.com/PPOE/pgacc/releases/download/$tag/$name.tar.gz
     curl -fsSL --fail-early --proto =https --proto-redir =https --max-time 300 \
       -o "$archive" "$url" -o "$archive.sha256" "$url.sha256" || die "download failed: $url"
   fi
@@ -90,7 +82,7 @@ switch_to() {
 }
 # Reloads PHP-FPM, then expects the login form (a 2xx answer) within 5 tries.
 check() {
-  sudo -n /usr/bin/systemctl reload "$fpm" || return 1
+  sudo -n /usr/bin/systemctl reload php8.5-fpm.service || return 1
   for _ in 1 2 3 4 5; do
     curl -fsS --max-time 20 -H 'X-Forwarded-Proto: https' 'http://127.0.0.1/index.php?action=login' |
       grep -q 'name="pass"' && return 0
@@ -113,8 +105,8 @@ if ! check; then
 fi
 say "deployed $tag (previous: ${previous:-none})"
 
-# Keep the newest $keep releases, never the current or the previous one.
+# Keep the newest 5 releases, never the current or the previous one.
 find "$releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%T@ %f\n' |
-  sort -rn | cut -d' ' -f2 | tail -n +$((keep + 1)) | while IFS= read -r old; do
+  sort -rn | cut -d' ' -f2 | tail -n +6 | while IFS= read -r old; do
   [ "$old" = "$tag" ] || [ "$old" = "$previous" ] || rm -rf "${releases:?}/$old"
 done

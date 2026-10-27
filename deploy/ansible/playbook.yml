@@ -2,17 +2,17 @@
 # Sets up a Debian 13 (trixie) host for pgacc. See deploy/README.md.
 #
 #   ansible-playbook -i inventory.yml deploy/ansible/playbook.yml
+#   ansible-playbook -i inventory.yml deploy/ansible/playbook.yml -e pgacc_fresh_install=true
 #
-# Never changes an existing constants.php, files/ or database.
+# A normal run never touches the database contents, constants.php or files/.
+# Only -e pgacc_fresh_install=true creates the database with the schema, and
+# it refuses if the database exists.
 - name: Provision a pgacc host
   hosts: all
   become: true
   # Handlers (reloads, the constants.php notice) run even if a later task fails.
   force_handlers: true
-  # Settings (inventory variables): pgacc_trusted_proxies (required),
-  # pgacc_timezone (default UTC), pgacc_backup_keep_days (default 7).
   vars:
-    pgacc_proxies: "{{ pgacc_trusted_proxies | default([]) }}"
     pgacc_fixtures: "{{ playbook_dir }}/../../tests/fixtures"
 
   handlers:
@@ -45,8 +45,8 @@
       ansible.builtin.assert:
         that:
           - ansible_distribution == 'Debian' and ansible_distribution_release == 'trixie'
-          - pgacc_proxies | length > 0
-          - pgacc_proxies | reject('match', '^[0-9A-Fa-f.:]+(/[0-9]{1,3})?$') | list | length == 0
+          - pgacc_trusted_proxies | default([]) | length > 0
+          - pgacc_trusted_proxies | reject('match', '^[0-9A-Fa-f.:]+(/[0-9]{1,3})?$') | list | length == 0
           - pgacc_backup_keep_days | default(7) | int > 0
         fail_msg: >-
           Needs Debian 13 and pgacc_trusted_proxies: the addresses or CIDR
@@ -57,10 +57,27 @@
 
     - name: Install the base packages
       ansible.builtin.apt:
-        name: [ca-certificates, curl, postgresql-common, sudo, logrotate]
+        name: [ca-certificates, curl, locales, logrotate, postgresql-common, sudo]
         install_recommends: false
         update_cache: true
         cache_valid_time: 3600
+
+    # The collation of the database (as on the existing installation).
+    - name: Enable the en_US.UTF-8 locale
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#? *en_US\.UTF-8 UTF-8$'
+        line: en_US.UTF-8 UTF-8
+
+    - name: List the locales
+      ansible.builtin.command: locale -a
+      register: pgacc_locales
+      changed_when: false
+
+    - name: Generate the locales
+      ansible.builtin.command: locale-gen
+      when: "'en_US.utf8' not in pgacc_locales.stdout_lines"
+      changed_when: true
 
     - name: Add the PostgreSQL repository (postgresql-common's script)
       ansible.builtin.command: /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
@@ -168,6 +185,12 @@
         mode: "0644"
       notify: Reload php-fpm
 
+    - name: Disable the default PHP-FPM pool www
+      ansible.builtin.file:
+        path: /etc/php/8.5/fpm/pool.d/www.conf
+        state: absent
+      notify: Reload php-fpm
+
     - name: Start PHP-FPM
       ansible.builtin.systemd_service:
         name: php8.5-fpm.service
@@ -214,7 +237,7 @@
         dest: /etc/logrotate.d/pgacc
         mode: "0644"
 
-    # --- Database: role pgacc (peer authentication), database accounting
+    # --- PostgreSQL
 
     - name: Start PostgreSQL
       ansible.builtin.systemd_service:
@@ -222,64 +245,69 @@
         enabled: true
         state: started
 
-    - name: Query the database role and owner
-      ansible.builtin.command:
-        argv:
-          - runuser
-          - -u
-          - postgres
-          - --
-          - psql
-          - -XtAc
-          - >-
-            SELECT (SELECT count(*) FROM pg_roles WHERE rolname = 'pgacc') || ':'
-            || coalesce((SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'accounting'), '')
-      register: pgacc_db_state
-      changed_when: false
+    # --- Database: only with -e pgacc_fresh_install=true
 
-    - name: Refuse an accounting database owned by another role
-      ansible.builtin.fail:
-        msg: >-
-          The database accounting exists but is owned by {{ pgacc_db_state.stdout.split(':')[1] }},
-          not pgacc. pgacc connects as pgacc; change the owner by hand
-          (ALTER DATABASE accounting OWNER TO pgacc, and its objects) and run again.
-      when: pgacc_db_state.stdout.split(':')[1] not in ['', 'pgacc']
-
-    - name: Create the database role
-      ansible.builtin.command: runuser -u postgres -- psql -Xq -c 'CREATE ROLE pgacc LOGIN'
-      when: pgacc_db_state.stdout.split(':')[0] == '0'
-      changed_when: true
-
-    - name: Create the database with the schema
-      when: pgacc_db_state.stdout.split(':')[1] == ''
+    - name: Create the database (fresh install)
+      when: pgacc_fresh_install | default(false) | bool
       block:
-        - name: Create the database
+        - name: Query the database role and database
           ansible.builtin.command:
-            argv: [runuser, -u, postgres, --, createdb, --owner=pgacc, --encoding=UTF8, --locale=C.UTF-8, --template=template0, accounting]
-          changed_when: true
+            argv:
+              - runuser
+              - -u
+              - postgres
+              - --
+              - psql
+              - -XtAc
+              - >-
+                SELECT (SELECT count(*) FROM pg_roles WHERE rolname = 'pgacc') || ':'
+                || (SELECT count(*) FROM pg_database WHERE datname = 'accounting')
+          register: pgacc_db_state
+          changed_when: false
 
-        - name: Load pgcrypto and restrict access
-          ansible.builtin.command:
-            argv: [runuser, -u, postgres, --, psql, -Xq, -v, ON_ERROR_STOP=1, -d, accounting, -f, -]
-            stdin: |
-              {{ lookup('ansible.builtin.file', pgacc_fixtures + '/pgcrypto.sql') }}
-              REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC;
-              GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc;
-          changed_when: true
-
-        - name: Load the schema as pgacc
-          ansible.builtin.command:
-            argv: [runuser, -u, pgacc, --, psql, -Xq, -v, ON_ERROR_STOP=1, --single-transaction, -d, accounting, -f, -]
-            stdin: "{{ lookup('ansible.builtin.file', pgacc_fixtures + '/schema.sql') }}"
-          changed_when: true
-      rescue:
-        - name: Drop the new database again
-          ansible.builtin.command: runuser -u postgres -- dropdb --if-exists accounting
-          changed_when: true
-
-        - name: Stop
+        - name: Refuse an existing database
           ansible.builtin.fail:
-            msg: Creating the database failed; dropped it so that a rerun starts clean.
+            msg: >-
+              The database accounting exists already. A fresh install never
+              touches an existing database; drop it by hand first if it really
+              is to be replaced.
+          when: pgacc_db_state.stdout.split(':')[1] != '0'
+
+        - name: Create the database role
+          ansible.builtin.command: runuser -u postgres -- psql -Xq -c 'CREATE ROLE pgacc LOGIN'
+          when: pgacc_db_state.stdout.split(':')[0] == '0'
+          changed_when: true
+
+        - name: Create the database with the schema
+          block:
+            - name: Create the database
+              ansible.builtin.command:
+                argv: [runuser, -u, postgres, --, createdb, --owner=pgacc, --encoding=UTF8, --locale=en_US.UTF-8, --template=template0, accounting]
+              changed_when: true
+
+            - name: Load pgcrypto and restrict access
+              ansible.builtin.command:
+                argv: [runuser, -u, postgres, --, psql, -Xq, -v, ON_ERROR_STOP=1, -d, accounting, -f, -]
+                stdin: |
+                  {{ lookup('ansible.builtin.file', pgacc_fixtures + '/pgcrypto.sql') }}
+                  REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC;
+                  GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc;
+              changed_when: true
+
+            - name: Load the schema as pgacc
+              ansible.builtin.command:
+                argv: [runuser, -u, pgacc, --, psql, -Xq, -v, ON_ERROR_STOP=1, --single-transaction, -d, accounting, -f, -]
+                stdin: "{{ lookup('ansible.builtin.file', pgacc_fixtures + '/schema.sql') }}"
+              changed_when: true
+          rescue:
+            # Only the database this run created: an existing one stopped the run above.
+            - name: Drop the new database again
+              ansible.builtin.command: runuser -u postgres -- dropdb --if-exists accounting
+              changed_when: true
+
+            - name: Stop
+              ansible.builtin.fail:
+                msg: Creating the database failed; dropped it so that a rerun starts clean.
 
     # --- Nightly local database dump (the host backs up the whole system)
 
@@ -309,3 +337,21 @@
         enabled: true
         state: started
         daemon_reload: "{{ pgacc_backup_service is changed or pgacc_backup_timer is changed }}"
+
+    # --- The hosts are administered through the container runtime, not SSH.
+
+    - name: Look for the SSH server
+      ansible.builtin.stat:
+        path: /usr/lib/systemd/system/{{ item }}
+      loop: [ssh.socket, ssh.service]
+      register: pgacc_ssh_units
+
+    - name: Stop and disable the SSH server (pgacc_disable_sshd)
+      ansible.builtin.systemd_service:
+        name: "{{ item.item }}"
+        state: stopped
+        enabled: false
+      loop: "{{ pgacc_ssh_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: pgacc_disable_sshd | default(true) | bool and item.stat.exists

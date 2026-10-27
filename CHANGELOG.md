@@ -11,11 +11,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   8.5-FPM and PostgreSQL 18 from their upstream package repositories, an
   nginx site behind a TLS-terminating reverse proxy (required trusted proxy
   addresses), separate users for PHP (read-only code) and for deploying, the
-  `accounting` database, the `/srv/pgacc` release layout and a nightly local
-  database dump. `deploy/deploy.sh` deploys a release tag with checksum and
-  archive checks, an atomic switch, a smoke test, automatic rollback and
-  pruning of old releases. `deploy/staging-stub.sh` serves the membership
-  stub's synthetic member list on a staging host. See
+  `/srv/pgacc` release layout and a nightly local database dump. The
+  `accounting` database (`en_US.UTF-8`) is created only on an explicit fresh
+  install, never over an existing one. `deploy/deploy.sh` deploys a release
+  tag with checksum and archive checks, an atomic switch, a smoke test,
+  automatic rollback and pruning of old releases. See
   [deploy/README.md](deploy/README.md). The application is unchanged.
 
 ## [2.1.0] - 2026-10-26

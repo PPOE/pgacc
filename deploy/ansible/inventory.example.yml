@@ -5,6 +5,14 @@ all:
     pgacc:
       ansible_host: 192.0.2.10
       ansible_user: root
+      # A Proxmox LXC container instead (laptop -> SSH to the Proxmox host ->
+      # pct exec), with the community.proxmox collection and paramiko
+      # installed locally. Run ansible-playbook with --ask-become-pass: the
+      # plugin runs pct with sudo on the Proxmox host and needs that password.
+      # ansible_connection: community.proxmox.proxmox_pct_remote
+      # ansible_host: <address of the Proxmox host>
+      # ansible_user: <your user on the Proxmox host>
+      # proxmox_vmid: <container ID>
   vars:
     # Required: addresses or CIDR ranges of the TLS-terminating reverse proxy.
     # nginx accepts connections (and X-Forwarded-Proto) only from these and
@@ -14,3 +22,4 @@ all:
     # Optional (defaults shown).
     # pgacc_timezone: UTC
     # pgacc_backup_keep_days: 7
+    # pgacc_disable_sshd: true
