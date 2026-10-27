@@ -43,6 +43,9 @@ server {
         # never mixes files of two releases.
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param DOCUMENT_ROOT $realpath_root;
+        # index.php builds its HTTPS redirect from SERVER_NAME; server_name is
+        # "_", so pass the Host header (only the trusted proxies get here).
+        fastcgi_param SERVER_NAME $host;
         fastcgi_pass unix:/run/php/pgacc-fpm.sock;
     }
 
