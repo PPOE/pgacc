@@ -181,7 +181,7 @@ changed() { case " $changed_files " in *" $1 "*) return 0 ;; *) return 1 ;; esac
 
 say "installing base packages"
 apt-get update -qq
-apt-get install -y -qq --no-install-recommends ca-certificates curl gpg openssl sudo tar gzip >/dev/null
+apt-get install -y -qq --no-install-recommends ca-certificates curl gpg openssl sudo tar gzip logrotate >/dev/null
 
 # Downloads a signing key to $2 (binary keyring) and checks that its primary
 # key has the fingerprint $3.

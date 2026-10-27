@@ -288,13 +288,12 @@ smoke_test() {
 previous=${current_target#releases/}
 [ -n "$current_target" ] && [ -d "$root/$current_target" ] || previous=
 
-switch_to "$id"
-touch "$release"
-say "current -> releases/$id"
-if reload_fpm && smoke_test; then
-  log_line "deployed $kind $id (previous: ${previous:-none})"
-  say "deployed $id (previous: ${previous:-none})"
-else
+# Restores the previous release (or removes current if there was none) and
+# deletes the new release directory if this run created it. Also run when the
+# deploy is interrupted after the switch, so an unverified release never
+# stays current.
+roll_back() {
+  trap '' HUP INT TERM
   if [ -n "$previous" ]; then
     switch_to "$previous"
     reload_fpm || true
@@ -311,6 +310,18 @@ else
     rm -rf "$release"
   fi
   log_line "FAILED $kind $id; rolled back to ${previous:-nothing}"
+}
+trap 'say "interrupted"; roll_back; exit 1' HUP INT TERM
+
+switch_to "$id"
+touch "$release"
+say "current -> releases/$id"
+if reload_fpm && smoke_test; then
+  trap 'exit 1' HUP INT TERM
+  log_line "deployed $kind $id (previous: ${previous:-none})"
+  say "deployed $id (previous: ${previous:-none})"
+else
+  roll_back
   die "deploy of $id failed"
 fi
 
