@@ -38,6 +38,8 @@ not work on PHP 8 yet; see
 migration".
 
 Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
+Provisioning a Debian 13 host and deploying releases with scripts:
+[deploy/README.md](deploy/README.md).
 
 ## Setup
 

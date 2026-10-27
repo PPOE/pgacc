@@ -5,6 +5,18 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `deploy/provision.sh` sets up a Debian 13 host for pgacc: PHP 8.5-FPM and
+  PostgreSQL 18 from their upstream package repositories, an nginx site
+  behind a TLS-terminating reverse proxy, a PHP-FPM pool for a dedicated
+  user, the `accounting` database, the `/srv/pgacc` release layout and a
+  nightly database dump; a staging mode serves the membership stub's
+  synthetic member list. `deploy/deploy.sh` deploys a release tag (or, where
+  enabled, a commit build) with checksum verification, an atomic switch, a
+  smoke test, automatic rollback and pruning of old releases. See
+  [deploy/README.md](deploy/README.md). The application is unchanged.
+
 ## [2.1.0] - 2026-10-26
 
 Security and data-integrity release: receipts, voucher saves and passwords.
