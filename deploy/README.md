@@ -50,10 +50,21 @@ PHP-FPM pool and settings, systemd units, sudoers file,
 
 Moving an existing installation: after the first provision run, before the
 first deploy, replace `shared/constants.php` with the existing one (owner
-`pgacc`, mode 0600), copy the receipts into `shared/files/` (owner
-`pgacc`), and restore the database dump into the empty `accounting`
-database as `pgacc` (`pg_restore --no-owner --role=pgacc -d accounting`).
-Then follow [UPGRADING.md](../UPGRADING.md) for the releases in between.
+`pgacc`, mode 0600) and copy the receipts into `shared/files/` (owner
+`pgacc`). The provisioned `accounting` database already has the schema, so
+replace it (only this new, empty one) with the dump:
+
+```sh
+sudo -u postgres dropdb accounting
+sudo -u postgres createdb --owner=pgacc --encoding=UTF8 --locale=C.UTF-8 --template=template0 accounting
+sudo -u postgres psql -d accounting -c 'REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC' \
+  -c 'GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc'
+sudo -u postgres pg_restore --no-owner --role=pgacc --exit-on-error -d accounting accounting.dump
+```
+
+(`pg_restore` reads a custom-format dump; a plain SQL dump goes through
+`sudo -u pgacc psql -v ON_ERROR_STOP=1 -d accounting -f dump.sql`.) Then
+follow [UPGRADING.md](../UPGRADING.md) for the releases in between.
 
 A new database has no users. The first administrator can be created with
 `psql` as `pgacc`:
@@ -73,7 +84,9 @@ with a certificate of a local CA that the host trusts (`/etc/pgacc/staging-tls/`
 A generated `constants.php` gets the stub's synthetic `$datakey`
 ([tests/runtime/test-constants.php](../tests/runtime/test-constants.php)).
 Staging also allows commit deploys. Do not use staging mode on a production
-host: it redirects the membership host for the whole system.
+host: it redirects the membership host for the whole system. A production
+run after a staging run removes the `/etc/hosts` entry, the CA and the stub,
+and warns while `constants.php` still has the synthetic `$datakey`.
 
 ## Deploying
 

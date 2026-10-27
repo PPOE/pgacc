@@ -516,6 +516,27 @@ server {
 }
 EOF
   )
+else
+  # Production: undo a former staging setup, so the membership host resolves
+  # normally again.
+  if grep -q '# pgacc staging membership stub$' /etc/hosts; then
+    tmp=$(mktemp)
+    grep -v '# pgacc staging membership stub$' /etc/hosts >"$tmp" || true
+    # Rewritten in place: /etc/hosts may be a mount point.
+    cat "$tmp" >/etc/hosts
+    rm -f "$tmp"
+    say "removed the staging membership entry from /etc/hosts"
+  fi
+  if [ -e /usr/local/share/ca-certificates/pgacc-staging-membership-ca.crt ]; then
+    rm -f /usr/local/share/ca-certificates/pgacc-staging-membership-ca.crt
+    update-ca-certificates --fresh >/dev/null 2>&1
+    say "removed the staging membership CA from the trusted certificates"
+  fi
+  rm -rf /etc/pgacc/staging-tls "$PGACC_ROOT/staging-membership"
+  staging_datakey=$(sed -n "s/^\$datakey = '\\([A-Za-z0-9._-]*\\)';\$/\\1/p" "$repo/tests/runtime/test-constants.php")
+  if [ -n "$staging_datakey" ] && grep -qF "'$staging_datakey'" "$constants"; then
+    warn "$constants still has the synthetic staging \$datakey; replace it with the key shared with the membership system"
+  fi
 fi
 
 # --- nginx ---------------------------------------------------------------------
