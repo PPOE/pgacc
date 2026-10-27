@@ -4,6 +4,11 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
+On a Debian 13 host set up with `deploy/ansible/playbook.yml`, `deploy/deploy.sh`
+verifies, unpacks and activates the archive, with a smoke test and automatic
+rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
+steps below (pgacc has no database migrations); do them as described.
+
 ## Browsers
 
 From 2.1.0 (the Tailwind CSS stylesheet, see
@@ -21,6 +26,23 @@ this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
 add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
+
+## Web server: short page addresses
+
+The pages link to `/donations`, `/kdonations`, `/spendings`, `/wk`,
+`/transactions`, `/vreport` and `/tinyreport` (with an optional query string,
+e.g. `/donations?year=2024`). The web server has to rewrite them to
+`index.php?action=<name>`, keeping the query string; this was always needed
+but only lived in the server configuration. Lighttpd:
+
+```
+url.rewrite-once = (
+  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" => "index.php?action=$1",
+  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)\?(.*)$" => "index.php?action=$1&$2"
+)
+```
+
+The nginx site of `deploy/ansible/playbook.yml` has the same rule.
 
 ## Passwords: bcrypt and 12 characters
 

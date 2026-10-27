@@ -34,6 +34,8 @@
 /.php-cs-fixer.dist.php export-ignore
 /.claude export-ignore
 /.githooks export-ignore
+# Host provisioning and deploy scripts (run from a checkout, not served).
+/deploy export-ignore
 
 # Command-line voucher-number check (php check.php <account> <max>).
 /check.php export-ignore

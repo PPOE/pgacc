@@ -5,6 +5,26 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `deploy/ansible/playbook.yml` sets up a Debian 13 host for pgacc: PHP
+  8.5-FPM and PostgreSQL 18 from their upstream package repositories, an
+  nginx site behind a TLS-terminating reverse proxy (required trusted proxy
+  addresses), separate users for PHP (read-only code) and for deploying, the
+  `/srv/pgacc` release layout and a nightly local database dump. The
+  `accounting` database (`en_US.UTF-8`) is created only on an explicit fresh
+  install, never over an existing one. `deploy/deploy.sh` deploys a release
+  tag with checksum and archive checks, an atomic switch, a smoke test,
+  automatic rollback and pruning of old releases. See
+  [deploy/README.md](deploy/README.md). The application is unchanged.
+
+### Documentation
+
+- [UPGRADING.md](UPGRADING.md) describes the rewrite of the short page
+  addresses (`/donations`, `/vreport?konto=...` and others) to
+  `index.php?action=<name>`, which the web server needs and which was only
+  part of the server configuration until now.
+
 ## [2.1.0] - 2026-10-26
 
 Security and data-integrity release: receipts, voucher saves and passwords.

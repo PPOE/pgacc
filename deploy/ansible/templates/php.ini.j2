@@ -1,0 +1,9 @@
+; pgacc (deploy/ansible). Managed by Ansible.
+; Debian's php.ini already has display_errors Off and log_errors On; the
+; pgacc pool enforces both for PHP-FPM.
+expose_php = Off
+cgi.fix_pathinfo = 0
+date.timezone = {{ pgacc_timezone | default("UTC") }}
+memory_limit = 256M
+upload_max_filesize = 20M
+post_max_size = 20M
