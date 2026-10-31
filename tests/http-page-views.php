@@ -11,7 +11,7 @@
 require __DIR__ . '/http-test-helpers.php';
 
 // The pages index.php dispatches on ?action= (its in_array() list).
-$index = file_get_contents(__DIR__ . '/../index.php');
+$index = file_get_contents(__DIR__ . '/../public/index.php');
 if (preg_match('/if \(in_array\(\$_GET\["action"\],\s*\[([^\]]*)\]\)\)/', $index, $match) !== 1
     || preg_match_all('/"([a-z0-9]+)"/', $match[1], $actions) < 20) {
     fail_test('index.php: the ?action= dispatch list was not found');
@@ -150,7 +150,7 @@ if (json_decode($graphData[1], true) !== $points) {
 // The web server serves both files as they are (static files bypass the
 // diagnostics recorder, so they are read here instead of requested).
 foreach (['js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js' => "'graph-data'"] as $script => $marker) {
-    $content = @file_get_contents(__DIR__ . '/../' . $script);
+    $content = @file_get_contents(__DIR__ . '/../public/' . $script);
     if ($content === false) {
         fail_test("$script is missing");
     }
@@ -344,11 +344,11 @@ foreach ($lock['packages'] as $package) {
 }
 // The bundled software exists, so its rows are not stale.
 foreach (['js/chart.umd.min.js', 'icons/accept.png'] as $bundled) {
-    if (!is_file(__DIR__ . '/../' . $bundled)) {
+    if (!is_file(__DIR__ . '/../public/' . $bundled)) {
         fail_test("Impressum: $bundled no longer exists; update the software table");
     }
 }
-if (strncmp((string) file_get_contents(__DIR__ . '/../style.css'), '/*! tailwindcss v', 17) !== 0) {
+if (strncmp((string) file_get_contents(__DIR__ . '/../public/style.css'), '/*! tailwindcss v', 17) !== 0) {
     fail_test('Impressum: style.css is no longer built with Tailwind CSS; update the software table');
 }
 $expectedRows['Chart.js'] = ['https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html'];

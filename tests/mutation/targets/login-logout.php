@@ -42,7 +42,7 @@ $headerStart = "\n\$year = date('Y');\n\n"
 return [
     'description' => 'Login and logout: index.php login(), early logout/login blocks, login.php, '
         . 'new.php page_new_buchung() signature (HTTP login/logout regressions)',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'tests' => [
         // Valid/rejected login, login with target, already logged in, cookie
         // attributes and database state, logout, empty redirect bodies, and

@@ -1392,7 +1392,7 @@ differences above are only visible for out-of-range input.
     types (listed, exit status 3), and exits 2 when it cannot read
     the directory. Its first statement stops any server API but the
     command line (404 for web requests, a message for php-cgi from a shell,
-    exit status 1), before any include; `.htaccess` also denies it (defence
+    exit status 1), before any include; it is outside the document root `public/` (defence
     in depth; production runs Lighttpd). Runbook below.
   - Tests: `tests/unit/ReceiptStorageTest.php` (key validation, fingerprint,
     v2 vectors, random IV, rejected keys/numbers/modifications, atomic
@@ -1771,7 +1771,7 @@ Recommendation (owner decision):
   - [ ] Later steps change the syntax tree (`elseif`, visibility, closing tags,
     imports, ...) and run with the strict gates.
 
-- [ ] `.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
+- [ ] `public/.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
   changelog says short tags are no longer needed (the
   `Generic.PHP.DisallowShortOpenTag` sniff keeps them out). Decide whether to
   drop the line (a runtime configuration change, separate from tooling); until

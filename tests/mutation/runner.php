@@ -238,7 +238,7 @@ function run_case($context, $mutation, $mutantSource, $index)
         $environment = [
             'PGACC_TEST_DIAGNOSTICS_DIR' => $diagnostics,
             'PGACC_TEST_BASE_URL' => 'http://127.0.0.1:' . $port,
-            // Served root, so tests/http-diagnostics.php can relate displayed paths.
+            // Application root (served: its public/), so tests/http-diagnostics.php can relate displayed paths.
             'PGACC_TEST_APP_ROOT' => $copy,
         ];
         $server = null;
@@ -248,7 +248,7 @@ function run_case($context, $mutation, $mutantSource, $index)
                 $arguments[] = '-d';
                 $arguments[] = str_replace('%APP%', $copy, $setting);
             }
-            $arguments = array_merge($arguments, ['-S', '127.0.0.1:' . $port, '-t', $copy]);
+            $arguments = array_merge($arguments, ['-S', '127.0.0.1:' . $port, '-t', $copy . '/public', $copy . '/tests/runtime/router.php']);
             $server = pgacc_mutation_start(
                 $arguments,
                 $environment,

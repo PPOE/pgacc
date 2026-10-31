@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-# Top-level files and the library files in src/.
-php_files="$({ find . -maxdepth 1 -type f -name '*.php' -print; find ./src -maxdepth 1 -type f -name '*.php' -print; } | sort)"
+# Top-level files, the entry points in public/ and the library files in src/.
+php_files="$({ find . -maxdepth 1 -type f -name '*.php' -print; find ./public ./src -maxdepth 1 -type f -name '*.php' -print; } | sort)"
 
 if [ -z "$php_files" ]; then
   echo "No top-level PHP files found" >&2

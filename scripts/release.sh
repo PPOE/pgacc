@@ -140,6 +140,14 @@ build_archive() {
     echo "The archive contains development or configuration files; check .gitattributes" >&2
     exit 1
   fi
+  # The document root public/ (UPGRADING.md) holds only the entry points and
+  # the static files.
+  unexpected=$(cd "$stage/public" && find . ! -path . ! -path ./.htaccess ! -path ./index.php ! -path ./mbapi.php \
+    ! -path ./style.css ! -path ./js ! -path './js/*' ! -path ./icons ! -path './icons/*' -print)
+  if [ ! -f "$stage/public/index.php" ] || [ ! -f "$stage/public/mbapi.php" ] || [ -n "$unexpected" ]; then
+    echo "public/ must hold index.php, mbapi.php and the static files only: ${unexpected:-index.php or mbapi.php missing}" >&2
+    exit 1
+  fi
 
   # Locked runtime dependencies (no dev packages), as the host user. The
   # autoloader class suffix is random by default; the lock's content-hash

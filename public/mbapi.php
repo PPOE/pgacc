@@ -1,5 +1,9 @@
 <?php
 
+// The code, constants.php and files/ are in the release root, outside the
+// document root: relative includes and paths resolve there, as before.
+chdir(dirname(__DIR__));
+
 include "constants.php";
 require "vendor/autoload.php";
 require "functions.php";

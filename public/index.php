@@ -1,4 +1,7 @@
 <?php
+// The code, constants.php and files/ are in the release root, outside the
+// document root: relative includes and paths resolve there, as before.
+chdir(dirname(__DIR__));
 if (empty($_SERVER['HTTP_X_FORWARDED_PROTO']) || $_SERVER['HTTP_X_FORWARDED_PROTO'] != 'https') {
     header("Location: https://" . $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"]);
     return;

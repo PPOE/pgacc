@@ -22,7 +22,7 @@ if ($coverageDir !== false && $coverageDir !== '') {
         . ' PGACC_COVERAGE_CHAINED_PREPEND=';
 }
 $server = proc_open(
-    'exec env ' . $environment . ' php' . $settings . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__)),
+    'exec env ' . $environment . ' php' . $settings . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__) . '/public') . ' ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
     [0 => ['file', '/dev/null', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
     $pipes,
 );

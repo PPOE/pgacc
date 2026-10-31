@@ -1,0 +1,13 @@
+php_value short_open_tag 1
+# The document root is this directory (UPGRADING.md, "Document root public/").
+# Defence in depth: backup, editor and dump copies (constants.php.bak,
+# index.php~, x.sql, a.tar.gz, ...), in case one lands here anyway.
+<FilesMatch "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php.+|^#.*#)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

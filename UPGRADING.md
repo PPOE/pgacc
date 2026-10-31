@@ -9,6 +9,119 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Document root `public/` (deployment change)
+
+This release changes how pgacc is deployed; it is meant for a major release.
+The web server's document root is now the `public/` directory of the release,
+not the release root. `public/` holds only what must be reachable over the
+web:
+
+- the entry points `index.php` (every page, the login, the receipt downloads
+  `index.php?action=file`, the CSV exports `format=csv`) and `mbapi.php` (called
+  by the membership system);
+- the static files `style.css`, `js/*.js` and `icons/*.png`;
+- `.htaccess` (Apache: `short_open_tag`, the backup-copy rule above).
+
+Everything else stays in the release root, outside the document root: the
+page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
+command-line scripts (`migrate-receipt-key.php`, `check.php`), the docs, and
+`constants.php` and `files/`. Nothing there can be requested, whatever its
+name, so a copy such as `constants.php.bak` next to the configuration is no
+longer exposed. The entry points change to the release root (`chdir`) and
+load the code, `constants.php` and `files/` from there, as before; PHP's
+`include_path` must contain `.` (the default).
+
+The URLs stay the same: `/`, `/index.php?action=...`, the short page
+addresses (`/donations`, ...), `/mbapi.php`, `/style.css?v=...`,
+`/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
+answering: a direct request of a page script, `functions.php` or `src/*.php`
+printed nothing and now gets a 404, as do `/icons/readme.html` and
+`/js/README.md` (not served by the allow lists below).
+
+Upgrade steps:
+
+1. Keep `constants.php` and `files/` where they are: in the release root (or,
+   with `deploy/`, the links to `shared/` that `pgacc-deploy` creates there).
+   Do not move them into `public/`.
+2. Set the document root to `<release>/public` and serve only the allow list
+   below; keep the dot-file and backup-copy rules. The short page addresses
+   are rewritten as before.
+3. Deploy the release and check: `/` (the report), the login, a receipt
+   download, a CSV export, `/donations`, `/style.css?v=<version>`,
+   `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
+   `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404.
+
+Hosts set up with `deploy/ansible/playbook.yml`: run the playbook from a
+checkout of the new release (it sets `root /srv/pgacc/current/public` and the
+allow list, and installs the new `pgacc-deploy`), then deploy the release
+right away. Until the deploy, the site answers 404 (the current release has no
+`public/`). `pgacc-deploy` refuses to switch back to a release without
+`public/`; to go back to such a release, run the playbook of that release's
+checkout first (document root `current/`), then `pgacc-deploy` of that
+version.
+
+nginx (as in `deploy/ansible/templates/nginx-site.conf.j2`, which also sets
+the caching headers):
+
+```
+root /srv/pgacc/current/public;
+index index.php;
+autoindex off;
+
+location ~ (^|/)\. {
+    deny all;
+}
+location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+    deny all;
+}
+location ~ ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ {
+    rewrite ^/(.+)$ /index.php?action=$1 last;
+}
+location = / {
+}
+location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
+}
+location ~ ^/(index|mbapi)\.php$ {
+    try_files $uri =404;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    fastcgi_param DOCUMENT_ROOT $realpath_root;
+    fastcgi_pass unix:/run/php/php-fpm.sock;
+}
+location / {
+    return 404;
+}
+```
+
+Lighttpd (the rewrite of "Web server: short page addresses" below stays; the
+allow list also names the short addresses):
+
+```
+server.document-root = "/srv/pgacc/current/public"
+dir-listing.activate = "disable"
+$HTTP["url"] !~ "^/(|index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png|vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" {
+  url.access-deny = ( "" )
+}
+```
+
+Plus the backup-copy rule of the next section; the former deny rule for
+`files`, `vendor`, `tests`, `src`, `constants.php`, ... is no longer needed.
+
+Apache (`public/.htaccess` needs `AllowOverride All`, or at least `Options
+AuthConfig Limit`, for `php_value` and the backup-copy rule; the former
+top-level `.htaccess` and `src/.htaccess` are gone):
+
+```
+DocumentRoot /srv/pgacc/current/public
+<Directory /srv/pgacc/current/public>
+  Options -Indexes
+  AllowOverride All
+  Require all granted
+</Directory>
+RewriteEngine On
+RewriteRule ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ /index.php?action=$1 [QSA,PT]
+```
+
 ## Web server: deny backup and editor copies
 
 The deny rules below (`files/`, `vendor/`, `constants.php`, ...) match exact
@@ -41,8 +154,13 @@ $HTTP["url"] =~ "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|t
 }
 ```
 
-Apache: the shipped top-level `.htaccess` has the same rule (`FilesMatch`,
-needs `AllowOverride` as before).
+Apache: the shipped `.htaccess` has the same rule (`FilesMatch`, needs
+`AllowOverride` as before); with the document root `public/` (below) it is
+`public/.htaccess`.
+
+With the document root `public/` (below) these rules are a second line of
+defence: only `public/` is served, so a copy in the release root cannot be
+requested at all.
 
 ## Web server: long-term caching of `style.css` and `js/`
 

@@ -3,8 +3,8 @@
 /*
  * Formatting and parsing helpers for the pages (index.php loads this file
  * after src/db.php): amounts in cents and dates. The file only defines
- * functions, so a direct request prints nothing (the web server denies src/
- * anyway).
+ * functions, so a direct request prints nothing (src/ is outside the
+ * document root public/ anyway).
  */
 
 // An amount in cents, parsed exactly as text (no float rounding) after

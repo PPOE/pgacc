@@ -15,7 +15,7 @@
  */
 return [
     'description' => 'Edge-case requests: removed actions, year and array parameters, closed listing columns, null guards',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'testGetfilter|testGetoppsort'],
         ['type' => 'phpunit', 'filter' => 'testConvif', 'file' => 'tests/unit/ImportMemberMatchTest.php'],

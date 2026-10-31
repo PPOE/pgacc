@@ -67,7 +67,13 @@ Provisioning a Debian 13 host and deploying releases with scripts:
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
    must not be web-accessible.
-5. Serve the repository root over HTTPS. `index.php` redirects unless the
+5. Serve `public/` over HTTPS: it is the document root and holds only the
+   entry points (`index.php`, `mbapi.php`) and the static files (`style.css`,
+   `js/`, `icons/`). The code, `vendor/`, `constants.php` and `files/` stay in
+   the repository root, outside the document root; the entry points load them
+   from there. Web server examples (nginx, Lighttpd, Apache, the short page
+   addresses): [UPGRADING.md](UPGRADING.md), "Document root `public/`".
+   `index.php` redirects unless the
    request carries `X-Forwarded-Proto: https`, so it expects a TLS-terminating
    proxy in front. Older versions rely on PHP output buffering for the login
    redirect and cookies.
@@ -98,16 +104,16 @@ sh scripts/format.sh [files...]         # format (PER-CS 3.0, whitespace only)
 sh scripts/format.sh --check            # formatting check (CI: --check --ci)
 sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 8.5      # Infection
-sh scripts/build-css.sh                 # rebuild style.css from css/app.css
-sh scripts/build-css.sh --check         # style.css is up to date (CI)
+sh scripts/build-css.sh                 # rebuild public/style.css from css/app.css
+sh scripts/build-css.sh --check         # public/style.css is up to date (CI)
 ```
 
 The stylesheet source is `css/app.css`: it styles the elements, classes and
 ids the pages use with Tailwind CSS (`@apply` and the theme), and
-`scripts/build-css.sh` builds it into the committed `style.css` with the
+`scripts/build-css.sh` builds it into the committed `public/style.css` with the
 pinned Tailwind CSS standalone CLI (no Node.js; the binary is downloaded once,
 checked against its SHA-256 and cached in `build/`). Edit `css/app.css`, never
-`style.css`, and commit both; CI fails when they differ.
+`public/style.css`, and commit both; CI fails when they differ.
 
 PHP files follow PER Coding Style 3.0, whitespace rules only
 (`.php-cs-fixer.dist.php`, `sh scripts/format.sh`), checked in CI. Agents in

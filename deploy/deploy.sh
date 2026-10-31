@@ -67,13 +67,17 @@ if [ ! -d "$release" ]; then
     $0 == p "files" || index($0, p "files/") == 1 { bad = 1 } END { exit !bad }' &&
     die "the archive has entries outside $name/, with '..', or a constants.php or files/"
   tar -xzf "$archive" -C "$work" --no-same-owner --no-same-permissions
-  [ -f "$work/$name/index.php" ] && [ -f "$work/$name/vendor/autoload.php" ] ||
-    die "the archive has no index.php or vendor/autoload.php"
+  [ -f "$work/$name/public/index.php" ] && [ -f "$work/$name/vendor/autoload.php" ] ||
+    die "the archive has no public/index.php or vendor/autoload.php"
   ln -s "$root/shared/constants.php" "$work/$name/constants.php"
   ln -s "$root/shared/files" "$work/$name/files"
   mv "$work/$name" "$release"
   created=true
 fi
+# The web server serves current/public/ (UPGRADING.md, "Document root
+# public/"); a release from before that layout cannot be switched back to.
+[ -f "$release/public/index.php" ] ||
+  die "$tag has no public/index.php (a release before the public/ document root); see UPGRADING.md"
 touch "$release" # the pruning order: newest activation first
 
 switch_to() {

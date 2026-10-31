@@ -5,6 +5,26 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Deployment change** (for the next major release): the web server's
+  document root is now `public/` of the release, not the release root
+  ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).
+  `public/` holds only the entry points `index.php` and `mbapi.php`,
+  `style.css`, `js/` and `icons/`; the page scripts, `functions.php`, `src/`,
+  `vendor/`, the command-line scripts, `constants.php` and `files/` stay in
+  the release root, so nothing there can be requested, whatever its name
+  (such as a backup copy `constants.php.bak`). `constants.php` and `files/`
+  stay where they are. The URLs stay the same; a direct request of a page
+  script, `functions.php` or `src/*.php` (which printed nothing) now gets a
+  404. The nginx site of `deploy/ansible/playbook.yml` serves
+  `current/public` with an allow list (`/`, the two entry points, the static
+  files, the short page addresses; anything else 404); run the playbook of
+  the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
+  release without `public/`. Apache: `.htaccess` moved to `public/.htaccess`,
+  `src/.htaccess` removed. Other web servers: set the document root as
+  described in UPGRADING.md.
+
 ### Security
 
 - Web server: deny backup, editor and dump copies anywhere in the tree
