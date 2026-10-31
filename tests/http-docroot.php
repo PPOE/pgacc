@@ -12,8 +12,9 @@
  * 1. The application service: the matrix without planted files; the allowed
  *    addresses answer, the code, configuration and development files do not.
  * 2. A release in the layout of a deployment, built in /tmp: the code are
- *    symbolic links to the read-only /app, public/ is a copy (the router
- *    refuses files reached through a symbolic link), constants.php is a
+ *    symbolic links to the application root (/app, or the mutant copy of
+ *    the mutation runner: PGACC_TEST_APP_ROOT), public/ is a copy (the
+ *    router refuses files reached through a symbolic link), constants.php is a
  *    synthetic configuration of its own, and backup copies, a dump, an
  *    archive, a text file, PHP scripts and a symbolic link are planted in the
  *    release root and in public/ (web_server_plant()). Served by a server of
@@ -32,6 +33,8 @@ require __DIR__ . '/web-server/lib.php';
 
 define('PLANTED_SECRET', 'pgacc-planted-secret-' . bin2hex(random_bytes(8)));
 $matrix = require __DIR__ . '/web-server/matrix.php';
+// The served application: /app, or the mutant copy of the mutation runner.
+$appRoot = getenv('PGACC_TEST_APP_ROOT') ? rtrim(getenv('PGACC_TEST_APP_ROOT'), '/') : '/app';
 
 // The entry point ran: the page or the export the query asks for.
 function check_router_entry($response, $script, $query, $label)
@@ -55,7 +58,7 @@ function check_router_entry($response, $script, $query, $label)
 
 // 1. The application service.
 $baseUrl = getenv('PGACC_TEST_BASE_URL');
-web_server_check_matrix($baseUrl, $matrix, '/app/public', 'check_router_entry', [], null, 'fail_test', 'application service');
+web_server_check_matrix($baseUrl, $matrix, $appRoot . '/public', 'check_router_entry', [], null, 'fail_test', 'application service');
 // The same pages through http_request() (diagnostics checked).
 assert_contains(http_request('/')['body'], '<h1>Rechenschaftsbericht der Piratenpartei Österreichs', '/');
 assert_contains(http_request('/index.php?action=login')['body'], 'name="pass"', 'login page');
@@ -73,18 +76,18 @@ exec('rm -rf ' . escapeshellarg($release));
 if (!mkdir($release, 0700, true)) {
     fail_test("could not create $release");
 }
-foreach (scandir('/app') as $entry) {
+foreach (scandir($appRoot) as $entry) {
     if (!in_array($entry, ['.', '..', 'public', 'constants.php'], true)) {
-        symlink('/app/' . $entry, $release . '/' . $entry);
+        symlink($appRoot . '/' . $entry, $release . '/' . $entry);
     }
 }
-exec('cp -R /app/public ' . escapeshellarg($release . '/public'), $output, $status);
+exec('cp -R ' . escapeshellarg($appRoot . '/public') . ' ' . escapeshellarg($release . '/public'), $output, $status);
 if ($status !== 0) {
-    fail_test('could not copy /app/public');
+    fail_test("could not copy $appRoot/public");
 }
 // The release's own configuration: the test constants plus a marker header,
 // so the answers show that the entry points loaded this constants.php.
-file_put_contents($release . '/constants.php', "<?php\nrequire '/app/tests/runtime/test-constants.php';\n"
+file_put_contents($release . '/constants.php', "<?php\nrequire " . var_export($appRoot . '/tests/runtime/test-constants.php', true) . ";\n"
     . "header('X-Pgacc-Test-Constants: planted-release');\n");
 web_server_plant($release, $matrix, PLANTED_SECRET, 'fail_test');
 // include_path "." first: the development loop's include_path puts the
@@ -103,13 +106,18 @@ foreach (['/index.php?action=login', '/mbapi.php'] as $path) {
     }
 }
 
-// 3. No release root: open_basedir allows public/ (and the test files) only,
+// 3. No release root: open_basedir allows public/, the test files and the
+// log directory only (not all of /tmp: the mutation runner's copy is there),
 // so chdir(dirname(__DIR__)) fails.
-$log = '/tmp/docroot-chdir-failure.log';
-@unlink($log);
+$logDir = '/tmp/pgacc-docroot-chdir-failure';
+$log = $logDir . '/error.log';
+exec('rm -rf ' . escapeshellarg($logDir));
+if (!mkdir($logDir, 0700)) {
+    fail_test("could not create $logDir");
+}
 $environment = '';
-$settings = ' -d display_errors=0 -d log_errors=1 -d error_log=' . $log
-    . ' -d open_basedir=/app/public:/app/tests:/tmp';
+$settings = ' -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($log)
+    . ' -d open_basedir=' . escapeshellarg($appRoot . '/public/:' . $appRoot . '/tests/:' . $logDir . '/');
 $coverageDir = getenv('PGACC_COVERAGE_DIR');
 if ($coverageDir !== false && $coverageDir !== '') {
     $environment = 'env XDEBUG_MODE=coverage PGACC_COVERAGE_DIR=' . escapeshellarg($coverageDir . '/http')
@@ -118,7 +126,7 @@ if ($coverageDir !== false && $coverageDir !== '') {
 }
 $noRootUrl = start_test_server(
     8088,
-    $environment . 'php' . $settings . ' -S 127.0.0.1:8088 -t /app/public ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
+    $environment . 'php' . $settings . ' -S 127.0.0.1:8088 -t ' . escapeshellarg($appRoot . '/public') . ' ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
     'no-release-root',
 );
 foreach (['/index.php?action=login' => 'index.php', '/mbapi.php' => 'mbapi.php'] as $path => $script) {
@@ -129,11 +137,11 @@ foreach (['/index.php?action=login' => 'index.php', '/mbapi.php' => 'mbapi.php']
     }
 }
 $logText = (string) @file_get_contents($log);
-$logged = substr_count($logText, 'pgacc: cannot change to the release root /app');
+$logged = substr_count($logText, 'pgacc: cannot change to the release root ' . $appRoot);
 if ($logged !== 2 || preg_match('/Failed opening|Fatal error/', $logText) === 1) {
     fail_test("no release root: expected 2 logged failures and no include, found $logged: $logText");
 }
-exec('rm -rf ' . escapeshellarg($release));
+exec('rm -rf ' . escapeshellarg($release) . ' ' . escapeshellarg($logDir));
 
 assert_no_unexpected_diagnostics();
 echo "Document root and allow list tests passed\n";
