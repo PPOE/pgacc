@@ -11,7 +11,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Liste aller Kontobewegungen der Piratenpartei Österreichs" />
   <meta name="keywords" content="konto, einsicht, kontenbewegungen, transaktionen" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.1.0" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.2.0" />
 </head>
 <body>
 <div id="content">

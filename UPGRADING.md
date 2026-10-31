@@ -11,7 +11,7 @@ steps below (pgacc has no database migrations); do them as described.
 
 ## Web server: long-term caching of `style.css` and `js/`
 
-With the changes under "Unreleased" in [CHANGELOG.md](CHANGELOG.md), the pages
+From 2.2.0 (see [CHANGELOG.md](CHANGELOG.md), "2.2.0"), the pages
 link the stylesheet and the scripts with the release version in the URL
 (`style.css?v=<version>`, `js/vreport-chart.js?v=<version>`). Each upgrade
 changes these URLs, so browsers load the new files instead of a cached copy.
