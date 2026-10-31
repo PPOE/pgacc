@@ -2,6 +2,16 @@
 # Plain HTTP behind a TLS-terminating reverse proxy, which must send
 # X-Forwarded-Proto: https (index.php redirects otherwise). Only the proxy
 # and this host may connect, so the header is trusted only from them.
+
+# PHP responses without their own Cache-Control get "private, no-store": the
+# pages after login show personal and financial data and must never be kept
+# by a shared cache (or on disk). A Cache-Control the application sets wins;
+# an empty value makes add_header send nothing.
+map $upstream_http_cache_control $pgacc_php_cache_control {
+    ""      "private, no-store";
+    default "";
+}
+
 server {
     listen 80 default_server;
 {% if ansible_facts.all_ipv6_addresses | default([]) | length > 0 %}
@@ -42,6 +52,16 @@ server {
         rewrite ^/(.+)$ /index.php?action=$1 last;
     }
 
+    # Static files: the browser keeps its copy but revalidates it on every
+    # use (ETag/Last-Modified, a 304 if unchanged). Each deploy is a new
+    # release directory and the asset URLs are not versioned, so without this
+    # browsers guess a freshness lifetime from Last-Modified and keep showing
+    # old files. Once the asset URLs carry ?v=<version>, this can become
+    # "public, max-age=31536000, immutable".
+    location ~* \.(css|js|png|gif|jpe?g|svg|ico|webp|woff2?)$ {
+        add_header Cache-Control "no-cache" always;
+    }
+
     location ~ \.php$ {
         try_files $uri =404;
         include fastcgi_params;
@@ -53,6 +73,7 @@ server {
         # "_", so pass the Host header (only the trusted proxies get here).
         fastcgi_param SERVER_NAME $host;
         fastcgi_pass unix:/run/php/pgacc-fpm.sock;
+        add_header Cache-Control $pgacc_php_cache_control always;
     }
 
     location / {
