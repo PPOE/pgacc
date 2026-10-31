@@ -5,6 +5,17 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Web server: deny backup, editor and dump copies anywhere in the tree
+  (`constants.php.bak`, `index.php~`, `functions.php.orig`, `*.sql`,
+  `*.tar.gz` and the like; [UPGRADING.md](UPGRADING.md), "Web server: deny
+  backup and editor copies"). Without a `.php` extension such a copy was
+  served as plain text. The nginx site of `deploy/ansible/playbook.yml` and
+  the top-level `.htaccess` have the rule (hosts set up with the playbook:
+  run it again); for other web servers add it by hand. No URL of the
+  application changes.
+
 ## [2.2.0] - 2026-10-31
 
 Deployment scripts, versioned stylesheet and script URLs, and receipt
