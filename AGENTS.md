@@ -139,5 +139,6 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `tests/run.sh`, `compose.test.yaml`, `compose.coverage.yaml`, `tests/php-runtime.Dockerfile` | Harness entry point, Compose files, PHP 8.5 image |
 | `tests/dev.sh`, `compose.dev.yaml`, `tests/dev/` | Local development loop (bind-mounted checkout, per-file state reset, no coverage) |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
+| `tests/web-server/` | Request matrix of the document root (`matrix.php`, also run by `http-docroot.php`) and `run.sh`: real nginx (rendered site template) and Apache (`public/.htaccess`, UPGRADING.md virtual host) |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
 | `tests/reference/` | Golden master `php85/` (recorded on PHP 8.5 x PG 18, diagnostics included), `run.sh record` / `run.sh compare 8.5`, `allowlist.php` (empty; only for real nondeterminism) |

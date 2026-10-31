@@ -17,8 +17,9 @@
  * 'refused': target => status (400, 403 or 404); the answer must not show
  *     any file content.
  * 'planted': files web_server_plant() puts into a release (release root and
- *     public/), and 'planted_refused', the requests for them that only
- *     answer like this when they exist (a symbolic link is refused with 403).
+ *     public/), 'planted_public' files it puts into public/ only, and
+ *     'planted_refused', the requests for them that only answer like this
+ *     when they exist (a symbolic link is refused with 403).
  *
  * Where a server intentionally answers differently, the harness of that
  * server lists the target with its reason (WEB_SERVER_DIFFERENCES in
@@ -123,15 +124,27 @@ return [
         'constants.php.bak', 'functions.php~', 'constants.php.save', 'functions.php.orig', 'dump.sql',
         'pgacc.tar.gz', 'notes.txt', 'config.php_backup',
     ],
+    'planted_public' => [
+        'evil.php', 'js/evil.php', 'icons/planted.svg', 'icons/planted.gif', 'icons/planted.ico', 'js/planted.json',
+        'planted.js', 'planted.png', 'icons/planted.js', 'icons/planted.css', 'js/planted.css', 'js/sub/planted.js',
+    ],
     'planted_refused' => [
-        // Not on the allow list (public/notes.txt, public/evil.php,
-        // public/js/evil.php, other file types under icons/ and js/).
+        // Not on the allow list: public/notes.txt and the 'planted_public'
+        // files (PHP scripts, other file types, .js, .css and .png files
+        // outside their directory or in a subdirectory).
         '/notes.txt' => 404,
         '/evil.php' => 404,
         '/js/evil.php' => 404,
         '/icons/planted.svg' => 404,
         '/icons/planted.gif' => 404,
+        '/icons/planted.ico' => 404,
         '/js/planted.json' => 404,
+        '/planted.js' => 404,
+        '/planted.png' => 404,
+        '/icons/planted.js' => 404,
+        '/icons/planted.css' => 404,
+        '/js/planted.css' => 404,
+        '/js/sub/planted.js' => 404,
         // public/js/planted-link.js: a symbolic link to constants.php.bak in
         // the release root.
         '/js/planted-link.js' => 403,

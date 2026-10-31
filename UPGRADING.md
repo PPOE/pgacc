@@ -61,10 +61,15 @@ checkout first (document root `current/`), then `pgacc-deploy` of that
 version.
 
 nginx (as in `deploy/ansible/templates/nginx-site.conf.j2`, which also sets
-the caching headers):
+the caching headers; `tests/web-server/run.sh nginx` tests that template).
+`disable_symlinks ... from=$document_root` refuses symbolic links below
+`public/` (403) but not the `current` link above it. `SERVER_NAME $host`:
+`index.php` builds its HTTPS redirect from `SERVER_NAME`, so pass the host
+name when `server_name` is `_`:
 
 ```
 root /srv/pgacc/current/public;
+disable_symlinks on from=$document_root;
 index index.php;
 autoindex off;
 
@@ -86,6 +91,7 @@ location ~ ^/(index|mbapi)\.php$ {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
     fastcgi_param DOCUMENT_ROOT $realpath_root;
+    fastcgi_param SERVER_NAME $host;
     fastcgi_pass unix:/run/php/php-fpm.sock;
 }
 location / {

@@ -42,7 +42,10 @@ function web_server_plant($release, $matrix, $secret, $fail)
         $files[] = $release . '/' . $name;
         $files[] = $release . '/public/' . $name;
     }
-    foreach (['evil.php', 'js/evil.php', 'icons/planted.svg', 'icons/planted.gif', 'js/planted.json'] as $name) {
+    if (!is_dir($release . '/public/js/sub') && !mkdir($release . '/public/js/sub')) {
+        $fail('could not create public/js/sub');
+    }
+    foreach ($matrix['planted_public'] as $name) {
         $files[] = $release . '/public/' . $name;
     }
     foreach ($files as $file) {

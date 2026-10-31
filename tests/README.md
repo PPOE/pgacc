@@ -255,6 +255,35 @@ it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat
 their redirects on a second server with `output_buffering=0` started inside
 the test container.
 
+### Web server allow lists
+
+`sh tests/web-server/run.sh [nginx] [apache]` (CI job `Web server allow
+lists (nginx, Apache)`, every push; about 15 seconds plus image pulls) runs
+the request matrix `tests/web-server/matrix.php` against real web servers,
+so loosening the production configuration fails a test even where the
+router (`tests/runtime/router.php`) still agrees with the matrix:
+
+- nginx (the version of Debian 13) with
+  `deploy/ansible/templates/nginx-site.conf.j2`, rendered with Jinja2 as the
+  playbook does and otherwise unchanged, and PHP-FPM on the socket the
+  template names;
+- Apache with PHP as a module, `public/.htaccess` and the virtual host of
+  UPGRADING.md (the code block after `<!-- tested: apache vhost -->`), plus a
+  virtual host whose document root is the release root, where the release
+  root's `.htaccess` must refuse every request (403).
+
+The release is built below `build/` in the layout of `deploy.sh`
+(`current` -> `releases/<tag>`), with the planted files of the matrix and the
+entry points replaced by a stub that prints the script (nginx: the resolved
+release, `$realpath_root`) and the query string it ran with. The servers have
+no network; the client runs in their network namespace. Intentional
+differences of a server are listed in `tests/web-server/check.php`
+(Apache refuses an encoded `/`). Containers and the release are removed at
+the end. Red evidence: `try_files $uri` in the catch-all location serves
+`/js/README.md`; a static location `\.(css|js|png)$` serves `/planted.js`;
+without `disable_symlinks` a link in `public/js/` is served; a `\.php$`
+location runs `public/evil.php`.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets
@@ -365,6 +394,7 @@ the coverage gate, the reference comparison and static analysis.
 | `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
 | `Mutation tests (PHP 8.5 / PostgreSQL 18)` (`tests/mutation/ci.sh`, blocking) | only with the `mutation` label: changed lines (`--changed-since=<base>`); skipped otherwise | every target |
 | `Reference comparison (PHP 8.5)` | yes | yes |
+| `Web server allow lists (nginx, Apache)` (`tests/web-server/run.sh`) | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 
 The coverage gate is off only on scheduled and manual runs, which have no

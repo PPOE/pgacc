@@ -30,6 +30,10 @@ server {
     # code, vendor/, constants.php and files/ are in the release root, outside
     # the document root, so nothing there can be requested, whatever its name.
     root /srv/pgacc/current/public;
+    # No symbolic links below the document root (a link in public/ to a file
+    # outside it answers 403). Only the path below $document_root is
+    # checked, so the current -> releases/<tag> link itself still works.
+    disable_symlinks on from=$document_root;
     index index.php;
     autoindex off;
     server_tokens off;
