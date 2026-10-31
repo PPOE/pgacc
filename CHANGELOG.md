@@ -36,6 +36,16 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   other page shows the same year. The other pages have no year and are
   unchanged.
 
+### Fixed
+
+- The receipt migration also migrates PDFs whose header follows white-space
+  (within the first 1024 bytes); downloads send them as `application/pdf`
+  (the legacy download sent them as `image/jpeg`).
+- `--include-unusual` also migrates text receipts (such as an HTML page)
+  that decrypt with the file's own voucher ID. They are offered only as a
+  download `<n>.bin`, never shown as a page.
+- The migration names receipt files that no voucher row references.
+
 ### Documentation
 
 - [UPGRADING.md](UPGRADING.md) describes the rewrite of the short page

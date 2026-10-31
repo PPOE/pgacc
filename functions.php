@@ -795,9 +795,13 @@ function receipt_legacy_path($directory, $number)
 }
 
 // PDF, JPEG, PNG and GIF by their magic bytes; anything else is sent as a
-// download.
+// download. A PDF header may also follow white-space (PDF's, NUL included)
+// within the first 1024 bytes, as PDF readers accept it.
 function receipt_content_type($plain)
 {
+    if (preg_match('/^[\0\t\n\f\r ]+%PDF-/', substr($plain, 0, 1024))) {
+        return 'application/pdf';
+    }
     $types = [
         '%PDF' => 'application/pdf',
         "\xFF\xD8\xFF" => 'image/jpeg',
@@ -997,8 +1001,8 @@ function receipt_store($directory, $number, $source)
 /*
  * Opens files/<number>.v2.aes ($path) for sending, in two passes over one
  * open file, 64 KiB at a time: the MAC is checked over the whole file first;
- * then the last block gives the plain text length and the first block the
- * type. Returns [what receipt_v2_send() needs, null], or [false, why not]
+ * then the last block gives the plain text length and the first 1024 bytes
+ * the type. Returns [what receipt_v2_send() needs, null], or [false, why not]
  * for the caller's log line (it names neither the key nor its fingerprint).
  */
 function receipt_v2_open($path, $number)
@@ -1075,14 +1079,14 @@ function receipt_v2_open_handle($key, $number, $in)
         $valid = substr($last, -$padding) === str_repeat(chr($padding), $padding);
         $length -= $padding;
         fseek($in, 20);
-        $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, 16));
+        $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, min(1024, $stat['size'] - 52)));
     }
     if (!$valid) {
         fclose($in);
         return false;
     }
     return ['handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
-        'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat)];
+        'head' => substr($head, 0, min(1024, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat)];
 }
 
 // Size and change times of an open file. Receipts are only replaced by rename,

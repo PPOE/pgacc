@@ -25,9 +25,9 @@ if (PHP_SAPI !== 'cli') {
  * <n>.v2.aes verifies with the key of the run and holds the same plain text.
  * A legacy file is decrypted with the voucher ID of a row that references it
  * (the first 32-byte block is probed per candidate) and must be a complete
- * PDF or JPEG; other files, files above --max-size, files whose voucher ID
- * changed (a merge) and names that are not file numbers are skipped and
- * listed, and keep working as legacy files.
+ * PDF (also after leading white-space) or JPEG; other files, files above
+ * --max-size, files whose voucher ID changed (a merge) and names that are
+ * not file numbers are skipped and listed, and keep working as legacy files.
  *
  *   --dry-run        report only; writes, deletes and locks nothing
  *   --key-fingerprint=HEX
@@ -46,15 +46,18 @@ if (PHP_SAPI !== 'cli') {
  *   --include-unusual
  *                    also migrate files that the voucher ID decrypts to
  *                    another recognized type (PNG, GIF, TIFF), to an empty
- *                    file, or to a PDF or JPEG that looks incomplete or has
- *                    data after its end; the download sends the same bytes
- *                    (PNG and GIF as image/png and image/gif, other types
- *                    as a download instead of image/jpeg)
+ *                    file, to text (such as an HTML page; only with the
+ *                    voucher IDs of the file's rows), or to a PDF or JPEG
+ *                    that looks incomplete or has data after its end; the
+ *                    download sends the same bytes (PNG and GIF as image/png
+ *                    and image/gif, other types and text as a download
+ *                    <n>.bin instead of image/jpeg)
  *   --search-voucher-ids
  *                    for a file that no voucher ID of its rows decrypts (a
  *                    merged voucher), try every other voucher ID of the
  *                    vouchers table and the unused ones up to the highest
- *                    voucher number; only a complete PDF or JPEG is accepted.
+ *                    voucher number; only a complete PDF or JPEG is accepted
+ *                    (never text).
  *                    One single-block decryption per file and candidate ID;
  *                    IDs found are tried first for the next file
  *   --limit=N        migrate (or delete) at most N files, then stop
@@ -208,15 +211,15 @@ function receipt_migration_numbers($directory, $names)
 }
 
 // A decrypted legacy receipt (whole 32-byte blocks, less than one block of
-// zero padding) that ends like a PDF ("%%EOF" in its last 1024 bytes) or a
-// JPEG (FF D9).
+// zero padding) that ends like a PDF ("%%EOF" in its last 1024 bytes; the
+// header may follow white-space, see receipt_content_type()) or a JPEG (FF D9).
 function receipt_migration_is_complete($plain)
 {
     $data = rtrim($plain, "\0");
     if (strlen($plain) % 32 !== 0 || strlen($plain) - strlen($data) >= 32) {
         return false;
     }
-    if (str_starts_with($data, '%PDF')) {
+    if (receipt_content_type($data) === 'application/pdf') {
         return str_contains(substr($data, -1024), '%%EOF');
     }
     return str_starts_with($data, "\xFF\xD8\xFF") && str_ends_with($data, "\xFF\xD9");
@@ -227,11 +230,18 @@ function receipt_migration_is_complete($plain)
  * What --include-unusual accepts, by the first decrypted block ($head) and
  * the size of the legacy file: a description, or null. A wrong voucher ID
  * decrypts to random bytes, which practically never start like one of these.
+ * Text (such as an HTML page) is a whole first block of printable ASCII and
+ * white-space, zero padding allowed after it: random bytes give that with a
+ * chance of about (99/256)^32, below 2^-43 per voucher ID. Only the IDs of
+ * the file's own rows are tried for it (not --search-voucher-ids), and the
+ * download offers it as <n>.bin, never as a page.
  */
 function receipt_migration_unusual_type($head, $size)
 {
+    if (receipt_content_type($head) === 'application/pdf') {
+        return 'a PDF that looks incomplete or has data after its end';
+    }
     $types = [
-        '%PDF' => 'a PDF that looks incomplete or has data after its end',
         "\xFF\xD8\xFF" => 'a JPEG that looks incomplete or has data after its end',
         "\x89PNG\r\n\x1A\n" => 'a PNG image',
         'GIF87a' => 'a GIF image',
@@ -245,7 +255,10 @@ function receipt_migration_unusual_type($head, $size)
         }
     }
     // An empty upload was stored as one block of zero padding.
-    return $size === 32 && $head === str_repeat("\0", 32) ? 'an empty file' : null;
+    if ($size === 32 && $head === str_repeat("\0", 32)) {
+        return 'an empty file';
+    }
+    return strlen($head) >= 32 && preg_match('/^[\t\n\f\r\x20-\x7E]+\0*\z/', $head) ? 'a text document' : null;
 }
 
 // Voucher IDs for --search-voucher-ids: those of the vouchers table and the
@@ -281,6 +294,8 @@ function receipt_migration_decrypt($ids, $legacy, $size, $mode)
     $found = null;
     foreach ($ids as $id) {
         $head = receipt_decrypt($id, '', substr($legacy, 0, 32));
+        // White-space only: a PDF header may follow within 1024 bytes.
+        $head = strspn($head, "\0\t\n\f\r ") === 32 ? receipt_decrypt($id, '', substr($legacy, 0, 1024)) : $head;
         $pdfOrJpeg = in_array(receipt_content_type($head), ['application/pdf', 'image/jpeg'], true);
         $type = $mode === 'complete' ? null : receipt_migration_unusual_type($head, $size);
         if (!$pdfOrJpeg && $type === null) {
@@ -336,7 +351,7 @@ function receipt_migration_legacy($connection, $options, $number, &$search)
     if ($found !== null) {
         return ['skipped', "voucher {$found[0]} decrypts it to {$found[2]}, not a complete PDF or JPEG (--include-unusual migrates it)"];
     }
-    $message = 'no voucher with this file decrypts it to a complete PDF or JPEG';
+    $message = $ids === [] ? 'no voucher row references this file' : 'no voucher with this file decrypts it to a complete PDF or JPEG';
     if (!$options['search-voucher-ids']) {
         return ['skipped', "$message (--search-voucher-ids tries the other voucher IDs)"];
     }
@@ -346,7 +361,7 @@ function receipt_migration_legacy($connection, $options, $number, &$search)
     }
     $found = receipt_migration_decrypt(array_diff(array_unique(array_merge($search['found'], $search['ids'])), $ids), $legacy, $size, 'complete');
     if ($found === null) {
-        return ['skipped', "$message, and no other voucher ID does"];
+        return ['skipped', $message . ($ids === [] ? ', and no voucher ID decrypts it to a complete PDF or JPEG' : ', and no other voucher ID does')];
     }
     $search['found'] = array_unique(array_merge([$found[0]], $search['found']));
     $rows = $ids === [] ? 'no voucher has this file' : 'its rows have voucher ' . implode(', ', $ids);

@@ -109,6 +109,12 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertTrue(receipt_migration_is_complete(str_pad($pdf, 32, ' ')));
         self::assertFalse(receipt_migration_is_complete(rijndael256_zero_pad("\x89PNG\r\n\x1a\n%%EOF\xFF\xD9")));
         self::assertFalse(receipt_migration_is_complete(''));
+        // Whitespace before the PDF header; trailing NUL bytes of more than a
+        // block are content after %%EOF, not padding.
+        self::assertTrue(receipt_migration_is_complete(rijndael256_zero_pad("\n%PDF-1.4\nsynthetic\n%%EOF\n")));
+        self::assertTrue(receipt_migration_is_complete(rijndael256_zero_pad(" %PDF-1.4\nsynthetic\n%%EOF\n")));
+        self::assertFalse(receipt_migration_is_complete(rijndael256_zero_pad(" %PDF-1.4\n%%EOF\n" . str_repeat("\0", 64))));
+        self::assertFalse(receipt_migration_is_complete(rijndael256_zero_pad("\n%PDF\nsynthetic\n%%EOF\n")));
     }
 
     public function testMigratesLegacyReceiptsAndSkipsTheRest()
@@ -136,13 +142,14 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             . "x.aes: skipped, legacy kept: not a file number\n";
         $noVoucher = 'skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG '
             . '(--search-voucher-ids tries the other voucher IDs)';
+        $noRow = 'skipped, legacy kept: no voucher row references this file (--search-voucher-ids tries the other voucher IDs)';
         $png = 'skipped, legacy kept: voucher 4711 decrypts it to a PNG image, not a complete PDF or JPEG '
             . '(--include-unusual migrates it)';
         $cutOff = 'skipped, legacy kept: voucher 4711 decrypts it to a PDF that looks incomplete or has data after '
             . 'its end, not a complete PDF or JPEG (--include-unusual migrates it)';
         $skippedLines = "903.aes: $noVoucher\n"
             . "904.aes: $png\n"
-            . "905.aes: $noVoucher\n"
+            . "905.aes: $noRow\n"
             . "906.aes: skipped, legacy kept: 4032 bytes, above --max-size=4000\n";
         $skippedList = "Skipped, legacy kept: 0.aes, 007.aes, 2147483648.aes, x.aes, 903, 904, 905, 906, 912\n";
 
@@ -197,7 +204,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             . "902.aes: already migrated; 902.aes kept until --delete-legacy\n"
             . "903.aes: $noVoucher\n"
             . "904.aes: $png\n"
-            . "905.aes: $noVoucher\n"
+            . "905.aes: $noRow\n"
             . "906.aes: migrated (voucher 4711); 906.aes kept until --delete-legacy\n"
             . "908.aes: already migrated; 908.aes kept until --delete-legacy\n"
             . "912.aes: $cutOff\n"
@@ -555,6 +562,82 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertNull(receipt_migration_unusual_type("\x89PNG\r\n\x1a", 32));
         self::assertNull(receipt_migration_unusual_type('GIF88a', 32));
         self::assertNull(receipt_migration_unusual_type('random bytes', 32));
+        $pdf = 'a PDF that looks incomplete or has data after its end';
+        self::assertSame($pdf, receipt_migration_unusual_type("\n%PDF-1.4\nsynthetic, but cut", 32));
+        self::assertSame($pdf, receipt_migration_unusual_type(str_repeat(' ', 40) . '%PDF-1.4', 1024));
+        // Text: a whole first block of printable ASCII and whitespace, zero
+        // padding allowed after it.
+        self::assertSame('a text document', receipt_migration_unusual_type("<!DOCTYPE html>\n<html><body>\r\n\tx", 64));
+        self::assertSame('a text document', receipt_migration_unusual_type(str_pad("plain text\f~", 32, "\0"), 32));
+        foreach (["<!DOCTYPE html>\n<html><body>\x01xyz", "<!DOCTYPE html>\n<html><body>\x7Fxyz", "<!DOCTYPE html>\n<html><body>\xC3\xA4xy",
+            "<!DOCTYPE html>\n<html>\0<body>xyz", "\0<!DOCTYPE html>\n<html><body>xyz", "<!DOCTYPE html>\n<html><body>xyz\x0B",
+            "<!DOCTYPE html>\n<html><body>xyz"] as $head) {
+            // Control characters, non-ASCII bytes, NUL before the end, or
+            // less than one block.
+            self::assertSame(32 - ($head === "<!DOCTYPE html>\n<html><body>xyz" ? 1 : 0), strlen($head), bin2hex($head));
+            self::assertNull(receipt_migration_unusual_type($head, 64), bin2hex($head));
+        }
+    }
+
+    public function testLeftoverLegacyReceipts()
+    {
+        // 909: a complete PDF after a newline; 910: a PDF after a space with
+        // NUL bytes inside and more than a block of NUL bytes after %%EOF;
+        // 911: an HTML page; 912: a PDF after more than a block of spaces;
+        // 905: no voucher row references it.
+        $newline = rijndael256_zero_pad("\n%PDF-1.4\nsynthetic\n%%EOF\n");
+        $space = rijndael256_zero_pad(" %PDF-1.4\nstream\0\0synthetic\0\nendstream\nstartxref\n9\n%%EOF\n" . str_repeat("\0", 3000));
+        $html = rijndael256_zero_pad("<!DOCTYPE html>\n<html><body>synthetic</body>\n</html>\n");
+        $this->put('905.aes', receipt_encrypt('4711', '', 'x'));
+        $this->put('909.aes', receipt_encrypt('4711', '', $newline));
+        $this->put('910.aes', receipt_encrypt('4711', '', $space));
+        $this->put('911.aes', receipt_encrypt('4711', '', $html));
+        $this->put('912.aes', receipt_encrypt('4711', '', str_repeat(' ', 40) . "%PDF-1.4\nsynthetic\n%%EOF\n"));
+        $orphan = '905.aes: skipped, legacy kept: no voucher row references this file';
+
+        list($status, $output) = $this->migrate(['--dry-run']);
+        self::assertSame(3, $status);
+        self::assertSame("$orphan (--search-voucher-ids tries the other voucher IDs)\n"
+            . "909.aes: would migrate (voucher 4711)\n"
+            . '910.aes: skipped, legacy kept: voucher 4711 decrypts it to a PDF that looks incomplete or has data after '
+            . "its end, not a complete PDF or JPEG (--include-unusual migrates it)\n"
+            . '911.aes: skipped, legacy kept: voucher 4711 decrypts it to a text document, not a complete PDF or JPEG '
+            . "(--include-unusual migrates it)\n"
+            . "912.aes: would migrate (voucher 4711)\n"
+            . "Skipped, legacy kept: 905, 910, 911\n"
+            . self::summary([2, 0, 0, 3, 0], true), $output);
+
+        // (testSearchVoucherIds covers the search for a file without rows.)
+        list($status, $output) = $this->migrate(['--include-unusual']);
+        self::assertSame(3, $status);
+        self::assertSame("$orphan (--search-voucher-ids tries the other voucher IDs)\n"
+            . "909.aes: migrated (voucher 4711); 909.aes kept until --delete-legacy\n"
+            . '910.aes: migrated (voucher 4711, unusual: a PDF that looks incomplete or has data after its end); '
+            . "910.aes kept until --delete-legacy\n"
+            . "911.aes: migrated (voucher 4711, unusual: a text document); 911.aes kept until --delete-legacy\n"
+            . "912.aes: migrated (voucher 4711); 912.aes kept until --delete-legacy\n"
+            . "Skipped, legacy kept: 905\n"
+            . self::summary([4, 0, 0, 1, 0]), $output);
+        // The bytes of the legacy download; PDFs are now sent as such, the
+        // HTML page as a download (application/octet-stream).
+        self::assertSame($newline, $this->v2Plain('909'));
+        self::assertSame($space, $this->v2Plain('910'));
+        self::assertSame($html, $this->v2Plain('911'));
+        self::assertSame(['application/pdf', 'application/pdf', 'application/octet-stream'], [
+            receipt_content_type($newline), receipt_content_type($space), receipt_content_type($html)]);
+    }
+
+    public function testTextOnlyWithTheOwnVoucherIds()
+    {
+        // 903 belongs to voucher 4712 but was encrypted for 4711: the search
+        // accepts no text, whose check is weaker than a complete PDF or JPEG.
+        $this->put('903.aes', receipt_encrypt('4711', '', "<!DOCTYPE html>\n<html><body>synthetic</body>\n</html>\n"));
+        list($status, $output) = $this->migrate(['--dry-run', '--include-unusual', '--search-voucher-ids']);
+        self::assertSame(3, $status);
+        self::assertSame('903.aes: skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG, '
+            . "and no other voucher ID does\n"
+            . "Skipped, legacy kept: 903\n"
+            . self::summary([0, 0, 0, 1, 0], true), $output);
     }
 
     public function testSearchVoucherIds()
@@ -578,8 +661,8 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             . "905.aes kept until --delete-legacy\n"
             . "913.aes: migrated (voucher 4700, found by --search-voucher-ids; no voucher has this file); "
             . "913.aes kept until --delete-legacy\n"
-            . "914.aes: skipped, legacy kept: no voucher with this file decrypts it to a complete PDF or JPEG, "
-            . "and no other voucher ID does\n"
+            . "914.aes: skipped, legacy kept: no voucher row references this file, and no voucher ID decrypts it to a "
+            . "complete PDF or JPEG\n"
             . "Skipped, legacy kept: 914\n"
             . self::summary([3, 0, 0, 1, 0]),
             $output,

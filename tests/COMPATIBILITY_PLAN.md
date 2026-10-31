@@ -1369,7 +1369,11 @@ differences above are only visible for out-of-range input.
     (libsodium, `ext-sodium`, interactive limits, fixed salt) so that a
     fingerprint seen on the root page is no fast test for guessed keys; the
     root page also warns about a key of fewer than 32 characters. `<n>.v2.aes` downloads now also send PNG and GIF inline as
-    `image/png`/`image/gif`. Genuine legacy files of
+    `image/png`/`image/gif`, and a PDF whose header follows white-space
+    (within 1024 bytes) as `application/pdf` (the legacy download: JPEG);
+    such PDFs count as complete. `--include-unusual` also accepts text (a
+    whole first block of printable ASCII, own voucher IDs only, never by
+    the search), downloaded as `<n>.bin` with `nosniff`. Genuine legacy files of
     the original code on PHP 5.3.3: `tests/fixtures/legacy-php53/`.
     `--delete-legacy`
     first runs `sync` (`--sync=COMMAND`; nothing is deleted if it fails),
@@ -1459,8 +1463,8 @@ differences above are only visible for out-of-range input.
      migrate" or "skipped, legacy kept" (with the reason) and writes
      nothing. Do not post migration transcripts publicly.
   5. Review the skipped files (listed at the end). Optional, dry run first:
-     `--include-unusual` (other recognized types, empty files, PDFs or JPEGs
-     that look incomplete; same bytes, but PNG/GIF then download as
+     `--include-unusual` (other recognized types, empty files, text, PDFs or
+     JPEGs that look incomplete; same bytes, but PNG/GIF then download as
      image/png/image/gif and other types as `<n>.bin` instead of
      image/jpeg) and `--search-voucher-ids` (merged vouchers: other voucher
      IDs, only a complete PDF or JPEG is accepted). Repeat the options for
