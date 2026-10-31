@@ -20,6 +20,8 @@
  *    its own like the application service: none of the planted files is
  *    served, and the entry points run in the release root (the planted
  *    release's constants.php is loaded).
+ * 3. The entry points fail closed when they cannot change to the release
+ *    root (open_basedir forbids it): 500, a logged reason, nothing else runs.
  *
  * Requests answered by the router or as static files bypass the diagnostics
  * recorder, so they are sent with web_server_request() (no diagnostics check);
@@ -101,6 +103,36 @@ foreach (['/index.php?action=login', '/mbapi.php'] as $path) {
     }
 }
 
+// 3. No release root: open_basedir allows public/ (and the test files) only,
+// so chdir(dirname(__DIR__)) fails.
+$log = '/tmp/docroot-chdir-failure.log';
+@unlink($log);
+$environment = '';
+$settings = ' -d display_errors=0 -d log_errors=1 -d error_log=' . $log
+    . ' -d open_basedir=/app/public:/app/tests:/tmp';
+$coverageDir = getenv('PGACC_COVERAGE_DIR');
+if ($coverageDir !== false && $coverageDir !== '') {
+    $environment = 'env XDEBUG_MODE=coverage PGACC_COVERAGE_DIR=' . escapeshellarg($coverageDir . '/http')
+        . ' PGACC_COVERAGE_CHAINED_PREPEND= ';
+    $settings .= ':' . $coverageDir . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/coverage/prepend.php');
+}
+$noRootUrl = start_test_server(
+    8088,
+    $environment . 'php' . $settings . ' -S 127.0.0.1:8088 -t /app/public ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
+    'no-release-root',
+);
+foreach (['/index.php?action=login' => 'index.php', '/mbapi.php' => 'mbapi.php'] as $path => $script) {
+    $response = web_server_request($noRootUrl, $path, 'fail_test');
+    assert_status($response, 500, "no release root: GET $path");
+    if ($response['body'] !== '') {
+        fail_test("no release root: GET $path answered " . var_export(substr($response['body'], 0, 80), true));
+    }
+}
+$logText = (string) @file_get_contents($log);
+$logged = substr_count($logText, 'pgacc: cannot change to the release root /app');
+if ($logged !== 2 || preg_match('/Failed opening|Fatal error/', $logText) === 1) {
+    fail_test("no release root: expected 2 logged failures and no include, found $logged: $logText");
+}
 exec('rm -rf ' . escapeshellarg($release));
 
 assert_no_unexpected_diagnostics();

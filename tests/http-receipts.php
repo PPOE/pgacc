@@ -114,7 +114,7 @@ function assert_undecryptable_download($cookies, $id, $label, $baseUrl = null)
 // port and log file cannot collide with another run: every run
 // (PGACC_TEST_ID) has its own test container, with its own network namespace
 // and /tmp, and runs its HTTP test files one after another; the other files
-// use ports 8081 to 8083 and 8085 to 8087.
+// use ports 8081 to 8083 and 8085 to 8088.
 function receipt_download_log($cookies, $id)
 {
     static $baseUrl = null;
