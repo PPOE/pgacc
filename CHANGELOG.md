@@ -17,11 +17,18 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (such as a backup copy `constants.php.bak`). `constants.php` and `files/`
   stay where they are. The URLs stay the same; a direct request of a page
   script, `functions.php` or `src/*.php` (which printed nothing) now gets a
-  404. The nginx site of `deploy/ansible/playbook.yml` serves
+  404. Also relevant for monitoring: `/files/`, `/vendor/`, `/tests/`,
+  `/src/`, `/constants.php`, `/composer.json` and the command-line scripts
+  answer 404 instead of 403 (dot files and backup copies still 403);
+  `/icons/readme.html`, `/js/README.md` and files of other types (`.gif`,
+  `.jpg`, `.svg`, `.ico`, `.webp`, `.woff`; pgacc ships and links none) are
+  no longer served; `/index.php/...` (PATH_INFO) answers 404. A symbolic
+  link below `public/` is refused (403). The nginx site of `deploy/ansible/playbook.yml` serves
   `current/public` with an allow list (`/`, the two entry points, the static
   files, the short page addresses; anything else 404); run the playbook of
   the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
-  release without `public/`. Apache: `public/.htaccess` has the same allow list
+  release without `public/`, and a failed smoke test does not roll back to
+  one. Apache: `public/.htaccess` has the same allow list
   (mod_rewrite, which is now required, and `AllowOverride All`; it also
   rewrites the short page addresses and turns off `PATH_INFO`) and the rules
   of the former `.htaccess`; on Debian, comment out Apache's `Alias /icons/`.

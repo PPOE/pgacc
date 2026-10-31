@@ -36,7 +36,11 @@ addresses (`/donations`, ...), `/mbapi.php`, `/style.css?v=...`,
 `/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
 answering: a direct request of a page script, `functions.php` or `src/*.php`
 printed nothing and now gets a 404, as do `/icons/readme.html` and
-`/js/README.md` (not served by the allow lists below).
+`/js/README.md` (not served by the allow lists below). Monitoring that
+expects 403 for `/files/`, `/vendor/`, `/constants.php` and the like gets
+404 now (only dot files and backup copies still answer 403). Static files
+other than `style.css`, `js/*.js` and `icons/*.png` (`.gif`, `.jpg`, `.svg`,
+`.ico`, `.woff`, ...) are not served; pgacc ships and links none.
 
 Upgrade steps:
 
