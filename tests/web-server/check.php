@@ -6,7 +6,11 @@
  *   php check.php plant <release> <secret>
  *       Plants the matrix files into <release> (web_server_plant()) and
  *       replaces public/index.php and public/mbapi.php with a stub that
- *       prints which script ran with which query string.
+ *       prints which script ran with which query string; writes
+ *       entry-sentinel.php into <release> (matrix 'entry_link').
+ *   php check.php entry-link <nginx|apache> <base URL>
+ *       Checks the 'entry_link' requests (run.sh has made public/mbapi.php
+ *       a link to entry-sentinel.php).
  *   php check.php <nginx|apache|apache-release-root> <base URL> <public dir>
  *       <script dir> <secret>
  *       Sends the request matrix (tests/web-server/matrix.php) to the server
@@ -47,6 +51,27 @@ if ($mode === 'plant' && $argc === 4) {
             fail_check("could not write the stub $name");
         }
     }
+    $sentinel = "<?php echo 'pgacc-entry-sentinel-ran';\n";
+    if (file_put_contents($argv[2] . '/entry-sentinel.php', $sentinel) === false) {
+        fail_check('could not write entry-sentinel.php');
+    }
+    exit(0);
+}
+
+if ($mode === 'entry-link' && $argc === 4 && isset(WEB_SERVER_DIFFERENCES[$argv[2]])) {
+    foreach ($matrix['entry_link'] as $target => $statuses) {
+        $want = $statuses[$argv[2]];
+        $response = web_server_request($argv[3], $target, 'fail_check');
+        if ($response['status'] !== $want) {
+            fail_check("entry point as a symbolic link: GET $target answered {$response['status']}, expected $want");
+        }
+        foreach (['pgacc-entry-sentinel-ran', '<?php', 'pgacc-stub'] as $leak) {
+            if (strpos($response['body'], $leak) !== false) {
+                fail_check("entry point as a symbolic link: GET $target showed $leak");
+            }
+        }
+    }
+    echo 'entry point as a symbolic link: ' . count($matrix['entry_link']) . " request(s) refused\n";
     exit(0);
 }
 
@@ -77,7 +102,7 @@ if ($mode === 'apache-release-root' && $argc === 6) {
 }
 
 if (!isset(WEB_SERVER_DIFFERENCES[$mode]) || $argc !== 6) {
-    fail_check('usage: php check.php plant <release> <secret> | <nginx|apache|apache-release-root> <base URL> <public dir> <script dir> <secret>');
+    fail_check('usage: php check.php plant <release> <secret> | entry-link <nginx|apache> <base URL> | <nginx|apache|apache-release-root> <base URL> <public dir> <script dir> <secret>');
 }
 [, , $baseUrl, $publicDir, $scriptDir, $secret] = $argv;
 

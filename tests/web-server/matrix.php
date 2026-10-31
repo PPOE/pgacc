@@ -20,6 +20,11 @@
  *     public/), 'planted_public' files it puts into public/ only, and
  *     'planted_refused', the requests for them that only answer like this
  *     when they exist (a symbolic link is refused with 403).
+ * 'entry_link': only for the real servers (tests/web-server/run.sh; the
+ *     router of tests/http-docroot.php links the entry points itself): the
+ *     entry point public/mbapi.php replaced by a symbolic link to
+ *     entry-sentinel.php in the release root must be refused with the
+ *     status given per server, and the sentinel must not run.
  *
  * Where a server intentionally answers differently, the harness of that
  * server lists the target with its reason (WEB_SERVER_DIFFERENCES in
@@ -148,5 +153,10 @@ return [
         // public/js/planted-link.js: a symbolic link to constants.php.bak in
         // the release root.
         '/js/planted-link.js' => 403,
+    ],
+    'entry_link' => [
+        // nginx: try_files with disable_symlinks reports the refused link
+        // as missing (404); Apache: public/.htaccess (-l) answers 403.
+        '/mbapi.php' => ['nginx' => 404, 'apache' => 403],
     ],
 ];

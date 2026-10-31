@@ -20,7 +20,9 @@
 # which query string, and with the planted files of the matrix. The servers
 # run without network (--network none); the client runs in the same network
 # namespace and connects to 127.0.0.1, the address the nginx site allows.
-# Containers and the temporary directory are removed at the end.
+# After the matrix, public/mbapi.php is replaced for one check by a symbolic
+# link to a sentinel script in the release root (matrix 'entry_link'), then
+# restored. Containers and the temporary directory are removed at the end.
 set -eu
 
 nginx_image=nginx:1.26.3@sha256:41b194461e4bae16f9b25d68b0976ed4735b89ca625c89aad88e1c1c3b7e8860
@@ -72,6 +74,15 @@ chmod -R a+rX "$tmp/pgacc"
 check() {
   docker exec "$1" php /tests/check.php "$2" http://127.0.0.1:80 /srv/pgacc/current/public "$3" "$secret"
 }
+# entry_link <container> <server>: an entry point that is a symbolic link out of public/.
+entry_link() {
+  mv "$release/public/mbapi.php" "$tmp/mbapi.php"
+  ln -s ../entry-sentinel.php "$release/public/mbapi.php"
+  link_status=0
+  docker exec "$1" php /tests/check.php entry-link "$2" http://127.0.0.1:80 || link_status=$?
+  rm "$release/public/mbapi.php" && mv "$tmp/mbapi.php" "$release/public/mbapi.php"
+  return "$link_status"
+}
 
 if echo " $servers " | grep -q ' nginx '; then
   # Rendered as ansible.builtin.template does (Jinja2, trim_blocks); no
@@ -102,6 +113,7 @@ open(\"/out/nginx-site.conf\", \"w\").write(text)
   # SCRIPT_FILENAME is the resolved release ($realpath_root).
   status=0
   check "$id-fpm" nginx "/srv/pgacc/releases/$tag/public" || status=$?
+  [ "$status" -ne 0 ] || entry_link "$id-fpm" nginx || status=$?
   [ "$status" -eq 0 ] || { docker logs --tail 20 "$id-nginx" >&2; exit "$status"; }
   docker rm -f "$id-nginx" "$id-fpm" >/dev/null
 fi
@@ -132,6 +144,7 @@ if echo " $servers " | grep -q ' apache '; then
   done
   status=0
   check "$id-apache" apache /srv/pgacc/current/public || status=$?
+  [ "$status" -ne 0 ] || entry_link "$id-apache" apache || status=$?
   [ "$status" -ne 0 ] ||
     docker exec "$id-apache" php /tests/check.php apache-release-root http://127.0.0.1:8080 /srv/pgacc/current \
       /srv/pgacc/current "$secret" || status=$?
