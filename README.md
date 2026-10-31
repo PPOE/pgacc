@@ -139,7 +139,8 @@ Releases are created only by the Release workflow
    [CHANGELOG.md](CHANGELOG.md) (`## [1.0.0] - YYYY-MM-DD (...)`), set
    `PGACC_VERSION` in `impressum.php` (shown on the Impressum) to the new
    version (re-record the reference, `sh tests/reference/run.sh record`: the
-   Impressum recording shows it), and merge to `master`. The build fails
+   Impressum and the stylesheet and script URLs of every page show it), and
+   merge to `master`. The build fails
    unless `PGACC_VERSION` equals the tagged version.
 2. On the merged commit: `git tag -a v1.0.0 -m 'pgacc 1.0.0'` and
    `git tag -a php5-last -m 'Last release for PHP 5.3'`, then

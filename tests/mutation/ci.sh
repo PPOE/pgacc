@@ -26,7 +26,8 @@ case "$lane" in
   8.5)
     targets='rights2orgasql null-arguments login-logout redirects rights-checks receipt-crypto
       sql-injection read-only-rights import-checks listing-columns report-prevcond donations amount-parsing
-      output-escaping amount-cents csrf login-session db-helpers'
+      output-escaping amount-cents csrf login-session db-helpers asset-versions
+      year-links'
     ;;
   *) usage ;;
 esac

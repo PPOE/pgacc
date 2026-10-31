@@ -28,13 +28,19 @@ function umlaute($text)
     }
     return $returnvalue;
 }
+// The year the donation list shows: a year before 2012 or after 9999 is
+// replaced by the current year (shown without the captcha).
+function donations_year($year)
+{
+    return $year < 2012 || $year > 9999 ? intval(date('Y')) : $year;
+}
 function page_donations($year)
 {
     global $dbconn;
     $captcha_check = true;
-    if ($year < 2012 || $year > 9999) {
+    if ($year !== donations_year($year)) {
         $captcha_check = false;
-        $year = 2013;
+        $year = donations_year($year);
     }
     echo "<div class=\"page_title\"><h1>Spendenliste der Piratenpartei Österreichs $year</h1>";
     echo year_nav($year, fn($y) => "donations?year=$y");

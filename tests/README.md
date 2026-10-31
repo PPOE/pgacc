@@ -126,7 +126,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   Also the listing and account-report filters, a numeric virtual account for
   visitors, an organization balance in the report, an unknown action and the
   removed `?action=transfer` (both the report), array filter values (CSV
-  listing), the https redirect and `?year=2024-1` (the current year).
+  listing), the https redirect and `?year=2024-1` (the current year). Every
+  stylesheet and script URL ends with `?v=<PGACC_VERSION>`.
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line
@@ -179,8 +180,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-donations.php`: the donation list answers the captcha like a browser.
   2024 (above the 100 € threshold) and 2025 show heading, year links, notice
   and an empty table; no donor name (plain or base64), row or sum may appear
-  (publication is disabled for legal reasons). Years before 2012 show 2013.
-  Requests without `year` are not tested (see `COMPATIBILITY_PLAN.md`).
+  (publication is disabled for legal reasons). Without `year` the page shows
+  the current year; years before 2012 and after 9999 show it without the
+  captcha. The menu links to the report and the donation list carry the year
+  shown once a year was chosen (also `http-smoke.php` for the report).
 - `write-workflows.php`: voucher creation, organization-scoped approval,
   distinct first and second reviewers, the removed finalization (a POST with
   `beleg` changes nothing), the finalized-entry edit lock, the approval reset,

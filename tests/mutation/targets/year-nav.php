@@ -147,7 +147,7 @@ return [
             'file' => 'donations.php',
             'search' => 'echo year_nav($year, fn($y) => "donations?year=$y");',
             'replace' => 'echo year_nav(2024, fn($y) => "donations?year=$y");',
-            'rationale' => 'The donations page marks the year it shows (2013 for years out of range).',
+            'rationale' => 'The donations page marks the year it shows (the current year for years out of range).',
         ],
     ],
 ];

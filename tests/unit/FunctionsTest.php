@@ -297,6 +297,26 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringContainsString('<title>' . $title . '</title>', $html);
     }
 
+    public function testAccHeaderLinksTheStylesheetWithTheReleaseVersion()
+    {
+        ob_start();
+        acc_header(null, 'index', 2024);
+        $html = ob_get_clean();
+        self::assertStringContainsString('<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=' . PGACC_VERSION . '" />', $html);
+    }
+
+    public function testAccHeaderMenuKeepsTheYearOfTheReportAndTheDonations()
+    {
+        ob_start();
+        acc_header(null, 'donations', 2024, 2019);
+        $html = ob_get_clean();
+        self::assertStringContainsString('<a href="/?year=2019">Rechenschaftsbericht</a><a href="donations?year=2019" class="selected">Spenden</a>' . "\n" . '<a href="kdonations">', $html);
+        ob_start();
+        acc_header(null, 'donations', 2024);
+        $html = ob_get_clean();
+        self::assertStringContainsString('<a href="/">Rechenschaftsbericht</a><a href="donations" class="selected">Spenden</a>' . "\n", $html);
+    }
+
     public static function headerPageProvider()
     {
         return [

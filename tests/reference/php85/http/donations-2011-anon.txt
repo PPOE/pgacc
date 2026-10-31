@@ -2,7 +2,7 @@
 # request: GET /index.php?action=donations&year=2011 as anon
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (6331 bytes) ---
+--- body (6336 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -11,7 +11,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Aktuelle Spendenlisten der Piratenpartei Österreichs" />
   <meta name="keywords" content="spenden, spendenliste" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.1.0" />
 </head>
 <body>
 <div id="content">
@@ -20,14 +20,14 @@ header: Content-type: text/html; charset=UTF-8
 <div class="page donations">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="/">Rechenschaftsbericht</a><a href="donations" class="selected">Spenden</a>
+<a href="/?year=2026">Rechenschaftsbericht</a><a href="donations?year=2026" class="selected">Spenden</a>
 <a href="kdonations">Sachspenden</a>
 <a href="spendings">Ausgaben</a>
 <a href="wk">Wahlkampf</a>
 <a href="transactions">Kontobeweg.</a>
 <a href="vreport">Virt. Konten</a>
 </div><br />
-<div class="page_title"><h1>Spendenliste der Piratenpartei Österreichs 2013</h1><nav class="year_nav" aria-label="Jahr"><a class="year_nav_step year_nav_prev" href="donations?year=2012" aria-label="Vorheriges Jahr: 2012" title="Vorheriges Jahr: 2012">&lsaquo;</a><details class="year_nav_menu"><summary aria-label="Jahr wählen: 2013">2013</summary><ul><li><a href="donations?year=2026">2026</a></li><li><a href="donations?year=2025">2025</a></li><li><a href="donations?year=2024">2024</a></li><li><a href="donations?year=2023">2023</a></li><li><a href="donations?year=2022">2022</a></li><li><a href="donations?year=2021">2021</a></li><li><a href="donations?year=2020">2020</a></li><li><a href="donations?year=2019">2019</a></li><li><a href="donations?year=2018">2018</a></li><li><a href="donations?year=2017">2017</a></li><li><a href="donations?year=2016">2016</a></li><li><a href="donations?year=2015">2015</a></li><li><a href="donations?year=2014">2014</a></li><li><a href="donations?year=2013" aria-current="page">2013</a></li><li><a href="donations?year=2012">2012</a></li></ul></details><a class="year_nav_step year_nav_next" href="donations?year=2014" aria-label="Nächstes Jahr: 2014" title="Nächstes Jahr: 2014">&rsaquo;</a></nav></div>
+<div class="page_title"><h1>Spendenliste der Piratenpartei Österreichs 2026</h1><nav class="year_nav" aria-label="Jahr"><a class="year_nav_step year_nav_prev" href="donations?year=2025" aria-label="Vorheriges Jahr: 2025" title="Vorheriges Jahr: 2025">&lsaquo;</a><details class="year_nav_menu"><summary aria-label="Jahr wählen: 2026">2026</summary><ul><li><a href="donations?year=2026" aria-current="page">2026</a></li><li><a href="donations?year=2025">2025</a></li><li><a href="donations?year=2024">2024</a></li><li><a href="donations?year=2023">2023</a></li><li><a href="donations?year=2022">2022</a></li><li><a href="donations?year=2021">2021</a></li><li><a href="donations?year=2020">2020</a></li><li><a href="donations?year=2019">2019</a></li><li><a href="donations?year=2018">2018</a></li><li><a href="donations?year=2017">2017</a></li><li><a href="donations?year=2016">2016</a></li><li><a href="donations?year=2015">2015</a></li><li><a href="donations?year=2014">2014</a></li><li><a href="donations?year=2013">2013</a></li><li><a href="donations?year=2012">2012</a></li></ul></details><span class="year_nav_step year_nav_next" role="link" aria-disabled="true" aria-label="Nächstes Jahr">&rsaquo;</span></nav></div>
 <div class="wiki motd">Aus rechtlichen Gründen werden Spenden nur mit Zustimmung Veröffentlicht.</div><br /><br /><br />
 </div></div>
 <div class="slot_default" id="slot_default"><div class="ui_tabs">

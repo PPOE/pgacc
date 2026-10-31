@@ -164,7 +164,7 @@ function listing_text($text)
     }
     return html_escape($text);
 }
-function acc_header($dbconn, $page = "index", $year = 2015)
+function acc_header($dbconn, $page = "index", $year = 2015, $navYear = null)
 {
     echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -205,19 +205,22 @@ function acc_header($dbconn, $page = "index", $year = 2015)
     }
     echo '
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=' . PGACC_VERSION . '" />
 </head>
 <body>
 <div id="content">
 <div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.' . percent_of_bookings() . '</div>
 ';
     $rights = checklogin('rights', false);
+    // The links to the report and the donation list keep the year of these
+    // pages ($navYear, set by index.php once a year was chosen).
+    $yearQuery = $navYear === null ? '' : '?year=' . intval($navYear);
     echo '
 <div class="page ' . $page . '">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="/"' . ($page == "index" ? ' class="selected"' : '') . '>Rechenschaftsbericht</a>';
-    echo '<a href="donations"' . ($page == "donations" ? ' class="selected"' : '') . '>Spenden</a>
+<a href="/' . $yearQuery . '"' . ($page == "index" ? ' class="selected"' : '') . '>Rechenschaftsbericht</a>';
+    echo '<a href="donations' . $yearQuery . '"' . ($page == "donations" ? ' class="selected"' : '') . '>Spenden</a>
 <a href="kdonations"' . ($page == "kdonations" ? ' class="selected"' : '') . '>Sachspenden</a>
 <a href="spendings"' . ($page == "spendings" ? ' class="selected"' : '') . '>Ausgaben</a>
 <a href="wk"' . ($page == "wk" ? ' class="selected"' : '') . '>Wahlkampf</a>

@@ -28,6 +28,16 @@ $logoutBlock = "if (\$page == \"logout\" && request_is_post()) {\n"
     . "    pg_close(\$dbconn);\n    return;\n}\n";
 $loginRedirectBlock = "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n";
 $pageStart = "\n\$year = date('Y');\n\nif (!\$make_csv)\n    acc_header(\$dbconn, \$page, \$year);\n";
+// The start of the page in index.php: the year, the year of the menu links
+// and acc_header().
+$headerStart = "\n\$year = date('Y');\n\n"
+    . "if (isset(\$_GET[\"year\"]) && preg_match('/^\\d\\d\\d\\d\$/', \$_GET[\"year\"]) == 1) {\n    \$year = intval(\$_GET[\"year\"]);\n}\n\n"
+    . "// Once a year was chosen, the report and the donation list pass the year they\n"
+    . "// show to the menu links of both, so that the other page shows it too.\n"
+    . "\$nav_year = null;\n"
+    . "if (isset(\$_GET[\"year\"]) && (\$page == \"index\" || \$page == \"report\")) {\n    \$nav_year = \$year;\n"
+    . "} elseif (isset(\$_GET[\"year\"]) && \$page == \"donations\") {\n    \$nav_year = donations_year(intval(\$_GET[\"year\"]));\n}\n\n"
+    . "if (!\$make_csv) {\n    acc_header(\$dbconn, \$page, date('Y'), \$nav_year);";
 
 return [
     'description' => 'Login and logout: index.php login(), early logout/login blocks, login.php, '
@@ -387,8 +397,8 @@ return [
         ],
         [
             'id' => 'logout-after-output',
-            'search' => "if (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);",
-            'replace' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);\n}\nif (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;",
+            'search' => "if (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart,
+            'replace' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart . "\n}\nif (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;",
             'rationale' => 'The original ordering: logout after acc_header() has output the page. The cookies '
                 . 'and redirect then depend on output buffering (fails with output_buffering=0).',
         ],
@@ -403,8 +413,8 @@ return [
         ],
         [
             'id' => 'login-after-output',
-            'search' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);",
-            'replace' => "\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;",
+            'search' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart,
+            'replace' => $headerStart . "\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;",
             'rationale' => 'The original ordering: login after acc_header() has output the page. The cookies '
                 . 'and redirect then depend on output buffering (fails with output_buffering=0).',
         ],
