@@ -528,6 +528,15 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame([3009, substr($plain, 0, 1024)], [$receipt['length'], $receipt['head']]);
         self::assertSame('application/pdf', receipt_content_type($receipt['head']));
         fclose($receipt['handle']);
+        // %PDF- ending at byte 1024 is found; one byte later it is not.
+        foreach ([1019 => 'application/pdf', 1020 => 'application/octet-stream'] as $white => $type) {
+            $plain = str_repeat(' ', $white) . "%PDF-1.4\n" . str_repeat('x', 2000);
+            file_put_contents($path, receipt_v2_encrypt(self::TEST_KEY, '42', $plain));
+            $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+            self::assertSame(substr($plain, 0, 1024), $receipt['head']);
+            self::assertSame($type, receipt_content_type($receipt['head']), (string) $white);
+            fclose($receipt['handle']);
+        }
     }
 
     public function testWriteFileReplacesTheTargetWithoutLeavingATemporaryFile()

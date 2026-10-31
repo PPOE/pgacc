@@ -58,7 +58,8 @@ if (PHP_SAPI !== 'cli') {
  *                    vouchers table and the unused ones up to the highest
  *                    voucher number; only a complete PDF or JPEG is accepted
  *                    (never text).
- *                    One single-block decryption per file and candidate ID;
+ *                    One single-block decryption per file and candidate ID
+ *                    (up to 1024 bytes when the first block is white-space);
  *                    IDs found are tried first for the next file
  *   --limit=N        migrate (or delete) at most N files, then stop
  *   --max-size=B     skip files above B bytes (default: memory_limit / 8,
@@ -232,8 +233,8 @@ function receipt_migration_is_complete($plain)
  * the size of the legacy file: a description, or null. Only a PDF is
  * recognised beyond the first block ($head). A wrong voucher ID decrypts to
  * random bytes, which practically never start like one of these.
- * Text (such as an HTML page) is a whole first block of printable ASCII and
- * white-space, zero padding allowed after it: random bytes give that with a
+ * Text (such as an HTML page) is a whole first block of printable ASCII
+ * and/or white-space, zero padding allowed after it: random bytes give that with a
  * chance of about (99/256)^32, below 2^-43 per voucher ID. Only the IDs of
  * the file's own rows are tried for it (not --search-voucher-ids), and the
  * download offers it as <n>.bin, never as a page.
@@ -286,7 +287,8 @@ function receipt_migration_search_ids($connection)
 /*
  * The first of the voucher $ids that decrypts $legacy (of $size bytes) to a
  * complete PDF or JPEG: array(voucher ID, padded plain text, ''). The first
- * block is probed per ID (CBC: it decrypts on its own); only a PDF or JPEG
+ * block is probed per ID (CBC: it decrypts on its own; up to 1024 bytes when
+ * the first block is white-space); only a PDF or JPEG
  * head needs the whole file. $mode 'complete' accepts nothing else; 'report'
  * also returns an ID whose first block shows what --include-unusual accepts
  * as array(voucher ID, null, description), without decrypting the rest;

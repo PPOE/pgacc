@@ -1372,7 +1372,7 @@ differences above are only visible for out-of-range input.
     `image/png`/`image/gif`, and a PDF whose header follows white-space
     (within 1024 bytes) as `application/pdf` (the legacy download: JPEG);
     such PDFs count as complete. `--include-unusual` also accepts text (a
-    whole first block of printable ASCII, own voucher IDs only, never by
+    whole first block of printable ASCII and/or white-space, own voucher IDs only, never by
     the search), downloaded as `<n>.bin` with `nosniff`. Genuine legacy files of
     the original code on PHP 5.3.3: `tests/fixtures/legacy-php53/`.
     `--delete-legacy`

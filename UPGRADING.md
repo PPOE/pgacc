@@ -214,7 +214,8 @@ command line. Do not post migration transcripts publicly.
      a file only if one decrypts it to a complete PDF or JPEG; the line
      names the voucher ID found. (Such a receipt downloaded as unreadable
      bytes before; afterwards it is the original receipt.) It costs one
-     single-block decryption per file and candidate ID (all voucher IDs up
+     single-block decryption per file and candidate ID (up to 1024 bytes
+     when the first block is white-space; all voucher IDs up
      to the highest one; roughly 0.15 ms each, so 20,000 IDs take about 3 s
      per file); IDs found for one file are tried first for the next. Run it
      after the normal migration, when only the skipped files are left.

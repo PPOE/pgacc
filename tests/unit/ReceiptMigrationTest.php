@@ -566,7 +566,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame($pdf, receipt_migration_unusual_type("\n%PDF-1.4\nsynthetic, but cut", 32));
         self::assertSame($pdf, receipt_migration_unusual_type(str_repeat(' ', 40) . '%PDF-1.4', 1024));
         self::assertSame('a text document', receipt_migration_unusual_type(str_repeat(' ', 32) . str_repeat('x', 32) . "\xC3\xA4", 1024));
-        // Text: a whole first block of printable ASCII and whitespace, zero
+        // Text: a whole first block of printable ASCII and/or white-space, zero
         // padding allowed after it.
         self::assertSame('a text document', receipt_migration_unusual_type("<!DOCTYPE html>\n<html><body>\r\n\tx", 64));
         self::assertSame('a text document', receipt_migration_unusual_type(str_pad("plain text\f~", 32, "\0"), 32));
@@ -659,6 +659,27 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
             self::assertSame($bytes, $this->v2Plain((string) $number));
             self::assertSame('application/pdf', receipt_content_type($bytes), (string) $number);
         }
+    }
+
+    public function testPdfHeaderEndingAtTheProbeWindow()
+    {
+        // 1019 bytes of white-space: %PDF- ends at byte 1024, the end of the
+        // probe, and the file migrates as a PDF. 1020 bytes: the header ends
+        // beyond it, so the file is no PDF (its first block is text).
+        $pdf = rijndael256_zero_pad(str_repeat(' ', 1019) . "%PDF-1.4\nsynthetic\n%%EOF\n");
+        $late = rijndael256_zero_pad(str_repeat("\n", 1020) . "%PDF-1.4\nsynthetic\n%%EOF\n");
+        $this->put('909.aes', receipt_encrypt('4711', '', $pdf));
+        $this->put('910.aes', receipt_encrypt('4711', '', $late));
+        list($status, $output) = $this->migrate([]);
+        self::assertSame(3, $status, $output);
+        self::assertSame("909.aes: migrated (voucher 4711); 909.aes kept until --delete-legacy\n"
+            . '910.aes: skipped, legacy kept: voucher 4711 decrypts it to a text document, not a complete PDF or JPEG '
+            . "(--include-unusual migrates it)\n"
+            . "Skipped, legacy kept: 910\n"
+            . self::summary([1, 0, 0, 1, 0]), $output);
+        self::assertSame($pdf, $this->v2Plain('909'));
+        self::assertSame('application/pdf', receipt_content_type($pdf));
+        self::assertSame('application/octet-stream', receipt_content_type($late));
     }
 
     public function testTextIsJudgedByTheFirstBlock()
