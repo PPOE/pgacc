@@ -17,6 +17,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   tag with checksum and archive checks, an atomic switch, a smoke test,
   automatic rollback and pruning of old releases. See
   [deploy/README.md](deploy/README.md). The application is unchanged.
+  Optional `pgacc_extra_hosts` entries for `/etc/hosts` let the host reach
+  the membership system when the internal DNS does not resolve its name.
+  `ansible-playbook --check` works on a provisioned host.
 
 ### Documentation
 

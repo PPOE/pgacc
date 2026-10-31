@@ -27,3 +27,8 @@ all:
     # pgacc_timezone: UTC
     # pgacc_backup_keep_days: 7
     # pgacc_disable_sshd: true
+    # /etc/hosts entries, e.g. when the internal DNS does not resolve the
+    # membership system's public name: point it at the reverse proxy (see
+    # README.md, "Membership system"). Empty by default: nothing is written.
+    # pgacc_extra_hosts:
+    #   - { ip: 192.0.2.1, names: [members.example.org] }

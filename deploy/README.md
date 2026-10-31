@@ -44,6 +44,7 @@ Settings (inventory variables, see
 | `pgacc_timezone` | `UTC` | PHP `date.timezone`. |
 | `pgacc_backup_keep_days` | `7` | Days the nightly dumps are kept. |
 | `pgacc_disable_sshd` | `true` | Stops and disables the SSH server (`ssh.service`, `ssh.socket`): the host is administered through the container runtime. Set it to `false` if Ansible connects over SSH to the host itself. |
+| `pgacc_extra_hosts` | `[]` | Entries for `/etc/hosts` (list of `{ip, names}`), kept in a block marked by Ansible; see "Membership system". Nothing is written while the list is empty. |
 | `pgacc_fresh_install` | `false` | Pass `-e pgacc_fresh_install=true` once to create the database (see below). |
 
 Defaults: time zone UTC and dumps kept 7 days (the settings above); uploads
@@ -131,6 +132,25 @@ sudo -u pgacc-deploy pgacc-deploy --file /path/to/pgacc-2.1.0.tar.gz   # local a
 Deploying the current release again does nothing. Deploying a release that is
 still in `releases/` switches back to it without downloading (a manual
 rollback). Nothing is built on the host: the archive contains `vendor/`.
+
+## Membership system
+
+pgacc fetches the member list from the membership system over verified HTTPS
+(the fixed URL in `getusers.php`), and the membership system calls pgacc's
+`mbapi.php`. So the host must resolve the membership system's public name and
+reach it over HTTPS with a certificate valid for that name (Debian's CA
+bundle), and the membership system must resolve pgacc's public name and reach
+it.
+
+If the internal DNS does not resolve the public name and the public address
+is not reachable from inside (no hairpin NAT), point the name at the reverse
+proxy in `/etc/hosts` with `pgacc_extra_hosts` and allow outgoing HTTPS from
+the host to the proxy:
+
+```yaml
+pgacc_extra_hosts:
+  - { ip: 192.0.2.1, names: [members.example.org] }
+```
 
 ## Staging
 

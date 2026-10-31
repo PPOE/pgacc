@@ -48,10 +48,13 @@
           - pgacc_trusted_proxies | default([]) | length > 0
           - pgacc_trusted_proxies | reject('match', '^[0-9A-Fa-f.:]+(/[0-9]{1,3})?$') | list | length == 0
           - pgacc_backup_keep_days | default(7) | int > 0
+          - pgacc_extra_hosts | default([]) | rejectattr('ip', 'defined') | list | length == 0
+          - pgacc_extra_hosts | default([]) | rejectattr('names', 'defined') | list | length == 0
         fail_msg: >-
           Needs Debian 13 and pgacc_trusted_proxies: the addresses or CIDR
           ranges of the TLS-terminating reverse proxy (X-Forwarded-Proto is
-          trusted only from them).
+          trusted only from them). pgacc_extra_hosts entries need ip and
+          names.
 
     # --- Packages: PostgreSQL from apt.postgresql.org, PHP from packages.sury.org
 
@@ -106,16 +109,36 @@
         install_recommends: false
         update_cache: "{{ pgacc_sury_repo is changed }}"
 
+    # Read-only, so it runs in check mode too. There PHP may not be
+    # installed yet; then the check is skipped.
     - name: List the PHP extensions
       ansible.builtin.command: php8.5 -m
       register: pgacc_php_modules
       changed_when: false
+      check_mode: false
+      failed_when: pgacc_php_modules.rc != 0 and not ansible_check_mode
 
     - name: Check the PHP extensions pgacc needs
       ansible.builtin.assert:
         that: item in pgacc_php_modules.stdout_lines
         quiet: true
       loop: [pgsql, mbstring, iconv, zlib, sodium, openssl]
+      when: pgacc_php_modules.rc == 0
+
+    # Lets the host reach names the internal DNS does not resolve (e.g. the
+    # membership system through the reverse proxy). Empty: nothing written.
+    - name: Add the extra /etc/hosts entries (pgacc_extra_hosts)
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} pgacc_extra_hosts (Ansible)"
+        block: |
+          {% for entry in pgacc_extra_hosts | default([]) %}
+          {{ entry.ip }} {{ entry.names | join(' ') }}
+          {% endfor %}
+        state: "{{ 'present' if pgacc_extra_hosts | default([]) | length > 0 else 'absent' }}"
+        # Falls back to writing in place where /etc/hosts is a bind mount
+        # (Docker), which cannot be replaced by a rename.
+        unsafe_writes: true
 
     # --- Users and layout: pgacc runs PHP, pgacc-deploy owns the releases
 
