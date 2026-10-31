@@ -5,73 +5,62 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-31
+
+Deployment scripts, versioned stylesheet and script URLs, and receipt
+migration fixes. Read [UPGRADING.md](UPGRADING.md) before upgrading.
+
+### Upgrade notes
+
+- Run the receipt migration again with `--include-unusual` and
+  `--search-voucher-ids` (dry run first), then `--delete-legacy` with the
+  same options, to migrate the receipts that earlier runs skipped.
+- Optional: the web server can now cache `style.css` and `js/` long-term
+  (their URLs carry `?v=<version>`); not `/icons/`.
+- Hosts set up with `deploy/ansible/playbook.yml`: run it again for the
+  caching rules.
+
 ### Added
 
-- `deploy/ansible/playbook.yml` sets up a Debian 13 host for pgacc: PHP
-  8.5-FPM and PostgreSQL 18 from their upstream package repositories, an
-  nginx site behind a TLS-terminating reverse proxy (required trusted proxy
-  addresses), separate users for PHP (read-only code) and for deploying, the
-  `/srv/pgacc` release layout and a nightly local database dump. The
-  `accounting` database (`en_US.UTF-8`) is created only on an explicit fresh
-  install, never over an existing one. `deploy/deploy.sh` deploys a release
-  tag with checksum and archive checks, an atomic switch, a smoke test,
-  automatic rollback and pruning of old releases. See
-  [deploy/README.md](deploy/README.md). The application is unchanged.
-  Optional `pgacc_extra_hosts` entries for `/etc/hosts` let the host reach
-  the membership system when the internal DNS does not resolve its name.
-  `ansible-playbook --check` works on a provisioned host.
-- The nginx site sends `Cache-Control: no-cache` for static files, so
-  browsers revalidate `style.css`, scripts and icons and pick up changes after
-  a deploy without a hard reload, and `Cache-Control: private, no-store` for
-  PHP responses that do not set their own, so no cache keeps pages with
-  personal or financial data.
+- `deploy/`: an Ansible playbook that sets up a Debian 13 host (PHP 8.5-FPM,
+  PostgreSQL 18, nginx behind a TLS-terminating reverse proxy, separate PHP
+  and deploy users, nightly database dump; the database is created only on an
+  explicit fresh install), and `deploy/deploy.sh`, which deploys a release tag
+  with checksum checks, an atomic switch, a smoke test and automatic
+  rollback. `ansible-playbook --check` works; optional `pgacc_extra_hosts`
+  entries for `/etc/hosts`. See [deploy/README.md](deploy/README.md).
+- The nginx site sends `Cache-Control: no-cache` for static files and
+  `private, no-store` for PHP responses that set none.
 
 ### Changed
 
 - The stylesheet and script URLs carry the release version
-  (`style.css?v=<version>`), so browsers load the new files after an upgrade
-  instead of a cached copy. The web server can cache `style.css` and `js/`
-  long-term ([UPGRADING.md](UPGRADING.md)).
-- The donation list (`/donations`) shows the current year by default, like
-  the report; before, it showed 2013 without a captcha. Years before 2012 and
-  after 9999 also show the current year (before: 2013), still without the
-  captcha.
-- The report and the donation list keep the chosen year: once a year was
-  chosen, the menu links to both pages carry it (`?year=<year>`), so the
-  other page shows the same year. The other pages have no year and are
-  unchanged.
+  (`style.css?v=<version>`), so browsers load the new files after an upgrade.
+- The donation list shows the current year by default (before: 2013), also
+  for years before 2012 or after 9999. The report and the donation list keep
+  the chosen year in the menu links (`?year=<year>`).
 
 ### Fixed
 
-- PDFs whose header follows white-space (within the first 1024 bytes) count
-  as PDFs: the receipt migration migrates them, and every download of a
-  migrated or newly uploaded receipt (`<n>.v2.aes`) sends them as
-  `application/pdf`, shown in the browser (the legacy download sent them as
-  `image/jpeg`; the download of an already migrated or uploaded one offered
-  them as `<n>.bin`).
-- `--include-unusual` also migrates text receipts (such as an HTML page)
-  that decrypt with the file's own voucher ID. They are offered only as a
-  download `<n>.bin`, never shown as a page.
+- Receipt migration and downloads: PDFs whose header follows white-space
+  (within the first 1024 bytes) are migrated and sent as `application/pdf`
+  (before: `image/jpeg` or `<n>.bin`).
+- `--include-unusual` also migrates text receipts that decrypt with their own
+  voucher ID; they download only as `<n>.bin`.
 - The migration names receipt files that no voucher row references.
-  `--search-voucher-ids --include-unusual` also migrates such a file (or
-  one that its rows' voucher IDs do not decrypt) if another voucher ID
-  decrypts it to an empty file: exactly 32 bytes that decrypt to exactly 32
-  zero bytes, as the old code stored an empty upload. The whole block must
-  match (a wrong ID: chance 2^-256), so this is safe for the search; it
-  accepts no other unusual type.
+  `--search-voucher-ids --include-unusual` also migrates such a file, or one
+  its rows' IDs do not decrypt, if another voucher ID decrypts it to an empty
+  upload (32 bytes to 32 zero bytes).
 
 ### Documentation
 
-- [UPGRADING.md](UPGRADING.md) describes the rewrite of the short page
-  addresses (`/donations`, `/vreport?konto=...` and others) to
-  `index.php?action=<name>`, which the web server needs and which was only
-  part of the server configuration until now.
-- [deploy/README.md](deploy/README.md) describes moving an existing
-  installation: the order of the steps, restoring a dump from PostgreSQL
-  before 13 (8.4 included) into PostgreSQL 18, checks after the restore, a
-  cutover checklist with rollback, the network requirements of the
-  membership system, and that the receipts and `constants.php` need a
-  backup from outside the host.
+- [UPGRADING.md](UPGRADING.md): the web server rewrite of the short page
+  addresses (`/donations`, `/vreport?konto=...`) to
+  `index.php?action=<name>`.
+- [deploy/README.md](deploy/README.md): moving an existing installation
+  (step order, restoring a dump from PostgreSQL before 13 into 18, checks,
+  cutover checklist with rollback, network access to the membership system,
+  off-host backup of the receipts and `constants.php`).
 
 ## [2.1.0] - 2026-10-26
 
