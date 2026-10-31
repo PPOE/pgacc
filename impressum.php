@@ -1,6 +1,8 @@
 <?php
 
-// The released version, shown on the Impressum. Each release pull request sets
+// The released version, shown on the Impressum and appended to the stylesheet
+// and script URLs (?v=), so that browsers load them again after an upgrade
+// (functions.php acc_header(), vreport.php). Each release pull request sets
 // it to the new version together with the dated CHANGELOG.md section;
 // scripts/release.sh fails unless it equals the tagged version (README.md,
 // "Releases").

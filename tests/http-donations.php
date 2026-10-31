@@ -12,8 +12,8 @@
  * query but shows no row): even with a correct answer and a qualifying
  * donor (2024: "Synthetic Donor", 130.00 EUR in tests/fixtures/data.sql), the
  * table has only its header row, and no donor name appears in any form.
- * 2025 has a donation below the 100 EUR threshold; years before 2012 show
- * 2013 without a captcha. Logged-in users (a valid session per checklogin())
+ * 2025 has a donation below the 100 EUR threshold; without a year the page
+ * shows the current year, years before 2012 show it without a captcha. Logged-in users (a valid session per checklogin())
  * see both lists without the captcha; a forged session cookie does not.
  */
 require __DIR__ . '/http-test-helpers.php';
@@ -139,9 +139,15 @@ $list = donations_page(2025, [
 ]);
 assert_list_page($list, 2025, 'donations 2025 list');
 
-// Before 2012: the 2013 page, without a captcha form and without a list.
+// Without a year: the current year with the captcha form.
+$currentYear = intval(date('Y'));
+$default = http_request('/index.php?action=donations');
+assert_status($default, 200, 'donations without year');
+assert_captcha_page($default['body'], $currentYear, 'donations without year');
+
+// Before 2012: the current year, without a captcha form and without a list.
 $early = donations_page(2011);
-assert_donations_heading($early, 2013, 'donations 2011');
+assert_donations_heading($early, $currentYear, 'donations 2011');
 assert_not_contains($early, DONATIONS_CAPTCHA_INTRO, 'donations 2011');
 assert_not_contains($early, '<table id="donations"', 'donations 2011');
 assert_no_donor_data($early, 'donations 2011');
@@ -193,18 +199,26 @@ foreach (['logged-in' => $admin, 'forged cookie' => $forged] as $who => $cookies
 }
 
 // Years after 9999 (also beyond the integer range, which intval() saturates)
-// are handled like those before 2012: the 2013 page, no invalid SQL.
+// are handled like those before 2012: the current year, no invalid SQL.
 foreach (['10000', '99999999999999999999'] as $year) {
     $late = donations_page($year);
-    assert_donations_heading($late, 2013, "donations $year");
+    assert_donations_heading($late, $currentYear, "donations $year");
     assert_not_contains($late, DONATIONS_CAPTCHA_INTRO, "donations $year");
     assert_no_donor_data($late, "donations $year");
     $lateList = http_request('/index.php?action=donations&year=' . $year, 'GET', [], $admin);
     assert_status($lateList, 200, "donations $year logged-in");
     assert_not_contains($lateList['body'], 'Abfrage fehlgeschlagen', "donations $year logged-in");
-    assert_donations_heading($lateList['body'], 2013, "donations $year logged-in");
+    assert_donations_heading($lateList['body'], $currentYear, "donations $year logged-in");
     assert_contains($lateList['body'], '<table id="donations"', "donations $year logged-in");
 }
+
+// The menu links to the report and the donation list keep the year the page
+// shows once a year was chosen (also a corrected one); without a year they
+// carry none.
+$menu = fn($year, $query) => '<a href="/' . $query . '">Rechenschaftsbericht</a><a href="donations' . $query . '" class="selected">Spenden</a>' . "\n";
+assert_contains(donations_page(2019), $menu(2019, '?year=2019'), 'donations 2019 menu');
+assert_contains($early, $menu($currentYear, "?year=$currentYear"), 'donations 2011 menu');
+assert_contains($default['body'], $menu($currentYear, ''), 'donations without year menu');
 
 assert_no_unexpected_diagnostics();
 echo "Donations HTTP characterization tests passed\n";

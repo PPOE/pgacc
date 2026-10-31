@@ -243,12 +243,21 @@ if ($page == "login" && login_redirect()) {
 
 $year = date('Y');
 
-if (!$make_csv) {
-    acc_header($dbconn, $page, $year);
-}
-
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
     $year = intval($_GET["year"]);
+}
+
+// Once a year was chosen, the report and the donation list pass the year they
+// show to the menu links of both, so that the other page shows it too.
+$nav_year = null;
+if (isset($_GET["year"]) && ($page == "index" || $page == "report")) {
+    $nav_year = $year;
+} elseif (isset($_GET["year"]) && $page == "donations") {
+    $nav_year = donations_year(intval($_GET["year"]));
+}
+
+if (!$make_csv) {
+    acc_header($dbconn, $page, date('Y'), $nav_year);
 }
 
 if ($page == "all") {
@@ -293,7 +302,7 @@ if ($page == "all") {
 } elseif ($page == "kdonations") {
     page_kdonations();
 } elseif ($page == "donations") {
-    page_donations(intval($_GET["year"] ?? 0));
+    page_donations(intval($_GET["year"] ?? date('Y')));
 } elseif ($page == "deleted") {
     $rights = checklogin('rights');
     page_deleted($rights);

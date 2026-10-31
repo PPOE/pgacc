@@ -18,6 +18,19 @@ assert_contains(http_request('/index.php?year=2012')['body'], "<div class=\"page
 $currentYear = intval(date('Y'));
 assert_contains(http_request("/index.php?year=$currentYear")['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'current report year selector');
 assert_contains(http_request('/index.php')['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'default report year selector');
+// The menu links to the report and the donation list keep the chosen year
+// (the current one for an invalid year); without a year, and on pages without
+// one, they carry none.
+$menu = fn($query, $selected) => '<a href="/' . $query . '"' . ($selected ? ' class="selected"' : '') . '>Rechenschaftsbericht</a><a href="donations' . $query . '">Spenden</a>' . "\n";
+assert_contains($report['body'], $menu('?year=2024', true), '2024 report menu');
+assert_contains(http_request('/index.php?year=2024-1')['body'], $menu("?year=$currentYear", true), 'invalid report year menu');
+assert_contains(http_request('/index.php?action=unknown&year=2019')['body'], $menu('?year=2019', false), 'unknown action report menu');
+assert_contains(http_request('/index.php')['body'], $menu('', true), 'default report menu');
+assert_contains(http_request('/index.php?action=spendings&year=2019')['body'], $menu('', false), 'spendings menu');
+// The ledger links of the logged-in menu keep the current year.
+$adminReport = http_request('/index.php?year=2019', 'GET', [], login_user('synthetic-admin', 'correct-password'))['body'];
+assert_contains($adminReport, $menu('?year=2019', true), 'logged-in 2019 report menu');
+assert_contains($adminReport, "<a href=\"index.php?action=open&filter_date=$currentYear\">Offen</a>", 'logged-in 2019 report ledger link');
 assert_contains($report['body'], 'Ausgaben für die Wahlwerbung Länder', '2024 report completeness');
 assert_contains($report['body'], 'Anlage B: Einnahmen aus Sponsoring', '2024 report completeness');
 // Issue #1: every amount has two decimals, also whole euros, so that the

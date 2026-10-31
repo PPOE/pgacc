@@ -9,6 +9,18 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Web server: long-term caching of `style.css` and `js/`
+
+With the changes under "Unreleased" in [CHANGELOG.md](CHANGELOG.md), the pages
+link the stylesheet and the scripts with the release version in the URL
+(`style.css?v=<version>`, `js/vreport-chart.js?v=<version>`). Each upgrade
+changes these URLs, so browsers load the new files instead of a cached copy.
+The web server can therefore let browsers cache `style.css` and `/js/`
+long-term (for example `Cache-Control: public, max-age=31536000, immutable`).
+Only a release changes the version: a deploy of unreleased code with changed
+files is not picked up by such a cache. The icons (`/icons/`) keep URLs
+without a version; do not cache them long-term.
+
 ## Browsers
 
 From 2.1.0 (the Tailwind CSS stylesheet, see
