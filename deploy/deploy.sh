@@ -97,6 +97,16 @@ check() {
 
 switch_to "$tag"
 if ! check; then
+  # A release from before the public/ document root can only answer 404:
+  # keep the new one and stop (first upgrade to the public/ layout).
+  if [ -n "$previous" ] && [ ! -f "$releases/$previous/public/index.php" ]; then
+    echo "deploy: the login page of $tag fails. NOT rolling back: $previous has no public/" >&2
+    echo "deploy: and the web server serves current/public/. $tag stays the current release." >&2
+    echo "deploy: Fix the problem (web server and PHP-FPM logs; UPGRADING.md, \"Document root" >&2
+    echo "deploy: public/\"); no new deploy of $tag is needed. To go back to $previous instead," >&2
+    echo "deploy: run the playbook of its checkout, then its pgacc-deploy $previous." >&2
+    exit 1
+  fi
   say "the login page of $tag fails; rolling back to ${previous:-nothing}"
   if [ -n "$previous" ]; then
     switch_to "$previous"

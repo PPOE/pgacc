@@ -213,7 +213,10 @@ runtime), give the full path, as the `PATH` there may not include
    `http://127.0.0.1/index.php?action=login` must answer with the login form.
    Otherwise `current` goes back to the previous release (or is removed if
    there was none), the new release directory is deleted, and the script
-   exits with 1.
+   exits with 1. Exception: if the previous release has no `public/` (from
+   before the document root change), it could only answer 404, so the new
+   release stays current and the script prints the recovery steps and exits
+   with 1.
 6. The newest 5 releases are kept, always including the current and the
    previous one.
 
