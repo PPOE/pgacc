@@ -1,0 +1,10 @@
+#!/bin/sh
+# Nightly dump of the accounting database into /var/backups/pgacc (owned by
+# postgres, mode 0700), run as postgres by pgacc-backup.service. Dumps older
+# than PGACC_BACKUP_KEEP_DAYS days are deleted. Managed by Ansible.
+set -eu
+dir=/var/backups/pgacc
+file=$dir/accounting-$(date -u +%Y%m%dT%H%M%SZ).dump
+pg_dump --format=custom --file="$file.partial" accounting
+mv "$file.partial" "$file"
+find "$dir" -maxdepth 1 -type f -name 'accounting-*.dump' -mtime "+${PGACC_BACKUP_KEEP_DAYS:-7}" -delete

@@ -1,0 +1,11 @@
+# Managed by Ansible (deploy/ansible).
+/var/log/pgacc/*.log {
+	su pgacc pgacc
+	weekly
+	rotate 12
+	compress
+	delaycompress
+	missingok
+	notifempty
+	create 0640 pgacc pgacc
+}
