@@ -20,7 +20,8 @@ web:
   `index.php?action=file`, the CSV exports `format=csv`) and `mbapi.php` (called
   by the membership system);
 - the static files `style.css`, `js/*.js` and `icons/*.png`;
-- `.htaccess` (Apache: `short_open_tag`, the backup-copy rule above).
+- `.htaccess` (Apache: the allow list, `AcceptPathInfo Off`,
+  `short_open_tag` and the backup-copy rule; see Apache below).
 
 Everything else stays in the release root, outside the document root: the
 page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
@@ -53,7 +54,10 @@ Upgrade steps:
 3. Deploy the release and check: `/` (the report), the login, a receipt
    download, a CSV export, `/donations`, `/style.css?v=<version>`,
    `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
-   `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404.
+   `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404,
+   and so do `/js/README.md` and `/index.php/x`, which are inside `public/`:
+   they show that the allow list is active (an Apache without `AllowOverride
+   All` serves all of `public/`).
 
 Hosts set up with `deploy/ansible/playbook.yml`: the playbook of the new
 release sets `root /srv/pgacc/current/public` and the allow list, and
@@ -121,10 +125,16 @@ allow list also names the short addresses):
 ```
 server.document-root = "/srv/pgacc/current/public"
 dir-listing.activate = "disable"
-$HTTP["url"] !~ "^/(|index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png|vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" {
+server.follow-symlink = "disable"
+$HTTP["url"] !~ "^/(|index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9_-][A-Za-z0-9._-]*\.js|icons/[A-Za-z0-9_-][A-Za-z0-9._-]*\.png|vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" {
   url.access-deny = ( "" )
 }
 ```
+
+Untested. Paths outside the allow list answer 403, not 404 as with nginx
+and Apache. File names below `js/` and `icons/` may not start with a dot.
+Lighttpd follows symbolic links by default; `server.follow-symlink =
+"disable"` refuses them.
 
 Plus the backup-copy rule of the next section; the former deny rule for
 `files`, `vendor`, `tests`, `src`, `constants.php`, ... is no longer needed.
@@ -134,9 +144,12 @@ Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
 page addresses, which it rewrites itself; dot files and symbolic links 403,
 anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
 short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it
-every request answers 500) and `AllowOverride All`. The rewrite rule for the
-short page addresses in the virtual host is no longer needed (it does no
-harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
+every request answers 500) and `AllowOverride All`. With PHP-FPM
+(`proxy_fcgi`) instead of PHP as an Apache module, `php_value` in
+`.htaccess` answers 500: remove that line and set `short_open_tag = On` in
+the pool (`php_admin_flag[short_open_tag] = on`) or in `php.ini`. The
+rewrite rule for the short page addresses in the virtual host is no longer
+needed (it does no harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
 request: with the document root `public/` it is never read; it is a safety
 net for a host whose document root is still the release root, which then
 answers 403 instead of serving the code. Tested with Apache 2.4 and PHP as an
@@ -225,8 +238,9 @@ built on the server.
 
 From 2.1.0 the archive has a `src/` directory with library
 files (first `src/db.php`, the database helpers). Deny web access to `/src/`
-like `/vendor/` and `/tests/`. On Apache the shipped `src/.htaccess` does
-this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
+like `/vendor/` and `/tests/`. On Apache the `src/.htaccess` shipped up to
+the document root `public/` did this (with that layout `src/` is outside the
+document root and the file is gone); on Lighttpd
 add `src` to the directory list of the rule below. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
