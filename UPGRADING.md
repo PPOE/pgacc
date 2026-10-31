@@ -73,12 +73,13 @@ ready on the host first and deploy straight after the playbook:
    `sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz`
    (it checks the `.sha256` next to the archive again).
 
-If the smoke test of that deploy fails, `pgacc-deploy` does not roll back to
-the release without `public/` (it could only answer 404): the new release
-stays current and the script prints the recovery steps. `pgacc-deploy` refuses to switch back to a release without
-`public/`; to go back to such a release, run the playbook of that release's
-checkout first (document root `current/`), then `pgacc-deploy` of that
-version.
+If the smoke test of that deploy fails, `pgacc-deploy` goes back to the
+release without `public/` only if its login page answers (the web server
+still serves `current/`); otherwise (it could only answer 404) the new
+release stays current. Either way it prints the recovery steps and exits
+with 1. A deploy of a release without `public/` is refused; to go back to
+such a release, run the playbook of that release's checkout first (document
+root `current/`), then `pgacc-deploy` of that version.
 
 nginx (as in `deploy/ansible/templates/nginx-site.conf.j2`, which also sets
 the caching headers; `tests/web-server/run.sh nginx` tests that template).

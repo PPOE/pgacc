@@ -210,17 +210,20 @@ runtime), give the full path, as the `PATH` there may not include
    or configuration steps of a release are in [UPGRADING.md](../UPGRADING.md)
    and are done by hand.
 5. `current` is switched atomically, PHP-FPM is reloaded and
-   `http://127.0.0.1/index.php?action=login` must answer with the login form.
+   `http://127.0.0.1/index.php?action=login` must answer with the login form,
+   and `/js/README.md` and `/index.php/x` with 404 (the allow list is active).
    Otherwise `current` goes back to the previous release (or is removed if
    there was none), the new release directory is deleted, and the script
    exits with 1. Exception: if the previous release has no `public/` (from
-   before the document root change), it could only answer 404, so the new
-   release stays current and the script prints the recovery steps and exits
-   with 1.
+   before the document root change), `current` goes back to it only if its
+   login page answers (the web server still serves `current/`, the new
+   playbook was not run); otherwise the new release stays current. Either
+   way the script prints the recovery steps and exits with 1.
 6. The newest 5 releases are kept, always including the current and the
    previous one.
 
-Deploying the current release again does nothing. Deploying a release that is
+Deploying the current release again only runs the smoke test (exit 1 if it
+fails). Deploying a release that is
 still in `releases/` switches back to it without downloading (a manual
 rollback); a release without `public/` (from before the document root
 change) is refused, see [UPGRADING.md](../UPGRADING.md), "Document root
