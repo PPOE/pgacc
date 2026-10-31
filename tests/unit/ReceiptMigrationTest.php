@@ -565,6 +565,7 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         $pdf = 'a PDF that looks incomplete or has data after its end';
         self::assertSame($pdf, receipt_migration_unusual_type("\n%PDF-1.4\nsynthetic, but cut", 32));
         self::assertSame($pdf, receipt_migration_unusual_type(str_repeat(' ', 40) . '%PDF-1.4', 1024));
+        self::assertSame('a text document', receipt_migration_unusual_type(str_repeat(' ', 32) . str_repeat('x', 32) . "\xC3\xA4", 1024));
         // Text: a whole first block of printable ASCII and whitespace, zero
         // padding allowed after it.
         self::assertSame('a text document', receipt_migration_unusual_type("<!DOCTYPE html>\n<html><body>\r\n\tx", 64));
@@ -625,6 +626,53 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame($html, $this->v2Plain('911'));
         self::assertSame(['application/pdf', 'application/pdf', 'application/octet-stream'], [
             receipt_content_type($newline), receipt_content_type($space), receipt_content_type($html)]);
+    }
+
+    public function testPdfHeaderAcrossTheFirstBlock()
+    {
+        // White-space of 27, 28, 31 and 32 bytes before %PDF-: from 28 on the
+        // header crosses the end of the first block (or starts after it).
+        // 909-912 have rows of voucher 4711; 913-916 have no row and were
+        // encrypted for voucher 4700, which no row has any more (a merge).
+        $plain = [];
+        foreach (['909' => ' ', '910' => "\n", '911' => ' ', '912' => "\n"] as $number => $space) {
+            $length = ['909' => 27, '910' => 28, '911' => 31, '912' => 32][$number];
+            $plain[$number] = rijndael256_zero_pad(str_repeat($space, $length) . "%PDF-1.4\nsynthetic\n%%EOF\n");
+            $this->put("$number.aes", receipt_encrypt('4711', '', $plain[$number]));
+            $plain[$number + 4] = $plain[$number];
+            $this->put(($number + 4) . '.aes', receipt_encrypt('4700', '', $plain[$number]));
+        }
+        pg_query($this->connection, 'DELETE FROM vouchers WHERE voucher_id = 4700');
+
+        list($status, $output) = $this->migrate(['--search-voucher-ids']);
+        self::assertSame(0, $status, $output);
+        $expected = '';
+        foreach (['909', '910', '911', '912'] as $number) {
+            $expected .= "$number.aes: migrated (voucher 4711); $number.aes kept until --delete-legacy\n";
+        }
+        foreach (['913', '914', '915', '916'] as $number) {
+            $expected .= "$number.aes: migrated (voucher 4700, found by --search-voucher-ids; no voucher has this file); "
+                . "$number.aes kept until --delete-legacy\n";
+        }
+        self::assertSame($expected . self::summary([8, 0, 0, 0, 0]), $output);
+        foreach ($plain as $number => $bytes) {
+            self::assertSame($bytes, $this->v2Plain((string) $number));
+            self::assertSame('application/pdf', receipt_content_type($bytes), (string) $number);
+        }
+    }
+
+    public function testTextIsJudgedByTheFirstBlock()
+    {
+        // A whole first block of spaces (or 31 spaces and a letter), ASCII in
+        // the second block and UTF-8 later: text, as only the first block
+        // counts, also though a block of white-space reads 1024 bytes.
+        $this->put('909.aes', receipt_encrypt('4711', '', rijndael256_zero_pad(str_repeat(' ', 32) . str_repeat('x', 32) . "\xC3\xA4")));
+        $this->put('910.aes', receipt_encrypt('4711', '', rijndael256_zero_pad(str_repeat(' ', 31) . str_repeat('x', 33) . "\xC3\xA4")));
+        list($status, $output) = $this->migrate(['--dry-run', '--include-unusual']);
+        self::assertSame(0, $status, $output);
+        self::assertSame("909.aes: would migrate (voucher 4711, unusual: a text document)\n"
+            . "910.aes: would migrate (voucher 4711, unusual: a text document)\n"
+            . self::summary([2, 0, 0, 0, 0], true), $output);
     }
 
     public function testTextOnlyWithTheOwnVoucherIds()

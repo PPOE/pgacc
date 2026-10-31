@@ -227,20 +227,23 @@ function receipt_migration_is_complete($plain)
 
 
 /*
- * What --include-unusual accepts, by the first decrypted block ($head) and
- * the size of the legacy file: a description, or null. A wrong voucher ID
- * decrypts to random bytes, which practically never start like one of these.
+ * What --include-unusual accepts, by the decrypted start ($start: the first
+ * block, or up to 1024 bytes where a PDF header may follow white-space) and
+ * the size of the legacy file: a description, or null. Only a PDF is
+ * recognised beyond the first block ($head). A wrong voucher ID decrypts to
+ * random bytes, which practically never start like one of these.
  * Text (such as an HTML page) is a whole first block of printable ASCII and
  * white-space, zero padding allowed after it: random bytes give that with a
  * chance of about (99/256)^32, below 2^-43 per voucher ID. Only the IDs of
  * the file's own rows are tried for it (not --search-voucher-ids), and the
  * download offers it as <n>.bin, never as a page.
  */
-function receipt_migration_unusual_type($head, $size)
+function receipt_migration_unusual_type($start, $size)
 {
-    if (receipt_content_type($head) === 'application/pdf') {
+    if (receipt_content_type($start) === 'application/pdf') {
         return 'a PDF that looks incomplete or has data after its end';
     }
+    $head = substr($start, 0, 32);
     $types = [
         "\xFF\xD8\xFF" => 'a JPEG that looks incomplete or has data after its end',
         "\x89PNG\r\n\x1A\n" => 'a PNG image',
@@ -294,10 +297,12 @@ function receipt_migration_decrypt($ids, $legacy, $size, $mode)
     $found = null;
     foreach ($ids as $id) {
         $head = receipt_decrypt($id, '', substr($legacy, 0, 32));
-        // White-space only: a PDF header may follow within 1024 bytes.
-        $head = strspn($head, "\0\t\n\f\r ") === 32 ? receipt_decrypt($id, '', substr($legacy, 0, 1024)) : $head;
-        $pdfOrJpeg = in_array(receipt_content_type($head), ['application/pdf', 'image/jpeg'], true);
-        $type = $mode === 'complete' ? null : receipt_migration_unusual_type($head, $size);
+        // White-space, then nothing or the start of "%PDF-" up to the end of
+        // the block: a PDF header may follow within 1024 bytes.
+        $white = strspn($head, "\0\t\n\f\r ");
+        $start = $white >= 28 && str_starts_with('%PDF-', substr($head, $white)) ? receipt_decrypt($id, '', substr($legacy, 0, 1024)) : $head;
+        $pdfOrJpeg = in_array(receipt_content_type($start), ['application/pdf', 'image/jpeg'], true);
+        $type = $mode === 'complete' ? null : receipt_migration_unusual_type($start, $size);
         if (!$pdfOrJpeg && $type === null) {
             continue;
         }

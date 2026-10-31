@@ -38,9 +38,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- The receipt migration also migrates PDFs whose header follows white-space
-  (within the first 1024 bytes); downloads send them as `application/pdf`
-  (the legacy download sent them as `image/jpeg`).
+- PDFs whose header follows white-space (within the first 1024 bytes) count
+  as PDFs: the receipt migration migrates them, and every download of a
+  migrated or newly uploaded receipt (`<n>.v2.aes`) sends them as
+  `application/pdf`, shown in the browser (the legacy download sent them as
+  `image/jpeg`; the download of an already migrated or uploaded one offered
+  them as `<n>.bin`).
 - `--include-unusual` also migrates text receipts (such as an HTML page)
   that decrypt with the file's own voucher ID. They are offered only as a
   download `<n>.bin`, never shown as a page.

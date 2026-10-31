@@ -192,7 +192,10 @@ command line. Do not post migration transcripts publicly.
    first 1024 bytes, as PDF readers accept it) counts as a PDF. The legacy
    download sent such a PDF as `image/jpeg` (it looked only for `%PDF` at
    the start); once migrated, it is sent as `application/pdf`, with the
-   same bytes. Optional, also as a dry run first:
+   same bytes. The same rule applies to every download of a migrated or
+   uploaded receipt: such a PDF, already stored as `<n>.v2.aes` or
+   uploaded later, is now shown as `application/pdf` instead of
+   being offered as `<n>.bin`. Optional, also as a dry run first:
    - `--include-unusual` also migrates files that decrypt to another
      recognized type (PNG, GIF, TIFF), to an empty file, to text (such as an
      HTML page uploaded as a receipt), or to a PDF or JPEG that looks

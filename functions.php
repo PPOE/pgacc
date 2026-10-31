@@ -796,7 +796,10 @@ function receipt_legacy_path($directory, $number)
 
 // PDF, JPEG, PNG and GIF by their magic bytes; anything else is sent as a
 // download. A PDF header may also follow white-space (PDF's, NUL included)
-// within the first 1024 bytes, as PDF readers accept it.
+// within the first 1024 bytes, as PDF readers accept it. ISO 32000 requires
+// %PDF- as the first line, and Acrobat and Poppler accept the header after
+// any bytes; only white-space is accepted here, to keep false positives
+// (a wrong voucher ID in the migration, other file types) rare.
 function receipt_content_type($plain)
 {
     if (preg_match('/^[\0\t\n\f\r ]+%PDF-/', substr($plain, 0, 1024))) {
