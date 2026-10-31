@@ -284,6 +284,13 @@ the end. Red evidence: `try_files $uri` in the catch-all location serves
 without `disable_symlinks` a link in `public/js/` is served; a `\.php$`
 location runs `public/evil.php`.
 
+The same CI job runs `sh tests/deploy-guards.sh` (no Docker, a second): the
+`public/` guards of `deploy/deploy.sh` on a fake `/srv/pgacc` in a temporary
+directory, with `id`, `sudo`, `sleep` and `curl` stubbed (refusing a release
+without `public/`, the smoke test of an already current release, the
+rollback to a release without `public/`). Red evidence: the `deploy.sh`
+before these guards fails 2 of its 5 cases.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets

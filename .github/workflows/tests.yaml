@@ -114,6 +114,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Run the request matrix against nginx and Apache
         run: sh tests/web-server/run.sh
+      - name: Test the public/ guards of deploy/deploy.sh (stubbed, no server)
+        run: sh tests/deploy-guards.sh
 
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness
