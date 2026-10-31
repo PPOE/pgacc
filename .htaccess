@@ -9,3 +9,14 @@ php_value short_open_tag 1
     Deny from all
   </IfModule>
 </FilesMatch>
+# Backup, editor and dump copies (constants.php.bak, index.php~, x.sql,
+# a.tar.gz, ...): without a .php extension they would be served as plain text.
+<FilesMatch "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php.+|^#.*#)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

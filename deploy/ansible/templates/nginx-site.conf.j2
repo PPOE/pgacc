@@ -45,6 +45,15 @@ server {
     location ~ (^|/)\. {
         deny all;
     }
+    # Backup, editor and dump copies anywhere in the tree (UPGRADING.md):
+    # constants.php.bak, index.php~, functions.php.orig, x.sql, a.tar.gz,
+    # #file# and the like. Such a copy has no .php extension, so it would be
+    # served as plain text. No file the application serves matches: its URLs
+    # end in .php, .css, .js, .png or .html, or are the short page addresses
+    # below. Before the static-file and PHP locations, so it wins.
+    location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+        deny all;
+    }
 
     # Short page addresses the application links to (/donations,
     # /vreport?konto=...): index.php?action=<name>, the query string appended.

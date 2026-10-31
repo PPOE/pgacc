@@ -9,6 +9,41 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Web server: deny backup and editor copies
+
+The deny rules below (`files/`, `vendor/`, `constants.php`, ...) match exact
+names. A copy made by hand or by an editor next to a protected file, such as
+`constants.php.bak`, `constants.php~`, `index.php.save`, `functions.php.orig`,
+or a database dump or archive (`*.sql`, `*.tar.gz`), is not on that list; it
+has no `.php` extension, so the web server sends it as plain text,
+credentials included. Deny these names anywhere in the tree: names ending in
+`~`, `.bak`, `.old`, `.orig`, `.save`, `.swp`, `.swo`, `.tmp`, `.deleteme`,
+`.dist`, `_backup`, `.sql`, `.tar`, `.tgz`, `.zip`, `.gz` (also `.sql.gz`,
+`.tar.gz`), `.7z`, `.rar`, any name with something after `.php`
+(`constants.php.bak`, `index.php~`, `config.php_backup`), and Emacs
+auto-save files (`#name#`). No file pgacc serves matches. Better still, never
+keep such copies in the served directory.
+
+nginx (the site of `deploy/ansible/playbook.yml` has this rule; put it before
+the locations for static files and `.php`, so it wins):
+
+```
+location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+    deny all;
+}
+```
+
+Lighttpd:
+
+```
+$HTTP["url"] =~ "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+  url.access-deny = ( "" )
+}
+```
+
+Apache: the shipped top-level `.htaccess` has the same rule (`FilesMatch`,
+needs `AllowOverride` as before).
+
 ## Web server: long-term caching of `style.css` and `js/`
 
 From 2.2.0 (see [CHANGELOG.md](CHANGELOG.md), "2.2.0"), the pages
