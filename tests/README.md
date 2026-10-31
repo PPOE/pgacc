@@ -126,7 +126,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   Also the listing and account-report filters, a numeric virtual account for
   visitors, an organization balance in the report, an unknown action and the
   removed `?action=transfer` (both the report), array filter values (CSV
-  listing), the https redirect and `?year=2024-1` (the current year).
+  listing), the https redirect and `?year=2024-1` (the current year). Every
+  stylesheet and script URL ends with `?v=<PGACC_VERSION>`.
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line

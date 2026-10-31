@@ -4,6 +4,18 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
+## Web server: long-term caching of `style.css` and `js/`
+
+With the changes under "Unreleased" in [CHANGELOG.md](CHANGELOG.md), the pages
+link the stylesheet and the scripts with the release version in the URL
+(`style.css?v=<version>`, `js/vreport-chart.js?v=<version>`). Each upgrade
+changes these URLs, so browsers load the new files instead of a cached copy.
+The web server can therefore let browsers cache `style.css` and `/js/`
+long-term (for example `Cache-Control: public, max-age=31536000, immutable`).
+Only a release changes the version: a deploy of unreleased code with changed
+files is not picked up by such a cache. The icons (`/icons/`) keep URLs
+without a version; do not cache them long-term.
+
 ## Browsers
 
 From 2.1.0 (the Tailwind CSS stylesheet, see

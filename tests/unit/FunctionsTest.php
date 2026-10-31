@@ -297,6 +297,14 @@ final class FunctionsTest extends FunctionsTestCase
         self::assertStringContainsString('<title>' . $title . '</title>', $html);
     }
 
+    public function testAccHeaderLinksTheStylesheetWithTheReleaseVersion()
+    {
+        ob_start();
+        acc_header(null, 'index', 2024);
+        $html = ob_get_clean();
+        self::assertStringContainsString('<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=' . PGACC_VERSION . '" />', $html);
+    }
+
     public static function headerPageProvider()
     {
         return [

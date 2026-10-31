@@ -5,6 +5,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The stylesheet and script URLs carry the release version
+  (`style.css?v=<version>`), so browsers load the new files after an upgrade
+  instead of a cached copy. The web server can cache `style.css` and `js/`
+  long-term ([UPGRADING.md](UPGRADING.md)).
+
 ## [2.1.0] - 2026-10-26
 
 Security and data-integrity release: receipts, voucher saves and passwords.

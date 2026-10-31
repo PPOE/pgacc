@@ -205,7 +205,7 @@ function acc_header($dbconn, $page = "index", $year = 2015)
     }
     echo '
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=' . PGACC_VERSION . '" />
 </head>
 <body>
 <div id="content">

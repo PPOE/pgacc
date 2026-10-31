@@ -7,8 +7,8 @@ function v_graph($konto, $date_begin, $date_end)
         return;
     }
 
-    echo '<script src="js/chart.umd.min.js"></script>' . "\n";
-    echo '<script src="js/vreport-chart.js"></script>' . "\n";
+    echo '<script src="js/chart.umd.min.js?v=' . PGACC_VERSION . '"></script>' . "\n";
+    echo '<script src="js/vreport-chart.js?v=' . PGACC_VERSION . '"></script>' . "\n";
 
     $cond = " AND vaccount LIKE '$konto%' ";
     if (str_contains($konto, ",")) {
