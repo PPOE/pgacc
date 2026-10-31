@@ -48,6 +48,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   that decrypt with the file's own voucher ID. They are offered only as a
   download `<n>.bin`, never shown as a page.
 - The migration names receipt files that no voucher row references.
+  `--search-voucher-ids --include-unusual` also migrates such a file (or
+  one that its rows' voucher IDs do not decrypt) if another voucher ID
+  decrypts it to an empty file: exactly 32 bytes that decrypt to exactly 32
+  zero bytes, as the old code stored an empty upload. The whole block must
+  match (a wrong ID: chance 2^-256), so this is safe for the search; it
+  accepts no other unusual type.
 
 ### Documentation
 

@@ -208,11 +208,17 @@ command line. Do not post migration transcripts publicly.
      attachment`, `X-Content-Type-Options: nosniff`), so a migrated HTML
      page is never shown as a page of the application. Text is accepted
      only with the voucher IDs of the file's own rows, never by
-     `--search-voucher-ids`.
+     `--search-voucher-ids`; with it, an empty file is the only unusual
+     type also found with another voucher ID (see below).
    - `--search-voucher-ids` tries the other voucher IDs for files that no
      voucher ID of their rows decrypts (after a voucher merge) and migrates
-     a file only if one decrypts it to a complete PDF or JPEG; the line
-     names the voucher ID found. (Such a receipt downloaded as unreadable
+     a file only if one decrypts it to a complete PDF or JPEG or, with
+     `--include-unusual`, to an empty file: a file of exactly 32 bytes that
+     decrypts to exactly 32 zero bytes (how the old code stored an empty
+     upload). The whole block must match, which a wrong voucher ID does with
+     a chance of 2^-256, a stronger check than a complete PDF or JPEG; text,
+     PNG, GIF, TIFF and incomplete PDFs or JPEGs are never accepted by the
+     search. The line names the voucher ID found. (Such a receipt downloaded as unreadable
      bytes before; afterwards it is the original receipt.) It costs one
      single-block decryption per file and candidate ID (up to 1024 bytes
      when the first block is white-space; all voucher IDs up

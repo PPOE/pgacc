@@ -745,6 +745,46 @@ final class ReceiptMigrationTest extends ReceiptMigrationTestCase
         self::assertSame(['.migrate-receipt-key.lock', '903.v2.aes', '905.v2.aes', '913.v2.aes', '914.aes'], array_keys($this->files()));
     }
 
+    public function testSearchVoucherIdsEmptyFile()
+    {
+        // 905 (no row) is an empty upload of voucher 4700, which no row has
+        // any more: one block that decrypts to exactly 32 zero bytes. 913 (no
+        // row) is 32 random bytes, which no voucher ID decrypts to zeros; 914
+        // (no row) decrypts with 4700 to 64 zero bytes, which is no empty
+        // file (an empty upload is one block).
+        $empty = str_repeat("\0", 32);
+        $this->put('905.aes', receipt_encrypt('4700', '', $empty));
+        $this->put('913.aes', hash('sha256', 'synthetic random bytes', true));
+        $this->put('914.aes', receipt_encrypt('4700', '', str_repeat("\0", 64)));
+        pg_query($this->connection, 'DELETE FROM vouchers WHERE voucher_id = 4700');
+        $none = 'skipped, legacy kept: no voucher row references this file, and no voucher ID decrypts it to a complete PDF or JPEG';
+
+        list($status, $output) = $this->migrate(['--dry-run', '--search-voucher-ids']);
+        self::assertSame(3, $status);
+        self::assertSame('905.aes: skipped, legacy kept: no voucher row references this file, and voucher 4700 '
+            . "(found by --search-voucher-ids) decrypts it to an empty file (--include-unusual migrates it)\n"
+            . "913.aes: $none\n"
+            . "914.aes: $none\n"
+            . "Skipped, legacy kept: 905, 913, 914\n"
+            . self::summary([0, 0, 0, 3, 0], true), $output);
+
+        list($status, $output) = $this->migrate(['--search-voucher-ids', '--include-unusual']);
+        self::assertSame(3, $status);
+        self::assertSame('905.aes: migrated (voucher 4700, found by --search-voucher-ids, unusual: an empty file; '
+            . "no voucher has this file); 905.aes kept until --delete-legacy\n"
+            . "913.aes: $none\n"
+            . "914.aes: $none\n"
+            . "Skipped, legacy kept: 913, 914\n"
+            . self::summary([1, 0, 0, 2, 0]), $output);
+        self::assertSame($empty, $this->v2Plain('905'));
+
+        list($status, $output) = $this->migrate(['--delete-legacy', '--search-voucher-ids', '--include-unusual']);
+        self::assertSame(3, $status);
+        self::assertStringContainsString("\n905.aes: verified; deleted 905.aes\n", $output);
+        self::assertStringEndsWith("Skipped, legacy kept: 913, 914\n" . self::summary([0, 0, 1, 2, 0]), $output);
+        self::assertSame(['.migrate-receipt-key.lock', '905.v2.aes', '913.aes', '914.aes'], array_keys($this->files()));
+    }
+
     public function testSearchVoucherIdsDatabaseFailure()
     {
         $this->put('903.aes', $this->legacyPdf());

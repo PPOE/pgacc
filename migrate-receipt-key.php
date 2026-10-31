@@ -46,7 +46,8 @@ if (PHP_SAPI !== 'cli') {
  *   --include-unusual
  *                    also migrate files that the voucher ID decrypts to
  *                    another recognized type (PNG, GIF, TIFF), to an empty
- *                    file, to text (such as an HTML page; only with the
+ *                    file (with --search-voucher-ids also with another
+ *                    voucher ID), to text (such as an HTML page; only with the
  *                    voucher IDs of the file's rows), or to a PDF or JPEG
  *                    that looks incomplete or has data after its end; the
  *                    download sends the same bytes (PNG and GIF as image/png
@@ -57,7 +58,10 @@ if (PHP_SAPI !== 'cli') {
  *                    merged voucher), try every other voucher ID of the
  *                    vouchers table and the unused ones up to the highest
  *                    voucher number; only a complete PDF or JPEG is accepted
- *                    (never text).
+ *                    and, with --include-unusual, an empty file (a 32-byte
+ *                    file that decrypts to exactly 32 zero bytes, which a
+ *                    wrong ID gives with a chance of 2^-256); never text or
+ *                    another unusual type.
  *                    One single-block decryption per file and candidate ID
  *                    (up to 1024 bytes when the first block is white-space);
  *                    IDs found are tried first for the next file
@@ -289,7 +293,11 @@ function receipt_migration_search_ids($connection)
  * complete PDF or JPEG: array(voucher ID, padded plain text, ''). The first
  * block is probed per ID (CBC: it decrypts on its own; up to 1024 bytes when
  * the first block is white-space); only a PDF or JPEG
- * head needs the whole file. $mode 'complete' accepts nothing else; 'report'
+ * head needs the whole file. $mode 'complete' (the search) accepts nothing
+ * else but an empty file: a file of one block that decrypts to exactly 32
+ * zero bytes, array(voucher ID, plain text, 'an empty file') (a wrong ID
+ * gives that with a chance of 2^-256, below that of a complete PDF or
+ * JPEG). 'report'
  * also returns an ID whose first block shows what --include-unusual accepts
  * as array(voucher ID, null, description), without decrypting the rest;
  * 'accept' does the same with the whole plain text. Otherwise null.
@@ -299,6 +307,9 @@ function receipt_migration_decrypt($ids, $legacy, $size, $mode)
     $found = null;
     foreach ($ids as $id) {
         $head = receipt_decrypt($id, '', substr($legacy, 0, 32));
+        if ($mode === 'complete' && $size === 32 && $head === str_repeat("\0", 32)) {
+            return [$id, $head, 'an empty file'];
+        }
         // White-space, then nothing or the start of "%PDF-" up to the end of
         // the block: a PDF header may follow within 1024 bytes.
         $white = strspn($head, "\0\t\n\f\r ");
@@ -323,7 +334,8 @@ function receipt_migration_decrypt($ids, $legacy, $size, $mode)
  * Decrypts a legacy receipt: array('ok', voucher ID, padded plain text,
  * note) with a voucher that references the file and decrypts it to a
  * complete PDF or JPEG (or, with --include-unusual, to an unusual type, or
- * with --search-voucher-ids, with another voucher ID to a complete one);
+ * with --search-voucher-ids, with another voucher ID to a complete one or,
+ * with both options, to an empty file);
  * otherwise array(status, message). $search: the run's voucher IDs for the
  * search (fetched once, when first needed) and the IDs it found, which are
  * tried first (the files of a merged voucher share its old ID).
@@ -370,9 +382,13 @@ function receipt_migration_legacy($connection, $options, $number, &$search)
     if ($found === null) {
         return ['skipped', $message . ($ids === [] ? ', and no voucher ID decrypts it to a complete PDF or JPEG' : ', and no other voucher ID does')];
     }
+    if ($found[2] !== '' && !$options['include-unusual']) {
+        return ['skipped', "$message, and voucher {$found[0]} (found by --search-voucher-ids) decrypts it to {$found[2]} (--include-unusual migrates it)"];
+    }
     $search['found'] = array_unique(array_merge([$found[0]], $search['found']));
     $rows = $ids === [] ? 'no voucher has this file' : 'its rows have voucher ' . implode(', ', $ids);
-    return ['ok', $found[0], $found[1], ", found by --search-voucher-ids; $rows"];
+    $unusual = $found[2] === '' ? '' : ", unusual: {$found[2]}";
+    return ['ok', $found[0], $found[1], ", found by --search-voucher-ids$unusual; $rows"];
 }
 
 /*
