@@ -107,23 +107,37 @@ $HTTP["url"] !~ "^/(|index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9._-]+\.js|ico
 Plus the backup-copy rule of the next section; the former deny rule for
 `files`, `vendor`, `tests`, `src`, `constants.php`, ... is no longer needed.
 
-Apache (`public/.htaccess` needs `AllowOverride All`, or at least `Options
-AuthConfig Limit`, for `php_value` and the backup-copy rule; `src/.htaccess`
-is gone). The top-level `.htaccess` now denies every request: with the
-document root `public/` it is never read; it is a safety net for a host
-whose document root is still the release root, which then answers 403
-instead of serving the code:
+Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
+`index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
+page addresses, which it rewrites itself; dot files and symbolic links 403,
+anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
+short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it
+every request answers 500) and `AllowOverride All`. The rewrite rule for the
+short page addresses in the virtual host is no longer needed (it does no
+harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
+request: with the document root `public/` it is never read; it is a safety
+net for a host whose document root is still the release root, which then
+answers 403 instead of serving the code. Tested with Apache 2.4 and PHP as an
+Apache module (`tests/web-server/run.sh apache`, which runs this virtual
+host):
 
+<!-- tested: apache vhost -->
 ```
 DocumentRoot /srv/pgacc/current/public
 <Directory /srv/pgacc/current/public>
-  Options -Indexes
+  Options -Indexes +SymLinksIfOwnerMatch
   AllowOverride All
   Require all granted
 </Directory>
-RewriteEngine On
-RewriteRule ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ /index.php?action=$1 [QSA,PT]
 ```
+
+Debian's Apache maps `/icons/` to its own icons (`Alias /icons/` in
+`/etc/apache2/mods-available/alias.conf`); comment that line out, or
+pgacc's icons answer 404 (as they did before this release).
+
+Symbolic links: `public/.htaccess` refuses a link as the requested file;
+Apache still follows a linked directory below `public/` if its owner matches
+(`SymLinksIfOwnerMatch`, which mod_rewrite needs). pgacc ships none.
 
 ## Web server: deny backup and editor copies
 

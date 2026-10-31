@@ -21,8 +21,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `current/public` with an allow list (`/`, the two entry points, the static
   files, the short page addresses; anything else 404); run the playbook of
   the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
-  release without `public/`. Apache: the rules of `.htaccess` moved to
-  `public/.htaccess`, `src/.htaccess` removed; the top-level `.htaccess` now
+  release without `public/`. Apache: `public/.htaccess` has the same allow list
+  (mod_rewrite, which is now required, and `AllowOverride All`; it also
+  rewrites the short page addresses and turns off `PATH_INFO`) and the rules
+  of the former `.htaccess`; on Debian, comment out Apache's `Alias /icons/`.
+  `src/.htaccess` removed; the top-level `.htaccess` now
   denies every request (a safety net if the document root is still the
   release root). Other web servers: set the document root as
   described in UPGRADING.md.
