@@ -142,14 +142,16 @@ build_archive() {
   fi
   # The release root's .htaccess denies everything: the safety net for an
   # Apache host whose document root is still the release root.
-  if ! grep -qx '  Require all denied' "$stage/.htaccess" 2>/dev/null; then
+  if ! grep -Eq '^[[:space:]]*Require[[:space:]]+all[[:space:]]+denied[[:space:]]*$' "$stage/.htaccess" 2>/dev/null; then
     echo "The archive has no release-root .htaccess that denies every request" >&2
     exit 1
   fi
   # The document root public/ (UPGRADING.md) holds only the entry points and
-  # the static files.
-  unexpected=$(cd "$stage/public" && find . ! -path . ! -path ./.htaccess ! -path ./index.php ! -path ./mbapi.php \
-    ! -path ./style.css ! -path ./js ! -path './js/*' ! -path ./icons ! -path './icons/*' -print)
+  # the static files (js/*.js, icons/*.png and their readme files; no
+  # subdirectories).
+  unexpected=$(cd "$stage/public" && find . ! -path . \( -type d -printf '%p/\n' -o -type f -print -o -printf '%p (not a file)\n' \) |
+    grep -Ev '^\./(\.htaccess|index\.php|mbapi\.php|style\.css|js/|icons/|js/[^/]+\.js|js/README\.md|icons/[^/]+\.png|icons/readme\.(html|txt))$' |
+    tr '\n' ' ' || true)
   if [ ! -f "$stage/public/index.php" ] || [ ! -f "$stage/public/mbapi.php" ] || [ -n "$unexpected" ]; then
     echo "public/ must hold index.php, mbapi.php and the static files only: ${unexpected:-index.php or mbapi.php missing}" >&2
     exit 1
