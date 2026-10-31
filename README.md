@@ -26,7 +26,8 @@ Core concepts:
 - PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`;
   new passwords bcrypt, older MD5-crypt hashes still accepted).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
-- A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
+- A web server with PHP: nginx with PHP-FPM (the tested setup of
+  `deploy/ansible`) or Apache.
 - Browsers: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+ (the stylesheet
   uses Tailwind CSS v4 features such as cascade layers; older browsers show
   the pages unstyled).
@@ -71,7 +72,7 @@ Provisioning a Debian 13 host and deploying releases with scripts:
    entry points (`index.php`, `mbapi.php`) and the static files (`style.css`,
    `js/`, `icons/`). The code, `vendor/`, `constants.php` and `files/` stay in
    the repository root, outside the document root; the entry points load them
-   from there. Web server examples (nginx, Lighttpd, Apache, the short page
+   from there. Web server examples (nginx, Apache, the short page
    addresses): [UPGRADING.md](UPGRADING.md), "Document root `public/`".
    `index.php` redirects unless the
    request carries `X-Forwarded-Proto: https`, so it expects a TLS-terminating

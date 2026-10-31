@@ -27,15 +27,18 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `current/public` with an allow list (`/`, the two entry points, the static
   files, the short page addresses; anything else 404); run the playbook of
   the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
-  release without `public/`, and a failed smoke test does not roll back to
-  one. Apache: `public/.htaccess` has the same allow list
+  release without `public/`; if the smoke test of the new release fails, it
+  rolls back to a previous release without `public/` only if that
+  release's login page still answers (the web server still serves the
+  release root); otherwise the new release stays current. Apache: `public/.htaccess` has the same allow list
   (mod_rewrite, which is now required, and `AllowOverride All`; it also
   rewrites the short page addresses and turns off `PATH_INFO`) and the rules
   of the former `.htaccess`; on Debian, comment out Apache's `Alias /icons/`.
   `src/.htaccess` removed; the top-level `.htaccess` now
   denies every request (a safety net if the document root is still the
-  release root). Other web servers: set the document root as
-  described in UPGRADING.md.
+  release root). The Lighttpd examples are removed from UPGRADING.md
+  and README.md (untested, no longer used); other web servers need the same
+  document root, allow list and deny rules as the nginx site template.
 
 ### Security
 

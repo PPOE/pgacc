@@ -120,25 +120,11 @@ location / {
 }
 ```
 
-Lighttpd (the rewrite of "Web server: short page addresses" below stays; the
-allow list also names the short addresses):
-
-```
-server.document-root = "/srv/pgacc/current/public"
-dir-listing.activate = "disable"
-server.follow-symlink = "disable"
-$HTTP["url"] !~ "^/(|index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9_-][A-Za-z0-9._-]*\.js|icons/[A-Za-z0-9_-][A-Za-z0-9._-]*\.png|vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" {
-  url.access-deny = ( "" )
-}
-```
-
-Untested. Paths outside the allow list answer 403, not 404 as with nginx
-and Apache. File names below `js/` and `icons/` may not start with a dot.
-Lighttpd follows symbolic links by default; `server.follow-symlink =
-"disable"` refuses them.
-
-Plus the backup-copy rule of the next section; the former deny rule for
-`files`, `vendor`, `tests`, `src`, `constants.php`, ... is no longer needed.
+Other web servers (pgacc ships and tests no configuration for them): set
+the document root to `public/` and implement the same allow list, deny rules,
+short page addresses and refusal of symbolic links below `public/` as the
+nginx site template (`deploy/ansible/templates/nginx-site.conf.j2`); then
+check the paths of step 3 above.
 
 Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
 `index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
@@ -151,9 +137,14 @@ every request answers 500) and `AllowOverride All`. With PHP-FPM
 the pool (`php_admin_flag[short_open_tag] = on`) or in `php.ini`. The
 rewrite rule for the short page addresses in the virtual host is no longer
 needed (it does no harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
-request: with the document root `public/` it is never read; it is a safety
-net for a host whose document root is still the release root, which then
-answers 403 instead of serving the code. Tested with Apache 2.4 and PHP as an
+request. With the document root `public/` it is never read, but only if
+the virtual host's former `<Directory /srv/pgacc/current>` block with
+`AllowOverride` is replaced by the `<Directory /srv/pgacc/current/public>`
+block below: while a `<Directory>` block for the release root still allows
+overrides, Apache merges the release root's `.htaccess` into every request
+below it, and the whole site answers 403. It is a safety net for a host
+whose document root is still the release root, which then answers 403
+instead of serving the code. Tested with Apache 2.4 and PHP as an
 Apache module (`tests/web-server/run.sh apache`, which runs this virtual
 host):
 
@@ -199,17 +190,9 @@ location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|g
 }
 ```
 
-Lighttpd:
-
-```
-$HTTP["url"] =~ "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
-  url.access-deny = ( "" )
-}
-```
-
 Apache: the shipped `.htaccess` has the same rule (`FilesMatch`, needs
 `AllowOverride` as before); with the document root `public/` (below) it is
-`public/.htaccess`.
+`public/.htaccess`. Other web servers need the same rule as the nginx one.
 
 With the document root `public/` (below) these rules are a second line of
 defence: only `public/` is served, so a copy in the release root cannot be
@@ -241,8 +224,8 @@ From 2.1.0 the archive has a `src/` directory with library
 files (first `src/db.php`, the database helpers). Deny web access to `/src/`
 like `/vendor/` and `/tests/`. On Apache the `src/.htaccess` shipped up to
 the document root `public/` did this (with that layout `src/` is outside the
-document root and the file is gone); on Lighttpd
-add `src` to the directory list of the rule below. A request would print
+document root and the file is gone); other web servers deny it like
+`/vendor/`. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
@@ -252,16 +235,9 @@ The pages link to `/donations`, `/kdonations`, `/spendings`, `/wk`,
 `/transactions`, `/vreport` and `/tinyreport` (with an optional query string,
 e.g. `/donations?year=2024`). The web server has to rewrite them to
 `index.php?action=<name>`, keeping the query string; this was always needed
-but only lived in the server configuration. Lighttpd:
-
-```
-url.rewrite-once = (
-  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" => "index.php?action=$1",
-  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)\?(.*)$" => "index.php?action=$1&$2"
-)
-```
-
-The nginx site of `deploy/ansible/playbook.yml` has the same rule.
+but only lived in the server configuration. The nginx site of
+`deploy/ansible/playbook.yml` and `public/.htaccess` (Apache) have this
+rewrite; other web servers need the same.
 
 ## Passwords: bcrypt and 12 characters
 
@@ -350,15 +326,7 @@ PHP 5.3 and PostgreSQL 8.4.
    `composer.json`/`composer.lock`, and to disable directory listings.
    `migrate-receipt-key.php` and `check.php` run only on the command line
    and answer 404 over HTTP; on Apache, `.htaccess` denies only these two.
-   Lighttpd
-   (adjust the prefix if pgacc is not at the document root):
-
-   ```
-   $HTTP["url"] =~ "^/(files|vendor|tests|src)(/|$)|^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$" {
-     url.access-deny = ( "" )
-   }
-   dir-listing.activate = "disable"
-   ```
+   Other web servers: the same deny rules as the nginx site template.
 
 6. Tell users that everyone has to log in again: the deploy logs every user
    out once (old cookies are numbers, no longer valid session tokens).
