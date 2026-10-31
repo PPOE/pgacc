@@ -185,20 +185,43 @@ command line. Do not post migration transcripts publicly.
    file as "would migrate" or "skipped, legacy kept" with the reason; the
    last line shows the fingerprint of the key the script read.
 4. Review the skipped files listed at the end ("Skipped, legacy kept: ...").
-   They keep working as legacy files. Optional, also as a dry run first:
+   They keep working as legacy files. A file that no voucher row references
+   is listed as such ("no voucher row references this file"); there is
+   nothing to migrate for it. A PDF whose header follows white-space
+   (spaces, tabs, line breaks, form feeds or NUL bytes, header within the
+   first 1024 bytes, as PDF readers accept it) counts as a PDF. The legacy
+   download sent such a PDF as `image/jpeg` (it looked only for `%PDF` at
+   the start); once migrated, it is sent as `application/pdf`, with the
+   same bytes. The same rule applies to every download of a migrated or
+   uploaded receipt: such a PDF, already stored as `<n>.v2.aes` or
+   uploaded later, is now shown as `application/pdf` instead of
+   being offered as `<n>.bin`. Optional, also as a dry run first:
    - `--include-unusual` also migrates files that decrypt to another
-     recognized type (PNG, GIF, TIFF), to an empty file, or to a PDF or JPEG
-     that looks incomplete or has data after its end. The download sends
-     the same bytes as before; PDFs and JPEGs also keep their type, but the
-     legacy download sent everything else as `image/jpeg`: a migrated PNG or
-     GIF is shown as `image/png` or `image/gif`, a TIFF, an empty file and
-     other types are offered as a download `<n>.bin`.
+     recognized type (PNG, GIF, TIFF), to an empty file, to text (such as an
+     HTML page uploaded as a receipt), or to a PDF or JPEG that looks
+     incomplete or has data after its end (also more than one block of NUL
+     bytes after `%%EOF`). The download sends the same bytes as before; PDFs
+     and JPEGs also keep their type, but the legacy download sent everything
+     else as `image/jpeg`: a migrated PNG or GIF is shown as `image/png` or
+     `image/gif`, a TIFF, an empty file, text and other types are offered as
+     a download `<n>.bin` (`application/octet-stream`, `Content-Disposition:
+     attachment`, `X-Content-Type-Options: nosniff`), so a migrated HTML
+     page is never shown as a page of the application. Text is accepted
+     only with the voucher IDs of the file's own rows, never by
+     `--search-voucher-ids`; with it, an empty file is the only unusual
+     type also found with another voucher ID (see below).
    - `--search-voucher-ids` tries the other voucher IDs for files that no
      voucher ID of their rows decrypts (after a voucher merge) and migrates
-     a file only if one decrypts it to a complete PDF or JPEG; the line
-     names the voucher ID found. (Such a receipt downloaded as unreadable
+     a file only if one decrypts it to a complete PDF or JPEG or, with
+     `--include-unusual`, to an empty file: a file of exactly 32 bytes that
+     decrypts to exactly 32 zero bytes (how the old code stored an empty
+     upload). The whole block must match, which a wrong voucher ID does with
+     a chance of 2^-256, a stronger check than a complete PDF or JPEG; text,
+     PNG, GIF, TIFF and incomplete PDFs or JPEGs are never accepted by the
+     search. The line names the voucher ID found. (Such a receipt downloaded as unreadable
      bytes before; afterwards it is the original receipt.) It costs one
-     single-block decryption per file and candidate ID (all voucher IDs up
+     single-block decryption per file and candidate ID (up to 1024 bytes
+     when the first block is white-space; all voucher IDs up
      to the highest one; roughly 0.15 ms each, so 20,000 IDs take about 3 s
      per file); IDs found for one file are tried first for the next. Run it
      after the normal migration, when only the skipped files are left.

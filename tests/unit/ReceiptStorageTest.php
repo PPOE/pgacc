@@ -210,6 +210,15 @@ final class ReceiptStorageTest extends FunctionsTestCase
         self::assertSame('image/png', receipt_content_type("\x89PNG\r\n\x1A\n\0\0\0\rIHDR"));
         self::assertSame('image/gif', receipt_content_type('GIF87a'));
         self::assertSame('image/gif', receipt_content_type("GIF89a\x01\0"));
+        // Whitespace (PDF white-space, NUL included) before a PDF header that
+        // starts within the first 1024 bytes, as PDF readers accept it.
+        self::assertSame('application/pdf', receipt_content_type("\n%PDF-1.4\n"));
+        self::assertSame('application/pdf', receipt_content_type(' %PDF-1.'));
+        self::assertSame('application/pdf', receipt_content_type("\0\t\n\f\r %PDF-"));
+        self::assertSame('application/pdf', receipt_content_type(str_repeat(' ', 1019) . '%PDF-1.4'));
+        foreach ([str_repeat(' ', 1020) . '%PDF-1.4', "\n%PDF\n", "x\n%PDF-1.4", "\v%PDF-1.4", "<!DOCTYPE html>\n"] as $plain) {
+            self::assertSame('application/octet-stream', receipt_content_type($plain), bin2hex($plain));
+        }
         foreach (['%PD', "\xFF\xD8", "\xFF\xD8\xFE", ' %PDF', "\x89PNG\r\n", "\x89PNG\r\n\x1A", 'GIF88a', 'GIF8', "II*\0", '', str_repeat("\0", 32)] as $plain) {
             self::assertSame('application/octet-stream', receipt_content_type($plain), bin2hex($plain));
             self::assertFalse(receipt_has_known_type($plain), bin2hex($plain));
@@ -288,7 +297,7 @@ final class ReceiptStorageTest extends FunctionsTestCase
         file_put_contents($path, $file);
         $receipt = receipt_v2_open_with($vector['key'], $vector['number'], $path);
         self::assertSame(strlen($plain), $receipt['length']);
-        self::assertSame((string) substr($plain, 0, 16), $receipt['head']);
+        self::assertSame((string) substr($plain, 0, 1024), $receipt['head']);
         ob_start();
         receipt_v2_send($receipt);
         self::assertTrue(ob_get_clean() === $plain);
@@ -506,6 +515,28 @@ final class ReceiptStorageTest extends FunctionsTestCase
         $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
         self::assertSame([15, str_repeat('a', 15)], [$receipt['length'], $receipt['head']]);
         fclose($receipt['handle']);
+    }
+
+    public function testHeadIsTheFirst1024Bytes()
+    {
+        // The type is sniffed from up to 1024 bytes: a PDF header after
+        // whitespace is found there.
+        $plain = str_repeat("\n", 1000) . "%PDF-1.4\n" . str_repeat('x', 2000);
+        $path = $this->directory . '/42.v2.aes';
+        file_put_contents($path, receipt_v2_encrypt(self::TEST_KEY, '42', $plain));
+        $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+        self::assertSame([3009, substr($plain, 0, 1024)], [$receipt['length'], $receipt['head']]);
+        self::assertSame('application/pdf', receipt_content_type($receipt['head']));
+        fclose($receipt['handle']);
+        // %PDF- ending at byte 1024 is found; one byte later it is not.
+        foreach ([1019 => 'application/pdf', 1020 => 'application/octet-stream'] as $white => $type) {
+            $plain = str_repeat(' ', $white) . "%PDF-1.4\n" . str_repeat('x', 2000);
+            file_put_contents($path, receipt_v2_encrypt(self::TEST_KEY, '42', $plain));
+            $receipt = receipt_v2_open_with(self::TEST_KEY, '42', $path);
+            self::assertSame(substr($plain, 0, 1024), $receipt['head']);
+            self::assertSame($type, receipt_content_type($receipt['head']), (string) $white);
+            fclose($receipt['handle']);
+        }
     }
 
     public function testWriteFileReplacesTheTargetWithoutLeavingATemporaryFile()

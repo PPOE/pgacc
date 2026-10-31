@@ -773,6 +773,15 @@ $storedCases = [
         $png, 'image/png', 'v2 PNG receipt'],
     [9129, 4711, 990023, ['v2.aes' => receipt_v2_encrypt($testKey, 990023, "II*\0synthetic")],
         "II*\0synthetic", 'application/octet-stream', 'v2 receipt of another type'],
+    // A PDF after whitespace is sent as a PDF from <n>.v2.aes; the legacy
+    // download sends it as JPEG, as before. Text such as an HTML page is
+    // only offered as a download, never rendered.
+    [9135, 4711, 990024, ['v2.aes' => receipt_v2_encrypt($testKey, 990024, "\n" . $pdf)],
+        "\n" . $pdf, 'application/pdf', 'v2 PDF after a newline'],
+    [9136, 4711, 990025, ['aes' => receipt_encrypt('4711', '', "\n" . $pdf)],
+        rijndael256_zero_pad("\n" . $pdf), 'image/jpeg', 'legacy PDF after a newline'],
+    [9137, 4711, 990026, ['v2.aes' => receipt_v2_encrypt($testKey, 990026, "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n")],
+        "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n", 'application/octet-stream', 'v2 HTML receipt'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
     // before, and logged.
