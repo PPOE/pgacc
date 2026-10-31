@@ -27,6 +27,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   addresses (`/donations`, `/vreport?konto=...` and others) to
   `index.php?action=<name>`, which the web server needs and which was only
   part of the server configuration until now.
+- [deploy/README.md](deploy/README.md) describes moving an existing
+  installation: the order of the steps, restoring a dump from PostgreSQL
+  before 13 (8.4 included) into PostgreSQL 18, checks after the restore, a
+  cutover checklist with rollback, the network requirements of the
+  membership system, and that the receipts and `constants.php` need a
+  backup from outside the host.
 
 ## [2.1.0] - 2026-10-26
 

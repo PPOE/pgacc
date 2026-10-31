@@ -28,7 +28,9 @@ connection (SSH to the Proxmox host, then `pct exec`), which needs:
   password (the plugin cannot answer a sudo prompt; `--ask-become-pass` only
   applies inside the container), e.g. in `/etc/sudoers.d/`:
   `<user> ALL=(root) NOPASSWD: /usr/sbin/pct exec <container ID> -- *`
-  (check it with `visudo -cf` before installing it);
+  (check it with `visudo -cf` before installing it). This rule effectively
+  grants root in that container to the user: for a production container add
+  it only for the provisioning run and remove it afterwards;
 - `ansible_become: false`, as `pct exec` already runs as root in the
   container, which may not have sudo before the first run;
 - an `ansible_host`/`ansible_port` that paramiko reaches directly: it does not
@@ -68,35 +70,115 @@ TLS ends at the reverse proxy, which must send `X-Forwarded-Proto: https`
 
 ### Backups
 
-The local dumps only make restoring the database quick. The real backup is a
-snapshot of the whole host or container, taken from outside. It must cover
-`/srv/pgacc/shared/constants.php` and `/srv/pgacc/shared/files/` (and
+The nightly dumps cover **only the database**, and only make restoring it
+quick. Nothing the playbook sets up backs up the receipts in
+`/srv/pgacc/shared/files/` or the key in `/srv/pgacc/shared/constants.php`.
+The real backup is a snapshot of the whole host or container, taken from
+outside; it must cover `shared/files/`, `shared/constants.php` (and
 `/var/backups/pgacc`). Keep a copy of `constants.php` off the host as well:
 without its `$key` the stored receipts cannot be decrypted.
 
 ### Moving an existing installation
 
-After the first playbook run (without `pgacc_fresh_install`) and before the
-first deploy, replace `shared/constants.php` with the existing one (owner
-`root`, group `pgacc`, mode 0640) and copy the receipts into `shared/files/`
-(owner `pgacc`). Create the role and database and restore the dump:
+The deploy script's smoke test fetches the login page, which fails without
+the database, so the database comes before the first deploy. Order:
+
+1. Run the playbook (a normal run, without `pgacc_fresh_install`).
+2. Replace `shared/constants.php` with the existing one (owner `root`, group
+   `pgacc`, mode 0640) and check that it loads, without printing the keys:
+   `sudo -u pgacc php -r 'include "/srv/pgacc/shared/constants.php"; echo strlen($key), " ", strlen($datakey), PHP_EOL;'`
+   (two non-zero lengths).
+3. Create the role and database and restore the dump (below).
+4. Copy the receipts into `shared/files/` and fix owner and mode (a tar from
+   the old server keeps its owner and modes):
+   `chown -R pgacc:pgacc /srv/pgacc/shared/files && chmod 0700 /srv/pgacc/shared/files`.
+5. Deploy: `sudo -u pgacc-deploy pgacc-deploy v<version>`.
+6. Follow [UPGRADING.md](../UPGRADING.md) for the releases in between; with
+   legacy receipts (`files/<n>.aes`) this includes the receipt migration
+   (`migrate-receipt-key.php`). Run
+   it as `pgacc` from `/srv/pgacc/current`: the dry run (its last line shows
+   the fingerprint of the key it read; compare it with the user
+   administration), the migration, a rerun until it shows 0 migrated and 0
+   failed, the spot checks, then `--delete-legacy` with `--dry-run` first:
+
+   ```sh
+   cd /srv/pgacc/current
+   sudo -u pgacc php migrate-receipt-key.php --dry-run --key-fingerprint=<fingerprint>
+   sudo -u pgacc php migrate-receipt-key.php --key-fingerprint=<fingerprint>
+   sudo -u pgacc php migrate-receipt-key.php --delete-legacy --dry-run --key-fingerprint=<fingerprint>
+   sudo -u pgacc php migrate-receipt-key.php --delete-legacy --key-fingerprint=<fingerprint>
+   ```
+
+7. Check the new host through the reverse proxy before switching the public
+   name, with the public host name as `Host`: from the proxy,
+   `curl -H 'Host: <public name>' -H 'X-Forwarded-Proto: https' 'http://<new host>/index.php?action=login'`
+   must return the login form (on the new host itself the same works
+   against `http://127.0.0.1/`). Log in, open a voucher with a receipt and
+   download it, and open the member-fee page either before the switch
+   (through a temporary proxy entry) or right after it, with the rollback
+   ready.
+8. Switch the reverse proxy to the new host.
+
+Restoring the database (step 3). Dump on the old server with its own
+`pg_dump -Fc` (the custom format; PostgreSQL 18's `pg_dump` cannot dump
+servers older than 9.2, and `pg_restore` 18 reads the old dump). A dump from
+before PostgreSQL 13 contains `CREATE SCHEMA public` (which exists already)
+and, in older installations, pgcrypto as plain C functions in `public` owned
+by `postgres`, which the `pgacc` role cannot create. Create the extension
+instead and leave those entries out of the restore. Run as root, with the
+dump in a place `postgres` can read:
 
 ```sh
 sudo -u postgres createuser pgacc
 sudo -u postgres createdb --owner=pgacc --encoding=UTF8 --locale=en_US.UTF-8 --template=template0 accounting
+sudo -u postgres psql -d accounting -c 'CREATE EXTENSION IF NOT EXISTS pgcrypto'
 sudo -u postgres psql -d accounting -c 'REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC' \
   -c 'GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc'
-sudo -u postgres pg_restore --no-owner --role=pgacc --exit-on-error -d accounting accounting.dump
+sudo -u postgres pg_restore -l accounting.dump \
+  | grep -vE ' (SCHEMA|COMMENT|ACL) - | FUNCTION public ' > toc.list
+sudo -u postgres pg_restore --no-owner --role=pgacc --exit-on-error --single-transaction \
+  -L toc.list -d accounting accounting.dump
 ```
 
-(A plain SQL dump: `sudo -u pgacc psql -v ON_ERROR_STOP=1 -d accounting -f dump.sql`.)
-Then follow [UPGRADING.md](../UPGRADING.md) for the releases in between. A
-fresh database has no users; the first administrator can be created as `pgacc`:
+pgacc defines no database functions of its own; if `pg_restore -l` lists
+`FUNCTION public` entries other than pgcrypto's, check them before leaving
+them out. (A plain SQL dump: `sudo -u pgacc psql -v ON_ERROR_STOP=1 -d
+accounting -f dump.sql`, after the same first four commands.)
+
+Compare old and new: the row count of every table and the sequences
+`voucher_number` and `file_number`. This works on both servers (also 8.4):
+
+```sh
+sudo -u postgres psql -XtA -d accounting -c "
+  SELECT table_name, (xpath('/row/c/text()', query_to_xml(
+           'SELECT count(*) AS c FROM public.' || quote_ident(table_name), false, true, '')))[1]::text
+  FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY 1"
+sudo -u postgres psql -XtA -d accounting -c 'SELECT last_value FROM voucher_number'
+sudo -u postgres psql -XtA -d accounting -c 'SELECT last_value FROM file_number'
+```
+
+(One `-c` per call: `psql` before 9.6 runs only the last one.)
+
+A fresh database has no users; the first administrator can be created as
+`pgacc`:
 
 ```sql
 INSERT INTO users (name, hash, rights, hide)
 VALUES ('admin', crypt('<password of 12 or more characters>', gen_salt('bf')), 'root', '');
 ```
+
+#### Cutover
+
+1. Stop writes on the old server: stop its web server, or put the reverse
+   proxy into maintenance for pgacc.
+2. Take the final dump and copy of the receipts.
+3. Steps 3 to 7 above.
+4. Switch the reverse proxy and test from outside.
+
+Users have to log in again (sessions are not moved). Rollback: point the
+reverse proxy back and start the old web server again. Anything entered on
+the new host after the switch is then lost (or has to be entered again).
 
 ## Deploying
 
@@ -104,6 +186,11 @@ VALUES ('admin', crypt('<password of 12 or more characters>', gen_salt('bf')), '
 sudo -u pgacc-deploy pgacc-deploy v2.1.0
 sudo -u pgacc-deploy pgacc-deploy --file /path/to/pgacc-2.1.0.tar.gz   # local archive (testing)
 ```
+
+As root with `runuser` instead of `sudo` (e.g. through the container
+runtime), give the full path, as the `PATH` there may not include
+`/usr/local/bin`:
+`runuser -u pgacc-deploy -- /usr/local/bin/pgacc-deploy v2.1.0`.
 
 1. The argument must be a tag `v<major>.<minor>.<patch>[-<pre-release>]`.
 2. It downloads `pgacc-<version>.tar.gz` and `pgacc-<version>.tar.gz.sha256`
