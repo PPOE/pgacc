@@ -108,8 +108,11 @@ Plus the backup-copy rule of the next section; the former deny rule for
 `files`, `vendor`, `tests`, `src`, `constants.php`, ... is no longer needed.
 
 Apache (`public/.htaccess` needs `AllowOverride All`, or at least `Options
-AuthConfig Limit`, for `php_value` and the backup-copy rule; the former
-top-level `.htaccess` and `src/.htaccess` are gone):
+AuthConfig Limit`, for `php_value` and the backup-copy rule; `src/.htaccess`
+is gone). The top-level `.htaccess` now denies every request: with the
+document root `public/` it is never read; it is a safety net for a host
+whose document root is still the release root, which then answers 403
+instead of serving the code:
 
 ```
 DocumentRoot /srv/pgacc/current/public

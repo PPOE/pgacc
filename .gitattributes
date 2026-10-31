@@ -1,7 +1,8 @@
 # Paths left out of `git archive` (scripts/release.sh) and of GitHub's
 # automatic source archives. Only development files are listed here: every
 # top-level *.php page, src/, public/ (the document root: index.php, mbapi.php,
-# style.css, js/, icons/, .htaccess), table-schema.txt, the READMEs,
+# style.css, js/, icons/, .htaccess), the top-level .htaccess (denies everything
+# if the release root is served by mistake), table-schema.txt, the READMEs,
 # CHANGELOG.md and composer.json/composer.lock stay in.
 
 # Line endings: every text file of ours is LF, in the repository and in checkouts

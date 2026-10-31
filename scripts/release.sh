@@ -140,6 +140,12 @@ build_archive() {
     echo "The archive contains development or configuration files; check .gitattributes" >&2
     exit 1
   fi
+  # The release root's .htaccess denies everything: the safety net for an
+  # Apache host whose document root is still the release root.
+  if ! grep -qx '  Require all denied' "$stage/.htaccess" 2>/dev/null; then
+    echo "The archive has no release-root .htaccess that denies every request" >&2
+    exit 1
+  fi
   # The document root public/ (UPGRADING.md) holds only the entry points and
   # the static files.
   unexpected=$(cd "$stage/public" && find . ! -path . ! -path ./.htaccess ! -path ./index.php ! -path ./mbapi.php \
