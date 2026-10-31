@@ -20,6 +20,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Optional `pgacc_extra_hosts` entries for `/etc/hosts` let the host reach
   the membership system when the internal DNS does not resolve its name.
   `ansible-playbook --check` works on a provisioned host.
+- The nginx site sends `Cache-Control: no-cache` for static files, so
+  browsers revalidate `style.css`, scripts and icons and pick up changes after
+  a deploy without a hard reload, and `Cache-Control: private, no-store` for
+  PHP responses that do not set their own, so no cache keeps pages with
+  personal or financial data.
 
 ### Documentation
 
