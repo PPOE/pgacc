@@ -51,11 +51,23 @@ Upgrade steps:
    `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
    `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404.
 
-Hosts set up with `deploy/ansible/playbook.yml`: run the playbook from a
-checkout of the new release (it sets `root /srv/pgacc/current/public` and the
-allow list, and installs the new `pgacc-deploy`), then deploy the release
-right away. Until the deploy, the site answers 404 (the current release has no
-`public/`). `pgacc-deploy` refuses to switch back to a release without
+Hosts set up with `deploy/ansible/playbook.yml`: the playbook of the new
+release sets `root /srv/pgacc/current/public` and the allow list, and
+installs the new `pgacc-deploy`. From its nginx reload until the deploy the
+site answers 404 (the current release has no `public/`), so have the archive
+ready on the host first and deploy straight after the playbook:
+
+1. Download `pgacc-<version>.tar.gz` and `pgacc-<version>.tar.gz.sha256` from
+   the release page into a directory on the host that `pgacc-deploy` can
+   read, and verify them there: `sha256sum -c pgacc-<version>.tar.gz.sha256`.
+2. Run the playbook from a checkout of the new release.
+3. Right after it, without a download:
+   `sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz`
+   (it checks the `.sha256` next to the archive again).
+
+If the smoke test of that deploy fails, `pgacc-deploy` does not roll back to
+the release without `public/` (it could only answer 404): the new release
+stays current and the script prints the recovery steps. `pgacc-deploy` refuses to switch back to a release without
 `public/`; to go back to such a release, run the playbook of that release's
 checkout first (document root `current/`), then `pgacc-deploy` of that
 version.
