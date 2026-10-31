@@ -123,11 +123,17 @@ constraints; no backup table, owners, permissions, credentials or rows).
   (`deploy/ansible/templates/nginx-site.conf.j2`): `/`, `index.php`,
   `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page
   addresses (`/donations`, ...), rewritten to `index.php?action=<name>`;
-  dot files and backup copies answer 403, anything else 404. It checks this
-  on the application service, then on a release built in the test
-  container's `/tmp` (symbolic links to `/app`) with `constants.php.bak`,
-  `functions.php~`, a dump, an archive and a text file planted in the release
-  root and in `public/`: none of them is served. Tests that need the release
+  dot files and backup copies answer 403, anything else 404. Like nginx, the
+  router first decodes the path, merges slashes and resolves `.` and `..`
+  (above the document root: 400), and refuses files reached through a
+  symbolic link (403). The requests and answers are the shared matrix
+  `tests/web-server/matrix.php` (also run against real nginx and Apache,
+  see "Web server allow lists" below). It checks this on the application
+  service, then on a release built in the test container's `/tmp` (code as
+  symbolic links to `/app`, `public/` copied, a synthetic `constants.php` of
+  its own that the entry points must load) with backup copies, a dump, an
+  archive, a text file, PHP scripts and a symbolic link planted in the
+  release root and in `public/`: none of them is served. Tests that need the release
   root as document root (the test page `tests/runtime/db-failure.php`, the
   command-line scripts' own 404) use a second server
   (`start_release_root_server()` in `http-test-helpers.php`).
