@@ -156,11 +156,13 @@ jobs:
     # Target-driven mutation testing (tests/mutation/ci.sh), blocking when it
     # runs: pull requests labelled `mutation` (changed lines only) or
     # `full-ci`, weekly and manual runs (every target). Skipped otherwise.
+    # Time limits: 60 minutes for the changed lines (a receipt target alone
+    # has about 170 mutants at about 15 s), 120 for every target.
     name: Mutation tests (PHP 8.5 / PostgreSQL 18)
     needs: plan
     if: needs.plan.outputs.mutation == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 60 || 30 }}
+    timeout-minutes: ${{ needs.plan.outputs.full == 'true' && 120 || 60 }}
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
