@@ -11,6 +11,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`style.css?v=<version>`), so browsers load the new files after an upgrade
   instead of a cached copy. The web server can cache `style.css` and `js/`
   long-term ([UPGRADING.md](UPGRADING.md)).
+- The donation list (`/donations`) shows the current year by default, like
+  the report; before, it showed 2013 without a captcha. Years before 2012 and
+  after 9999 also show the current year (before: 2013), still without the
+  captcha.
+- The report and the donation list keep the chosen year: once a year was
+  chosen, the menu links to both pages carry it (`?year=<year>`), so the
+  other page shows the same year. The other pages have no year and are
+  unchanged.
 
 ## [2.1.0] - 2026-10-26
 

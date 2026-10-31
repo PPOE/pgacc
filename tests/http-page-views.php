@@ -23,8 +23,8 @@ $actions = $actions[1];
 function page_view_path($href, $actions)
 {
     $href = html_entity_decode($href, ENT_QUOTES, 'UTF-8');
-    if ($href === '/') {
-        return '/index.php';
+    if ($href === '/' || strpos($href, '/?') === 0) {
+        return '/index.php' . substr($href, 1);
     }
     if (strpos($href, 'index.php') === 0) {
         return '/' . $href;

@@ -405,6 +405,7 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `amount-cents` | two-decimal amounts in `report.php` Anlage A, tabular digits in the `style.css` `td` rule (issue #1) | `http-smoke.php` |
 | `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
+| `year-links` | default year (the current one) and the year kept by the menu links of the report and the donation list: `$nav_year` in `index.php`, `acc_header()`, `donations_year()` | PHPUnit, `http-smoke.php`, `http-donations.php` |
 | `asset-versions` | release version (`?v=`) in the stylesheet URL of `acc_header()` and the chart script URLs of `vreport.php` | PHPUnit, `http-page-views.php` |
 | `year-nav` | year selector `year_nav()` (range, previous and next year, marked year, "Alle Jahre", escaped links) and its call sites in `report.php` and `donations.php` | `YearNavTest`, `http-smoke.php`, `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
