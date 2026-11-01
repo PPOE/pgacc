@@ -1143,6 +1143,10 @@ pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'sy
 $mixedStatus = http_request('/index.php?action=edit&id=' . $mixedStatusId, 'GET', [], $reviewerCookies);
 assert_contains($mixedStatus['body'], 'name="ack" id="ack"', 'partly approved voucher for bgf');
 assert_contains($mixedStatus['body'], 'name="belegfehler"', 'partly approved voucher for bgf');
+// Enter in a field submits the first submit button: Speichern, not the reset.
+if (strpos($mixedStatus['body'], 'name="speichern"') > strpos($mixedStatus['body'], 'name="belegfehler"')) {
+    fail_test('partly approved voucher for bgf: the reset button comes before Speichern');
+}
 assert_contains(
     $mixedStatus['body'],
     '<h4>Bestätigt von: <br />Buchungszeile ' . $mixedStatusRows[0] . ': synthetic-a synthetic-b<br />Buchungszeile ' . $mixedStatusRows[1] . ': offen</h4>',
