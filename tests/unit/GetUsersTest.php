@@ -367,12 +367,18 @@ final class GetUsersTest extends FunctionsTestCase
         // Admidio opens profiles by user_uuid only; an id alone would open
         // the viewer's own profile.
         self::assertSame(
-            '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001</a>',
-            mb_member_link('9001', '00000000-0000-4000-8000-000000009001'),
+            '<a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001</a>',
+            member_link('9001', '00000000-0000-4000-8000-000000009001'),
         );
-        // Not a UUID: the id as text, no link.
-        self::assertSame('9002', mb_member_link('9002', '"><script>alert(1)</script>'));
-        self::assertSame('9003', mb_member_link('9003', null));
-        self::assertSame('0', mb_member_link('x<b>', null));
+        // With the member's name, escaped.
+        self::assertSame(
+            '<a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001 A &lt;b&gt; &quot;&amp;&#039;</a>',
+            member_link('9001', '00000000-0000-4000-8000-000000009001', 'A <b> "&\''),
+        );
+        // Not a UUID: the id (and name) as text, no link.
+        self::assertSame('9002', member_link('9002', '"><script>alert(1)</script>'));
+        self::assertSame('9002 &lt;i&gt;', member_link('9002', '"><script>alert(1)</script>', '<i>'));
+        self::assertSame('9003', member_link('9003', null));
+        self::assertSame('0', member_link('x<b>', null));
     }
 }

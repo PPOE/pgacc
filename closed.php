@@ -261,6 +261,9 @@ function page_listing_line($line, $action = "edit")
     pg_free_result($result2);
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
+    } elseif ($line["member"] == 't' && intval($line["member_id"]) > 0 && !$make_csv) {
+        // In the page a member's number with name and profile link.
+        echo tag_raw("td", member_number($line["member_id"]));
     } else {
         echo tag("td", $line["member"] == 't' ? $line["member_id"] : 'Nein');
     }

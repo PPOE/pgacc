@@ -491,6 +491,11 @@
     @apply whitespace-nowrap;
   }
 
+  /* A member's number with name (profile link) stays on one line. */
+  td > a[href*="/modules/profile/profile.php"] {
+    @apply whitespace-nowrap;
+  }
+
   .icon {
     @apply ml-0.5 size-3 align-[-1px] opacity-60 transition-opacity;
 
