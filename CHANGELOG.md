@@ -5,6 +5,29 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-01
+
+Membership sync v2 (JSON endpoints over internal TLS with tokens), the web
+server document root `public/`, and a deny rule for backup copies. Read
+[UPGRADING.md](UPGRADING.md) before upgrading.
+
+### Upgrade notes
+
+- Hosts set up with `deploy/ansible/playbook.yml`: first run the playbook of
+  this release. It sets the document root to `current/public`, adds the
+  backup-copy rule and writes `shared/sync-secrets.php`. Have the archive
+  ready on the host, since the site answers 404 until the deploy.
+- Then deploy right away: `pgacc-deploy v2.3.0` (or `--file` with the
+  downloaded archive). Without the playbook run first, the smoke test fails
+  and `pgacc-deploy` rolls back.
+- Member list: without `pgacc_members_url`, `pgacc_members_token` and
+  `pgacc_members_cert` (and the membership system's listener serving
+  `members.php`), the member-fee page, the bank import and saving a member
+  voucher stop with "Mitgliederliste nicht konfiguriert!".
+- Optional: the payments listener for the membership system
+  (`pgacc_sync_listen_address`, `pgacc_sync_peers`, `pgacc_payments_token`).
+- Other web servers: document root `public/` and the allow list by hand.
+
 ### Sync v2 (membership sync)
 
 The data exchange with the membership system is replaced (sync v2): two
@@ -66,7 +89,7 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
 
 ### Changed
 
-- **Deployment change** (for the next major release): the web server's
+- **Deployment change**: the web server's
   document root is now `public/` of the release, not the release root
   ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).
   `public/` holds only the entry point `index.php`,
