@@ -262,11 +262,7 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        if ($make_csv) {
-            echo tag("td", $line["member"] == 't' ? $line["member_id"] : 'Nein');
-        } else {
-            echo tag_raw("td", $line["member"] == 't' ? '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $line["member_id"] . '">' . $line["member_id"] . '</a>' : 'Nein');
-        }
+        echo tag("td", $line["member"] == 't' ? $line["member_id"] : 'Nein');
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");

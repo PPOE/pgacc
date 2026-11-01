@@ -91,15 +91,17 @@ if [ ! -d "$release" ]; then
     die "the .sha256 file must have one line for $name.tar.gz"
   (cd "$work" && sha256sum -c --strict --quiet "$name.tar.gz.sha256") || die "checksum mismatch"
 
-  # Only files and directories, all under $name/, no "..", no constants.php or files/.
+  # Only files and directories, all under $name/, no "..", no constants.php, sync-secrets.php or files/.
   tar -tvzf "$archive" | cut -c1 | grep -qv '^[-d]$' && die "the archive has entries other than files and directories"
   tar -tzf "$archive" | awk -v p="$name/" 'index($0, p) != 1 || /(^|\/)\.\.(\/|$)/ || $0 == p "constants.php" ||
-    $0 == p "files" || index($0, p "files/") == 1 { bad = 1 } END { exit !bad }' &&
-    die "the archive has entries outside $name/, with '..', or a constants.php or files/"
+    $0 == p "sync-secrets.php" || $0 == p "files" || index($0, p "files/") == 1 { bad = 1 } END { exit !bad }' &&
+    die "the archive has entries outside $name/, with '..', or a constants.php, sync-secrets.php or files/"
   tar -xzf "$archive" -C "$work" --no-same-owner --no-same-permissions
   [ -f "$work/$name/public/index.php" ] && [ -f "$work/$name/vendor/autoload.php" ] ||
     die "the archive has no public/index.php or vendor/autoload.php"
   ln -s "$root/shared/constants.php" "$work/$name/constants.php"
+  # A dangling link before the playbook created it: the member list cannot be loaded.
+  ln -s "$root/shared/sync-secrets.php" "$work/$name/sync-secrets.php"
   ln -s "$root/shared/files" "$work/$name/files"
   mv "$work/$name" "$release"
   created=true

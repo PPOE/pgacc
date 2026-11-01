@@ -7,6 +7,25 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Behaviour change**: the member list (`getusers.php`; the member-fee page,
+  the bank import, saving a member voucher) comes from the membership
+  system's `members.php` as JSON over its internal TLS listener instead of
+  the encrypted `adm_names.php` of the old membership system. New
+  configuration file `sync-secrets.php` (release root, like
+  `constants.php`) with `members_url` (https only), `members_token` (sent as
+  `Authorization: Bearer`) and `members_cafile` (the only trust anchor);
+  with `deploy/` the variables `pgacc_members_url`, `pgacc_members_token`
+  and `pgacc_members_cert` (empty by default, so the member list is off and
+  those pages fail with "Mitgliederliste nicht konfiguriert!"), and
+  `pgacc-deploy` links `shared/sync-secrets.php` into each release. The
+  fetch requires a verified certificate, no redirect and HTTP 200, and
+  refuses the whole list if a row is malformed or a member id or uuid
+  appears twice (fail closed as before). The member list stores each
+  member's uuid; the member-fee page links profiles by `user_uuid`, the
+  ledger listing and the voucher form show the member id as text instead of
+  a link. `membership_decrypt()` is removed. See
+  [UPGRADING.md](UPGRADING.md), "Member list from the membership system".
+
 - **Deployment change** (for the next major release): the web server's
   document root is now `public/` of the release, not the release root
   ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).

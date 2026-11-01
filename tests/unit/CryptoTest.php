@@ -5,7 +5,7 @@
  * padding) in functions.php. The expected bytes in
  * tests/fixtures/mcrypt/vectors.json were produced by the real mcrypt
  * extension (see tests/fixtures/mcrypt/generate-vectors.php), so existing
- * receipt files and the membership-system exchange stay readable.
+ * receipt files and the membership export stay readable.
  */
 
 final class CryptoTest extends FunctionsTestCase
@@ -33,11 +33,6 @@ final class CryptoTest extends FunctionsTestCase
     public static function mbapiProvider()
     {
         return self::vectors('mbapi');
-    }
-
-    public static function getusersProvider()
-    {
-        return self::vectors('getusers');
     }
 
     #[PHPUnit\Framework\Attributes\DataProvider('receiptProvider')]
@@ -84,19 +79,6 @@ final class CryptoTest extends FunctionsTestCase
             $vector['output'],
             sha1($text) . "\n" . base64_encode(membership_encrypt($vector['datakey'], $text)),
         );
-    }
-
-    #[PHPUnit\Framework\Attributes\DataProvider('getusersProvider')]
-    public function testMembershipImportMatchesMcrypt(array $vector)
-    {
-        // getusers.php: base64 ciphertext in, zero padding stripped with rtrim().
-        self::assertSame(
-            $vector['decrypted'],
-            bin2hex(rtrim(membership_decrypt($vector['datakey'], base64_decode($vector['sData'])), "\0")),
-        );
-        $padded = membership_decrypt($vector['datakey'], base64_decode($vector['sData']));
-        self::assertSame(0, strlen($padded) % 32);
-        self::assertSame(hex2bin($vector['plain']), substr($padded, 0, strlen($vector['plain']) / 2));
     }
 
     public function testBlockSizeIs256Bits()

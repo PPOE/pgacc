@@ -113,8 +113,8 @@ $mutations[] = [
 $mutations[] = [
     'id' => 'member-id-raw',
     'file' => 'getusers.php',
-    'search' => '        $id = intval($values[1]);',
-    'replace' => '        $id = $values[1];',
+    'search' => '|| !is_int($member[\'id\'] ?? null) || $member[\'id\'] < 1',
+    'replace' => '|| !isset($member[\'id\'])',
     'rationale' => 'A member id from the membership system is inserted as a number, not as SQL.',
 ];
 

@@ -19,10 +19,6 @@ function getusers_query($query)
     return $error;
 }
 
-// Loads the member list of the membership system into ppmembers, a
-// temporary table of this connection (other requests neither see nor replace
-// it). Returns null, or the error message for the page (the cause of a failed
-// fetch goes to the error log); the caller decides how to stop.
 // An error of getUsers(), logged once (a failed fetch logs its cause instead).
 function getusers_failed($message)
 {
@@ -30,90 +26,136 @@ function getusers_failed($message)
     return $message;
 }
 
-function getUsers()
+// True if $uuid is a UUID (8-4-4-4-12 hex digits), the form of Admidio's
+// user_uuid. Checked before a uuid is stored or put into a link.
+function member_uuid_valid($uuid)
 {
-    global $datakey,$dbconn;
-    // Certificate verification stays on (PHP defaults). The member list is
-    // replaced only by a complete, valid response, in one transaction; on any
-    // error the connection's previous list (if any) stays as it was. Redirects are not
-    // followed (a 3xx is an error), so the list never comes from another host or
-    // over plain HTTP. ignore_errors: an HTTP error status is checked here
-    // instead of raising a warning.
-    $context = stream_context_create(['http' => ['ignore_errors' => true, 'follow_location' => 0, 'timeout' => 20]]);
+    return is_string($uuid) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $uuid) === 1;
+}
+
+// The member list settings of the configuration $file (sync-secrets.php in
+// the release root, resolved like the include of constants.php):
+// ['members_url' => 'https://...', 'members_token' => non-empty string,
+// 'members_cafile' => the membership system's certificate], or null if the
+// file is missing or one of them is missing, empty or (the URL) not https.
+function getusers_config($file)
+{
+    $config = stream_resolve_include_path($file) === false ? null : include $file;
+    foreach (['members_url', 'members_token', 'members_cafile'] as $name) {
+        if (!is_string($config[$name] ?? null) || $config[$name] === '') {
+            return null;
+        }
+    }
+    if (strncmp($config['members_url'], 'https://', 8) !== 0) {
+        return null;
+    }
+    return $config;
+}
+
+// The body of the member list, or null (the cause is logged). TLS is
+// verified against members_cafile only (the membership system's
+// certificate; with a cafile PHP does not load the system's CAs), including
+// the host name or address of the URL. Redirects are not followed (a 3xx is
+// an error), so the list never comes from another host or over plain HTTP.
+// Only 200 is accepted. ignore_errors: an HTTP error status is checked here
+// instead of raising a warning. The token is never logged.
+function getusers_fetch($config)
+{
+    $context = stream_context_create([
+        'http' => [
+            'header' => 'Authorization: Bearer ' . $config['members_token'] . "\r\nAccept: application/json\r\n",
+            'ignore_errors' => true,
+            'follow_location' => 0,
+            'timeout' => 20,
+        ],
+        'ssl' => [
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+            'allow_self_signed' => false,
+            'cafile' => $config['members_cafile'],
+        ],
+    ]);
     http_clear_last_response_headers();
     error_clear_last();
-    $sData = @file_get_contents("https://mitglieder.piratenpartei.at/adm_api/adm_names.php", false, $context);
+    $body = @file_get_contents($config['members_url'], false, $context);
     $headers = http_get_last_response_headers();
-    if ($sData === false || !is_array($headers) || !preg_match('#^HTTP/\S+ 200( |$)#', $headers[0])) {
+    if ($body === false || !is_array($headers) || !preg_match('#^HTTP/\S+ 200( |$)#', $headers[0])) {
         $error = error_get_last();
-        error_log('getusers: ' . ($sData === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
+        error_log('getusers: ' . ($body === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
+        return null;
+    }
+    return $body;
+}
+
+// The members of the JSON list $body ([{"id": int, "uuid": string, "name":
+// string, "lo": int|null, "paid": 0|1}, ...]) as [id, uuid, name, pgacc
+// organization, paid] rows, or null if the document is not such a non-empty
+// list: every row must have exactly these fields, a positive id and a uuid
+// that no other row has, a name without NUL bytes, an integer or null lo.
+// lo is the membership system's organization role (37-45), mapped to the
+// organization of pgacc; others and null become 10.
+function getusers_parse($body)
+{
+    $members = json_decode($body, true);
+    if (!is_array($members) || $members === [] || !array_is_list($members)) {
+        return null;
+    }
+    $organizations = [38 => 1, 40 => 2, 39 => 3, 41 => 4, 42 => 5, 43 => 6, 44 => 10, 45 => 8, 37 => 9];
+    $rows = [];
+    $uuids = [];
+    foreach ($members as $member) {
+        if (!is_array($member) || count($member) !== 5
+            || !is_int($member['id'] ?? null) || $member['id'] < 1 || isset($rows[$member['id']])
+            || !member_uuid_valid($member['uuid'] ?? null) || isset($uuids[strtolower($member['uuid'])])
+            || !is_string($member['name'] ?? null) || strpos($member['name'], "\0") !== false
+            || !array_key_exists('lo', $member) || ($member['lo'] !== null && !is_int($member['lo']))
+            || !in_array($member['paid'] ?? null, [0, 1], true)) {
+            return null;
+        }
+        $uuids[strtolower($member['uuid'])] = true;
+        $rows[$member['id']] = [$member['id'], strtolower($member['uuid']), $member['name'],
+            $member['lo'] === null ? 10 : $organizations[$member['lo']] ?? 10, $member['paid']];
+    }
+    return array_values($rows);
+}
+
+// Loads the member list of the membership system (internal/members.php of
+// the membership system, over the internal TLS listener; deploy/README.md,
+// "Membership system") into ppmembers, a temporary table of this connection
+// (other requests neither see nor replace it). Returns null, or the error
+// message for the page (the cause of a failed fetch goes to the error log);
+// the caller decides how to stop. $file: the configuration file (the tests
+// pass another one).
+function getUsers($file = 'sync-secrets.php')
+{
+    global $dbconn;
+    $config = getusers_config($file);
+    if ($config === null) {
+        return getusers_failed('Mitgliederliste nicht konfiguriert!');
+    }
+    // The member list is replaced only by a complete, valid response, in one
+    // transaction; on any error the connection's previous list (if any)
+    // stays as it was.
+    $body = getusers_fetch($config);
+    if ($body === null) {
         return 'Mitgliederliste konnte nicht abgerufen werden!';
     }
-    if (strlen($datakey) == 0) {
-        return getusers_failed('Kein Passwort!');
-    }
-
-    if (strlen($sData) < 1000) {
-        return getusers_failed('Daten von Mitgliederverwaltung zu kurz!');
-    }
-
-    $decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");
-    $query = 'INSERT INTO pg_temp.ppmembers (id, name, lo, paid) VALUES ';
-    $lines = explode("\n", $decrypted);
-    $count = 0;
-    foreach ($lines as $line) {
-        if (strlen($line) < 5) {
-            continue;
-        }
-        $values = explode("\t", $line);
-        // A line without the five fields means a damaged or undecryptable list.
-        if (count($values) < 5) {
-            return getusers_failed('Daten von Mitgliederverwaltung ungültig!');
-        }
-        $id = intval($values[1]);
-        $name = stripslashes(iconv('ISO-8859-15', 'UTF-8', $values[2]));
-        $lo = $values[3];
-        $paid = intval($values[4]);
-        switch ($lo) {
-            case 38: $lo_num = 1;
-                break;
-            case 40: $lo_num = 2;
-                break;
-            case 39: $lo_num = 3;
-                break;
-            case 41: $lo_num = 4;
-                break;
-            case 42: $lo_num = 5;
-                break;
-            case 43: $lo_num = 6;
-                break;
-            case 44: $lo_num = 10;
-                break;
-            case 45: $lo_num = 8;
-                break;
-            case 37: $lo_num = 9;
-                break;
-            default: $lo_num = 10;
-                break;
-        }
-        //echo "insert: id=$id, name=$name, lo=$lo_num\n";
-        if ($count > 0) {
-            $query .= ',';
-        }
-        $query .= "($id,'" . pg_escape_string($dbconn, $name) . "',$lo_num,$paid)";
-        $count++;
-    }
-    if ($count == 0) {
+    $members = getusers_parse($body);
+    if ($members === null) {
         return getusers_failed('Daten von Mitgliederverwaltung ungültig!');
     }
-    $query .= ';';
+    $values = [];
+    foreach ($members as [$id, $uuid, $name, $lo, $paid]) {
+        $values[] = "($id,'$uuid','" . pg_escape_string($dbconn, $name) . "',$lo,$paid)";
+    }
+    $query = 'INSERT INTO pg_temp.ppmembers (id, uuid, name, lo, paid) VALUES ' . implode(',', $values) . ';';
 
     // Inside a caller's transaction (the unit tests) a savepoint, so that the
     // caller's transaction is neither committed nor ended.
     $nested = pg_transaction_status($dbconn) != PGSQL_TRANSACTION_IDLE;
     $queries = [
         $nested ? 'SAVEPOINT getusers;' : 'BEGIN;',
-        'CREATE TEMP TABLE IF NOT EXISTS ppmembers (id integer, name text, lo integer, paid integer) ON COMMIT PRESERVE ROWS;',
+        'CREATE TEMP TABLE IF NOT EXISTS ppmembers (id integer, uuid text, name text, lo integer, paid integer) ON COMMIT PRESERVE ROWS;',
         'DELETE FROM pg_temp.ppmembers;',
         $query,
         $nested ? 'RELEASE SAVEPOINT getusers;' : 'COMMIT;',

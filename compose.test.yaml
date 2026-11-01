@@ -57,13 +57,14 @@ services:
     working_dir: /app
 
   # Local membership-system stub (tests/reference/membership/): getusers()
-  # fetches https://mitglieder.piratenpartei.at/adm_api/adm_names.php, which
-  # this alias resolves to inside the internal test network, so the import
-  # and member pages never reach the real service. Serves the synthetic,
-  # encrypted member list for tests/runtime/test-constants.php's $datakey over
-  # HTTPS with the synthetic certificate of the application image, whose test
-  # CA that image trusts (tests/php-runtime.Dockerfile). The image is built
-  # with the application service.
+  # fetches the members_url of tests/runtime/test-sync-secrets.php
+  # (https://mitglieder.piratenpartei.at/members.php), which this alias
+  # resolves to inside the internal test network, so the import and member
+  # pages never reach a real service. Serves the synthetic JSON member list
+  # for that file's members_token over HTTPS with the synthetic certificate
+  # of the application image, signed by the test CA that is the file's
+  # members_cafile (tests/php-runtime.Dockerfile). The image is built with
+  # the application service.
   membership:
     image: pgacc-test-application${PGACC_TEST_SUFFIX:-}
     pull_policy: never

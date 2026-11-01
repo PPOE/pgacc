@@ -16,6 +16,17 @@ final class MembershipStub
         return $answer;
     }
 
+    // Serves the members [[id, name, lo, paid], ...] as the membership
+    // system's JSON list (uuid derived from the id) until reset().
+    public static function serveMembers(array $members)
+    {
+        $list = [];
+        foreach ($members as [$id, $name, $lo, $paid]) {
+            $list[] = ['id' => $id, 'uuid' => sprintf('00000000-0000-4000-8000-%012d', $id), 'name' => $name, 'lo' => $lo, 'paid' => $paid];
+        }
+        self::serve(json_encode($list));
+    }
+
     // Serves $body as the member list until reset().
     public static function serve($body)
     {

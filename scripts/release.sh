@@ -136,7 +136,7 @@ build_archive() {
 
   # Code at HEAD, without the export-ignore'd development files.
   git -C "$repo_dir" archive --format=tar HEAD | tar -x -C "$stage"
-  if [ -e "$stage/constants.php" ] || [ -e "$stage/tests/run.sh" ]; then
+  if [ -e "$stage/constants.php" ] || [ -e "$stage/sync-secrets.php" ] || [ -e "$stage/tests/run.sh" ]; then
     echo "The archive contains development or configuration files; check .gitattributes" >&2
     exit 1
   fi

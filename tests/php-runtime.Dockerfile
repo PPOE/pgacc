@@ -42,8 +42,9 @@ RUN openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=pgacc synthetic
     && cat wrongname.crt wrongname.key >wrongname.pem
 
 FROM php:8.5-cli@sha256:d5e3f03b94966fd65df52b9819c6dde463003b5a32d032698290a0b37b53bb37
-# The test CA is trusted system-wide (PHP's default CA file), so the
-# application verifies the stub's certificate with the default settings.
+# The test CA is the members_cafile of tests/runtime/test-sync-secrets.php.
+# It is also trusted system-wide, so the tests can show that getusers.php
+# trusts members_cafile only (GetUsersTest).
 COPY --from=membership-tls /tls/ca.pem /usr/local/share/ca-certificates/pgacc-synthetic-test-ca.crt
 # The stub's certificates: the valid one, and for the verification tests a
 # self-signed one and a test-CA one for another host name.
@@ -63,6 +64,7 @@ WORKDIR /app
 COPY . ./
 COPY --from=dependencies /dependencies/vendor ./vendor
 COPY tests/runtime/test-constants.php ./constants.php
+COPY tests/runtime/test-sync-secrets.php ./sync-secrets.php
 RUN printf 'date.timezone=UTC\n' >/usr/local/etc/php/conf.d/test-timezone.ini \
     && mkdir -p files
 CMD ["php", "-S", "0.0.0.0:8080", "-t", "/app/public", "/app/tests/runtime/router.php"]

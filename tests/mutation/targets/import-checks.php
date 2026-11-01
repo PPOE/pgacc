@@ -7,7 +7,8 @@
  * skipped, with a summary per file; and the PDF import's voucher match
  * (import2.php: the user's organizations, no finalized row) and the row check
  * of the receipt upload (new.php page_new_file()); and the member-list
- * refresh (getusers.php: fetch status, list checks, one transaction).
+ * refresh (getusers.php: settings, TLS and token, fetch status, list
+ * checks, one transaction).
  * Tested with tests/http-import.php against the membership stub of
  * compose.test.yaml. See tests/mutation/README.md for the format.
  */
@@ -197,8 +198,8 @@ return [
         [
             'id' => 'members-error-status-accepted',
             'file' => 'getusers.php',
-            'search' => "if (\$sData === false || !is_array(\$headers) || !preg_match('#^HTTP/\\S+ 200( |\$)#', \$headers[0]))",
-            'replace' => 'if ($sData === false)',
+            'search' => "if (\$body === false || !is_array(\$headers) || !preg_match('#^HTTP/\\S+ 200( |\$)#', \$headers[0]))",
+            'replace' => 'if ($body === false)',
             'rationale' => 'A failed fetch (HTTP error status, redirect) stops with its own error.',
         ],
         [
@@ -209,18 +210,67 @@ return [
             'rationale' => 'Redirects are not followed (no other host, no plain HTTP).',
         ],
         [
+            'id' => 'members-peer-name-unchecked',
+            'file' => 'getusers.php',
+            'search' => "'verify_peer_name' => true,",
+            'replace' => "'verify_peer_name' => false,",
+            'rationale' => 'The certificate must be for the host name or address of the URL.',
+        ],
+        [
+            'id' => 'members-system-cas-trusted',
+            'file' => 'getusers.php',
+            'search' => "'cafile' => \$config['members_cafile'],",
+            'replace' => "'verify_depth' => 9,",
+            'rationale' => 'Only the configured certificate is trusted, not the system\'s CAs.',
+        ],
+        [
+            'id' => 'members-token-not-sent',
+            'file' => 'getusers.php',
+            'search' => "'header' => 'Authorization: Bearer ' . \$config['members_token'] . \"\\r\\nAccept: application/json\\r\\n\",",
+            'replace' => "'header' => \"Accept: application/json\\r\\n\",",
+            'rationale' => 'The request carries the configured token.',
+        ],
+        [
+            'id' => 'members-plain-http-url-accepted',
+            'file' => 'getusers.php',
+            'search' => "    if (strncmp(\$config['members_url'], 'https://', 8) !== 0) {",
+            'replace' => '    if (false) {',
+            'rationale' => 'Only an https:// URL is fetched.',
+        ],
+        [
             'id' => 'members-fields-unchecked',
             'file' => 'getusers.php',
-            'search' => '        if (count($values) < 5)',
-            'replace' => '        if (false)',
-            'rationale' => 'An undecryptable list (lines without the five fields) is not imported.',
+            'search' => '|| count($member) !== 5',
+            'replace' => '',
+            'rationale' => 'A row with other fields than the five of the format is refused.',
+        ],
+        [
+            'id' => 'members-duplicate-id-accepted',
+            'file' => 'getusers.php',
+            'search' => ' || isset($rows[$member[\'id\']])',
+            'replace' => '',
+            'rationale' => 'A list with a member id twice is refused.',
+        ],
+        [
+            'id' => 'members-duplicate-uuid-accepted',
+            'file' => 'getusers.php',
+            'search' => ' || isset($uuids[strtolower($member[\'uuid\'])])',
+            'replace' => '',
+            'rationale' => 'A list with a uuid twice is refused.',
+        ],
+        [
+            'id' => 'members-uuid-unchecked',
+            'file' => 'getusers.php',
+            'search' => '|| !member_uuid_valid($member[\'uuid\'] ?? null)',
+            'replace' => '|| !is_string($member[\'uuid\'] ?? null)',
+            'rationale' => 'Only a UUID is stored (it goes into the profile links).',
         ],
         [
             'id' => 'members-empty-list-accepted',
             'file' => 'getusers.php',
-            'search' => 'if ($count == 0)',
-            'replace' => 'if (false)',
-            'rationale' => 'A list without a member line is refused.',
+            'search' => ' || $members === []',
+            'replace' => '',
+            'rationale' => 'A list without a member is refused.',
         ],
         [
             'id' => 'members-commits-caller-transaction',
@@ -253,17 +303,17 @@ return [
                 . 'failed refresh stops the page, so a partly refreshed list is never read.'],
         ],
         [
-            'id' => 'members-key-unchecked',
+            'id' => 'members-unconfigured-fetched',
             'file' => 'getusers.php',
-            'search' => '    if (strlen($datakey) == 0) {',
+            'search' => '    if ($config === null) {',
             'replace' => '    if (false) {',
-            'rationale' => 'Without a membership key the refresh returns its own error.',
+            'rationale' => 'Without the member list settings the refresh returns its own error.',
         ],
         [
             'id' => 'members-shared-table',
             'file' => 'getusers.php',
-            'search' => "        'CREATE TEMP TABLE IF NOT EXISTS ppmembers (id integer, name text, lo integer, paid integer) ON COMMIT PRESERVE ROWS;',",
-            'replace' => "        'CREATE TABLE IF NOT EXISTS ppmembers (id integer, name text, lo integer, paid integer);',",
+            'search' => "        'CREATE TEMP TABLE IF NOT EXISTS ppmembers (id integer, uuid text, name text, lo integer, paid integer) ON COMMIT PRESERVE ROWS;',",
+            'replace' => "        'CREATE TABLE IF NOT EXISTS ppmembers (id integer, uuid text, name text, lo integer, paid integer);',",
             'rationale' => 'Each request has its own member list: a shared table is neither needed nor touched.',
         ],
         [

@@ -9,6 +9,46 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Member list from the membership system (`getusers.php`)
+
+**Behaviour change.** `getusers.php` (the member-fee page, the bank import,
+saving a voucher with a member part) no longer fetches the encrypted
+`adm_api/adm_names.php` of the old membership system (shut down). It fetches
+the JSON member list of the membership system's `members.php` over its
+internal TLS listener, with a token, and needs three settings in the new
+configuration file `sync-secrets.php` (release root, outside the document
+root, readable by PHP but not writable, like `constants.php`; with `deploy/` the
+inventory variables `pgacc_members_url`, `pgacc_members_token`,
+`pgacc_members_cert`, see [deploy/README.md](deploy/README.md), "Member
+list"):
+
+```php
+<?php
+return [
+    'members_url' => 'https://192.0.2.20:8443/members.php', // https only
+    'members_token' => '<64 hex characters, the same as on the membership system>',
+    'members_cafile' => '/etc/pgacc/members-tls.crt', // its certificate, the only trust anchor
+];
+```
+
+- Without them the pages that need the list stop with "Mitgliederliste
+  nicht konfiguriert!" (fail closed, as for any failed fetch).
+- The fetch verifies the certificate and its name or address against
+  `members_cafile` only, sends `Authorization: Bearer <token>`, follows no
+  redirects, times out after 20 seconds and needs HTTP 200. The list must be
+  valid as a whole (`[{"id": int, "uuid": string, "name": string, "lo":
+  int|null, "paid": 0|1}]`, exactly these fields, a positive id and a UUID
+  per member, none twice); otherwise "Daten von Mitgliederverwaltung
+  ungültig!" and nothing is loaded. Names are UTF-8 as sent (no more
+  ISO-8859-15 conversion or backslash unescaping). `lo` is mapped to the
+  organizations as before (44 and unknown roles or none: 10).
+- The member list now also holds each member's `uuid`. The member-fee page
+  links a member's profile by `user_uuid` (the membership system opens
+  profiles by uuid only); the ledger listing and the voucher form show the
+  member id as plain text instead of a link.
+- `$datakey` in `constants.php` is now used only by the membership export
+  `mbapi.php`.
+
 ## Document root `public/` (deployment change)
 
 This release changes how pgacc is deployed; it is meant for a major release.

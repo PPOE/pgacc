@@ -571,7 +571,7 @@ register_shutdown_function(function () {
 });
 $memberCases = [
     'unreachable member list' => ['error', 4784, [], $membersUnavailable, true],
-    'invalid member list' => ['garbage', 4784, [], $membersUnavailable, true],
+    'invalid member list' => ['malformed', 4784, [], $membersUnavailable, true],
     'invalid amount' => ['error', 4784, ['amount0' => 'abc'], 'Ungültiger Betrag', true],
     'stale row' => ['error', 4784, ['bid0' => '9186'], 'Die Buchung wurde inzwischen geändert. Bitte neu laden.', false],
     'no parts' => ['error', 4784, ['parts' => '0'], 'Keine Buchungszeile angegeben.', false],
@@ -595,7 +595,7 @@ foreach ($memberCases as $label => $case) {
     if ($formShown) {
         assert_contains($response['body'], 'value="Synthetic member revision"', "member revision: $label");
     }
-    $fetched = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/names-requests');
+    $fetched = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/members-requests');
     if ($fetched !== ($expected === $membersUnavailable ? "1\n" : "0\n")) {
         fail_test("member revision: $label fetched the member list " . var_export($fetched, true) . ' times');
     }
@@ -1227,7 +1227,8 @@ if ($ciphertext === false || strlen($ciphertext) !== 64) {
     fail_test('membership export payload is not 64 bytes of base64: ' . var_export($lines[1], true));
 }
 // The synthetic $datakey of tests/runtime/test-constants.php.
-if (membership_decrypt('synthetic-reference-membership-key', $ciphertext) !== str_pad($text, 64, "\0")) {
+[$cipherKey, $iv] = membership_cipher_params('synthetic-reference-membership-key');
+if (rijndael256_decrypt($cipherKey, $ciphertext, $iv) !== str_pad($text, 64, "\0")) {
     fail_test('membership export payload does not decrypt to the expected members');
 }
 

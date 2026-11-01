@@ -16,8 +16,10 @@ Core concepts:
 - **Public reports**: annual report (Rechenschaftsbericht), transactions and
   spendings pages, donation lists.
 - **Import**: bank statement CSV import (BAWAG format).
-- **Membership integration**: `getusers.php` fetches member names from the
-  membership system, `mbapi.php` exports membership payments.
+- **Membership integration**: `getusers.php` fetches the member list from
+  the membership system as JSON over its internal TLS listener with a token
+  (settings in `sync-secrets.php`, [deploy/README.md](deploy/README.md),
+  "Member list"); `mbapi.php` exports membership payments.
 
 ## Requirements
 
@@ -53,7 +55,7 @@ Provisioning a Debian 13 host and deploying releases with scripts:
 
    ```php
    <?php
-   $datakey = 'CHANGE-ME';  // shared key for the membership system exchange
+   $datakey = 'CHANGE-ME';  // shared key of the membership export (mbapi.php)
    $key = 'CHANGE-ME';      // key for encrypting uploaded receipts
    ```
 
@@ -64,6 +66,10 @@ Provisioning a Debian 13 host and deploying releases with scripts:
    decrypted without it or with another key. Older receipts (`files/<n>.aes`)
    stay readable; `migrate-receipt-key.php` (command line only) re-encrypts
    them, see the runbook in [UPGRADING.md](UPGRADING.md).
+
+   The member list settings (URL, token, certificate of the membership
+   system) go into `sync-secrets.php` next to it, also never committed: see
+   [UPGRADING.md](UPGRADING.md), "Member list from the membership system".
 
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
