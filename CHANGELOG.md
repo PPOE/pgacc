@@ -27,6 +27,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The CSV exports no longer contain HTML markup: the old acknowledgements
+  of the ledger listings are the plain names separated by a space (an empty
+  cell when there are none, instead of `<del></del> <del></del>`), and the
+  spendings and in-kind donation lists write `Privatperson` and `Kontodaten`
+  without `<i>`. The HTML pages are unchanged.
 - The voucher form shows its buttons (Speichern, Bestätigen, Beleg and
   Buchungszeile hinzufügen) to users with several rights, such as "1,2",
   "root,1" or "Rbgf,2"; before, only bgf and users with exactly one right
@@ -43,6 +48,20 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Profile links of the member-fee page point to the profile page of
   Admidio 5 (`modules/profile/profile.php`) instead of the removed
   `adm_program/` path.
+- Approval ("Bestätigen") gives the second approval only when a current row
+  of the voucher has a receipt. Before, a user who also saw a row without a
+  first approval passed the receipt check and gave the second approval of
+  the other rows without any receipt. A receipt on any current row of the
+  voucher counts, also on a row of another organization (the user learns
+  only whether one exists); the second approval still comes from someone
+  other than the first approver.
+- An approval that changes nothing no longer reports "Buchung bestätigt":
+  it says why ("Du hast bereits die 1. Bestätigung gegeben – die 2. muss
+  jemand anderer machen", or all the user's rows are approved twice). An
+  approval that leaves some of the user's rows without their second
+  approval adds a note to "Buchung bestätigt". Every refused approval links
+  back to the voucher ("Zurück zur Buchung"), or to the open vouchers when
+  the voucher number is invalid.
 
 ## [2.3.0] - 2026-11-01
 

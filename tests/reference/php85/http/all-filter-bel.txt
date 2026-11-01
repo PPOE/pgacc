@@ -4,7 +4,7 @@ status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8
 header: Content-Disposition: attachment; filename=all.csv
---- body (388 bytes) ---
+--- body (365 bytes) ---
 ﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
-1003	103	2024-04-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-003	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-50,00€	Closed expense with attachment		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Nein	Ja	Synthetic Supplier   	
+1003	103	2024-04-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-003	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-50,00€	Closed expense with attachment		Ja	reviewer-a reviewer-b		Nein	Ja	Synthetic Supplier   	
 

@@ -310,7 +310,12 @@ function page_listing_line($line, $action = "edit")
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
     } else {
-        echo tag_raw("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");
+        // In CSV only the names that are set, so no old acknowledgement is an
+        // empty cell.
+        $acks_old = [wrap("del", $line["ack1_old"]), wrap("del", $line["ack2_old"])];
+        echo tag_raw("td", implode(" ", $make_csv ? array_filter($acks_old, function ($s) {
+            return $s !== '';
+        }) : $acks_old));
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");

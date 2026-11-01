@@ -4,8 +4,8 @@ status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8
 header: Content-Disposition: attachment; filename=deleted.csv
---- body (632 bytes) ---
+--- body (586 bytes) ---
 ﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
-1004	105	2024-05-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-005	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-25,00€	Unreviewed expense		Ja	 	<del></del> <del></del>	Nein	Nein	Synthetic Draft   	
-5000	1000	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-12,34€	Reference created expense	Reference workflow	Nein	 	<del>synthetic-admin</del> <del></del>	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
+1004	105	2024-05-01	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETIC-005	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-25,00€	Unreviewed expense		Ja	 		Nein	Nein	Synthetic Draft   	
+5000	1000	2024-09-15	Synthetic expense	Synthetic Regional Unit	Nein	SYNTHETICREF	TESTACCOUNT2	TESTVIRTUAL2	-12,34€	Reference created expense	Reference workflow	Nein	 	synthetic-admin	Nein	Nein	Synthetic Reference Supplier Test Street 1 0000 Test City	
 

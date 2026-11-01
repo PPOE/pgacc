@@ -41,7 +41,7 @@ final class UnusedOutputTest extends FunctionsTestCase
     {
         $GLOBALS['make_csv'] = true;
         self::assertSame(
-            "2024-01-02\t<s>type</s> & \"Ö\"\t<s>lo</s> 'x'\t<s>comment</s>  <i>Kontodaten</i> \t12,34€\t<s>donor</s> & Ö\t\n",
+            "2024-01-02\t<s>type</s> & \"Ö\"\t<s>lo</s> 'x'\t<s>comment</s>  Kontodaten \t12,34€\t<s>donor</s> & Ö\t\n",
             $this->withSyntheticRows([$this, 'kdonationsLine']),
         );
     }
