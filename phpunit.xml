@@ -51,6 +51,7 @@
       <file>import.php</file>
       <file>import2.php</file>
       <file>kdonations.php</file>
+      <file>mb.php</file>
       <file>migrate-receipt-key.php</file>
       <file>new.php</file>
       <file>wk.php</file>
