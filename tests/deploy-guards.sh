@@ -85,6 +85,28 @@ expect 1 v2.0.0 "--file without public/index.php: refused" --file "$tmp/pgacc-3.
 has 'no public/index.php or vendor/autoload.php' "--file without public/"
 [ ! -e "$root/releases/v3.0.0" ] || { echo "FAIL: releases/v3.0.0 was created" >&2 && failures=$((failures + 1)); }
 
+# --file: internal/ must hold mbapi.php only; then sync.php is linked like constants.php.
+# archive <version> <file...>: an archive with public/index.php, vendor/autoload.php and the files.
+archive() {
+  version=$1 && shift
+  rm -rf "$tmp/pgacc-$version" && mkdir -p "$tmp/pgacc-$version/public" "$tmp/pgacc-$version/vendor"
+  for file in public/index.php vendor/autoload.php "$@"; do
+    mkdir -p "$(dirname "$tmp/pgacc-$version/$file")" && : >"$tmp/pgacc-$version/$file"
+  done
+  (cd "$tmp" && tar -czf "pgacc-$version.tar.gz" "pgacc-$version" && sha256sum "pgacc-$version.tar.gz" >"pgacc-$version.tar.gz.sha256")
+}
+for case in none:"" extra:"internal/mbapi.php internal/evil.php"; do
+  # shellcheck disable=SC2086 # the file list is split on purpose
+  archive 3.0.0 ${case#*:}
+  expect 1 v2.0.0 "--file, internal/ with ${case%%:*}: refused" --file "$tmp/pgacc-3.0.0.tar.gz"
+  has "internal/ must hold mbapi.php only" "--file, internal/ with ${case%%:*}"
+done
+archive 3.0.0 internal/mbapi.php
+expect 0 v3.0.0 "--file with internal/mbapi.php: deployed" --file "$tmp/pgacc-3.0.0.tar.gz"
+[ "$(readlink "$root/releases/v3.0.0/sync.php")" = "$root/shared/sync.php" ] ||
+  { echo "FAIL: sync.php is not linked to shared/" >&2 && failures=$((failures + 1)); }
+current v2.0.0
+
 release v1.0.0 public && release v2.0.0 root && current v1.0.0
 expect 1 v1.0.0 "refuses to switch to a release without public/" v2.0.0
 has 'has no public/index.php' "release without public/"

@@ -32,3 +32,9 @@ all:
     # README.md, "Membership system"). Empty by default: nothing is written.
     # pgacc_extra_hosts:
     #   - { ip: 192.0.2.1, names: [members.example.org] }
+    # The internal sync listener for the membership system (README.md,
+    # "Internal sync listener"). Off while pgacc_sync_listen_address is
+    # empty (the default).
+    # pgacc_sync_listen_address: 192.0.2.10
+    # pgacc_sync_peers: [192.0.2.20]
+    # pgacc_sync_port: 8443

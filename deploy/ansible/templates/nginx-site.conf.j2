@@ -96,3 +96,47 @@ server {
         return 404;
     }
 }
+{% if pgacc_sync_listen_address | default('') != '' %}
+
+# The internal sync listener (deploy/README.md, "Membership system"): TLS on
+# the internal address, for the membership system only, which calls
+# internal/mbapi.php directly (not through the reverse proxy). Its own
+# document root holds nothing but that entry point. REMOTE_ADDR is the
+# connecting socket's address; internal/mbapi.php checks it and the token
+# against sync.php. No access log: the requests carry the token.
+server {
+    listen {{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }} ssl;
+    server_name _;
+
+    ssl_certificate /etc/pgacc/sync-tls.crt;
+    ssl_certificate_key /etc/pgacc/sync-tls.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    root /srv/pgacc/current/internal;
+    disable_symlinks on from=$document_root;
+    autoindex off;
+    server_tokens off;
+    access_log off;
+    error_log /var/log/nginx/pgacc-sync.error.log;
+
+    # Dot files and backup copies, as on the public site.
+    location ~ (^|/)\. {
+        deny all;
+    }
+    location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+        deny all;
+    }
+
+    location = /mbapi.php {
+        try_files $uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/run/php/pgacc-fpm.sock;
+    }
+
+    location / {
+        return 404;
+    }
+}
+{% endif %}

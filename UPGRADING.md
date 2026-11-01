@@ -9,6 +9,64 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Internal sync endpoint `internal/mbapi.php` (optional)
+
+New and **off unless configured**: `internal/mbapi.php` gives the membership
+system the membership payments as JSON, on an internal TLS listener that the
+membership system calls directly (not through the reverse proxy). It is the
+provider side of the next membership sync; `public/mbapi.php` stays
+unchanged for now. Nothing changes for a host that does not configure it.
+
+- `internal/` is a document root of its own and holds only `mbapi.php`
+  (which changes to the release root, like `public/index.php`). The
+  internal listener serves only `/mbapi.php` from it; the public site never
+  serves `internal/`.
+- `sync.php` in the release root (outside both document roots; with
+  `deploy/` a link to `shared/sync.php`, like `constants.php`) holds the
+  token and the allowed peers (IPv4 addresses), readable by PHP but not
+  writable (`root:<php group>`, mode 0640):
+
+  ```php
+  <?php
+  return [
+      'token' => '<64 hex characters, e.g. from openssl rand -hex 32>',
+      'peers' => ['192.0.2.20'],
+  ];
+  ```
+
+  Without the file, or with an empty token or peer list, every request is
+  refused.
+- Request: `GET https://<internal address>:8443/mbapi.php` with
+  `Authorization: Bearer <token>`, from a peer address (the connecting
+  socket's address, `REMOTE_ADDR`; the listener must not take it from a
+  proxy header). Answers: 200 `application/json`
+  `[{"id": 12, "amount_cents": 2500, "paid_until": "2026-12-31"}]` (the
+  members and amounts of `public/mbapi.php`: acknowledged, not deleted
+  membership fees since 1 October of the previous year, at least 20.00 per
+  member, paid until 31 December of the current year; `[]` if there are
+  none); 403 with an empty body for another peer or without the token; 500
+  with an empty body without the database. Membership fees without a member
+  id are left out.
+- TLS: a certificate whose subject alternative name is the internal address
+  the membership system uses in its URL; that system needs this certificate
+  as its trust anchor (`cafile`). The listener has no access log (the
+  requests carry the token).
+
+With `deploy/` (Debian 13 host): set `pgacc_sync_listen_address` (the
+host's internal IPv4 address) and `pgacc_sync_peers` (the membership
+system's address) in the inventory, optionally `pgacc_sync_port` (8443), and
+run the playbook: it creates `shared/sync.php` with a random token if there
+is none (and sets its peers on every run), a self-signed certificate
+`/etc/pgacc/sync-tls.crt` (key `/etc/pgacc/sync-tls.key`) for that address,
+and the internal `server` of the nginx site. Then deploy the release (it
+links `sync.php`), give the membership system the token (from
+`shared/sync.php`, without printing it into logs) and the certificate, and
+allow TCP to the port between exactly the two hosts in the firewall. Another
+web server needs the same: a TLS server on the internal address with
+`<release>/internal` as document root, serving only `/mbapi.php` (dot files
+and backup copies refused, no `PATH_INFO`), with the socket's address as
+`REMOTE_ADDR` and no access log.
+
 ## Document root `public/` (deployment change)
 
 This release changes how pgacc is deployed; it is meant for a major release.

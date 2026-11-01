@@ -22,7 +22,16 @@
 # namespace and connects to 127.0.0.1, the address the nginx site allows.
 # After the matrix, public/mbapi.php is replaced for one check by a symbolic
 # link to a sentinel script in the release root (matrix 'entry_link'), then
-# restored. Containers and the temporary directory are removed at the end.
+# restored.
+#
+# nginx also gets the internal sync listener of the template (rendered with
+# pgacc_sync_listen_address 127.0.0.1, port 8443) and its certificate, made
+# with the playbook's openssl command. internal/mbapi.php is a stub that runs
+# the real peer and token check of src/sync-api.php against the release's
+# sync.php (peer 127.0.0.1) and answers JSON instead of the payments; the
+# client checks the certificate (cafile) and sends from 127.0.0.1 and, for
+# another peer, from 127.0.0.2. Containers and the temporary directory are
+# removed at the end.
 set -eu
 
 nginx_image=nginx:1.26.3@sha256:41b194461e4bae16f9b25d68b0976ed4735b89ca625c89aad88e1c1c3b7e8860
@@ -58,12 +67,15 @@ tag=v0.0.0-test
 release=$tmp/pgacc/releases/$tag
 mkdir -p "$release/src" "$release/vendor" "$release/tests/runtime" "$release/files"
 cp -R "$repo/public" "$release/public"
+cp -R "$repo/internal" "$release/internal"
 cp "$repo/.htaccess" "$release/.htaccess"
 for file in functions.php file.php edit.php getusers.php impressum.php check.php migrate-receipt-key.php \
-  composer.json composer.lock README.md src/db.php tests/run.sh tests/runtime/test-constants.php; do
+  composer.json composer.lock README.md src/db.php src/sync-api.php tests/run.sh tests/runtime/test-constants.php; do
   cp "$repo/$file" "$release/$file"
 done
 cp "$repo/tests/runtime/test-constants.php" "$release/constants.php"
+sync_token=pgacc-test-sync-token-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+printf "<?php\nreturn ['token' => '%s', 'peers' => ['127.0.0.1']];\n" "$sync_token" >"$release/sync.php"
 echo '<?php // vendor' >"$release/vendor/autoload.php"
 echo "$secret" >"$release/files/1.v2.aes"
 ln -s "releases/$tag" "$tmp/pgacc/current"
@@ -92,19 +104,37 @@ if echo " $servers " | grep -q ' nginx '; then
 import jinja2
 environment = jinja2.Environment(loader=jinja2.FileSystemLoader(\"/templates\"), trim_blocks=True,
     keep_trailing_newline=True, undefined=jinja2.StrictUndefined)
-text = environment.get_template(\"nginx-site.conf.j2\").render(ansible_facts={}, pgacc_trusted_proxies=[])
-open(\"/out/nginx-site.conf\", \"w\").write(text)
+template = environment.get_template(\"nginx-site.conf.j2\")
+open(\"/out/nginx-site.conf\", \"w\").write(template.render(ansible_facts={}, pgacc_trusted_proxies=[],
+    pgacc_sync_listen_address=\"127.0.0.1\"))
+open(\"/out/nginx-site-off.conf\", \"w\").write(template.render(ansible_facts={}, pgacc_trusted_proxies=[]))
 '"
+  # Without pgacc_sync_listen_address: no internal listener.
+  if grep -q 'current/internal' "$tmp/nginx-site-off.conf" || ! grep -q 'listen 127.0.0.1:8443 ssl;' "$tmp/nginx-site.conf"; then
+    echo "nginx: the internal listener must be rendered only with pgacc_sync_listen_address" >&2
+    exit 1
+  fi
+  # The certificate as the playbook makes it (its openssl arguments).
+  mkdir -p "$tmp/etc-pgacc"
+  docker run --rm --network none --user "$user" -v "$tmp/etc-pgacc:/etc/pgacc" "$fpm_image" \
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 3650 -subj /CN=127.0.0.1 \
+    -addext subjectAltName=IP:127.0.0.1 -keyout /etc/pgacc/sync-tls.key -out /etc/pgacc/sync-tls.crt 2>/dev/null
+  if [ "$(stat -c %a "$tmp/etc-pgacc/sync-tls.key")" != 600 ]; then
+    echo "openssl did not write the TLS key with mode 0600" >&2
+    exit 1
+  fi
+  chmod 644 "$tmp/etc-pgacc/sync-tls.key" # readable for the nginx container's root (another user here)
   mkdir -p "$tmp/run-php"
   chmod 777 "$tmp/run-php"
   printf '%s\n' '[global]' 'daemonize = no' 'error_log = /proc/self/fd/2' '[www]' 'listen = /run/php/pgacc-fpm.sock' \
     'listen.mode = 0666' 'clear_env = no' >"$tmp/fpm.conf"
   docker run -d --name "$id-fpm" --network none -v "$tmp/pgacc:/srv/pgacc:ro" -v "$tmp/run-php:/run/php" \
     -v "$tmp/fpm.conf:/usr/local/etc/php-fpm.d/zz-docker.conf:ro" -v "$repo/tests/web-server:/tests:ro" \
+    -v "$tmp/etc-pgacc:/etc/pgacc:ro" \
     "$fpm_image" >/dev/null
   docker run -d --name "$id-nginx" --network "container:$id-fpm" -v "$tmp/pgacc:/srv/pgacc:ro" \
     -v "$tmp/run-php:/run/php" -v "$tmp/nginx-site.conf:/etc/nginx/conf.d/default.conf:ro" \
-    "$nginx_image" >/dev/null
+    -v "$tmp/etc-pgacc:/etc/pgacc:ro" "$nginx_image" >/dev/null
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     [ -S "$tmp/run-php/pgacc-fpm.sock" ] && docker exec "$id-nginx" sh -c 'kill -0 $(cat /run/nginx.pid)' 2>/dev/null && break
     sleep 1
@@ -114,6 +144,8 @@ open(\"/out/nginx-site.conf\", \"w\").write(text)
   status=0
   check "$id-fpm" nginx "/srv/pgacc/releases/$tag/public" || status=$?
   [ "$status" -ne 0 ] || entry_link "$id-fpm" nginx || status=$?
+  [ "$status" -ne 0 ] || docker exec "$id-fpm" php /tests/check.php internal https://127.0.0.1:8443 \
+    /etc/pgacc/sync-tls.crt "$sync_token" "/srv/pgacc/releases/$tag/internal" "$secret" || status=$?
   [ "$status" -eq 0 ] || { docker logs --tail 20 "$id-nginx" >&2; exit "$status"; }
   docker rm -f "$id-nginx" "$id-fpm" >/dev/null
 fi

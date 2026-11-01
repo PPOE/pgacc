@@ -5,6 +5,24 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Internal sync endpoint `internal/mbapi.php` (the provider side of the next
+  membership sync), **off unless configured**: the membership payments of
+  `public/mbapi.php` as JSON (`[{"id", "amount_cents", "paid_until"}]`), for
+  the membership system only, on an internal TLS listener with its own
+  document root `internal/`. A request must come from an address of the new
+  configuration file `sync.php` (release root, outside the document roots)
+  and carry its token (`Authorization: Bearer`); otherwise, and without
+  `sync.php`, it gets 403 with an empty body; errors get an empty 500.
+  Membership fees without a member id are left out. `deploy/`: the variables
+  `pgacc_sync_listen_address` (empty: off), `pgacc_sync_peers` and
+  `pgacc_sync_port` (8443) add `shared/sync.php` with a random token, a
+  self-signed certificate for the address and a second nginx `server`;
+  `pgacc-deploy` links `sync.php` and requires `internal/` to hold only
+  `mbapi.php`. `public/mbapi.php` is unchanged. See
+  [UPGRADING.md](UPGRADING.md), "Internal sync endpoint".
+
 ### Changed
 
 - **Deployment change** (for the next major release): the web server's

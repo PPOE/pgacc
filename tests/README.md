@@ -217,6 +217,15 @@ constraints; no backup table, owners, permissions, credentials or rows).
   and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
   migration script's 404 and the `mbapi.php` export. It reads and writes the
   server's `files/` through a volume shared with the client.
+- `http-sync.php`: the internal sync endpoint `internal/mbapi.php` on servers
+  of its own with `internal/` as document root: 403 with an empty body
+  without the token of `tests/runtime/test-sync.php` (the image's and the
+  development loop's `sync.php`), for another peer and without `sync.php`;
+  with it the payments as JSON, equal to the `mbapi.php` export; 500 without
+  the database or the release root. `tests/unit/SyncApiTest.php` covers the
+  configuration, the check and the payment selection (cutoff, threshold,
+  `ack1`, deleted, type). Red evidence: an empty `sync_api_main()` answers
+  200 without the token.
 
 The membership system never leaves the test network: `compose.test.yaml` runs
 the reference stub (`tests/reference/membership/server.php`) as the service
@@ -278,7 +287,14 @@ entry points replaced by a stub that prints the script (nginx: the resolved
 release, `$realpath_root`) and the query string it ran with. The servers have
 no network; the client runs in their network namespace. Intentional
 differences of a server are listed in `tests/web-server/check.php`
-(Apache refuses an encoded `/`). Containers and the release are removed at
+(Apache refuses an encoded `/`). nginx also runs the internal sync listener
+of the template (rendered with `pgacc_sync_listen_address` 127.0.0.1; not
+rendered without it) with a certificate made by the playbook's `openssl`
+command: the client verifies it (`cafile`), `internal/mbapi.php` is a stub
+that runs the real peer and token check of `src/sync-api.php` (200 with
+JSON from 127.0.0.1 with the token; 403 without it, with a wrong one and
+from 127.0.0.2), and every other path answers 404 (dot files and backup
+copies 403). Containers and the release are removed at
 the end. Red evidence: `try_files $uri` in the catch-all location serves
 `/js/README.md`; a static location `\.(css|js|png)$` serves `/planted.js`;
 without `disable_symlinks` a link in `public/js/` is served; a `\.php$`
@@ -288,8 +304,10 @@ The same CI job runs `sh tests/deploy-guards.sh` (no Docker, a second): the
 `public/` guards of `deploy/deploy.sh` on a fake `/srv/pgacc` in a temporary
 directory, with `id`, `sudo`, `sleep` and `curl` stubbed (refusing a release
 without `public/`, the smoke test of an already current release, the
-rollback to a release without `public/`). Red evidence: the `deploy.sh`
-before these guards fails 2 of its 5 cases.
+rollback to a release without `public/`), and that a release archive's
+`internal/` holds `mbapi.php` only and `sync.php` is linked to `shared/`.
+Red evidence: the `deploy.sh` before these guards fails 2 of its 5 cases;
+the one before the `internal/` check fails its 3 `internal/` cases.
 
 ### PHPUnit
 
