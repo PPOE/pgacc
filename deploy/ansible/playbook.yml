@@ -237,6 +237,22 @@
             state: directory
             mode: "0755"
 
+        # A certificate for another address (pgacc_sync_listen_address
+        # changed) is made again by the next task.
+        - name: Remove the TLS certificate of the internal listener if it is not for the address
+          ansible.builtin.shell: |
+            set -eu
+            [ -e /etc/pgacc/sync-tls.crt ] || exit 0
+            if openssl x509 -in /etc/pgacc/sync-tls.crt -noout -checkip "$address" | grep -q '^IP .* does match certificate$'; then
+              exit 0
+            fi
+            rm -f /etc/pgacc/sync-tls.crt /etc/pgacc/sync-tls.key
+            echo removed
+          environment:
+            address: "{{ pgacc_sync_listen_address }}"
+          register: pgacc_sync_cert_check
+          changed_when: pgacc_sync_cert_check.stdout == 'removed'
+
         # Self-signed, for the address the membership system connects to,
         # which needs /etc/pgacc/sync-tls.crt as its only trust anchor
         # (cafile). openssl writes the key with mode 0600.
@@ -263,6 +279,20 @@
               - /etc/pgacc/sync-tls.crt
             creates: /etc/pgacc/sync-tls.crt
           notify: Reload nginx
+
+        # For the smoke test of pgacc-deploy: a request without the token
+        # must get 403.
+        - name: Write the URL of the internal listener for pgacc-deploy
+          ansible.builtin.copy:
+            dest: /etc/pgacc/sync-url
+            content: "https://{{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }}/mbapi.php\n"
+            mode: "0644"
+
+    - name: Remove the URL of the internal listener while it is off
+      when: pgacc_sync_listen_address | default('') == ''
+      ansible.builtin.file:
+        path: /etc/pgacc/sync-url
+        state: absent
 
     # --- PHP-FPM, nginx, deploy command
 

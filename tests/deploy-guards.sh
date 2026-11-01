@@ -5,7 +5,9 @@
 # current/ (FAKE_SERVES=root); a release with a file "broken" fails its
 # login page; the allow list probes answer 404, or 200 for /js/README.md
 # (FAKE_ALLOW=js) or /index.php/x (FAKE_ALLOW=pathinfo), an inactive allow
-# list. No network, no root.
+# list. With the internal sync listener set up (etc/sync-url), a request to it
+# answers 403 if current/internal/mbapi.php exists, else 404. No network, no
+# root.
 set -eu
 
 repo_dir=$(cd "$(dirname "$0")/.." && pwd)
@@ -16,6 +18,9 @@ mkdir -p "$tmp/bin" "$root/releases" "$root/shared/files"
 : >"$root/shared/constants.php"
 sed "s|^root=/srv/pgacc\$|root=$root|" "$repo_dir/deploy/deploy.sh" >"$tmp/deploy.sh"
 grep -q "^root=$root\$" "$tmp/deploy.sh" || { echo "deploy.sh has no root=/srv/pgacc line" >&2 && exit 1; }
+sed -i "s|^etc=/etc/pgacc\$|etc=$tmp/etc|" "$tmp/deploy.sh"
+grep -q "^etc=$tmp/etc\$" "$tmp/deploy.sh" || { echo "deploy.sh has no etc=/etc/pgacc line" >&2 && exit 1; }
+mkdir -p "$tmp/etc"
 
 printf '#!/bin/sh\necho pgacc-deploy\n' >"$tmp/bin/id"
 printf '#!/bin/sh\nexit 0\n' >"$tmp/bin/sudo"
@@ -24,6 +29,10 @@ cat >"$tmp/bin/curl" <<'EOF'
 #!/bin/sh
 dir=$FAKE_ROOT/current
 [ "$FAKE_SERVES" = root ] || dir=$dir/public
+case "$*" in *https://*)
+  [ -f "$FAKE_ROOT/current/internal/mbapi.php" ] && echo 403 || echo 404
+  exit 0 ;;
+esac
 case "$*" in *-w*)
   case "$FAKE_ALLOW:$*" in js:*/js/README.md | pathinfo:*/index.php/x) echo 200 ;; *) echo 404 ;; esac
   exit 0 ;;
@@ -106,6 +115,15 @@ expect 0 v3.0.0 "--file with internal/mbapi.php: deployed" --file "$tmp/pgacc-3.
 [ "$(readlink "$root/releases/v3.0.0/sync.php")" = "$root/shared/sync.php" ] ||
   { echo "FAIL: sync.php is not linked to shared/" >&2 && failures=$((failures + 1)); }
 current v2.0.0
+
+# With the internal sync listener (etc/sync-url): it must answer 403 without the token.
+release v1.0.0 public && release v2.0.0 public && current v1.0.0
+echo 'https://192.0.2.10:8443/mbapi.php' >"$tmp/etc/sync-url"
+expect 1 v1.0.0 "sync listener does not answer 403: back to the previous release" v2.0.0
+has 'internal sync listener does not answer 403' "sync listener answers 404"
+mkdir -p "$root/releases/v2.0.0/internal" && : >"$root/releases/v2.0.0/internal/mbapi.php"
+expect 0 v2.0.0 "sync listener answers 403: deployed" v2.0.0
+rm "$tmp/etc/sync-url"
 
 release v1.0.0 public && release v2.0.0 root && current v1.0.0
 expect 1 v1.0.0 "refuses to switch to a release without public/" v2.0.0

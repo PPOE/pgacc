@@ -18,9 +18,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Membership fees without a member id are left out. `deploy/`: the variables
   `pgacc_sync_listen_address` (empty: off), `pgacc_sync_peers` and
   `pgacc_sync_port` (8443) add `shared/sync.php` with a random token, a
-  self-signed certificate for the address and a second nginx `server`;
-  `pgacc-deploy` links `sync.php` and requires `internal/` to hold only
-  `mbapi.php`. `public/mbapi.php` is unchanged. See
+  self-signed certificate for the address (made again when it changes) and
+  a second nginx `server`; `pgacc-deploy` links `sync.php`, requires `internal/` to hold only
+  `mbapi.php` and, with the listener on, expects 403 from it without the
+  token in its smoke test. `public/mbapi.php` is unchanged. See
   [UPGRADING.md](UPGRADING.md), "Internal sync endpoint".
 
 ### Changed

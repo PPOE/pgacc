@@ -65,7 +65,7 @@ What it sets up:
 | `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
 | PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`, `display_errors` off, errors logged); Debian's default pool `www` is removed. `90-pgacc.ini`: `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on (Debian's default): `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
 | nginx | Port 80, `server_name _`, document root `/srv/pgacc/current/public` (only `public/` is served; the code, `constants.php` and `files/` are in the release root, see [UPGRADING.md](../UPGRADING.md), "Document root `public/`"), PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). The short page addresses the application links to (`/donations`, `/kdonations`, `/spendings`, `/wk`, `/transactions`, `/vreport`, `/tinyreport`, each with an optional query string) are rewritten to `index.php?action=<name>`. Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Allow list: only `/`, `index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page addresses are served, anything else answers 404; as a second line of defence dot files and backup, editor and dump copies (names ending in `~`, `.bak`, `.orig`, `.save`, `.swp`, `.sql`, `.tar.gz` and the like, or with something after `.php`, such as `constants.php.bak`) answer 403. Caching: the static files (`style.css`, `js/*.js`, `icons/*.png`) get `Cache-Control: no-cache`, so browsers revalidate them on every use (ETag/`Last-Modified`, a 304 if unchanged) and pick up a deploy on the next page view; the asset URLs are not versioned yet. PHP responses get `Cache-Control: private, no-store` unless the application sets its own Cache-Control, which is kept (the application sets none at present); pages after login hold personal and financial data. The default site is disabled. |
-| Sync listener | Only with `pgacc_sync_listen_address`: `/srv/pgacc/shared/sync.php` (`root:pgacc` 0640), created once with a random token (`openssl rand -hex 32`), its peers set from `pgacc_sync_peers` on every run; a self-signed certificate `/etc/pgacc/sync-tls.crt` (subject alternative name: the address; key `/etc/pgacc/sync-tls.key`, mode 0600), created once; a second nginx `server` on `<address>:<port>` with TLS, document root `/srv/pgacc/current/internal`, serving only `/mbapi.php` (dot files and backup copies 403, anything else 404), with the socket's address as `REMOTE_ADDR` (no proxy headers) and no access log. |
+| Sync listener | Only with `pgacc_sync_listen_address`: `/srv/pgacc/shared/sync.php` (`root:pgacc` 0640), created once with a random token (`openssl rand -hex 32`), its peers set from `pgacc_sync_peers` on every run; a self-signed certificate `/etc/pgacc/sync-tls.crt` (subject alternative name: the address; key `/etc/pgacc/sync-tls.key`, mode 0600), made again when the address changes; `/etc/pgacc/sync-url` (the listener's URL, for the smoke test of `pgacc-deploy`; removed while the listener is off); a second nginx `server` on `<address>:<port>` with TLS, document root `/srv/pgacc/current/internal`, serving only `/mbapi.php` (dot files and backup copies 403, anything else 404), with the socket's address as `REMOTE_ADDR` (no proxy headers) and no access log. |
 | Database | PostgreSQL 18 with the `en_US.UTF-8` locale generated (the collation of the existing installation). A normal run never creates or changes a database. Only with `-e pgacc_fresh_install=true`: role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `en_US.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. It refuses if `accounting` exists already, with or without tables. |
 | Dumps | `pgacc-backup.timer` runs `pg_dump --format=custom` nightly as `postgres` into `/var/backups/pgacc` (owner `postgres`, mode 0700; neither `pgacc` nor `pgacc-deploy` can write there) and deletes dumps older than `pgacc_backup_keep_days`. |
 
@@ -218,7 +218,9 @@ runtime), give the full path, as the `PATH` there may not include
    and are done by hand.
 5. `current` is switched atomically, PHP-FPM is reloaded and
    `http://127.0.0.1/index.php?action=login` must answer with the login form,
-   and `/js/README.md` and `/index.php/x` with 404 (the allow list is active).
+   and `/js/README.md` and `/index.php/x` with 404 (the allow list is active);
+   with `/etc/pgacc/sync-url` (internal sync listener on), that URL must
+   answer 403 without the token.
    Otherwise `current` goes back to the previous release (or is removed if
    there was none), the new release directory is deleted, and the script
    exits with 1. Exception: if the previous release has no `public/` (from
@@ -279,8 +281,8 @@ After the playbook run, give the membership system:
 Allow TCP to the port from the membership system's address only, in the
 firewall of both hosts. A new token: delete `shared/sync.php`, run the
 playbook again and give the new token to the membership system. A new
-address: delete `/etc/pgacc/sync-tls.crt` and `/etc/pgacc/sync-tls.key` as
-well, so that the certificate is made again for it. The listener has no
+address: the playbook makes a new certificate for it; give it to the
+membership system. The listener has no
 access log; errors go to `/var/log/nginx/pgacc-sync.error.log` and PHP's to
 the pgacc error log.
 

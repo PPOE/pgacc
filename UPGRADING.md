@@ -57,9 +57,10 @@ host's internal IPv4 address) and `pgacc_sync_peers` (the membership
 system's address) in the inventory, optionally `pgacc_sync_port` (8443), and
 run the playbook: it creates `shared/sync.php` with a random token if there
 is none (and sets its peers on every run), a self-signed certificate
-`/etc/pgacc/sync-tls.crt` (key `/etc/pgacc/sync-tls.key`) for that address,
-and the internal `server` of the nginx site. Then deploy the release (it
-links `sync.php`), give the membership system the token (from
+`/etc/pgacc/sync-tls.crt` (key `/etc/pgacc/sync-tls.key`) for that address
+(again when the address changes), and the internal `server` of the nginx
+site. Then deploy the release (it links `sync.php` and expects 403 from the
+listener without the token), give the membership system the token (from
 `shared/sync.php`, without printing it into logs) and the certificate, and
 allow TCP to the port between exactly the two hosts in the firewall. Another
 web server needs the same: a TLS server on the internal address with
