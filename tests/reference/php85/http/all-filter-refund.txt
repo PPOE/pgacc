@@ -4,7 +4,7 @@ status: 200
 header: Content-Encoding: UTF-8
 header: Content-type: text/csv; charset=UTF-8
 header: Content-Disposition: attachment; filename=all.csv
---- body (383 bytes) ---
+--- body (360 bytes) ---
 ﻿Buchung	Buchungszeile	Datum	Art	LO	Mitglied	Fremdkonto	Konto	Virt.Konto	Betrag	Text	Kommentar	Gewidmet	Bestätigt	Best. alt	Rück.	Datei	Name/Adresse	
-2015	215	2024-11-11	Synthetic private refund	Synthetic Regional Unit	Nein	AT000000000000000215	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-42,00€	Rückerstattung		Ja	reviewer-a reviewer-b	<del></del> <del></del>	Ja	Nein	Private Person   	
+2015	215	2024-11-11	Synthetic private refund	Synthetic Regional Unit	Nein	AT000000000000000215	TEST-ACCOUNT-2	TEST-VIRTUAL-2	-42,00€	Rückerstattung		Ja	reviewer-a reviewer-b		Ja	Nein	Private Person   	
 

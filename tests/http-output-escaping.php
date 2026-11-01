@@ -114,7 +114,7 @@ insert_voucher($database, $voucherColumns, [9008, 9008, 91, 90, 'false', null, '
 // CSV cells that a spreadsheet would read as formulas.
 insert_voucher($database, $voucherColumns, [9004, 9004, 91, 90, 'false', null, '-2+3', '+cmd|x',
     "\tTab", "\rCR", '@SUM(A1)', -400, 'TEST-ESCAPING', '=HYPERLINK("http://example.invalid")', 'false', 'false',
-    'false', '2024-07-04', 'reviewer-a', 'reviewer-b', 1, 0, 1, '=1+1', 'false', "\"A\tB", null, null]);
+    'false', '2024-07-04', 'reviewer-a', 'reviewer-b', 1, 0, 1, '=1+1', 'false', "\"A\tB", '=1+1', null]);
 
 $admin = login_user('synthetic-admin', 'correct-password');
 
@@ -138,6 +138,7 @@ foreach (['type-in', 'lo', 'contra', 'account', 'vaccount', 'comment', 'commentg
 assert_contains($listing, "<td>Büromaterial für Österreich</td>\n<td>Grüße</td>", 'listing with umlauts');
 assert_contains($listing, '<td>Jürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön</td>', 'listing with umlauts');
 assert_contains($listing, "<td>=HYPERLINK(&quot;http://example.invalid&quot;)</td>\n<td>=1+1</td>", 'listing formulas in HTML');
+assert_contains($listing, "<td>reviewer-a reviewer-b</td>\n<td><del>=1+1</del> <del></del></td>\n", 'listing one old acknowledgement');
 
 // The closed-voucher listing (page_closed()) renders its header and table,
 // including the virtual account and the old acknowledgements.
@@ -152,13 +153,13 @@ foreach (['vaccount', 'ackold1', 'ackold2'] as $field) {
 $csv = page('/index.php?action=all&filter_date=2024&format=csv', $admin);
 $csvRow = "9001\t9001\t2024-07-01\t" . payload('type-in') . "\tPiratenpartei " . payload('lo') . "\tNein\t" . payload('contra') . "\t"
     . payload('account') . "\t" . payload('vaccount') . "\t12,34€\t" . payload('comment') . "\t" . payload('commentgf') . "\tNein\t"
-    . payload('ack1') . ' ' . payload('ack2') . "\t<del>" . payload('ackold1') . '</del> <del>' . payload('ackold2') . "</del>\tNein\tNein\t"
+    . payload('ack1') . ' ' . payload('ack2') . "\t" . payload('ackold1') . ' ' . payload('ackold2') . "\tNein\tNein\t"
     . payload('name') . ' ' . payload('street') . ' ' . payload('plz') . ' ' . payload('city') . "\t\n";
 assert_contains($csv, "\n" . $csvRow, 'CSV row with markup');
 assert_not_contains($csv, '&lt;', 'CSV export');
 assert_not_contains($csv, '&quot;', 'CSV export');
-assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
-assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t'\"A B\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t<del></del> <del></del>\tNein\tNein\t'+cmd|x  Tab  / CR @SUM(A1)\t\n", 'CSV row with formulas');
+assert_contains($csv, "\n9003\t9003\t2024-07-03\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\tAT12 3456\tTEST-ESCAPING\tTEST-ÄÖÜ\t-3,00€\tBüromaterial für Österreich\tGrüße\tNein\treviewer-a reviewer-b\t\tNein\tNein\tJürgen Müller-Größ Hauptstraße 1 8010 Graz-Ödön\t\n", 'CSV row with umlauts');
+assert_contains($csv, "\n9004\t9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\tNein\t'-2+3\tTEST-ESCAPING\t'\"A B\t-4,00€\t'=HYPERLINK(\"http://example.invalid\")\t'=1+1\tNein\treviewer-a reviewer-b\t'=1+1\tNein\tNein\t'+cmd|x  Tab  / CR @SUM(A1)\t\n", 'CSV row with formulas');
 
 // Filter values are reflected in the sort links and the filter inputs.
 $filters = ['filter_id', 'filter_bid', 'filter_date', 'filter_type', 'filter_lo', 'filter_member_id', 'filter_gk', 'filter_k',
@@ -314,6 +315,10 @@ assert_contains($wk, '<h3><a name="Piratenpartei ' . escaped('oo') . '">Piratenp
 insert_voucher($database, $voucherColumns, [9040, 9040, 90, 90, 'false', null, '', 'Escaping no account',
     '', '', '', 100, null, 'Escaping no account', 'false', 'false',
     'false', '2024-07-09', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'false', null, null, null]);
+// A refunded expense: the spendings list shows "Privatperson" instead of the name.
+insert_voucher($database, $voucherColumns, [9041, 9041, 91, 90, 'false', null, '', payload('refundname'),
+    '', '', '', -500, 'TEST-ESCAPING', 'Escaping refund', 'false', 'false',
+    'false', '2024-07-10', 'reviewer-a', 'reviewer-b', 1, 0, 1, '', 'true', '', null, null]);
 
 $transactions = page('/index.php?action=transactions');
 assert_contains($transactions, "<td>2024-07-09</td>\n<td>" . escaped('type-in') . "</td>\n<td>$lo</td>\n<td></td>\n<td>1.00€</td>\n", 'transactions row without account');
@@ -327,6 +332,9 @@ assert_contains($spendings, "<td>-3.00€</td>\n<td>Jürgen Müller-Größ</td>\
 $spendingsCsv = page('/index.php?action=spendings&format=csv');
 assert_contains($spendingsCsv, "\n9002\t2024-07-02\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\t-2,00€\t" . payload('spendname') . "\t\n", 'spendings CSV row');
 assert_contains($spendingsCsv, "\n9004\t2024-07-04\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\t-4,00€\t'+cmd|x\t\n", 'spendings CSV formula');
+assert_contains($spendings, "<td>9041</td>\n<td>2024-07-10</td>\n<td>" . escaped('type-out') . "</td>\n<td>$lo</td>\n<td>-5.00€</td>\n<td><i>Privatperson</i></td>\n", 'spendings refund row');
+assert_contains($spendingsCsv, "\n9041\t2024-07-10\t" . payload('type-out') . "\tPiratenpartei " . payload('lo') . "\t-5,00€\tPrivatperson\t\n", 'spendings CSV refund row');
+assert_not_contains($spendings . $spendingsCsv, 'refundname', 'spendings refund name');
 
 $vreport = page('/index.php?action=vreport&konto=TEST');
 assert_contains($vreport, '<li><a href="vreport?konto=' . rawurlencode(payload('vaccount')) . '">Konto \'' . escaped('vaccount') . '\'</a></li>', 'vreport account');
@@ -340,7 +348,7 @@ $tinyreport = page('/index.php?action=tinyreport&konto=TEST', $admin);
 assert_contains($tinyreport, '<li><a href="tinyreport?konto=' . rawurlencode(payload('account')) . '">Konto \'' . escaped('account') . '\'</a></li>', 'tinyreport account');
 assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=A%26B%2BC%23D%25E\">Konto 'A&amp;B+C#D%E'</a></li>", 'tinyreport account with URL characters');
 assert_contains($tinyreport, "<li><a href=\"tinyreport?konto=\">Konto ''</a></li>", 'tinyreport line without account');
-pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id = 9040'));
+pg_free_result(escaping_query($database, 'DELETE FROM vouchers WHERE id IN (9040, 9041)'));
 foreach (['account', 'type-in', 'type-out'] as $field) {
     assert_escaped($tinyreport, $field, 'tinyreport');
 }

@@ -27,6 +27,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The CSV exports no longer contain HTML markup: the old acknowledgements
+  of the ledger listings are the plain names separated by a space (an empty
+  cell when there are none, instead of `<del></del> <del></del>`), and the
+  spendings and in-kind donation lists write `Privatperson` and `Kontodaten`
+  without `<i>`. The HTML pages are unchanged.
 - The voucher form shows its buttons (Speichern, Bestätigen, Beleg and
   Buchungszeile hinzufügen) to users with several rights, such as "1,2",
   "root,1" or "Rbgf,2"; before, only bgf and users with exactly one right

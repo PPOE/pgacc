@@ -38,7 +38,11 @@ function spendings_page_listing_line($line)
     // The text column was removed for legal reasons.
 
     echo tag("td", format_amount($line["amount"], "€"));
-    echo tag_raw("td", ($line["refund"] != 't' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");
+    if ($line["refund"] != 't' && $line["type"] != "1029") {
+        echo tag("td", $line["name"]);
+    } else {
+        echo tag_raw("td", wrap("i", "Privatperson"));
+    }
     if ($make_csv) {
         echo "\n";
     } else {

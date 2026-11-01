@@ -61,6 +61,18 @@ $mutations = [
         'rationale' => 'tag() writes its text into the HTML listings without encoding.',
     ],
     [
+        'id' => 'wrap-unencoded',
+        'search' => '    return "<$tag>" . html_escape($text) . "</$tag>";',
+        'replace' => '    return "<$tag>" . $text . "</$tag>";',
+        'rationale' => 'wrap() writes its text into the HTML listings without encoding.',
+    ],
+    [
+        'id' => 'wrap-csv-markup',
+        'search' => "    if (\$make_csv) {\n        return strval(\$text);",
+        'replace' => "    if (false) {\n        return strval(\$text);",
+        'rationale' => 'The CSV export gets the <del>/<i> markup and entities again.',
+    ],
+    [
         'id' => 'csv-link-unencoded',
         'search' => 'echo "<a href=\"" . html_escape($link) . "\">Als CSV Datei herunterladen</a></center>";',
         'replace' => 'echo "<a href=\"" . ($link) . "\">Als CSV Datei herunterladen</a></center>";',
@@ -583,16 +595,23 @@ $callSites = [
     [
         'id' => 'closed-listing-text-line-ack1-old',
         'file' => 'closed.php',
-        'search' => 'echo tag_raw("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");',
-        'replace' => 'echo tag_raw("td", "<del>" . ($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");',
-        'rationale' => 'Unescaped output: listing_text() removed around $line["ack1_old"].',
+        'search' => '$acks_old = [wrap("del", $line["ack1_old"]), wrap("del", $line["ack2_old"])];',
+        'replace' => '$acks_old = ["<del>" . $line["ack1_old"] . "</del>", wrap("del", $line["ack2_old"])];',
+        'rationale' => 'Unescaped output: wrap() replaced by raw markup around $line["ack1_old"].',
     ],
     [
         'id' => 'closed-listing-text-line-ack2-old',
         'file' => 'closed.php',
-        'search' => 'echo tag_raw("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . listing_text($line["ack2_old"]) . "</del>");',
-        'replace' => 'echo tag_raw("td", "<del>" . listing_text($line["ack1_old"]) . "</del> <del>" . ($line["ack2_old"]) . "</del>");',
-        'rationale' => 'Unescaped output: listing_text() removed around $line["ack2_old"].',
+        'search' => '$acks_old = [wrap("del", $line["ack1_old"]), wrap("del", $line["ack2_old"])];',
+        'replace' => '$acks_old = [wrap("del", $line["ack1_old"]), "<del>" . $line["ack2_old"] . "</del>"];',
+        'rationale' => 'Unescaped output: wrap() replaced by raw markup around $line["ack2_old"].',
+    ],
+    [
+        'id' => 'closed-acks-old-csv-empty-names-kept',
+        'file' => 'closed.php',
+        'search' => "array_filter(\$acks_old, function (\$s) {\n            return \$s !== '';",
+        'replace' => "array_filter(\$acks_old, function (\$s) {\n            return true;",
+        'rationale' => 'A CSV row without old acknowledgements gets a space instead of an empty cell.',
     ],
     [
         'id' => 'closed-listing-text-line-name-line-street-line-plz-line-city',
@@ -751,8 +770,8 @@ $callSites = [
     [
         'id' => 'kdonations-listing-text-line-comment',
         'file' => 'kdonations.php',
-        'search' => '    echo tag_raw("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" <i>Kontodaten</i> "], listing_text($line["comment"]))));',
-        'replace' => '    echo tag_raw("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" <i>Kontodaten</i> "], ($line["comment"]))));',
+        'search' => '    echo tag_raw("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" " . wrap("i", "Kontodaten") . " "], listing_text($line["comment"]))));',
+        'replace' => '    echo tag_raw("td", preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d{9}|\\d{5}.\\d+)/\'], [\'\'], preg_replace([\'/((BG|FE|ZE|VB|OG|IG)\\/\\d+(\\s\\d+)+)|(((BG|FE|ZE|VB|OG|IG)\\/\\d+)?[A-Z]{8} [A-Z]{2}\\d+)/\'], [" " . wrap("i", "Kontodaten") . " "], ($line["comment"]))));',
         'rationale' => 'Unescaped output: listing_text() removed around $line["comment"].',
     ],
     [
@@ -1108,9 +1127,16 @@ $callSites = [
     [
         'id' => 'spendings-listing-text-line-name',
         'file' => 'spendings.php',
-        'search' => 'echo tag_raw("td", ($line["refund"] != \'t\' && $line["type"] != "1029") ? listing_text($line["name"]) : "<i>Privatperson</i>");',
-        'replace' => 'echo tag_raw("td", ($line["refund"] != \'t\' && $line["type"] != "1029") ? ($line["name"]) : "<i>Privatperson</i>");',
-        'rationale' => 'Unescaped output: listing_text() removed around $line["name"].',
+        'search' => '        echo tag("td", $line["name"]);',
+        'replace' => '        echo tag_raw("td", $line["name"]);',
+        'rationale' => 'Unescaped output: tag_raw() instead of tag() for $line["name"].',
+    ],
+    [
+        'id' => 'spendings-refund-name-shown',
+        'file' => 'spendings.php',
+        'search' => '        echo tag_raw("td", wrap("i", "Privatperson"));',
+        'replace' => '        echo tag("td", $line["name"]);',
+        'rationale' => 'A refunded expense shows the private person\'s name instead of "Privatperson".',
     ],
     [
         'id' => 'tinyreport-html-escape-line-name',
@@ -1288,7 +1314,7 @@ return [
     'description' => 'HTML output encoding and CSV formula neutralization (PHPUnit and HTTP)',
     'file' => 'functions.php',
     'tests' => [
-        ['type' => 'phpunit', 'filter' => 'testHtmlEscape|testListingText|testTagRenders|testCsvDownloadLink'],
+        ['type' => 'phpunit', 'filter' => 'testHtmlEscape|testListingText|testTagRenders|testWrap|testCsvDownloadLink'],
         ['type' => 'phpunit', 'filter' => 'UnusedOutputTest', 'file' => 'tests/unit/UnusedOutputTest.php'],
         ['type' => 'phpunit', 'filter' => 'testUploadErrorShowsTheEncodedFileName', 'file' => 'tests/unit/ImportMemberMatchTest.php'],
         ['type' => 'http', 'script' => 'tests/http-output-escaping.php'],

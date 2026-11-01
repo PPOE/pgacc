@@ -164,6 +164,16 @@ function listing_text($text)
     }
     return html_escape($text);
 }
+// Plain text in an inline element (<del>, <i>) inside a listing cell: the
+// element with the encoded text in HTML, only the text in the CSV export.
+function wrap($tag, $text)
+{
+    global $make_csv;
+    if ($make_csv) {
+        return strval($text);
+    }
+    return "<$tag>" . html_escape($text) . "</$tag>";
+}
 function acc_header($dbconn, $page = "index", $year = 2015, $navYear = null)
 {
     echo '
