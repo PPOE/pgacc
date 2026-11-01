@@ -312,6 +312,14 @@ rollback to a release without `public/`), and that a release archive's
 Red evidence: the `deploy.sh` before these guards fails 2 of its 5 cases;
 the one before the `internal/` check fails its 3 `internal/` cases.
 
+It also runs `sh tests/sync-secrets-template.sh` (Docker, ansible-core,
+PHP 8.5): `deploy/ansible/templates/sync-secrets.php.j2` rendered with
+Ansible's template module for payments only, members only and both, each
+file loaded with the real readers of the checkout, `sync_api_config()` and
+`getusers_config()` (a reader that is not there is skipped): the exact
+array, accepted with the expected values, refused without its keys. Red
+evidence: the template with `payment_token` and `member_token` fails.
+
 It also runs `sh tests/playbook-settings.sh` (Docker, ansible-core): the
 playbook's first task, "Check the settings", with the play's vars against
 localhost, the facts given as extra vars; the play must gather facts. Cases:
