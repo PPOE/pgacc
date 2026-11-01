@@ -714,6 +714,28 @@ return [
             'rationale' => 'A voucher without rows raises no undefined-variable diagnostics.',
         ],
         [
+            'id' => 'edit-acks-from-first-row',
+            'file' => 'edit.php',
+            'search' => '$acks = min($acks, $row_acks);',
+            'replace' => '$acks = $voucher === $vouchers[0] ? $row_acks : $acks;',
+            'rationale' => 'The approval state counts every row the user sees, not only the first '
+                . 'one (as before the fix): an open row keeps the approval button and hides the reset.',
+        ],
+        [
+            'id' => 'edit-received-from-first-row',
+            'file' => 'edit.php',
+            'search' => '$received = $received || $voucher[\'receipt_received\'] == \'t\';',
+            'replace' => '$received = $voucher[\'receipt_received\'] == \'t\' && $voucher === $vouchers[0];',
+            'rationale' => 'A finalized row other than the first one hides the approval reset too.',
+        ],
+        [
+            'id' => 'edit-status-first-row-only',
+            'file' => 'edit.php',
+            'search' => 'if (count(array_unique($states)) == 1) {',
+            'replace' => 'if (true) {',
+            'rationale' => 'The status lists each row when the rows differ, not only the first one.',
+        ],
+        [
             'id' => 'drop-acks-finalized-check-removed',
             'region' => $dropAcks,
             'search' => 'WHERE NOT deleted AND receipt_received AND voucher_id = $id;',
