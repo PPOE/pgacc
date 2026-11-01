@@ -609,7 +609,7 @@ $callSites = [
     [
         'id' => 'closed-acks-old-csv-empty-names-kept',
         'file' => 'closed.php',
-        'search' => 'implode(" ", $make_csv ? array_filter($acks_old, \'strlen\') : $acks_old)',
+        'search' => "implode(\" \", \$make_csv ? array_filter(\$acks_old, function (\$s) {\n            return \$s !== '';\n        }) : \$acks_old)",
         'replace' => 'implode(" ", $acks_old)',
         'rationale' => 'A CSV row without old acknowledgements gets a space instead of an empty cell.',
     ],
@@ -1130,6 +1130,13 @@ $callSites = [
         'search' => '        echo tag("td", $line["name"]);',
         'replace' => '        echo tag_raw("td", $line["name"]);',
         'rationale' => 'Unescaped output: tag_raw() instead of tag() for $line["name"].',
+    ],
+    [
+        'id' => 'spendings-refund-name-shown',
+        'file' => 'spendings.php',
+        'search' => '        echo tag_raw("td", wrap("i", "Privatperson"));',
+        'replace' => '        echo tag("td", $line["name"]);',
+        'rationale' => 'A refunded expense shows the private person\'s name instead of "Privatperson".',
     ],
     [
         'id' => 'tinyreport-html-escape-line-name',

@@ -313,7 +313,9 @@ function page_listing_line($line, $action = "edit")
         // In CSV only the names that are set, so no old acknowledgement is an
         // empty cell.
         $acks_old = [wrap("del", $line["ack1_old"]), wrap("del", $line["ack2_old"])];
-        echo tag_raw("td", implode(" ", $make_csv ? array_filter($acks_old, 'strlen') : $acks_old));
+        echo tag_raw("td", implode(" ", $make_csv ? array_filter($acks_old, function ($s) {
+            return $s !== '';
+        }) : $acks_old));
     }
     if (listing_column_hidden($tabc++)) {
         echo emptytag("td");
