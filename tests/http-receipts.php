@@ -442,7 +442,7 @@ $form = receipt_voucher_form('Synthetic revision with an invalid amount', 9101, 
 $form['amount0'] = 'synthetic';
 $response = revision_request($unitOneCookies, 4780, $form);
 assert_contains($response['body'], '<a href="?action=file&id=9101" target="_blank">Beleg Anzeigen</a>', 'posted receipt of another organization');
-assert_not_contains($response['body'], 'src="?action=file&id=9101"', 'preview of a posted receipt of another organization');
+assert_not_contains($response['body'], 'src="?action=file&id=9101', 'preview of a posted receipt of another organization');
 assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'receipt after the refused revisions');
 assert_receipt_number($foreignFile, receipts_query($database, 'SELECT file FROM vouchers WHERE id = 9183', [], 'row of organization 2')[0]['file'], 'receipt of organization 2 after the refused revisions');
 
@@ -866,11 +866,10 @@ foreach ([4711, 815] as $voucherId) {
 foreach ($previewCases as [$id, $voucherId, $type]) {
     $link = '<a href="?action=file&id=' . $id . '" target="_blank">Beleg Anzeigen</a>';
     if ($type === 'application/pdf') {
-        $preview = '<iframe src="?action=file&id=' . $id . '" title="Beleg" loading="lazy"'
-            . ' style="display: block; clear: both; width: 100%; height: 40em;"></iframe>';
+        $preview = '<iframe src="?action=file&id=' . $id . '#toolbar=0&navpanes=0&view=FitH&pagemode=none&zoom=page-width"'
+            . ' class="receipt_preview" title="Beleg" loading="lazy"></iframe>';
     } elseif ($type !== null && str_starts_with($type, 'image/')) {
-        $preview = '<img src="?action=file&id=' . $id . '" alt="Beleg" loading="lazy"'
-            . ' style="display: block; clear: both; max-width: 100%;" />';
+        $preview = '<img src="?action=file&id=' . $id . '" class="receipt_preview" alt="Beleg" loading="lazy" />';
     } else {
         $preview = null;
     }
@@ -878,7 +877,7 @@ foreach ($previewCases as [$id, $voucherId, $type]) {
     if ($preview !== null) {
         assert_contains($pages[$voucherId], $preview, "receipt preview of $id ($type)");
     }
-    if (substr_count($pages[$voucherId], 'src="?action=file&id=' . $id . '"') !== ($preview === null ? 0 : 1)) {
+    if (preg_match_all('/src="\?action=file&id=' . $id . '[#"]/', $pages[$voucherId]) !== ($preview === null ? 0 : 1)) {
         fail_test("receipt $id ($type) has the wrong number of previews");
     }
 }

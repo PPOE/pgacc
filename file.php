@@ -113,7 +113,7 @@ function receipt_preview_type($bid, $rights)
     if ($in === false) {
         return false;
     }
-    $size = filesize($legacy);
+    $size = fstat($in)['size'];
     // A failed or short read is refused, as by receipt_read_file().
     $block = (string) @fread($in, 32);
     fclose($in);
