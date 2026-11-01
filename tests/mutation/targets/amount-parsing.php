@@ -281,8 +281,8 @@ return [
         [
             'id' => 'edit-refused-approval-shown',
             'file' => 'edit.php',
-            'search' => '    end_of_form($parts, $rights, $bgfandack && !$unsaved, true, !$unsaved);',
-            'replace' => '    end_of_form($parts, $rights, $bgfandack && !$unsaved, true, true);',
+            'search' => '    end_of_form($parts, $rights, $reset && !$unsaved, !($bgfandack && !$unsaved), !$unsaved);',
+            'replace' => '    end_of_form($parts, $rights, $reset && !$unsaved, !($bgfandack && !$unsaved), true);',
             'rationale' => 'A refused revision offers no approval of the stored rows.',
         ],
         [
