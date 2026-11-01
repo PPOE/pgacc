@@ -48,6 +48,8 @@ SELECT id,name FROM type WHERE income = -1 ORDER BY used DESC,id ASC
 -- next
 SELECT id,name FROM person_type ORDER BY used DESC,id ASC
 -- next
+SELECT file, voucher_id FROM vouchers WHERE NOT deleted AND id = 103 ;
+-- next
 SELECT income FROM type WHERE id = 21
 -- next
 SELECT id,name FROM type WHERE income = 1 ORDER BY used DESC,id ASC

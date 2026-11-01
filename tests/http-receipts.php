@@ -435,6 +435,14 @@ $form = receipt_voucher_form('Synthetic revision without parts', 0, 0);
 $form['parts'] = '0';
 unset($form['comment0']);
 assert_revision_refused($database, $unitOneCookies, 4780, $form, 'revision without parts', 'Keine Buchungszeile angegeben.');
+// A refused amount shows the posted form again, with the posted row and
+// receipt number: the preview of a receipt is shown only within the user's
+// rights, as the download (here the organization 2 receipt of 9101: none).
+$form = receipt_voucher_form('Synthetic revision with an invalid amount', 9101, $foreignFile);
+$form['amount0'] = 'synthetic';
+$response = revision_request($unitOneCookies, 4780, $form);
+assert_contains($response['body'], '<a href="?action=file&id=9101" target="_blank">Beleg Anzeigen</a>', 'posted receipt of another organization');
+assert_not_contains($response['body'], 'src="?action=file&id=9101"', 'preview of a posted receipt of another organization');
 assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'receipt after the refused revisions');
 assert_receipt_number($foreignFile, receipts_query($database, 'SELECT file FROM vouchers WHERE id = 9183', [], 'row of organization 2')[0]['file'], 'receipt of organization 2 after the refused revisions');
 
@@ -781,6 +789,8 @@ $storedCases = [
         rijndael256_zero_pad("\n" . $pdf), 'image/jpeg', 'legacy PDF after a newline'],
     [9137, 4711, 990026, ['v2.aes' => receipt_v2_encrypt($testKey, 990026, "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n")],
         "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n", 'application/octet-stream', 'v2 HTML receipt'],
+    [9138, 4711, 990027, ['v2.aes' => receipt_v2_encrypt($testKey, 990027, "GIF89a\x01\0synthetic")],
+        "GIF89a\x01\0synthetic", 'image/gif', 'v2 GIF receipt'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
     // before, and logged.
@@ -836,6 +846,40 @@ foreach ($storedCases as $case) {
         assert_undecryptable_download($adminCookies, $id, $label);
     } else {
         assert_receipt_download($adminCookies, $id, $body, $type, $fileNumber, $label, isset($files['v2.aes']) && !$legacyServed);
+    }
+}
+
+// The voucher page shows each receipt inline below its link, lazily loaded
+// from the download, by the type the download sends: a PDF in a frame, a
+// JPEG, PNG or GIF as an image; another type (also HTML) and a receipt the
+// download refuses get the link only.
+$previewCases = array_merge(
+    [[9101, 4711, 'application/pdf'], [9102, 815, 'image/jpeg']],
+    array_map(fn($case) => [$case[0], $case[1], $case[5]], $storedCases),
+);
+$pages = [];
+foreach ([4711, 815] as $voucherId) {
+    $page = http_request('/index.php?action=edit&id=' . $voucherId, 'GET', [], $adminCookies);
+    assert_status($page, 200, "voucher page $voucherId");
+    $pages[$voucherId] = $page['body'];
+}
+foreach ($previewCases as [$id, $voucherId, $type]) {
+    $link = '<a href="?action=file&id=' . $id . '" target="_blank">Beleg Anzeigen</a>';
+    if ($type === 'application/pdf') {
+        $preview = '<iframe src="?action=file&id=' . $id . '" title="Beleg" loading="lazy"'
+            . ' style="display: block; clear: both; width: 100%; height: 40em;"></iframe>';
+    } elseif ($type !== null && str_starts_with($type, 'image/')) {
+        $preview = '<img src="?action=file&id=' . $id . '" alt="Beleg" loading="lazy"'
+            . ' style="display: block; clear: both; max-width: 100%;" />';
+    } else {
+        $preview = null;
+    }
+    assert_contains($pages[$voucherId], $link, "receipt link of $id");
+    if ($preview !== null) {
+        assert_contains($pages[$voucherId], $preview, "receipt preview of $id ($type)");
+    }
+    if (substr_count($pages[$voucherId], 'src="?action=file&id=' . $id . '"') !== ($preview === null ? 0 : 1)) {
+        fail_test("receipt $id ($type) has the wrong number of previews");
     }
 }
 

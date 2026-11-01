@@ -560,6 +560,14 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="file' . $part . '">Beleg</label>';
     if (intval($voucher['file']) > 0) {
         echo '<a href="?action=file&id=' . $voucher['bid'] . '" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file' . $part . '" value="' . $voucher['file'] . '" />';
+        // Inline preview of a PDF or image, as file.php sends it (other types:
+        // the link only), loaded when scrolled into view.
+        $preview_type = receipt_preview_type($voucher['bid'], $rights);
+        if ($preview_type == 'application/pdf') {
+            echo '<iframe src="?action=file&id=' . $voucher['bid'] . '" title="Beleg" loading="lazy" style="display: block; clear: both; width: 100%; height: 40em;"></iframe>';
+        } elseif (in_array($preview_type, ['image/jpeg', 'image/png', 'image/gif'], true)) {
+            echo '<img src="?action=file&id=' . $voucher['bid'] . '" alt="Beleg" loading="lazy" style="display: block; clear: both; max-width: 100%;" />';
+        }
     } elseif (intval($voucher['file']) == 0) {
         echo '
 <input type="hidden" name="MAX_FILE_SIZE" value="100000000" />

@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=5001 as admin
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (23923 bytes) ---
+--- body (24060 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -287,7 +287,7 @@ function merge()
 </div>
 </div>
 <div id="city0">
-<label class="ui_field_label" for="file0">Beleg</label><a href="?action=file&id=1001" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file0" value="100" />
+<label class="ui_field_label" for="file0">Beleg</label><a href="?action=file&id=1001" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file0" value="100" /><iframe src="?action=file&id=1001" title="Beleg" loading="lazy" style="display: block; clear: both; width: 100%; height: 40em;"></iframe>
 </div>
 <div id="del_voucher_0" style="float: right;">
 <a href="javascript:deleteB(0);">Diese Buchungszeile löschen</a>

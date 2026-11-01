@@ -50,6 +50,8 @@ SELECT id,name FROM person_type ORDER BY used DESC,id ASC
 -- next
 SELECT id,name FROM lo ORDER BY id ASC
 -- next
+SELECT file, voucher_id FROM vouchers WHERE NOT deleted AND id = 220 ;
+-- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
