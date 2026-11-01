@@ -40,6 +40,29 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
   `deploy/`, `public/.htaccess` and `scripts/release.sh` no longer allow
   it. The helper `membership_encrypt()` (only used by the export) is
   removed.
+- **Behaviour change**: the member list (`getusers.php`; the member-fee
+  page, the bank import, saving a member voucher) comes from the
+  membership system's `members.php` as JSON over its internal TLS listener
+  instead of the encrypted `adm_names.php` of the old membership system.
+  Settings in `sync-secrets.php`: `members_url` (https only),
+  `members_token` (sent as `Authorization: Bearer`) and `members_cafile`
+  (the only trust anchor); with `deploy/` the variables
+  `pgacc_members_url`, `pgacc_members_token` (64 hex characters, the same
+  as on the membership system) and `pgacc_members_cert` (written to
+  `/etc/pgacc/admidio-addons-tls.crt`), empty by default, so the member
+  list is off and those pages fail with "Mitgliederliste nicht
+  konfiguriert!". The fetch requires a verified certificate, no redirect,
+  HTTP 200 and a complete body of at most 4 MiB within 20 seconds that
+  matches its `Content-Length` (if sent: 1-18 digits), and
+  refuses the whole list if a row is malformed or a member id or uuid
+  appears twice (fail closed as before). The member list stores each
+  member's uuid; the member-fee page links profiles by `user_uuid`, the
+  ledger listing and the voucher form show the member id as text instead
+  of a link. `membership_decrypt()` is removed.
+- With both directions on sync v2 nothing reads `$datakey` of
+  `constants.php` any more: `membership_cipher_params()` is removed, the
+  playbook of `deploy/` no longer writes a `$datakey` into a new
+  `constants.php`, and an existing `$datakey` line is ignored.
 
 ### Changed
 

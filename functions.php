@@ -1158,18 +1158,6 @@ function receipt_v2_send($receipt)
     }
 }
 
-// Membership-system member list (getusers.php): key and IV.
-function membership_cipher_params($datakey)
-{
-    return [md5($datakey), md5(md5($datakey))];
-}
-
-function membership_decrypt($datakey, $data)
-{
-    [$cipherKey, $iv] = membership_cipher_params($datakey);
-    return rijndael256_decrypt($cipherKey, $data, $iv);
-}
-
 /*
  * Login sessions. users.cookie (an integer column) holds a random nonce that
  * every login replaces and logout clears. The pp_pgacc_login cookie is an

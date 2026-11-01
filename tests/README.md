@@ -231,15 +231,20 @@ constraints; no backup table, owners, permissions, credentials or rows).
 The membership system never leaves the test network: `compose.test.yaml` runs
 the reference stub (`tests/reference/membership/server.php`) as the service
 `membership` under the alias `mitglieder.piratenpartei.at`, and
-`tests/runtime/test-constants.php` sets the synthetic `$datakey` of its member
-list. The application service waits for it.
+`tests/runtime/test-sync-secrets.php` (the image's and the development
+loop's `sync-secrets.php`) sets the URL, the synthetic token (which the stub
+requires; 403 otherwise) and the `members_cafile` of its member list. The
+application service waits for it.
 
-The stub speaks HTTPS, and `getusers()` verifies its certificate with PHP's
-default settings (verification is never turned off). A build stage of
+The stub speaks HTTPS, and `getusers()` verifies its certificate against
+`members_cafile` only (verification is never turned off). A build stage of
 `tests/php-runtime.Dockerfile` generates a synthetic test CA and a server
 certificate for `mitglieder.piratenpartei.at` on every image build; the CA key
 stays in that stage, and nothing is committed. The application image trusts
-the CA system-wide (`update-ca-certificates`), and the stub runs from the same
+the CA system-wide too (`update-ca-certificates`; `GetUsersTest` shows that
+a certificate the system trusts is refused unless it is from
+`members_cafile`, and that the stub's self-signed certificate is accepted
+when it is `members_cafile`), and the stub runs from the same
 image with the server certificate (`/etc/pgacc-test-tls/membership.pem`), so
 the reference image, which builds on it, gets both too. The certificates are
 valid from 2020 to 2099 because the reference runs fake the application's
@@ -247,18 +252,21 @@ clock. The tests control the stub over plain HTTP on port 80 (only the
 `/__stub/` controls are served there): `GET
 http://mitglieder.piratenpartei.at/__stub/mode?set=<mode>` switches the
 member-list response, and `POST .../__stub/body` serves a given body (the unit
-tests, `tests/unit/MembershipStub.php`). The modes (`short`, `garbage`,
-`empty`, `flow`, `overflow`, `redirect`, `redirect-http`, `selfsigned`,
-`wrongname`, `error`, ...) and the response format as `getusers.php` reads it
-are documented in the header of `server.php`; `selfsigned` and `wrongname`
+tests, `tests/unit/MembershipStub.php`). The modes (`malformed`, `empty`,
+`invalid-row`, `duplicate`, `bad-uuid`, `flow`, `overflow`, `redirect`,
+`redirect-http`, `selfsigned`, `wrongname`, `error`, `stall`) are documented in
+the header of `server.php`; `selfsigned` and `wrongname`
 present a self-signed and a wrong-name certificate (also generated per build)
 that `getusers()` must refuse. `tests/http-import.php` uses the modes for the
 failure cases and a member match; the refused handshakes' warnings are
 attributed with `with_expected_diagnostics()` (`tests/http-diagnostics.php`), and
 `/__stub/list-requests` proves that no redirect was followed.
 `GetUsersTest` fetches the synthetic `flow` list
-(`tests/reference/membership/flow.tsv`) over HTTPS and checks the exact
-`ppmembers` rows.
+(`tests/reference/membership/flow.json`) over HTTPS and checks the exact
+`ppmembers` rows, refuses every kind of malformed list, a body over 4 MiB
+(exactly 4 MiB is read), a read that timed out (`stall`) and a
+`sync-secrets.php` that does not load, and checks the settings, the UUID
+check and the profile links.
 
 All test servers run with `output_buffering=4096`, but no redirect depends on
 it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat
@@ -327,6 +335,14 @@ the listener off and `pgacc_sync_listen_address` in
 `ansible_all_ipv4_addresses` pass, an address the host does not have fails.
 Red evidence: the playbook without that assertion passes the last case.
 
+It also runs `sh tests/sync-secrets-template.sh` (Docker, ansible-core,
+PHP 8.5): `deploy/ansible/templates/sync-secrets.php.j2` rendered with
+Ansible's template module for payments only, members only and both, each
+file loaded with the real readers of the checkout, `sync_api_config()` and
+`getusers_config()` (a reader that is not there is skipped): the exact
+array, accepted with the expected values, refused without its keys. Red
+evidence: the template with `payment_token` and `member_token` fails.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets
@@ -335,8 +351,8 @@ warnings fail the run (PHPUnit 13 reports them per test instead of throwing). Th
 rendering and the two PostgreSQL helpers), `src/format.php` (`AmountParsingTest.php`, `FormatTest.php`,
 `format_date()` in `FunctionsTest.php`), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
-(vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
-(stubbed `http://` stream wrapper), `ImportMemberMatchTest.php`,
+(receipt vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
+(the TLS membership stub, `MembershipStub.php`), `ImportMemberMatchTest.php`,
 `ReceiptImportTest.php` (the import's `<n>.v2.aes`, refusals without a valid
 key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
 short reads via `ShortReadStream.php`, and the 20 MB memory check
@@ -610,9 +626,8 @@ recording has:
   `fixtures/make-pdf.php`), receipt upload/download and the
   member-fee page. `mitglieder.piratenpartei.at` resolves to the HTTPS stub
   (`membership/server.php`) inside the network; it serves
-  `membership/adm_names.b64` (synthetic members, key in
-  `runtime/reference-constants.php`, regenerated by `membership/generate.php`)
-  and `membership-stub.txt` records what it received.
+  `membership/members.json` (synthetic members) and `membership-stub.txt`
+  records what it received.
 - `diagnostics/*.txt`: PHP diagnostics per request (compared like the rest:
   a new, changed or missing diagnostic fails).
 

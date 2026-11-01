@@ -8,10 +8,9 @@
 #
 # Cases: payments only (pgacc_sync_listen_address set), members only
 # (pgacc_members_url set), both. Each file must return exactly the expected
-# array, and each reader present here must accept it with those values or
-# refuse it when its keys are absent: sync_api_config() (src/sync-api.php,
-# internal/mbapi.php) and getusers_config() (getusers.php). A reader that is
-# not in this checkout is skipped; at least one must be present. Synthetic
+# array, and both readers must accept it with those values or refuse it
+# when their keys are absent: sync_api_config() (src/sync-api.php,
+# internal/mbapi.php) and getusers_config() (getusers.php). Synthetic
 # values only. The temporary directory is removed at the end.
 set -eu
 
@@ -62,19 +61,9 @@ $payments = ['payments_token' => str_repeat('a', 64), 'payments_peers' => ['192.
 $members = ['members_url' => 'https://192.0.2.20:8443/members.php', 'members_token' => str_repeat('b', 64),
     'members_cafile' => '/etc/pgacc/admidio-addons-tls.crt'];
 $cases = ['payments' => $payments, 'members' => $members, 'both' => $payments + $members];
-$readers = [];
-if (is_file('src/sync-api.php')) {
-    require 'src/sync-api.php';
-    $readers['sync_api_config'] = array_keys($payments);
-}
-if (is_file('getusers.php') && strpos(file_get_contents('getusers.php'), 'function getusers_config(') !== false) {
-    require 'getusers.php';
-    $readers['getusers_config'] = array_keys($members);
-}
-if ($readers === []) {
-    echo "FAIL: no reader of sync-secrets.php in this checkout\n";
-    exit(1);
-}
+require 'src/sync-api.php';
+require 'getusers.php';
+$readers = ['sync_api_config' => array_keys($payments), 'getusers_config' => array_keys($members)];
 $failed = 0;
 foreach ($cases as $name => $expected) {
     $file = "/out/$name.php";

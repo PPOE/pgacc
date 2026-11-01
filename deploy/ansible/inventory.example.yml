@@ -27,8 +27,13 @@ all:
     # pgacc_timezone: UTC   # Europe/Vienna with the membership sync (deploy/README.md)
     # pgacc_backup_keep_days: 7
     # pgacc_disable_sshd: true
-    # /etc/hosts entries, e.g. when the internal DNS does not resolve the
-    # membership system's public name: point it at the reverse proxy (see
+    # The member list of the membership system (README.md, "Member list").
+    # Off while pgacc_members_url is empty (the default); keep the token in
+    # a vault (openssl rand -hex 32, once).
+    # pgacc_members_url: https://192.0.2.20:8443/members.php
+    # pgacc_members_token: "{{ vault_pgacc_members_token }}"
+    # pgacc_members_cert: "{{ lookup('ansible.builtin.file', 'admidio-addons-tls.crt') }}"
+    # /etc/hosts entries for names the internal DNS does not resolve (see
     # README.md, "Membership system"). Empty by default: nothing is written.
     # pgacc_extra_hosts:
     #   - { ip: 192.0.2.1, names: [members.example.org] }

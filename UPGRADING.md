@@ -109,6 +109,57 @@ system that called it is shut down). Remove `/mbapi.php` from the allow list
 of a web server configured by hand and from monitoring; the nginx site of
 `deploy/` and `public/.htaccess` no longer allow it.
 
+### Member list from the membership system (`getusers.php`)
+
+**Behaviour change.** `getusers.php` (the member-fee page, the bank import,
+saving a voucher with a member part) no longer fetches the encrypted
+`adm_api/adm_names.php` of the old membership system (shut down). It fetches
+the JSON member list of the membership system's `members.php` over its
+internal TLS listener, with a token. Settings in `sync-secrets.php` (above):
+`members_url` (https only), `members_token` and `members_cafile` (the
+membership system's certificate, the only trust anchor); with `deploy/` the
+inventory variables `pgacc_members_url`, `pgacc_members_token` and
+`pgacc_members_cert`, see [deploy/README.md](deploy/README.md), "Member
+list".
+
+- Without them, or if `sync-secrets.php` does not load, the pages that need
+  the list stop with "Mitgliederliste nicht konfiguriert!" (fail closed, as
+  for any failed fetch).
+- The fetch verifies the certificate and its name or address against
+  `members_cafile` only, sends `Authorization: Bearer <token>`, follows no
+  redirects, times out after 20 seconds and needs HTTP 200 with a complete
+  body of at most 4 MiB that matches its `Content-Length` header, if there
+  is one (1-18 digits; anything else fails). The list must be valid as a whole
+  (`[{"id": int, "uuid": string, "name": string, "lo": int|null, "paid": 0|1}]`,
+  exactly these fields, a positive id and a UUID per member, none twice);
+  otherwise "Daten von Mitgliederverwaltung ungültig!" and nothing is
+  loaded. Names are UTF-8 as sent (no more ISO-8859-15 conversion or
+  backslash unescaping). `lo` is mapped to the organizations as before (44
+  and unknown roles or none: 10).
+- The member list now also holds each member's `uuid`. The member-fee page
+  links a member's profile by `user_uuid` (the membership system opens
+  profiles by uuid only); the ledger listing and the voucher form show the
+  member id as plain text instead of a link.
+
+Rollout order: the membership system's listener must serve `members.php`
+before `pgacc_members_url` (or `members_url`) is set. Check it from the
+pgacc host with its certificate saved as `admidio-addons-tls.crt` (the
+playbook writes `/etc/pgacc/admidio-addons-tls.crt` only once the URL is
+set); it must print 200:
+
+```sh
+curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
+  https://192.0.2.20:8443/members.php -o /dev/null -w '%{http_code}\n'
+```
+
+### `$datakey` no longer used
+
+With both directions on sync v2 nothing reads `$datakey` of `constants.php`
+any more (it was the key of the encrypted exports). `constants.php` needs
+only `$key`; an existing `$datakey` line is ignored and can stay or be
+removed. The playbook of `deploy/` no longer writes one into a new
+`constants.php`.
+
 ## Document root `public/` (deployment change)
 
 This release changes how pgacc is deployed; it is meant for a major release.

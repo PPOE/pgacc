@@ -45,7 +45,7 @@ services:
         condition: service_healthy
 
   # Local membership-system stub (HTTPS, see compose.test.yaml): getusers()
-  # fetches https://mitglieder.piratenpartei.at/adm_api/adm_names.php, which this alias
+  # fetches https://mitglieder.piratenpartei.at/members.php, which this alias
   # resolves to inside the internal test network.
   membership:
     image: ${PGACC_REFERENCE_IMAGE:?}

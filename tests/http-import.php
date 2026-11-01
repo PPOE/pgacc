@@ -374,8 +374,9 @@ if (import_count($database, 'Synthetic Handkassa line after blank lines') !== 1 
 // getusers() loads the member list into ppmembers, a temporary table of the
 // request's connection, only from a complete, valid response of the
 // membership stub (HTTPS, compose.test.yaml). A failed fetch (an HTTP error,
-// a redirect, a refused certificate), a short or an undecryptable response,
-// or an SQL error stops the page with an error. A shared ppmembers table (as
+// a redirect, a refused certificate), a malformed list (not JSON, empty, a
+// row without its uuid, a member twice, a uuid that is not a UUID) or an SQL
+// error stops the page with an error. A shared ppmembers table (as
 // earlier releases kept one, planted here) is never read or changed.
 function membership_stub_mode($mode)
 {
@@ -400,6 +401,10 @@ membership_stub_mode('ok');
 $memberPage = http_request('/index.php?action=mb', 'GET', [], $adminCookies);
 assert_status($memberPage, 200, 'member-fee page');
 assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
+// The member's profile is linked by uuid (Admidio opens profiles by
+// user_uuid only), not by id.
+assert_contains($memberPage['body'], '<td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001</a> (', 'member-fee page profile link');
+assert_not_contains($memberPage['body'], 'user_id=', 'member-fee page profile link');
 // A bank import matches a line's name against the list it just fetched (the
 // stub's "flow" list; its rows are checked in GetUsersTest): the voucher
 // becomes a membership fee (type 1) of that member.
@@ -412,6 +417,16 @@ $flowFields = $flowRow === false ? false : pg_fetch_all($flowRow);
 if ($flowFields !== [['name' => 'Jürgen Größe-Weiß', 'member_id' => '9111', 'type' => '1']]) {
     fail_test('member line with the flow list: ' . var_export($flowFields, true));
 }
+// The ledger and the voucher form show the member id as text: they do not
+// load the member list, so they have no uuid to link the profile with.
+$flowVoucher = pg_fetch_result(pg_query_params($database, 'SELECT voucher_id FROM vouchers WHERE comment = $1', ['Synthetic flow member line']), 0, 0);
+$ledger = http_request('/index.php?action=all&filter_member_id=9111', 'GET', [], $adminCookies);
+assert_contains($ledger['body'], '<td>9111</td>', 'ledger member id');
+$voucherForm = http_request('/index.php?action=edit&id=' . $flowVoucher, 'GET', [], $adminCookies);
+assert_contains($voucherForm['body'], ' &middot; Nr. 9111', 'voucher form member id');
+foreach (['ledger' => $ledger, 'voucher form' => $voucherForm] as $label => $page) {
+    assert_not_contains($page['body'], 'profile.php', "$label without a profile link");
+}
 membership_stub_mode('ok');
 foreach (['DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',
     "INSERT INTO ppmembers VALUES (8801, 'Synthetic Kept Member', 1, 1), (8802, 'Synthetic Kept Other', 10, 0)"] as $query) {
@@ -421,14 +436,16 @@ foreach (['DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer,
 }
 $members = member_rows($database);
 $failures = [
-    'short' => 'Daten von Mitgliederverwaltung zu kurz!',
-    'garbage' => 'Daten von Mitgliederverwaltung ungültig!',
+    'malformed' => 'Daten von Mitgliederverwaltung ungültig!',
     'empty' => 'Daten von Mitgliederverwaltung ungültig!',
+    'invalid-row' => 'Daten von Mitgliederverwaltung ungültig!',
+    'duplicate' => 'Daten von Mitgliederverwaltung ungültig!',
+    'bad-uuid' => 'Daten von Mitgliederverwaltung ungültig!',
     'error' => 'Mitgliederliste konnte nicht abgerufen werden!',
     // Redirects are not followed, also not to the same host over HTTPS.
     'redirect' => 'Mitgliederliste konnte nicht abgerufen werden!',
     'redirect-http' => 'Mitgliederliste konnte nicht abgerufen werden!',
-    // The INSERT fails (member id out of range) after DROP and CREATE: the
+    // The INSERT fails (member id out of range) after DELETE: the
     // transaction is rolled back.
     'overflow' => 'Abfrage fehlgeschlagen: ',
     // Certificate verification: PHP's warnings of the refused handshake
@@ -448,7 +465,7 @@ foreach ($failures as $mode => $message) {
         }
     };
     if ($mode === 'selfsigned' || $mode === 'wrongname') {
-        with_expected_diagnostics("refused $mode certificate", [['getusers.php', 'file_get_contents(']], $requests);
+        with_expected_diagnostics("refused $mode certificate", [['getusers.php', 'stream_socket_client(']], $requests);
     } else {
         $requests();
     }

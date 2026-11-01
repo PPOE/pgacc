@@ -2,12 +2,11 @@
 
 /*
  * The mcrypt replacement in functions.php (Rijndael-256 CBC, zero padding)
- * and its four call sites: receipt upload (new.php), PDF import
- * (import2.php), receipt download (file.php) and membership import
- * (getusers.php); the receipt storage helpers
+ * and its three call sites: receipt upload (new.php), PDF import
+ * (import2.php) and receipt download (file.php); the receipt storage helpers
  * (configured key, <n>.v2.aes and legacy <n>.aes) and the receipt key
  * migration (migrate-receipt-key.php). Killed by the mcrypt contract vectors
- * (tests/unit/CryptoTest.php), the storage, getUsers(), import and migration
+ * (tests/unit/CryptoTest.php), the storage, import and migration
  * tests, and the HTTP receipt tests. See tests/mutation/README.md
  * for the format.
  */
@@ -16,7 +15,6 @@ return [
     'file' => 'functions.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'CryptoTest', 'file' => 'tests/unit/CryptoTest.php'],
-        ['type' => 'phpunit', 'filter' => 'GetUsersTest', 'file' => 'tests/unit/GetUsersTest.php'],
         ['type' => 'phpunit', 'filter' => 'ReceiptImportTest', 'file' => 'tests/unit/ReceiptImportTest.php'],
         ['type' => 'phpunit', 'filter' => 'ReceiptStorageTest', 'file' => 'tests/unit/ReceiptStorageTest.php'],
         ['type' => 'phpunit', 'filter' => 'ReceiptMigrationTest', 'file' => 'tests/unit/ReceiptMigrationTest.php'],
@@ -72,12 +70,6 @@ return [
         ['id' => 'receipt-decrypt-params-swapped',
             'search' => "    return rijndael256_decrypt(\$cipherKey, \$data, \$iv);\n}\n\n/*\n * Receipt storage", 'replace' => "    return rijndael256_decrypt(\$iv, \$data, \$cipherKey);\n}\n\n/*\n * Receipt storage",
             'rationale' => 'Decryption passes key and IV in the same order as encryption.'],
-        ['id' => 'membership-key-not-hashed',
-            'search' => 'return [md5($datakey), md5(md5($datakey))];', 'replace' => 'return [md5(md5($datakey)), md5(md5($datakey))];',
-            'rationale' => 'The membership key is md5(datakey).'],
-        ['id' => 'membership-iv-hashed-once',
-            'search' => 'return [md5($datakey), md5(md5($datakey))];', 'replace' => 'return [md5($datakey), md5($datakey)];',
-            'rationale' => 'The membership IV is md5(md5(datakey)).'],
 
         // Receipt storage helpers (functions.php).
         ['id' => 'key-short-accepted',
@@ -582,11 +574,5 @@ return [
         ['id' => 'migration-ignored-outside-sample-unchecked', 'file' => 'migrate-receipt-key.php',
             'search' => "array_intersect(\$checked, \$options['ignore-unverified'])", 'replace' => '[]',
             'rationale' => 'A file of --ignore-unverified outside the sample is skipped too.'],
-        ['id' => 'members-padding-kept', 'file' => 'getusers.php',
-            'search' => '$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");', 'replace' => '$decrypted = membership_decrypt($datakey, base64_decode($sData));',
-            'rationale' => 'The zero padding is stripped before the lines are parsed.'],
-        ['id' => 'members-not-base64-decoded', 'file' => 'getusers.php',
-            'search' => '$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");', 'replace' => '$decrypted = rtrim(membership_decrypt($datakey, $sData), "\0");',
-            'rationale' => 'The membership system sends base64.'],
     ],
 ];

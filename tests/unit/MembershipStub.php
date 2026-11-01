@@ -16,13 +16,15 @@ final class MembershipStub
         return $answer;
     }
 
-    // The member list $plain as the membership system sends it: base64 of
-    // Rijndael-256/CBC with membership_cipher_params($datakey), zero padded
-    // (as membership_stub_encrypt() of the stub).
-    public static function encrypt($datakey, $plain)
+    // Serves the members [[id, name, lo, paid], ...] as the membership
+    // system's JSON list (uuid derived from the id) until reset().
+    public static function serveMembers(array $members)
     {
-        [$cipherKey, $iv] = membership_cipher_params($datakey);
-        return base64_encode(rijndael256_encrypt($cipherKey, $plain, $iv));
+        $list = [];
+        foreach ($members as [$id, $name, $lo, $paid]) {
+            $list[] = ['id' => $id, 'uuid' => sprintf('00000000-0000-4000-8000-%012d', $id), 'name' => $name, 'lo' => $lo, 'paid' => $paid];
+        }
+        self::serve(json_encode($list));
     }
 
     // Serves $body as the member list until reset().
