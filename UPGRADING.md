@@ -162,7 +162,8 @@ removed. The playbook of `deploy/` no longer writes one into a new
 
 ## Document root `public/` (deployment change)
 
-This release changes how pgacc is deployed; it is meant for a major release.
+From 2.3.0 (see [CHANGELOG.md](CHANGELOG.md), "2.3.0"), pgacc is deployed
+differently.
 The web server's document root is now the `public/` directory of the release,
 not the release root. `public/` holds only what must be reachable over the
 web:
