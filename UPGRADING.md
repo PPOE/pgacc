@@ -128,7 +128,8 @@ list".
 - The fetch verifies the certificate and its name or address against
   `members_cafile` only, sends `Authorization: Bearer <token>`, follows no
   redirects, times out after 20 seconds and needs HTTP 200 with a complete
-  body of at most 4 MiB. The list must be valid as a whole
+  body of at most 4 MiB that matches its `Content-Length` header, if there
+  is one (1-18 digits; anything else fails). The list must be valid as a whole
   (`[{"id": int, "uuid": string, "name": string, "lo": int|null, "paid": 0|1}]`,
   exactly these fields, a positive id and a UUID per member, none twice);
   otherwise "Daten von Mitgliederverwaltung ungültig!" and nothing is

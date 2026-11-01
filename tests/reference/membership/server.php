@@ -36,6 +36,11 @@
  *   stall         the member list, but only its first half, then nothing
  *                 for 3 seconds before the connection closes (a read
  *                 timeout; GetUsersTest)
+ *   short         the member list with its full Content-Length, but only
+ *                 its first half, then the connection closes at once (a
+ *                 cut-off body, no timeout; GetUsersTest)
+ *   long          the member list with a Content-Length one byte less
+ *   badlength     the member list with the Content-Length "<length>x"
  *   trickle       the member list in 8 parts, one per second (each read
  *                 is quick, the whole response is not; GetUsersTest)
  *   tricklehead   as trickle, but 8 extra header lines, one per second
@@ -58,7 +63,7 @@ $bodyFile = '/tmp/pgacc-membership-stub-body';
 $listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
 $membersRequestsFile = '/tmp/pgacc-membership-stub-members-requests';
 $modes = ['ok', 'malformed', 'empty', 'invalid-row', 'duplicate', 'bad-uuid', 'flow', 'overflow', 'body',
-    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error', 'stall', 'trickle', 'tricklehead'];
+    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error', 'stall', 'short', 'long', 'badlength', 'trickle', 'tricklehead'];
 $membersToken = (require '/app/tests/runtime/test-sync-secrets.php')['members_token'];
 $certificates = [
     'selfsigned' => '/etc/pgacc-test-tls/selfsigned.pem',
@@ -207,11 +212,18 @@ while (true) {
             file_put_contents($pgaccStubLog, $method . ' ' . $uri . "\n", FILE_APPEND | LOCK_EX);
         }
         list($status, $responseBody) = membership_stub_response($secure, $method, $uri, $authorization, $body, $modeFile, $bodyFile, $modes);
-        $head = "HTTP/1.0 $status\r\nContent-Type: text/plain\r\nContent-Length: " . strlen($responseBody)
+        $length = (string) strlen($responseBody);
+        if ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0) {
+            $lengths = ['long' => (string) (strlen($responseBody) - 1), 'badlength' => $length . 'x'];
+            $length = $lengths[membership_stub_mode($modeFile)] ?? $length;
+        }
+        $head = "HTTP/1.0 $status\r\nContent-Type: text/plain\r\nContent-Length: " . $length
             . "\r\nConnection: close\r\n\r\n";
         if ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0 && membership_stub_mode($modeFile) === 'stall') {
             @fwrite($client, $head . substr($responseBody, 0, intdiv(strlen($responseBody), 2)));
             sleep(3);
+        } elseif ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0 && membership_stub_mode($modeFile) === 'short') {
+            @fwrite($client, $head . substr($responseBody, 0, intdiv(strlen($responseBody), 2)));
         } elseif ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0
             && in_array(membership_stub_mode($modeFile), ['trickle', 'tricklehead'], true)) {
             $parts = membership_stub_mode($modeFile) === 'trickle'

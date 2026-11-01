@@ -52,7 +52,8 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
   `/etc/pgacc/admidio-addons-tls.crt`), empty by default, so the member
   list is off and those pages fail with "Mitgliederliste nicht
   konfiguriert!". The fetch requires a verified certificate, no redirect,
-  HTTP 200 and a complete body of at most 4 MiB within 20 seconds, and
+  HTTP 200 and a complete body of at most 4 MiB within 20 seconds that
+  matches its `Content-Length` (if sent: 1-18 digits), and
   refuses the whole list if a row is malformed or a member id or uuid
   appears twice (fail closed as before). The member list stores each
   member's uuid; the member-fee page links profiles by `user_uuid`, the

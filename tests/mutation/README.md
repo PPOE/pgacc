@@ -428,7 +428,9 @@ Accepted equivalents (reasons in the target files):
 - `import-checks`: `upload-row-check-removed`, `upload-update-unscoped`,
   `upload-update-any-voucher` (the scoped row check before the finalized check
   already refuses those rows), `upload-update-ignores-previous-file` and
-  `import2-update-ignores-file` (differ only under a concurrent change).
+  `import2-update-ignores-file` (differ only under a concurrent change),
+  `members-timed-out-body-accepted` (on a TLS stream `fread()` returns false
+  on a read timeout, which `getusers_fetch()` refuses already).
 - `report-prevcond`: `prevcond-passes-prev-cond` (`unit_report()` never reads
   its first parameter).
 - `output-escaping`: the `html_escape()` around the `vreport.php` and `tinyreport.php` account links (they hold only a path and a `rawurlencode()`d value).

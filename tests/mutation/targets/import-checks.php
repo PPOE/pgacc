@@ -198,7 +198,7 @@ return [
         [
             'id' => 'members-error-status-accepted',
             'file' => 'getusers.php',
-            'search' => "    if (!is_string(\$status) || !preg_match('#^HTTP/\\S+ 200( |\$)#', \$status)) {",
+            'search' => "    if (!preg_match('#^HTTP/\\S+ 200( |\$)#', \$status)) {",
             'replace' => '    if (false) {',
             'rationale' => 'A failed fetch (HTTP error status, redirect) stops with its own error.',
         ],
@@ -219,9 +219,12 @@ return [
         [
             'id' => 'members-timed-out-body-accepted',
             'file' => 'getusers.php',
-            'search' => " || \$meta['timed_out']",
-            'replace' => '',
+            'search' => "if (\$chunk === false || stream_get_meta_data(\$stream)['timed_out']) {",
+            'replace' => 'if ($chunk === false) {',
             'rationale' => 'A read that timed out is refused, not returned in part.',
+            'equivalent' => ['reason' => 'On a TLS stream PHP 8.5 fread() returns false when the read '
+                . 'times out, so the $chunk === false test already refuses it (the stall test passes '
+                . 'with the mutant); timed_out is kept as a second check.'],
         ],
         [
             'id' => 'members-broken-config-fatal',
@@ -231,11 +234,25 @@ return [
             'rationale' => 'A sync-secrets.php that does not load fails closed, not with a fatal error.',
         ],
         [
-            'id' => 'members-redirect-followed',
+            'id' => 'members-deadline-ignored',
             'file' => 'getusers.php',
-            'search' => "'follow_location' => 0",
-            'replace' => "'follow_location' => 1",
-            'rationale' => 'Redirects are not followed (no other host, no plain HTTP).',
+            'search' => '$left = max(1, (int) (($deadline - microtime(true)) * 1000000));',
+            'replace' => '$left = 20000000;',
+            'rationale' => 'The timeout is overall: a response that trickles in is refused at the deadline.',
+        ],
+        [
+            'id' => 'members-url-scheme-unchecked',
+            'file' => 'getusers.php',
+            'search' => " || (\$url['scheme'] ?? '') !== 'https'",
+            'replace' => '',
+            'rationale' => 'Only an https URL is fetched, also when getusers_fetch() is called directly.',
+        ],
+        [
+            'id' => 'members-url-user-accepted',
+            'file' => 'getusers.php',
+            'search' => " || isset(\$url['user'])",
+            'replace' => '',
+            'rationale' => 'A URL with user info (a user or a password) is refused.',
         ],
         [
             'id' => 'members-peer-name-unchecked',
@@ -254,9 +271,30 @@ return [
         [
             'id' => 'members-token-not-sent',
             'file' => 'getusers.php',
-            'search' => "'header' => 'Authorization: Bearer ' . \$config['members_token'] . \"\\r\\nAccept: application/json\\r\\n\",",
-            'replace' => "'header' => \"Accept: application/json\\r\\n\",",
+            'search' => ". 'Authorization: Bearer ' . \$config['members_token'] . \"\\r\\nAccept: application/json",
+            'replace' => ". \"Accept: application/json",
             'rationale' => 'The request carries the configured token.',
+        ],
+        [
+            'id' => 'members-content-length-ignored',
+            'file' => 'getusers.php',
+            'search' => '    foreach ($lengths[1] as $length) {',
+            'replace' => '    foreach ([] as $length) {',
+            'rationale' => 'A body that does not match its Content-Length (cut short, longer) is refused.',
+        ],
+        [
+            'id' => 'members-content-length-format-unchecked',
+            'file' => 'getusers.php',
+            'search' => "!preg_match('/^[0-9]{1,18}\$/D', \$length) || ",
+            'replace' => '',
+            'rationale' => 'A Content-Length that is not 1-18 digits fails closed.',
+        ],
+        [
+            'id' => 'members-content-length-case-sensitive',
+            'file' => 'getusers.php',
+            'search' => "[ \\t]*\\r?\$/im'",
+            'replace' => "[ \\t]*\\r?\$/m'",
+            'rationale' => 'Header names are case-insensitive: Content-Length is found in any case.',
         ],
         [
             'id' => 'members-plain-http-url-accepted',

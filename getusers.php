@@ -72,14 +72,15 @@ function getusers_config($file)
 // an error), so the list never comes from another host or over plain HTTP.
 // Only 200 is accepted, with a complete body of at most GETUSERS_MAX_BODY
 // bytes (a response not complete by the deadline is refused, not returned
-// in part). $timeout: seconds for connection, headers and body together
+// in part) that matches every Content-Length header, if there is one. $timeout: seconds for connection, headers and body together
 // (PHP's own stream timeout applies to each read only; the tests pass less).
 // The token is never logged.
 function getusers_fetch($config, $timeout = 20)
 {
     $deadline = microtime(true) + $timeout;
     $url = parse_url($config['members_url']);
-    if (!is_array($url) || ($url['scheme'] ?? '') !== 'https' || !isset($url['host']) || isset($url['user']) || isset($url['pass'])) {
+    // No user info (a password always comes with a user, if only an empty one).
+    if (!is_array($url) || ($url['scheme'] ?? '') !== 'https' || !isset($url['host']) || isset($url['user'])) {
         error_log('getusers: not an https URL');
         return null;
     }
@@ -109,12 +110,10 @@ function getusers_fetch($config, $timeout = 20)
     $limit = 65536 + GETUSERS_MAX_BODY + 1;
     $written = @fwrite($stream, $request) === strlen($request);
     while ($written && !feof($stream) && strlen($response) < $limit) {
-        $left = $deadline - microtime(true);
-        if ($left <= 0) {
-            $timedOut = true;
-            break;
-        }
-        stream_set_timeout($stream, (int) $left, (int) (($left - (int) $left) * 1000000));
+        // Microseconds to the deadline, at least 1: a timeout of 0 would
+        // mean none for a TLS stream; past the deadline the read times out.
+        $left = max(1, (int) (($deadline - microtime(true)) * 1000000));
+        stream_set_timeout($stream, intdiv($left, 1000000), $left % 1000000);
         $chunk = @fread($stream, min(65536, $limit - strlen($response)));
         if ($chunk === false || stream_get_meta_data($stream)['timed_out']) {
             $timedOut = true;
@@ -138,6 +137,16 @@ function getusers_fetch($config, $timeout = 20)
     if (!$complete || strlen($body) > GETUSERS_MAX_BODY) {
         error_log('getusers: incomplete or too large response');
         return null;
+    }
+    // Every Content-Length header (if any) must be digits only and equal to
+    // the body length (a body cut short by an early close is refused); a
+    // malformed value fails closed.
+    preg_match_all('/^content-length:[ \t]*([^\r\n]*?)[ \t]*\r?$/im', substr($response, 0, $end), $lengths);
+    foreach ($lengths[1] as $length) {
+        if (!preg_match('/^[0-9]{1,18}$/D', $length) || (int) $length !== strlen($body)) {
+            error_log('getusers: body length does not match Content-Length');
+            return null;
+        }
     }
     return $body;
 }

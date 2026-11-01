@@ -137,6 +137,13 @@ final class GetUsersTest extends FunctionsTestCase
             // but members_cafile is another certificate: only that one counts.
             'certificate not from members_cafile' => ['ok', ['members_cafile' => '/etc/pgacc-test-tls/selfsigned.pem']],
             'another token (403)' => ['ok', ['members_token' => 'synthetic-wrong-token']],
+            // getusers_fetch() checks the URL itself: each of these would
+            // otherwise reach the stub (https on port 443) and get the list.
+            'http URL' => ['ok', ['members_url' => 'http://mitglieder.piratenpartei.at/members.php']],
+            'user in the URL' => ['ok', ['members_url' => 'https://synthetic@mitglieder.piratenpartei.at/members.php']],
+            'password in the URL' => ['ok', ['members_url' => 'https://:synthetic@mitglieder.piratenpartei.at/members.php']],
+            'URL without a host' => ['ok', ['members_url' => 'https:/members.php']],
+            'URL that does not parse' => ['ok', ['members_url' => 'https:///members.php']],
         ];
     }
 
@@ -173,17 +180,51 @@ final class GetUsersTest extends FunctionsTestCase
     }
 
     // A response that stops in the middle of the body (the stub's "stall"
-    // mode) is refused when the read times out, not returned in part.
+    // mode) is refused when the read times out, not returned in part, and
+    // at the deadline, not only once the stub closes the connection (after
+    // 3 seconds; the Content-Length check would refuse it then too).
     public function testATimedOutResponseIsRefused()
     {
         $config = getusers_config('sync-secrets.php');
         MembershipStub::mode('stall');
+        $start = microtime(true);
         try {
             $body = getusers_fetch($config, 1);
+            $elapsed = microtime(true) - $start;
         } finally {
             MembershipStub::reset();
         }
         self::assertNull($body === null ? null : strlen($body));
+        self::assertLessThan(2.5, $elapsed);
+    }
+
+    // A 200 response whose body does not match its Content-Length is
+    // refused, not returned: cut short by an early close (no timeout),
+    // longer than the header says, or a value that is not 1-18 digits.
+    public static function contentLengthProvider()
+    {
+        return [
+            'body cut short by an early close' => ['short'],
+            'body longer than Content-Length' => ['long'],
+            'Content-Length malformed' => ['badlength'],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('contentLengthProvider')]
+    public function testABodyNotMatchingContentLengthIsRefused($mode)
+    {
+        $config = getusers_config('sync-secrets.php');
+        MembershipStub::mode($mode);
+        $start = microtime(true);
+        try {
+            $body = getusers_fetch($config, 10);
+            $elapsed = microtime(true) - $start;
+        } finally {
+            MembershipStub::reset();
+        }
+        self::assertNull($body === null ? null : strlen($body));
+        // Refused because of the length, not at the deadline.
+        self::assertLessThan(5, $elapsed);
     }
 
     // The timeout is overall: a response whose headers or body arrive in

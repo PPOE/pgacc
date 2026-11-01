@@ -331,7 +331,9 @@ curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
 `getusers.php` sends `Authorization: Bearer <token>`, verifies the
 certificate and its name or address against `members_cafile` only (not the
 system's CAs), follows no redirects, waits at most 20 seconds and accepts
-only HTTP 200 with a complete body of at most 4 MiB and a valid list:
+only HTTP 200 with a complete body of at most 4 MiB (equal to every
+`Content-Length` header, if there is one; a value that is not 1-18 digits
+fails) and a valid list:
 every row with exactly these fields, a positive id and a UUID that no other
 row has. Otherwise the list is not loaded and the page stops with an error
 (fail closed); without the settings the error is "Mitgliederliste nicht
