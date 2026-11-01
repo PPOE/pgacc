@@ -17,7 +17,7 @@
  * 2. Dot files and backup copies: 403.
  * 3. The short page addresses (/donations, ...): index.php?action=<name>,
  *    the request's query string appended.
- * 4. "/", index.php and mbapi.php run; style.css, js/*.js and icons/*.png are
+ * 4. "/" and index.php run; style.css, js/*.js and icons/*.png are
  *    served by the built-in server (return false); anything else 404.
  * 5. A served file whose path resolves through a symbolic link (nginx:
  *    disable_symlinks on from=$document_root) answers 403.
@@ -101,7 +101,7 @@ if (preg_match('#^/(vreport|tinyreport|donations|kdonations|spendings|wk|transac
     $pgacc_router_path = '/index.php';
 }
 
-if ($pgacc_router_path === '/index.php' || $pgacc_router_path === '/mbapi.php') {
+if ($pgacc_router_path === '/index.php') {
     if (!pgacc_router_plain_file($pgacc_router_path)) {
         unset($pgacc_router_path, $pgacc_router_match);
         return pgacc_router_answer(403);

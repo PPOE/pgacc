@@ -9,6 +9,106 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Sync v2 (membership sync)
+
+The data exchange with the membership system is replaced: two read-only
+JSON endpoints, called directly between the two hosts over TLS (not through
+the reverse proxy), with one token per direction and the caller's address
+checked, instead of the encrypted exports of the old membership system.
+The membership system's side is in the add-ons for it (`members.php`,
+`accsync.php`).
+
+Both directions are configured in `sync-secrets.php` in the release root
+(outside the document roots; with `deploy/` a link to
+`shared/sync-secrets.php`, like `constants.php`), readable by PHP but not
+writable (`root:<php group>`, mode 0640). It returns an array with the
+keys of the directions below; a direction without its keys refuses or
+fails closed, and so does a file that does not load (a syntax error):
+
+```php
+<?php
+return [
+    // internal/mbapi.php (payments for the membership system)
+    'payments_token' => '<64 hex characters>',
+    'payments_peers' => ['192.0.2.20'],
+    // getusers.php (member list from the membership system)
+    'members_url' => 'https://192.0.2.20:8443/members.php',
+    'members_token' => '<64 hex characters>',
+    'members_cafile' => '/etc/pgacc/admidio-addons-tls.crt',
+];
+```
+
+Each token is made once (`openssl rand -hex 32`) and the same value goes
+into the membership system's secrets file of that direction
+(`accsync-secrets.php` for the payments, `members-secrets.php` for the
+member list). With `deploy/` the playbook writes `shared/sync-secrets.php`
+from the inventory on every run (changes on the host are overwritten); see
+[deploy/README.md](deploy/README.md), "Membership system". Recommended:
+`pgacc_timezone: Europe/Vienna` (same section).
+
+### Internal sync endpoint `internal/mbapi.php` (optional)
+
+New and **off unless configured**: `internal/mbapi.php` gives the membership
+system the membership payments as JSON, on an internal TLS listener that the
+membership system calls directly. It replaces `public/mbapi.php` (below).
+Nothing else changes for a host that does not configure it.
+
+- `internal/` is a document root of its own and holds only `mbapi.php`
+  (which changes to the release root, like `public/index.php`). The
+  internal listener serves only `/mbapi.php` from it; the public site never
+  serves `internal/`.
+- Settings in `sync-secrets.php` (above): `payments_token` and
+  `payments_peers` (IPv4 addresses). Without them, with an empty token or
+  peer list, or if the file does not load, every request is refused.
+- Request: `GET https://<internal address>:8443/mbapi.php` with
+  `Authorization: Bearer <payments_token>`, from a peer address (the
+  connecting socket's address, `REMOTE_ADDR`; the listener must not take it
+  from a proxy header). Answers: 200 `application/json`
+  `[{"id": 12, "amount_cents": 2500, "paid_until": "2026-12-31"}]` (the
+  members and amounts of the former `public/mbapi.php`: acknowledged, not deleted
+  membership fees since 1 October of the previous year, at least 20.00 per
+  member, paid until 31 December of the current year; `[]` if there are
+  none); 403 with an empty body for another peer or without the token; 503
+  with an empty body without the database. Membership fees without a member
+  id are left out.
+- TLS: a certificate whose subject alternative name is the internal address
+  the membership system uses in its URL; that system needs this certificate
+  as its trust anchor (`cafile`). The listener has no access log (the
+  requests carry the token).
+
+With `deploy/` (Debian 13 host): make the token once
+(`openssl rand -hex 32`) and keep it in a vault, then set
+`pgacc_sync_listen_address` (the host's internal IPv4 address),
+`pgacc_sync_peers` (the membership system's address) and
+`pgacc_payments_token` in the inventory, optionally `pgacc_sync_port`
+(8443), and run the playbook: it writes `shared/sync-secrets.php`, a
+self-signed certificate `/etc/pgacc/sync-tls.crt` (key
+`/etc/pgacc/sync-tls.key`) for that address (again when the address
+changes), and the internal `server` of the nginx site. Then deploy the
+release (it links `sync-secrets.php` and expects 403 from the listener
+without the token), put the same token into the membership system's
+`accsync-secrets.php`, give it the certificate, and allow TCP to the port
+between exactly the two hosts in the firewall. Another web server needs the
+same: a TLS server on the internal address with `<release>/internal` as
+document root, serving only `/mbapi.php` (dot files and backup copies
+refused, no `PATH_INFO`), with the socket's address as `REMOTE_ADDR` and no
+access log.
+
+Rollback: `pgacc-deploy` refuses the archive of a release from before this
+change (it has no `internal/mbapi.php`), and while the listener is
+configured, switching back to such a release still in `releases/` fails the
+smoke test (it expects 403 from the listener). To roll back, first empty
+`pgacc_sync_listen_address` and run the playbook again.
+
+### Membership export `public/mbapi.php` removed
+
+`public/mbapi.php`, the encrypted membership-payment export of the old
+membership sync, is removed: `/mbapi.php` on the public site now answers 404.
+Its replacement is the internal sync endpoint above (the old membership
+system that called it is shut down). Remove `/mbapi.php` from the allow list
+of a web server configured by hand and from monitoring; the nginx site of
+`deploy/` and `public/.htaccess` no longer allow it.
+
 ## Document root `public/` (deployment change)
 
 This release changes how pgacc is deployed; it is meant for a major release.
@@ -16,9 +116,8 @@ The web server's document root is now the `public/` directory of the release,
 not the release root. `public/` holds only what must be reachable over the
 web:
 
-- the entry points `index.php` (every page, the login, the receipt downloads
-  `index.php?action=file`, the CSV exports `format=csv`) and `mbapi.php` (called
-  by the membership system);
+- the entry point `index.php` (every page, the login, the receipt downloads
+  `index.php?action=file`, the CSV exports `format=csv`);
 - the static files `style.css`, `js/*.js` and `icons/*.png`;
 - `.htaccess` (Apache: the allow list, `AcceptPathInfo Off`,
   `short_open_tag` and the backup-copy rule; see Apache below).
@@ -28,12 +127,12 @@ page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
 command-line scripts (`migrate-receipt-key.php`, `check.php`), the docs, and
 `constants.php` and `files/`. Nothing there can be requested, whatever its
 name, so a copy such as `constants.php.bak` next to the configuration is no
-longer exposed. The entry points change to the release root (`chdir`) and
+longer exposed. The entry point changes to the release root (`chdir`) and
 load the code, `constants.php` and `files/` from there, as before; PHP's
 `include_path` must contain `.` (the default).
 
 The URLs stay the same: `/`, `/index.php?action=...`, the short page
-addresses (`/donations`, ...), `/mbapi.php`, `/style.css?v=...`,
+addresses (`/donations`, ...), `/style.css?v=...`,
 `/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
 answering: a direct request of a page script, `functions.php` or `src/*.php`
 printed nothing and now gets a 404, as do `/icons/readme.html` and
@@ -53,7 +152,7 @@ Upgrade steps:
    are rewritten as before.
 3. Deploy the release and check: `/` (the report), the login, a receipt
    download, a CSV export, `/donations`, `/style.css?v=<version>`,
-   `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
+   and `/icons/add.png` answer; `/functions.php`,
    `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404,
    and so do `/js/README.md` and `/index.php/x`, which are inside `public/`:
    they show that the allow list is active (an Apache without `AllowOverride
@@ -107,7 +206,7 @@ location = / {
 }
 location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
 }
-location ~ ^/(index|mbapi)\.php$ {
+location ~ ^/index\.php$ {
     try_files $uri =404;
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
@@ -127,7 +226,7 @@ nginx site template (`deploy/ansible/templates/nginx-site.conf.j2`); then
 check the paths of step 3 above.
 
 Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
-`index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
+`index.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
 page addresses, which it rewrites itself; dot files and symbolic links 403,
 anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
 short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it

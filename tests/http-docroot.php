@@ -21,7 +21,7 @@
  *    its own like the application service: none of the planted files is
  *    served, and the entry points run in the release root (the planted
  *    release's constants.php is loaded).
- * 3. The entry points fail closed when they cannot change to the release
+ * 3. The entry point fails closed when it cannot change to the release
  *    root (open_basedir forbids it): 500, a logged reason, nothing else runs.
  *
  * Requests answered by the router or as static files bypass the diagnostics
@@ -36,7 +36,7 @@ $matrix = require __DIR__ . '/web-server/matrix.php';
 // The served application: /app, or the mutant copy of the mutation runner.
 $appRoot = getenv('PGACC_TEST_APP_ROOT') ? rtrim(getenv('PGACC_TEST_APP_ROOT'), '/') : '/app';
 
-// The entry point ran: the page or the export the query asks for.
+// The entry point ran: the page the query asks for.
 function check_router_entry($response, $script, $query, $label)
 {
     $expected = [
@@ -45,11 +45,7 @@ function check_router_entry($response, $script, $query, $label)
         'index.php?action=donations&year=2024' => '<h1>Spendenliste der Piratenpartei Österreichs 2024</h1>',
         'index.php?action=vreport' => '<h1>Bericht Konto',
     ][$script . ($query === '' ? '' : '?' . $query)] ?? null;
-    if ($script === 'mbapi.php') {
-        if (preg_match('/^[0-9a-f]{40}\n[A-Za-z0-9+\/=]+$/D', $response['body']) !== 1) {
-            fail_test("$label: mbapi.php answered " . var_export(substr($response['body'], 0, 80), true));
-        }
-    } elseif ($expected === null) {
+    if ($expected === null) {
         fail_test("$label: no expected page for $script?$query");
     } else {
         assert_contains($response['body'], $expected, $label);
@@ -62,7 +58,6 @@ web_server_check_matrix($baseUrl, $matrix, $appRoot . '/public', 'check_router_e
 // The same pages through http_request() (diagnostics checked).
 assert_contains(http_request('/')['body'], '<h1>Rechenschaftsbericht der Piratenpartei Österreichs', '/');
 assert_contains(http_request('/index.php?action=login')['body'], 'name="pass"', 'login page');
-assert_status(http_request('/mbapi.php'), 200, 'mbapi.php');
 $donations = http_request('/donations?year=2024');
 assert_status($donations, 200, '/donations?year=2024');
 assert_contains($donations['body'], '<h1>Spendenliste der Piratenpartei Österreichs 2024</h1>', '/donations?year=2024');
@@ -99,11 +94,9 @@ $releaseUrl = start_test_server(
     'planted-release',
 );
 web_server_check_matrix($releaseUrl, $matrix, $release . '/public', 'check_router_entry', [], PLANTED_SECRET, 'fail_test', 'planted release');
-foreach (['/index.php?action=login', '/mbapi.php'] as $path) {
-    $response = web_server_request($releaseUrl, $path, 'fail_test');
-    if (!in_array('X-Pgacc-Test-Constants: planted-release', $response['headers'], true)) {
-        fail_test("planted release: GET $path did not load the release's constants.php");
-    }
+$response = web_server_request($releaseUrl, '/index.php?action=login', 'fail_test');
+if (!in_array('X-Pgacc-Test-Constants: planted-release', $response['headers'], true)) {
+    fail_test("planted release: GET /index.php?action=login did not load the release's constants.php");
 }
 
 // 3. No release root: open_basedir allows public/, the test files and the
@@ -129,17 +122,15 @@ $noRootUrl = start_test_server(
     $environment . 'php' . $settings . ' -S 127.0.0.1:8088 -t ' . escapeshellarg($appRoot . '/public') . ' ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
     'no-release-root',
 );
-foreach (['/index.php?action=login' => 'index.php', '/mbapi.php' => 'mbapi.php'] as $path => $script) {
-    $response = web_server_request($noRootUrl, $path, 'fail_test');
-    assert_status($response, 500, "no release root: GET $path");
-    if ($response['body'] !== '') {
-        fail_test("no release root: GET $path answered " . var_export(substr($response['body'], 0, 80), true));
-    }
+$response = web_server_request($noRootUrl, '/index.php?action=login', 'fail_test');
+assert_status($response, 500, 'no release root: GET /index.php?action=login');
+if ($response['body'] !== '') {
+    fail_test('no release root: GET /index.php?action=login answered ' . var_export(substr($response['body'], 0, 80), true));
 }
 $logText = (string) @file_get_contents($log);
 $logged = substr_count($logText, 'pgacc: cannot change to the release root ' . $appRoot);
-if ($logged !== 2 || preg_match('/Failed opening|Fatal error/', $logText) === 1) {
-    fail_test("no release root: expected 2 logged failures and no include, found $logged: $logText");
+if ($logged !== 1 || preg_match('/Failed opening|Fatal error/', $logText) === 1) {
+    fail_test("no release root: expected 1 logged failure and no include, found $logged: $logText");
 }
 exec('rm -rf ' . escapeshellarg($release) . ' ' . escapeshellarg($logDir));
 

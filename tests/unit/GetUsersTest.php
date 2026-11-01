@@ -119,7 +119,7 @@ final class GetUsersTest extends FunctionsTestCase
         for ($i = 2; $i < 40; $i++) {
             $plain .= "$i\t" . (2100 + $i) . "\tSynthetic Padding Member $i\t40\t0\n";
         }
-        $rows = self::importMembers($datakey, base64_encode(membership_encrypt($datakey, $plain)));
+        $rows = self::importMembers($datakey, MembershipStub::encrypt($datakey, $plain));
         self::assertCount(39, $rows);
         self::assertSame(['id' => '2101', 'name' => 'Synthetic Odd Id', 'lo' => '1', 'paid' => '1'], $rows[0]);
     }

@@ -136,7 +136,7 @@ build_archive() {
 
   # Code at HEAD, without the export-ignore'd development files.
   git -C "$repo_dir" archive --format=tar HEAD | tar -x -C "$stage"
-  if [ -e "$stage/constants.php" ] || [ -e "$stage/tests/run.sh" ]; then
+  if [ -e "$stage/constants.php" ] || [ -e "$stage/sync-secrets.php" ] || [ -e "$stage/tests/run.sh" ]; then
     echo "The archive contains development or configuration files; check .gitattributes" >&2
     exit 1
   fi
@@ -146,14 +146,21 @@ build_archive() {
     echo "The archive has no release-root .htaccess that denies every request" >&2
     exit 1
   fi
-  # The document root public/ (UPGRADING.md) holds only the entry points and
+  # The document root public/ (UPGRADING.md) holds only the entry point and
   # the static files (js/*.js, icons/*.png and their readme files; no
   # subdirectories).
   unexpected=$(cd "$stage/public" && find . ! -path . \( -type d -printf '%p/\n' -o -type f -print -o -printf '%p (not a file)\n' \) |
-    grep -Ev '^\./(\.htaccess|index\.php|mbapi\.php|style\.css|js/|icons/|js/[^/]+\.js|js/README\.md|icons/[^/]+\.png|icons/readme\.(html|txt))$' |
+    grep -Ev '^\./(\.htaccess|index\.php|style\.css|js/|icons/|js/[^/]+\.js|js/README\.md|icons/[^/]+\.png|icons/readme\.(html|txt))$' |
     tr '\n' ' ' || true)
-  if [ ! -f "$stage/public/index.php" ] || [ ! -f "$stage/public/mbapi.php" ] || [ -n "$unexpected" ]; then
-    echo "public/ must hold index.php, mbapi.php and the static files only: ${unexpected:-index.php or mbapi.php missing}" >&2
+  if [ ! -f "$stage/public/index.php" ] || [ -n "$unexpected" ]; then
+    echo "public/ must hold index.php and the static files only: ${unexpected:-index.php missing}" >&2
+    exit 1
+  fi
+  # internal/, the document root of the internal sync listener, holds only
+  # the file mbapi.php.
+  unexpected=$(cd "$stage/internal" 2>/dev/null && find . ! -path . \( ! -path ./mbapi.php -o ! -type f \) -print | tr '\n' ' ' || true)
+  if [ ! -f "$stage/internal/mbapi.php" ] || [ -n "$unexpected" ]; then
+    echo "internal/ must hold mbapi.php only: ${unexpected:-mbapi.php missing}" >&2
     exit 1
   fi
 

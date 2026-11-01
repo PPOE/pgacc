@@ -44,14 +44,6 @@ function receipt_decrypt_vector($name, $id, $key, $cipher)
         'decrypted' => bin2hex($decrypted));
 }
 
-function mbapi_vector($name, $datakey, $text)
-{
-    // mbapi.php: SHA-1 of the plain text, a newline, then the base64 ciphertext.
-    $output = sha1($text) . "\n"
-        . base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($datakey), $text, MCRYPT_MODE_CBC, md5(md5($datakey))));
-    return array('name' => $name, 'datakey' => $datakey, 'text' => bin2hex($text), 'output' => $output);
-}
-
 function getusers_vector($name, $datakey, $plain)
 {
     // The membership system's export as getusers.php reads it: base64 ciphertext.
@@ -100,11 +92,6 @@ $receiptDecrypts = array(
 $memberExport = "x\t1001\tSynthetic Member \xE4\xF6\xFC\t38\t1\n"
     . "x\t1002\tO\\'Synthetic\t44\t0\n"
     . "x\t1003\tThird Synthetic\t99\t1\n";
-$mbapi = array(
-    mbapi_vector('two members', 'synthetic-membership-key', "1001\t2500\t2026-12-31\n1002\t12000\t2026-12-31\n"),
-    mbapi_vector('no members', 'synthetic-membership-key', ''),
-    mbapi_vector('empty datakey (test constants)', '', "1001\t2500\t2026-12-31\n"),
-);
 // Long enough for getUsers(), which rejects responses under 1000 characters:
 // every organization code it maps, an unknown one, a short line it skips, an
 // escaped quote and an ISO-8859-15 euro sign.
@@ -129,7 +116,6 @@ $vectors = array(
     'php' => PHP_VERSION,
     'receipts' => $receipts,
     'receipt_decrypts' => $receiptDecrypts,
-    'mbapi' => $mbapi,
     'getusers' => $getusers,
 );
 echo json_encode($vectors, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";

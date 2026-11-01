@@ -16,6 +16,15 @@ final class MembershipStub
         return $answer;
     }
 
+    // The member list $plain as the membership system sends it: base64 of
+    // Rijndael-256/CBC with membership_cipher_params($datakey), zero padded
+    // (as membership_stub_encrypt() of the stub).
+    public static function encrypt($datakey, $plain)
+    {
+        [$cipherKey, $iv] = membership_cipher_params($datakey);
+        return base64_encode(rijndael256_encrypt($cipherKey, $plain, $iv));
+    }
+
     // Serves $body as the member list until reset().
     public static function serve($body)
     {

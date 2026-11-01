@@ -43,10 +43,14 @@ Settings (inventory variables, see
 | Variable | Default | |
 | --- | --- | --- |
 | `pgacc_trusted_proxies` | none, required | Addresses or CIDR ranges of the TLS-terminating reverse proxy. |
-| `pgacc_timezone` | `UTC` | PHP `date.timezone`. |
+| `pgacc_timezone` | `UTC` | PHP `date.timezone`. With the membership sync: `Europe/Vienna` (see "Membership system"). |
 | `pgacc_backup_keep_days` | `7` | Days the nightly dumps are kept. |
 | `pgacc_disable_sshd` | `true` | Stops and disables the SSH server (`ssh.service`, `ssh.socket`): the host is administered through the container runtime. Set it to `false` if Ansible connects over SSH to the host itself. |
 | `pgacc_extra_hosts` | `[]` | Entries for `/etc/hosts` (list of `{ip, names}`), kept in a block marked by Ansible; see "Membership system". Nothing is written while the list is empty. |
+| `pgacc_sync_listen_address` | `''` (off) | Internal IPv4 address of the host for the internal sync listener (see "Membership system"). Empty: no listener, no `payments_*` keys in `sync-secrets.php`, no certificate. |
+| `pgacc_sync_peers` | `[]` | IPv4 addresses allowed to call `internal/mbapi.php` (`payments_peers`); required with `pgacc_sync_listen_address`. |
+| `pgacc_payments_token` | `''` | The token of `internal/mbapi.php` (`payments_token`; 64 hex characters, `openssl rand -hex 32`, the same as in the membership system's `accsync-secrets.php`); required with `pgacc_sync_listen_address`. Keep it in a vault. |
+| `pgacc_sync_port` | `8443` | TCP port of the internal sync listener. |
 | `pgacc_fresh_install` | `false` | Pass `-e pgacc_fresh_install=true` once to create the database (see below). |
 
 Defaults: time zone UTC and dumps kept 7 days (the settings above); uploads
@@ -60,8 +64,10 @@ What it sets up:
 | Users | `pgacc` runs PHP (the PHP-FPM pool) and is the database role. `pgacc-deploy` owns the releases and may run `systemctl reload php8.5-fpm.service` with sudo, nothing else. Both are system users without a login shell. |
 | Layout | `/srv/pgacc/releases/v<version>/` and the symlink `/srv/pgacc/current` belong to `pgacc-deploy`; PHP can read them but not write. `/srv/pgacc/shared/files/` (receipts) belongs to `pgacc` (mode 0700). `/srv/pgacc/shared/constants.php` is `root:pgacc` 0640: PHP reads it, nobody but root writes it. PHP errors go to `/var/log/pgacc/php-error.log` (rotated weekly). |
 | `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
+| Sync settings | `/srv/pgacc/shared/sync-secrets.php` (`root:pgacc` 0640), written from the inventory on every run (see "Membership system"); `/etc/pgacc` holds the certificates of the sync. |
 | PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`, `display_errors` off, errors logged); Debian's default pool `www` is removed. `90-pgacc.ini`: `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on (Debian's default): `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
-| nginx | Port 80, `server_name _`, document root `/srv/pgacc/current/public` (only `public/` is served; the code, `constants.php` and `files/` are in the release root, see [UPGRADING.md](../UPGRADING.md), "Document root `public/`"), PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). The short page addresses the application links to (`/donations`, `/kdonations`, `/spendings`, `/wk`, `/transactions`, `/vreport`, `/tinyreport`, each with an optional query string) are rewritten to `index.php?action=<name>`. Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Allow list: only `/`, `index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page addresses are served, anything else answers 404; as a second line of defence dot files and backup, editor and dump copies (names ending in `~`, `.bak`, `.orig`, `.save`, `.swp`, `.sql`, `.tar.gz` and the like, or with something after `.php`, such as `constants.php.bak`) answer 403. Caching: the static files (`style.css`, `js/*.js`, `icons/*.png`) get `Cache-Control: no-cache`, so browsers revalidate them on every use (ETag/`Last-Modified`, a 304 if unchanged) and pick up a deploy on the next page view; the asset URLs are not versioned yet. PHP responses get `Cache-Control: private, no-store` unless the application sets its own Cache-Control, which is kept (the application sets none at present); pages after login hold personal and financial data. The default site is disabled. |
+| nginx | Port 80, `server_name _`, document root `/srv/pgacc/current/public` (only `public/` is served; the code, `constants.php` and `files/` are in the release root, see [UPGRADING.md](../UPGRADING.md), "Document root `public/`"), PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). The short page addresses the application links to (`/donations`, `/kdonations`, `/spendings`, `/wk`, `/transactions`, `/vreport`, `/tinyreport`, each with an optional query string) are rewritten to `index.php?action=<name>`. Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Allow list: only `/`, `index.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page addresses are served, anything else answers 404; as a second line of defence dot files and backup, editor and dump copies (names ending in `~`, `.bak`, `.orig`, `.save`, `.swp`, `.sql`, `.tar.gz` and the like, or with something after `.php`, such as `constants.php.bak`) answer 403. Caching: the static files (`style.css`, `js/*.js`, `icons/*.png`) get `Cache-Control: no-cache`, so browsers revalidate them on every use (ETag/`Last-Modified`, a 304 if unchanged) and pick up a deploy on the next page view; the asset URLs are not versioned yet. PHP responses get `Cache-Control: private, no-store` unless the application sets its own Cache-Control, which is kept (the application sets none at present); pages after login hold personal and financial data. The default site is disabled. |
+| Sync listener | Only with `pgacc_sync_listen_address`: the `payments_*` keys of `sync-secrets.php` (from `pgacc_payments_token` and `pgacc_sync_peers`); a self-signed certificate `/etc/pgacc/sync-tls.crt` (subject alternative name: the address; key `/etc/pgacc/sync-tls.key`, mode 0600), made again when the address changes; `/etc/pgacc/sync-url` (the listener's URL, for the smoke test of `pgacc-deploy`; removed while the listener is off); a second nginx `server` on `<address>:<port>` with TLS, document root `/srv/pgacc/current/internal`, serving only `/mbapi.php` (dot files and backup copies 403, anything else 404), with the socket's address as `REMOTE_ADDR` (no proxy headers) and no access log. |
 | Database | PostgreSQL 18 with the `en_US.UTF-8` locale generated (the collation of the existing installation). A normal run never creates or changes a database. Only with `-e pgacc_fresh_install=true`: role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `en_US.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. It refuses if `accounting` exists already, with or without tables. |
 | Dumps | `pgacc-backup.timer` runs `pg_dump --format=custom` nightly as `postgres` into `/var/backups/pgacc` (owner `postgres`, mode 0700; neither `pgacc` nor `pgacc-deploy` can write there) and deletes dumps older than `pgacc_backup_keep_days`. |
 
@@ -202,16 +208,21 @@ runtime), give the full path, as the `PATH` there may not include
    download is intact, not who built it.** Signed archives or build
    attestations are a later step.
 3. The archive may only contain files and directories under
-   `pgacc-<version>/`, no `..`, and no `constants.php` or `files/`, and must
-   have `public/index.php` and `vendor/autoload.php`. It is unpacked into
-   `releases/v<version>/`, with `constants.php` and `files` linked to
-   `shared/` in the release root (outside the document root `public/`).
+   `pgacc-<version>/`, no `..`, and no `constants.php`, `sync-secrets.php` or `files/`, and must
+   have `public/index.php` and `vendor/autoload.php`, and its `internal/`
+   must hold `mbapi.php` only. It is unpacked into
+   `releases/v<version>/`, with `constants.php`, `sync-secrets.php` and `files`
+   linked to `shared/` in the release root (outside the document roots
+   `public/` and `internal/`; `shared/sync-secrets.php` is written by the
+   playbook, see "Membership system").
 4. Database migrations: none. pgacc has no migration mechanism; the database
    or configuration steps of a release are in [UPGRADING.md](../UPGRADING.md)
    and are done by hand.
 5. `current` is switched atomically, PHP-FPM is reloaded and
    `http://127.0.0.1/index.php?action=login` must answer with the login form,
-   and `/js/README.md` and `/index.php/x` with 404 (the allow list is active).
+   and `/js/README.md` and `/index.php/x` with 404 (the allow list is active);
+   with `/etc/pgacc/sync-url` (internal sync listener on), that URL must
+   answer 403 without the token.
    Otherwise `current` goes back to the previous release (or is removed if
    there was none), the new release directory is deleted, and the script
    exits with 1. Exception: if the previous release has no `public/` (from
@@ -232,11 +243,11 @@ change) is refused, see [UPGRADING.md](../UPGRADING.md), "Document root
 ## Membership system
 
 pgacc fetches the member list from the membership system over verified HTTPS
-(the fixed URL in `getusers.php`), and the membership system calls pgacc's
-`mbapi.php`. So the host must resolve the membership system's public name and
-reach it over HTTPS with a certificate valid for that name (Debian's CA
-bundle), and the membership system must resolve pgacc's public name and reach
-it.
+(the fixed URL in `getusers.php`). So the host must resolve the membership
+system's public name and reach it over HTTPS with a certificate valid for
+that name (Debian's CA bundle). The membership system fetches the payments
+from the internal sync listener below (the former public `mbapi.php` is
+removed).
 
 If the internal DNS does not resolve the public name and the public address
 is not reachable from inside (no hairpin NAT), point the name at the reverse
@@ -248,6 +259,66 @@ pgacc_extra_hosts:
   - { ip: 192.0.2.1, names: [members.example.org] }
 ```
 
+### Sync v2 settings (`sync-secrets.php`)
+
+Both directions of the membership sync (sync v2) are set in the inventory.
+The playbook writes `/srv/pgacc/shared/sync-secrets.php` from it on every
+run (template `templates/sync-secrets.php.j2`; changes on the host are
+overwritten), and `pgacc-deploy` links it into each release. It holds the
+`payments_*` keys while the internal sync listener is on and the
+`members_*` keys while the member list is set; a direction without its
+keys refuses (`internal/mbapi.php`: 403) or fails closed (`getusers.php`).
+Format: [UPGRADING.md](../UPGRADING.md), "Sync v2 (membership sync)".
+
+Tokens: one per direction, 64 hex characters, made once with
+`openssl rand -hex 32`; keep it in a vault, and put the same value into the
+membership system's secrets file of that direction. A new token: change it
+in both inventories and run both playbooks.
+
+Certificates: each side's own certificate is `/etc/<app>/sync-tls.{crt,key}`,
+self-signed by the side that is called (subject alternative name: the
+address in the caller's URL); the caller keeps the peer's certificate as
+`/etc/<app>/<peer>-tls.crt`, handed over through the inventory. On this
+host: `/etc/pgacc/sync-tls.{crt,key}` (the internal sync listener) and
+`/etc/pgacc/admidio-addons-tls.crt` (the membership system's listener, for
+the member list).
+
+Time zone: set `pgacc_timezone: Europe/Vienna`, the membership system's.
+`internal/mbapi.php` sends "paid until 31 December" of PHP's current year
+(`date('Y')`), while the membership system compares "paid until" with its
+database's current date. With PHP on UTC the two years differ for the
+hours between the two New Years. That is harmless, as the membership
+system only moves "paid until" forward, but avoidable.
+
+### Internal sync listener (optional)
+
+The membership system fetches the payments from `internal/mbapi.php`
+directly over the internal network, with TLS and a token, not through the
+reverse proxy (format and answers: [UPGRADING.md](../UPGRADING.md),
+"Internal sync endpoint"). Off by default. To turn it on:
+
+```yaml
+pgacc_sync_listen_address: 192.0.2.10   # this host's internal address
+pgacc_sync_peers: [192.0.2.20]          # the membership system
+pgacc_payments_token: "{{ vault_pgacc_payments_token }}"   # openssl rand -hex 32, once
+```
+
+After the playbook run, give the membership system (its
+`accsync-secrets.php`):
+
+- the URL `https://192.0.2.10:8443/mbapi.php` (the internal address: the
+  certificate is made for it, and the public name resolves to the proxy);
+- the certificate `/etc/pgacc/sync-tls.crt` as its only trust anchor
+  (`cafile`, kept there as `pgacc-tls.crt`); it is public, the key stays on
+  this host;
+- the same token as `pgacc_payments_token`.
+
+Allow TCP to the port from the membership system's address only, in the
+firewall of both hosts. A new address: the playbook makes a new certificate
+for it; give it to the membership system. The listener has no access log;
+errors go to `/var/log/nginx/pgacc-sync.error.log` and PHP's to the pgacc
+error log.
+
 ## Staging
 
 A staging host must not call the live membership system and must use
@@ -255,6 +326,6 @@ synthetic data only.
 
 ## Fixed in the code
 
-The database name (`pg_connect("dbname=accounting")` in `index.php` and
-`mbapi.php`) and the membership URL (`getusers.php`) are fixed in the code,
+The database name (`pg_connect("dbname=accounting")` in `index.php`
+and `src/sync-api.php`) and the membership URL (`getusers.php`) are fixed in the code,
 so they are not settings here.

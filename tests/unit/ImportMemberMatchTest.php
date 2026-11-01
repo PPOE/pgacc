@@ -27,7 +27,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         for ($i = 2; $i < 40; $i++) {
             $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
         }
-        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
+        MembershipStub::serve(MembershipStub::encrypt($key, $plain));
         $csv = "Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt\r\n"
             . "05.04.2024;5,00;Handkassa;$text;;;Nein;Nein;;0;1;;;\r\n";
         $path = tempnam(sys_get_temp_dir(), 'pgacc-import');
@@ -79,7 +79,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         for ($i = 1; $i < 40; $i++) {
             $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
         }
-        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
+        MembershipStub::serve(MembershipStub::encrypt($key, $plain));
         $_FILES = ['uploadcsv' => [
             'name' => ['<i>a&b</i>.csv'],
             'type' => ['text/csv'],
