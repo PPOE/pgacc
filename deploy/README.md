@@ -304,6 +304,16 @@ The playbook writes the certificate to `/etc/pgacc/admidio-addons-tls.crt`
 token into `sync-secrets.php`; the same token goes into the membership
 system's `members-secrets.php`.
 
+Rollout order: the membership system's listener must serve `members.php`
+before `pgacc_members_url` is set. Check it from the pgacc host, with the
+certificate of `pgacc_members_cert` saved as `admidio-addons-tls.crt`; it
+must print 200:
+
+```sh
+curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
+  https://192.0.2.20:8443/members.php -o /dev/null -w '%{http_code}\n'
+```
+
 `getusers.php` sends `Authorization: Bearer <token>`, verifies the
 certificate and its name or address against `members_cafile` only (not the
 system's CAs), follows no redirects, waits at most 20 seconds and accepts

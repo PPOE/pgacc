@@ -79,6 +79,17 @@ list".
 - `$datakey` in `constants.php` is now used only by the membership export
   `mbapi.php`.
 
+Rollout order: the membership system's listener must serve `members.php`
+before `pgacc_members_url` (or `members_url`) is set. Check it from the
+pgacc host with its certificate saved as `admidio-addons-tls.crt` (the
+playbook writes `/etc/pgacc/admidio-addons-tls.crt` only once the URL is
+set); it must print 200:
+
+```sh
+curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
+  https://192.0.2.20:8443/members.php -o /dev/null -w '%{http_code}\n'
+```
+
 ## Document root `public/` (deployment change)
 
 This release changes how pgacc is deployed; it is meant for a major release.
