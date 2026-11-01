@@ -581,5 +581,5 @@ function merge()
     $bgfandack = has_right($rights, 'bgf') && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 
 
-    end_of_form($parts, $rights, $bgfandack && !$unsaved, $rights, true, !$unsaved);
+    end_of_form($parts, $rights, $bgfandack && !$unsaved, true, !$unsaved);
 }

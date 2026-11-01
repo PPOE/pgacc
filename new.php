@@ -755,13 +755,14 @@ function page_new($rights)
         page_new_buchung($i, $part_to_remove, $rights, $add);
     }
 
-    end_of_form($parts, $rights, false, $rights, true, false);
+    end_of_form($parts, $rights, false, true, false);
 }
 
-function end_of_form($parts, $rights, $bgfandack, $lo, $open = true, $ack = true)
+function end_of_form($parts, $rights, $bgfandack, $open = true, $ack = true)
 {
     $rights2 = rights_tokens($rights);
-    if (write_rights($rights) !== false && (has_right($rights, 'bgf') || in_array(trim($lo), konto2lo($rights2)))) {
+    // bgf or any organization right (saving and approving check each row).
+    if (write_rights($rights) !== false && (has_right($rights, 'bgf') || preg_grep('/^\d+$/D', $rights2) != [])) {
         if ($bgfandack) {
             echo '<div id="belegdiv">';
             block_start();
