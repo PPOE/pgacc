@@ -244,7 +244,7 @@ http://mitglieder.piratenpartei.at/__stub/mode?set=<mode>` switches the
 member-list response, and `POST .../__stub/body` serves a given body (the unit
 tests, `tests/unit/MembershipStub.php`). The modes (`malformed`, `empty`,
 `invalid-row`, `duplicate`, `bad-uuid`, `flow`, `overflow`, `redirect`,
-`redirect-http`, `selfsigned`, `wrongname`, `error`, ...) are documented in
+`redirect-http`, `selfsigned`, `wrongname`, `error`, `stall`) are documented in
 the header of `server.php`; `selfsigned` and `wrongname`
 present a self-signed and a wrong-name certificate (also generated per build)
 that `getusers()` must refuse. `tests/http-import.php` uses the modes for the
@@ -253,8 +253,10 @@ attributed with `with_expected_diagnostics()` (`tests/http-diagnostics.php`), an
 `/__stub/list-requests` proves that no redirect was followed.
 `GetUsersTest` fetches the synthetic `flow` list
 (`tests/reference/membership/flow.json`) over HTTPS and checks the exact
-`ppmembers` rows, refuses every kind of malformed list, and checks the
-settings, the UUID check and the profile links.
+`ppmembers` rows, refuses every kind of malformed list, a body over 4 MiB
+(exactly 4 MiB is read), a read that timed out (`stall`) and a
+`sync-secrets.php` that does not load, and checks the settings, the UUID
+check and the profile links.
 
 All test servers run with `output_buffering=4096`, but no redirect depends on
 it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat

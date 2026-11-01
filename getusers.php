@@ -1,5 +1,8 @@
 <?php
 
+// The largest member list body that getusers_fetch() accepts (4 MiB).
+const GETUSERS_MAX_BODY = 4194304;
+
 // One SQL statement without a PHP warning: null, or the error message.
 function getusers_query($query)
 {
@@ -36,11 +39,21 @@ function member_uuid_valid($uuid)
 // The member list settings of the configuration $file (sync-secrets.php in
 // the release root, resolved like the include of constants.php):
 // ['members_url' => 'https://...', 'members_token' => non-empty string,
-// 'members_cafile' => the membership system's certificate], or null if the
-// file is missing or one of them is missing, empty or (the URL) not https.
+// 'members_cafile' => the membership system's certificate, ...], or null if
+// the file is missing, does not load (a parse error or an exception: logged
+// by class only) or one of them is missing, empty or (the URL) not https.
 function getusers_config($file)
 {
-    $config = stream_resolve_include_path($file) === false ? null : include $file;
+    if (stream_resolve_include_path($file) === false) {
+        return null;
+    }
+    try {
+        $config = include $file;
+    } catch (Throwable $e) {
+        // Only the class: the message of a parse error can quote the file.
+        error_log('getusers: sync-secrets.php cannot be loaded (' . get_class($e) . ')');
+        return null;
+    }
     foreach (['members_url', 'members_token', 'members_cafile'] as $name) {
         if (!is_string($config[$name] ?? null) || $config[$name] === '') {
             return null;
@@ -57,16 +70,19 @@ function getusers_config($file)
 // certificate; with a cafile PHP does not load the system's CAs), including
 // the host name or address of the URL. Redirects are not followed (a 3xx is
 // an error), so the list never comes from another host or over plain HTTP.
-// Only 200 is accepted. ignore_errors: an HTTP error status is checked here
-// instead of raising a warning. The token is never logged.
-function getusers_fetch($config)
+// Only 200 is accepted, with a complete body of at most GETUSERS_MAX_BODY
+// bytes (a read that timed out is refused, not returned in part).
+// ignore_errors: an HTTP error status is checked here instead of raising a
+// warning. $timeout: seconds (the tests pass less). The token is never
+// logged.
+function getusers_fetch($config, $timeout = 20)
 {
     $context = stream_context_create([
         'http' => [
             'header' => 'Authorization: Bearer ' . $config['members_token'] . "\r\nAccept: application/json\r\n",
             'ignore_errors' => true,
             'follow_location' => 0,
-            'timeout' => 20,
+            'timeout' => $timeout,
         ],
         'ssl' => [
             'verify_peer' => true,
@@ -75,13 +91,23 @@ function getusers_fetch($config)
             'cafile' => $config['members_cafile'],
         ],
     ]);
-    http_clear_last_response_headers();
     error_clear_last();
-    $body = @file_get_contents($config['members_url'], false, $context);
-    $headers = http_get_last_response_headers();
-    if ($body === false || !is_array($headers) || !preg_match('#^HTTP/\S+ 200( |$)#', $headers[0])) {
+    $stream = @fopen($config['members_url'], 'r', false, $context);
+    if ($stream === false) {
         $error = error_get_last();
-        error_log('getusers: ' . ($body === false ? ($error === null ? 'fetch failed' : $error['message']) : $headers[0]));
+        error_log('getusers: ' . ($error === null ? 'fetch failed' : $error['message']));
+        return null;
+    }
+    $body = stream_get_contents($stream, GETUSERS_MAX_BODY + 1);
+    $meta = stream_get_meta_data($stream);
+    fclose($stream);
+    $status = $meta['wrapper_data'][0] ?? '';
+    if (!is_string($status) || !preg_match('#^HTTP/\S+ 200( |$)#', $status)) {
+        error_log('getusers: ' . (is_string($status) && $status !== '' ? $status : 'no status'));
+        return null;
+    }
+    if ($body === false || $meta['timed_out'] || strlen($body) > GETUSERS_MAX_BODY) {
+        error_log('getusers: incomplete or too large response');
         return null;
     }
     return $body;

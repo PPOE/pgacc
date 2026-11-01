@@ -465,7 +465,7 @@ foreach ($failures as $mode => $message) {
         }
     };
     if ($mode === 'selfsigned' || $mode === 'wrongname') {
-        with_expected_diagnostics("refused $mode certificate", [['getusers.php', 'file_get_contents(']], $requests);
+        with_expected_diagnostics("refused $mode certificate", [['getusers.php', 'fopen(']], $requests);
     } else {
         $requests();
     }

@@ -9,39 +9,69 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
-## Member list from the membership system (`getusers.php`)
+## Sync v2 (membership sync)
+
+The data exchange with the membership system is replaced: two read-only
+JSON endpoints, called directly between the two hosts over TLS (not through
+the reverse proxy), with one token per direction and the caller's address
+checked, instead of the encrypted exports of the old membership system.
+The membership system's side is in the add-ons for it (`members.php`,
+`accsync.php`).
+
+Both directions are configured in `sync-secrets.php` in the release root
+(outside the document roots; with `deploy/` a link to
+`shared/sync-secrets.php`, like `constants.php`), readable by PHP but not
+writable (`root:<php group>`, mode 0640). It returns an array with the
+keys of the directions below; a direction without its keys refuses or
+fails closed, and so does a file that does not load (a syntax error):
+
+```php
+<?php
+return [
+    // internal/mbapi.php (payments for the membership system)
+    'payments_token' => '<64 hex characters>',
+    'payments_peers' => ['192.0.2.20'],
+    // getusers.php (member list from the membership system)
+    'members_url' => 'https://192.0.2.20:8443/members.php',
+    'members_token' => '<64 hex characters>',
+    'members_cafile' => '/etc/pgacc/admidio-addons-tls.crt',
+];
+```
+
+Each token is made once (`openssl rand -hex 32`) and the same value goes
+into the membership system's secrets file of that direction
+(`accsync-secrets.php` for the payments, `members-secrets.php` for the
+member list). With `deploy/` the playbook writes `shared/sync-secrets.php`
+from the inventory on every run (changes on the host are overwritten); see
+[deploy/README.md](deploy/README.md), "Membership system". Recommended:
+`pgacc_timezone: Europe/Vienna` (same section).
+
+### Member list from the membership system (`getusers.php`)
 
 **Behaviour change.** `getusers.php` (the member-fee page, the bank import,
 saving a voucher with a member part) no longer fetches the encrypted
 `adm_api/adm_names.php` of the old membership system (shut down). It fetches
 the JSON member list of the membership system's `members.php` over its
-internal TLS listener, with a token, and needs three settings in the new
-configuration file `sync-secrets.php` (release root, outside the document
-root, readable by PHP but not writable, like `constants.php`; with `deploy/` the
-inventory variables `pgacc_members_url`, `pgacc_members_token`,
+internal TLS listener, with a token. Settings in `sync-secrets.php` (above):
+`members_url` (https only), `members_token` and `members_cafile` (the
+membership system's certificate, the only trust anchor); with `deploy/` the
+inventory variables `pgacc_members_url`, `pgacc_members_token` and
 `pgacc_members_cert`, see [deploy/README.md](deploy/README.md), "Member
-list"):
+list".
 
-```php
-<?php
-return [
-    'members_url' => 'https://192.0.2.20:8443/members.php', // https only
-    'members_token' => '<64 hex characters, the same as on the membership system>',
-    'members_cafile' => '/etc/pgacc/members-tls.crt', // its certificate, the only trust anchor
-];
-```
-
-- Without them the pages that need the list stop with "Mitgliederliste
-  nicht konfiguriert!" (fail closed, as for any failed fetch).
+- Without them, or if `sync-secrets.php` does not load, the pages that need
+  the list stop with "Mitgliederliste nicht konfiguriert!" (fail closed, as
+  for any failed fetch).
 - The fetch verifies the certificate and its name or address against
   `members_cafile` only, sends `Authorization: Bearer <token>`, follows no
-  redirects, times out after 20 seconds and needs HTTP 200. The list must be
-  valid as a whole (`[{"id": int, "uuid": string, "name": string, "lo":
-  int|null, "paid": 0|1}]`, exactly these fields, a positive id and a UUID
-  per member, none twice); otherwise "Daten von Mitgliederverwaltung
-  ungültig!" and nothing is loaded. Names are UTF-8 as sent (no more
-  ISO-8859-15 conversion or backslash unescaping). `lo` is mapped to the
-  organizations as before (44 and unknown roles or none: 10).
+  redirects, times out after 20 seconds and needs HTTP 200 with a complete
+  body of at most 4 MiB. The list must be valid as a whole
+  (`[{"id": int, "uuid": string, "name": string, "lo": int|null, "paid": 0|1}]`,
+  exactly these fields, a positive id and a UUID per member, none twice);
+  otherwise "Daten von Mitgliederverwaltung ungültig!" and nothing is
+  loaded. Names are UTF-8 as sent (no more ISO-8859-15 conversion or
+  backslash unescaping). `lo` is mapped to the organizations as before (44
+  and unknown roles or none: 10).
 - The member list now also holds each member's `uuid`. The member-fee page
   links a member's profile by `user_uuid` (the membership system opens
   profiles by uuid only); the ledger listing and the voucher form show the

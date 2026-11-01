@@ -5,26 +5,39 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Changed
+### Sync v2 (membership sync)
 
-- **Behaviour change**: the member list (`getusers.php`; the member-fee page,
-  the bank import, saving a member voucher) comes from the membership
-  system's `members.php` as JSON over its internal TLS listener instead of
-  the encrypted `adm_names.php` of the old membership system. New
-  configuration file `sync-secrets.php` (release root, like
-  `constants.php`) with `members_url` (https only), `members_token` (sent as
-  `Authorization: Bearer`) and `members_cafile` (the only trust anchor);
-  with `deploy/` the variables `pgacc_members_url`, `pgacc_members_token`
-  and `pgacc_members_cert` (empty by default, so the member list is off and
-  those pages fail with "Mitgliederliste nicht konfiguriert!"), and
-  `pgacc-deploy` links `shared/sync-secrets.php` into each release. The
-  fetch requires a verified certificate, no redirect and HTTP 200, and
+The data exchange with the membership system is replaced (sync v2): two
+read-only JSON endpoints, called directly between the two hosts over TLS
+with one token per direction and the caller's address checked, instead of
+the encrypted exports of the old membership system. Both directions are
+configured in the new file `sync-secrets.php` (release root, like
+`constants.php`; a file that does not load counts as missing); with
+`deploy/` the playbook writes `shared/sync-secrets.php` from the inventory
+on every run (changes on the host are overwritten) and `pgacc-deploy`
+links it into each release. Recommended: `pgacc_timezone: Europe/Vienna`.
+See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
+
+- **Behaviour change**: the member list (`getusers.php`; the member-fee
+  page, the bank import, saving a member voucher) comes from the
+  membership system's `members.php` as JSON over its internal TLS listener
+  instead of the encrypted `adm_names.php` of the old membership system.
+  Settings in `sync-secrets.php`: `members_url` (https only),
+  `members_token` (sent as `Authorization: Bearer`) and `members_cafile`
+  (the only trust anchor); with `deploy/` the variables
+  `pgacc_members_url`, `pgacc_members_token` (64 hex characters, the same
+  as on the membership system) and `pgacc_members_cert` (written to
+  `/etc/pgacc/admidio-addons-tls.crt`), empty by default, so the member
+  list is off and those pages fail with "Mitgliederliste nicht
+  konfiguriert!". The fetch requires a verified certificate, no redirect,
+  HTTP 200 and a complete body of at most 4 MiB within 20 seconds, and
   refuses the whole list if a row is malformed or a member id or uuid
   appears twice (fail closed as before). The member list stores each
   member's uuid; the member-fee page links profiles by `user_uuid`, the
-  ledger listing and the voucher form show the member id as text instead of
-  a link. `membership_decrypt()` is removed. See
-  [UPGRADING.md](UPGRADING.md), "Member list from the membership system".
+  ledger listing and the voucher form show the member id as text instead
+  of a link. `membership_decrypt()` is removed.
+
+### Changed
 
 - **Deployment change** (for the next major release): the web server's
   document root is now `public/` of the release, not the release root

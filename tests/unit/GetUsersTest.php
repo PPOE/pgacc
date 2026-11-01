@@ -154,6 +154,38 @@ final class GetUsersTest extends FunctionsTestCase
         self::assertNull($body);
     }
 
+    // The body is read up to 4 MiB: one byte more is refused, exactly the
+    // limit is returned.
+    public function testATooLargeResponseIsRefused()
+    {
+        $config = getusers_config('sync-secrets.php');
+        MembershipStub::serve(str_repeat('x', 4 * 1024 * 1024 + 1));
+        try {
+            $tooLarge = getusers_fetch($config);
+            MembershipStub::serve(str_repeat('x', 4 * 1024 * 1024));
+            $atTheLimit = getusers_fetch($config);
+        } finally {
+            MembershipStub::reset();
+        }
+        // Lengths only: the bodies are megabytes.
+        self::assertNull($tooLarge === null ? null : strlen($tooLarge));
+        self::assertSame(4 * 1024 * 1024, strlen((string) $atTheLimit));
+    }
+
+    // A response that stops in the middle of the body (the stub's "stall"
+    // mode) is refused when the read times out, not returned in part.
+    public function testATimedOutResponseIsRefused()
+    {
+        $config = getusers_config('sync-secrets.php');
+        MembershipStub::mode('stall');
+        try {
+            $body = getusers_fetch($config, 1);
+        } finally {
+            MembershipStub::reset();
+        }
+        self::assertNull($body === null ? null : strlen($body));
+    }
+
     public function testTheMembersCafileIsTheTrustAnchor()
     {
         // The self-signed certificate of the stub is accepted when it is the
@@ -195,6 +227,42 @@ final class GetUsersTest extends FunctionsTestCase
         } finally {
             unlink($file);
         }
+    }
+
+    // A sync-secrets.php that does not load (a parse error, an exception)
+    // counts as missing: the list fails closed with the usual error instead
+    // of a fatal error of the page.
+    public static function brokenConfigProvider()
+    {
+        return [
+            'parse error' => ["<?php\nreturn ['members_url' => 'https://members.invalid/members.php',;\n"],
+            'throws' => ["<?php\nthrow new RuntimeException('synthetic');\n"],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('brokenConfigProvider')]
+    public function testABrokenConfigurationFailsClosed($content)
+    {
+        $file = tempnam(sys_get_temp_dir(), 'pgacc-sync-secrets');
+        file_put_contents($file, $content);
+        $log = tempnam(sys_get_temp_dir(), 'pgacc-sync-log');
+        $previous = ini_set('error_log', $log);
+        try {
+            [$error, $rows] = self::load($file);
+        } catch (Throwable $e) {
+            $error = 'getUsers() let ' . get_class($e) . ' through';
+            $rows = null;
+        } finally {
+            ini_set('error_log', $previous);
+            unlink($file);
+        }
+        $logged = file_get_contents($log);
+        unlink($log);
+        self::assertSame('Mitgliederliste nicht konfiguriert!', $error);
+        self::assertNull($rows);
+        // Only the class: the message of a parse error can quote the file.
+        self::assertMatchesRegularExpression('/sync-secrets\.php cannot be loaded \((ParseError|RuntimeException)\)$/m', $logged);
+        self::assertStringNotContainsString('members.invalid', $logged);
     }
 
     public function testWithoutTheSettingsTheErrorIsReturned()

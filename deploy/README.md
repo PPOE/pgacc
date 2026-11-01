@@ -43,13 +43,13 @@ Settings (inventory variables, see
 | Variable | Default | |
 | --- | --- | --- |
 | `pgacc_trusted_proxies` | none, required | Addresses or CIDR ranges of the TLS-terminating reverse proxy. |
-| `pgacc_timezone` | `UTC` | PHP `date.timezone`. |
+| `pgacc_timezone` | `UTC` | PHP `date.timezone`. With the membership sync: `Europe/Vienna` (see "Membership system"). |
 | `pgacc_backup_keep_days` | `7` | Days the nightly dumps are kept. |
 | `pgacc_disable_sshd` | `true` | Stops and disables the SSH server (`ssh.service`, `ssh.socket`): the host is administered through the container runtime. Set it to `false` if Ansible connects over SSH to the host itself. |
-| `pgacc_extra_hosts` | `[]` | Entries for `/etc/hosts` (list of `{ip, names}`), kept in a block marked by Ansible; see "Membership system". Nothing is written while the list is empty. |
 | `pgacc_members_url` | `''` (off) | URL of the membership system's member list (`https://<its internal address>:<port>/members.php`; see "Member list"). Empty: no member list, so the member-fee page, the bank import and saving member vouchers fail with "Mitgliederliste nicht konfiguriert!". |
 | `pgacc_members_token` | `''` | The token for that URL (64 hex characters, `openssl rand -hex 32`, the same as on the membership system); required with `pgacc_members_url`. Keep it in a vault. |
-| `pgacc_members_cert` | `''` | The membership system's listener certificate (PEM), written to `/etc/pgacc/members-tls.crt`: the only trust anchor of the fetch; required with `pgacc_members_url`. |
+| `pgacc_members_cert` | `''` | The membership system's listener certificate (PEM), written to `/etc/pgacc/admidio-addons-tls.crt`: the only trust anchor of the fetch; required with `pgacc_members_url`. |
+| `pgacc_extra_hosts` | `[]` | Entries for `/etc/hosts` (list of `{ip, names}`), kept in a block marked by Ansible; see "Membership system". Nothing is written while the list is empty. |
 | `pgacc_fresh_install` | `false` | Pass `-e pgacc_fresh_install=true` once to create the database (see below). |
 
 Defaults: time zone UTC and dumps kept 7 days (the settings above); uploads
@@ -63,7 +63,7 @@ What it sets up:
 | Users | `pgacc` runs PHP (the PHP-FPM pool) and is the database role. `pgacc-deploy` owns the releases and may run `systemctl reload php8.5-fpm.service` with sudo, nothing else. Both are system users without a login shell. |
 | Layout | `/srv/pgacc/releases/v<version>/` and the symlink `/srv/pgacc/current` belong to `pgacc-deploy`; PHP can read them but not write. `/srv/pgacc/shared/files/` (receipts) belongs to `pgacc` (mode 0700). `/srv/pgacc/shared/constants.php` is `root:pgacc` 0640: PHP reads it, nobody but root writes it. PHP errors go to `/var/log/pgacc/php-error.log` (rotated weekly). |
 | `constants.php` | Created only if there is none, with a random `$key` and a random placeholder `$datakey` (replace it with the key shared with the membership system). The playbook prints a notice when it creates one. An existing file is never changed (only its owner and mode). |
-| Sync settings | `/srv/pgacc/shared/sync-secrets.php` (`root:pgacc` 0640), created if there is none; on every run its member list settings are set from `pgacc_members_url` and `pgacc_members_token` (`members_cafile`: `/etc/pgacc/members-tls.crt` from `pgacc_members_cert`; all empty while `pgacc_members_url` is empty, and the certificate removed). |
+| Sync settings | `/srv/pgacc/shared/sync-secrets.php` (`root:pgacc` 0640), written from the inventory on every run (see "Membership system"); `/etc/pgacc` holds the certificates of the sync. |
 | PHP-FPM | Pool `pgacc` (socket `/run/php/pgacc-fpm.sock`, `display_errors` off, errors logged); Debian's default pool `www` is removed. `90-pgacc.ini`: `expose_php` off, `cgi.fix_pathinfo=0`, time zone, 20M uploads, 256M memory. `allow_url_fopen` stays on (Debian's default): `getusers.php` fetches the member list over HTTPS. Reloaded only when this configuration changes. |
 | nginx | Port 80, `server_name _`, document root `/srv/pgacc/current/public` (only `public/` is served; the code, `constants.php` and `files/` are in the release root, see [UPGRADING.md](../UPGRADING.md), "Document root `public/`"), PHP with the resolved release path (`$realpath_root`) and `SERVER_NAME` set to the request's `Host` (the proxy must pass the public host name; `index.php` redirects to it). The short page addresses the application links to (`/donations`, `/kdonations`, `/spendings`, `/wk`, `/transactions`, `/vreport`, `/tinyreport`, each with an optional query string) are rewritten to `index.php?action=<name>`. Only the trusted proxies and the host itself may connect, so `X-Forwarded-Proto` is trusted only from them. Allow list: only `/`, `index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page addresses are served, anything else answers 404; as a second line of defence dot files and backup, editor and dump copies (names ending in `~`, `.bak`, `.orig`, `.save`, `.swp`, `.sql`, `.tar.gz` and the like, or with something after `.php`, such as `constants.php.bak`) answer 403. Caching: the static files (`style.css`, `js/*.js`, `icons/*.png`) get `Cache-Control: no-cache`, so browsers revalidate them on every use (ETag/`Last-Modified`, a 304 if unchanged) and pick up a deploy on the next page view; the asset URLs are not versioned yet. PHP responses get `Cache-Control: private, no-store` unless the application sets its own Cache-Control, which is kept (the application sets none at present); pages after login hold personal and financial data. The default site is disabled. |
 | Database | PostgreSQL 18 with the `en_US.UTF-8` locale generated (the collation of the existing installation). A normal run never creates or changes a database. Only with `-e pgacc_fresh_install=true`: role `pgacc` (peer authentication over the local socket, no password) and the database `accounting` owned by it (UTF-8, `en_US.UTF-8`), with `pgcrypto` and [tests/fixtures/schema.sql](../tests/fixtures/schema.sql); `CONNECT` revoked from `PUBLIC`. It refuses if `accounting` exists already, with or without tables. |
@@ -249,6 +249,37 @@ pgacc_extra_hosts:
   - { ip: 192.0.2.1, names: [members.example.org] }
 ```
 
+### Sync v2 settings (`sync-secrets.php`)
+
+Both directions of the membership sync (sync v2) are set in the inventory.
+The playbook writes `/srv/pgacc/shared/sync-secrets.php` from it on every
+run (template `templates/sync-secrets.php.j2`; changes on the host are
+overwritten), and `pgacc-deploy` links it into each release. It holds the
+`payments_*` keys while the internal sync listener is on and the
+`members_*` keys while the member list is set; a direction without its
+keys refuses (`internal/mbapi.php`: 403) or fails closed (`getusers.php`).
+Format: [UPGRADING.md](../UPGRADING.md), "Sync v2 (membership sync)".
+
+Tokens: one per direction, 64 hex characters, made once with
+`openssl rand -hex 32`; keep it in a vault, and put the same value into the
+membership system's secrets file of that direction. A new token: change it
+in both inventories and run both playbooks.
+
+Certificates: each side's own certificate is `/etc/<app>/sync-tls.{crt,key}`,
+self-signed by the side that is called (subject alternative name: the
+address in the caller's URL); the caller keeps the peer's certificate as
+`/etc/<app>/<peer>-tls.crt`, handed over through the inventory. On this
+host: `/etc/pgacc/sync-tls.{crt,key}` (the internal sync listener) and
+`/etc/pgacc/admidio-addons-tls.crt` (the membership system's listener, for
+the member list).
+
+Time zone: set `pgacc_timezone: Europe/Vienna`, the membership system's.
+`internal/mbapi.php` sends "paid until 31 December" of PHP's current year
+(`date('Y')`), while the membership system compares "paid until" with its
+database's current date. With PHP on UTC the two years differ for the
+hours between the two New Years. That is harmless, as the membership
+system only moves "paid until" forward, but avoidable.
+
 ### Member list (`getusers.php`)
 
 The member-fee page, the bank import and saving a voucher with a member part
@@ -261,22 +292,27 @@ the inventory (the token in a vault):
 
 ```yaml
 pgacc_members_url: https://192.0.2.20:8443/members.php   # its internal address
-pgacc_members_token: "<64 hex characters, the same as on the membership system>"
+pgacc_members_token: "{{ vault_pgacc_members_token }}"   # openssl rand -hex 32, once
 pgacc_members_cert: |                                    # its listener certificate
   -----BEGIN CERTIFICATE-----
   ...
   -----END CERTIFICATE-----
 ```
 
+The playbook writes the certificate to `/etc/pgacc/admidio-addons-tls.crt`
+(`members_cafile`; removed while `pgacc_members_url` is empty) and the
+token into `sync-secrets.php`; the same token goes into the membership
+system's `members-secrets.php`.
+
 `getusers.php` sends `Authorization: Bearer <token>`, verifies the
 certificate and its name or address against `members_cafile` only (not the
 system's CAs), follows no redirects, waits at most 20 seconds and accepts
-only HTTP 200 with a valid list: every row with exactly these fields, a
-positive id and a UUID that no other row has. Otherwise the list is not
-loaded and the page stops with an error (fail closed); without the settings
-the error is "Mitgliederliste nicht konfiguriert!". A new token: set the new
-`pgacc_members_token` here and on the membership system in the same run.
-Allow outgoing TCP to the membership system's port in the firewall.
+only HTTP 200 with a complete body of at most 4 MiB and a valid list:
+every row with exactly these fields, a positive id and a UUID that no other
+row has. Otherwise the list is not loaded and the page stops with an error
+(fail closed); without the settings the error is "Mitgliederliste nicht
+konfiguriert!". Allow outgoing TCP to the membership system's port in the
+firewall.
 
 ## Staging
 

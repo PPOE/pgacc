@@ -33,6 +33,9 @@
  *   selfsigned    HTTPS with a self-signed certificate for the host
  *   wrongname     HTTPS with a test-CA certificate for another host name
  *   error         HTTP 500
+ *   stall         the member list, but only its first half, then nothing
+ *                 for 3 seconds before the connection closes (a read
+ *                 timeout; GetUsersTest)
  * /__stub/list serves the member list on both ports (the redirect targets)
  * and counts its requests: GET http://.../__stub/list-requests answers the
  * count since the last mode switch, so the tests can prove that no redirect
@@ -52,7 +55,7 @@ $bodyFile = '/tmp/pgacc-membership-stub-body';
 $listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
 $membersRequestsFile = '/tmp/pgacc-membership-stub-members-requests';
 $modes = ['ok', 'malformed', 'empty', 'invalid-row', 'duplicate', 'bad-uuid', 'flow', 'overflow', 'body',
-    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error'];
+    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error', 'stall'];
 $membersToken = (require '/app/tests/runtime/test-sync-secrets.php')['members_token'];
 $certificates = [
     'selfsigned' => '/etc/pgacc-test-tls/selfsigned.pem',
@@ -201,8 +204,14 @@ while (true) {
             file_put_contents($pgaccStubLog, $method . ' ' . $uri . "\n", FILE_APPEND | LOCK_EX);
         }
         list($status, $responseBody) = membership_stub_response($secure, $method, $uri, $authorization, $body, $modeFile, $bodyFile, $modes);
-        @fwrite($client, "HTTP/1.0 $status\r\nContent-Type: text/plain\r\nContent-Length: " . strlen($responseBody)
-            . "\r\nConnection: close\r\n\r\n" . $responseBody);
+        $head = "HTTP/1.0 $status\r\nContent-Type: text/plain\r\nContent-Length: " . strlen($responseBody)
+            . "\r\nConnection: close\r\n\r\n";
+        if ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0 && membership_stub_mode($modeFile) === 'stall') {
+            @fwrite($client, $head . substr($responseBody, 0, intdiv(strlen($responseBody), 2)));
+            sleep(3);
+        } else {
+            @fwrite($client, $head . $responseBody);
+        }
         @fclose($client);
     }
 }

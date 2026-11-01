@@ -100,7 +100,7 @@ if [ ! -d "$release" ]; then
   [ -f "$work/$name/public/index.php" ] && [ -f "$work/$name/vendor/autoload.php" ] ||
     die "the archive has no public/index.php or vendor/autoload.php"
   ln -s "$root/shared/constants.php" "$work/$name/constants.php"
-  # A dangling link before the playbook created it: the member list cannot be loaded.
+  # Written by the playbook on every run; without it the sync refuses (deploy/README.md, "Membership system").
   ln -s "$root/shared/sync-secrets.php" "$work/$name/sync-secrets.php"
   ln -s "$root/shared/files" "$work/$name/files"
   mv "$work/$name" "$release"
