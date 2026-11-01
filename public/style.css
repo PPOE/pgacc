@@ -1189,7 +1189,7 @@
     margin: 0;
   }
 
-  td:has( > b > form.inline .icon) {
+  td:has( > b > form.inline .icon), td > a[href*="/modules/profile/profile.php"] {
     white-space: nowrap;
   }
 

@@ -125,7 +125,7 @@ return [
         [
             'id' => 'revision-members-not-loaded',
             'file' => 'edit.php',
-            'search' => '    $members_error = posted_member_part($parts, $rights) ? getusers() : null;',
+            'search' => '    $members_error = posted_member_part($parts, $rights) ? members_loaded(20) : null;',
             'replace' => '    $members_error = null;',
             'rationale' => 'A member\'s revision loads the member list before the transaction.',
         ],
@@ -146,8 +146,8 @@ return [
         [
             'id' => 'new-members-unavailable-ignored',
             'file' => 'new.php',
-            'search' => '    if (posted_member_part($parts, $rights) && getusers() !== null) {',
-            'replace' => '    if (posted_member_part($parts, $rights) && getusers() === false) {',
+            'search' => '    if (posted_member_part($parts, $rights) && members_loaded(20) !== null) {',
+            'replace' => '    if (posted_member_part($parts, $rights) && members_loaded(20) === false) {',
             'rationale' => 'Without the member list a new member\'s voucher is refused with the form shown again, nothing written.',
         ],
         [

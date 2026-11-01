@@ -403,7 +403,7 @@ assert_status($memberPage, 200, 'member-fee page');
 assert_contains($memberPage['body'], '<td>Anna Synthetisch-Müller</td>', 'member-fee page');
 // The member's profile is linked by uuid (Admidio opens profiles by
 // user_uuid only), not by id.
-assert_contains($memberPage['body'], '<td><a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001</a> (', 'member-fee page profile link');
+assert_contains($memberPage['body'], '<td><a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001</a> (', 'member-fee page profile link');
 assert_not_contains($memberPage['body'], 'user_id=', 'member-fee page profile link');
 // A bank import matches a line's name against the list it just fetched (the
 // stub's "flow" list; its rows are checked in GetUsersTest): the voucher
@@ -417,15 +417,118 @@ $flowFields = $flowRow === false ? false : pg_fetch_all($flowRow);
 if ($flowFields !== [['name' => 'Jürgen Größe-Weiß', 'member_id' => '9111', 'type' => '1']]) {
     fail_test('member line with the flow list: ' . var_export($flowFields, true));
 }
-// The ledger and the voucher form show the member id as text: they do not
-// load the member list, so they have no uuid to link the profile with.
+// The ledger and the voucher form show a member's number linked to the
+// member's profile, with the name from the member list, which a request
+// fetches once and only when it shows a member's number (the stub counts the
+// list requests since its last mode switch). A number not in the list gets a
+// hint; without a member list the number is shown as text and the page still
+// renders.
+function member_list_requests()
+{
+    return @file_get_contents('http://mitglieder.piratenpartei.at/__stub/members-requests');
+}
+
+function assert_member_list_requests($expected, $label)
+{
+    $requests = member_list_requests();
+    if ($requests !== "$expected\n") {
+        fail_test("$label fetched the member list " . var_export($requests, true) . " times, expected $expected");
+    }
+}
+
+// The stub's mode outlives this script: reset it even when a check fails.
+register_shutdown_function(function () {
+    @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=ok');
+});
 $flowVoucher = pg_fetch_result(pg_query_params($database, 'SELECT voucher_id FROM vouchers WHERE comment = $1', ['Synthetic flow member line']), 0, 0);
-$ledger = http_request('/index.php?action=all&filter_member_id=9111', 'GET', [], $adminCookies);
-assert_contains($ledger['body'], '<td>9111</td>', 'ledger member id');
-$voucherForm = http_request('/index.php?action=edit&id=' . $flowVoucher, 'GET', [], $adminCookies);
-assert_contains($voucherForm['body'], ' &middot; Nr. 9111', 'voucher form member id');
-foreach (['ledger' => $ledger, 'voucher form' => $voucherForm] as $label => $page) {
-    assert_not_contains($page['body'], 'profile.php', "$label without a profile link");
+// A second member row, not in the member list.
+if (@pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, amount, account, comment, date, person_type, file, vaccount)
+     VALUES ($flowVoucher + 1000, 1, 2, true, 9899, 700, 'TEST-ACCOUNT-1', 'Synthetic flow member unlisted', timestamp '2024-04-07 00:00:00', 1, 0, '')") === false) {
+    fail_test('member row not in the list: ' . pg_last_error($database));
+}
+$profile = '<a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009111">';
+$memberLedger = '/index.php?action=all&filter_member=1&filter_text=Synthetic%20flow%20member';
+$memberViews = [
+    // The flow list (9111 with a UTF-8 name).
+    'flow' => [$profile . '9111 Jürgen Größe-Weiß</a>', '9899 (nicht in der Mitgliederliste)'],
+    // The name is escaped.
+    'body' => [$profile . '9111 &lt;b&gt;Synthetic&lt;/b&gt; &quot;Tag&quot; &amp;</a>', '9899 (nicht in der Mitgliederliste)'],
+    // The member list cannot be loaded: the numbers as before.
+    'error' => ['9111', '9899'],
+];
+foreach ($memberViews as $mode => [$listed, $unlisted]) {
+    if ($mode === 'body') {
+        $stubBody = json_encode([['id' => 9111, 'uuid' => '00000000-0000-4000-8000-000000009111', 'name' => '<b>Synthetic</b> "Tag" &', 'lo' => 40, 'paid' => 1]]);
+        $posted = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/body', false, stream_context_create(['http' => [
+            'method' => 'POST', 'header' => "Content-Type: text/plain\r\n", 'content' => $stubBody]]));
+        if ($posted !== "mode body\n") {
+            fail_test('membership stub body: ' . var_export($posted, true));
+        }
+    }
+    membership_stub_mode($mode);
+    $ledger = http_request($memberLedger, 'GET', [], $adminCookies);
+    assert_status($ledger, 200, "ledger member numbers ($mode)");
+    assert_contains($ledger['body'], "<td>$listed</td>", "ledger member in the list ($mode)");
+    assert_contains($ledger['body'], "<td>$unlisted</td>", "ledger member not in the list ($mode)");
+    // Two member numbers, one fetch.
+    assert_member_list_requests(1, "ledger ($mode)");
+    membership_stub_mode($mode);
+    $voucherForm = http_request('/index.php?action=edit&id=' . $flowVoucher, 'GET', [], $adminCookies);
+    assert_status($voucherForm, 200, "voucher form member number ($mode)");
+    assert_contains($voucherForm['body'], " &middot; Nr. $listed\n", "voucher form member number ($mode)");
+    assert_member_list_requests(1, "voucher form ($mode)");
+    // CSV: the number as before.
+    membership_stub_mode($mode);
+    $csv = http_request($memberLedger . '&format=csv', 'GET', [], $adminCookies);
+    assert_contains($csv['body'], '9899', "CSV member number ($mode)");
+    assert_not_contains($csv['body'], 'profile.php', "CSV member number ($mode)");
+    assert_not_contains($csv['body'], 'nicht in der Mitgliederliste', "CSV member number ($mode)");
+}
+// A slow membership system: a page that shows member numbers waits at most
+// 5 seconds for the list (the stub's "trickle" list takes 8 seconds), then
+// shows the plain numbers.
+membership_stub_mode('trickle');
+$started = microtime(true);
+$slowLedger = http_request($memberLedger, 'GET', [], $adminCookies);
+$waited = microtime(true) - $started;
+assert_contains($slowLedger['body'], '<td>9111</td>', 'ledger with a slow member list');
+if ($waited > 7) {
+    fail_test(sprintf('ledger with a slow member list waited %.1f seconds', $waited));
+}
+// A refused save of a member's part (no member list) shows the form again
+// with the posted number: still one fetch.
+membership_stub_mode('error');
+$refusedForm = ['speichern' => 'Speichern', 'parts' => '1', 'bid0' => '0', 'dir0' => 'wk', 'in_type0' => '8',
+    'out_type0' => '20', 'wk_type0' => '20', 'date0' => '2024-09-15', 'person_type0' => '1', 'lo0' => '2',
+    'amount0' => '-1.90', 'gegenkonto0' => 'SYNTHETIC001', 'konto0' => 'TESTACCOUNT2', 'vkonto0' => 'TESTVIRTUAL2',
+    'comment0' => 'Synthetic refused member voucher', 'commentgf0' => '', 'member0' => '1', 'mitgliedsnummer0' => '9111',
+    'name0' => 'Synthetic Member Supplier', 'street0' => '', 'plz0' => '', 'city0' => '', 'file0' => '0'];
+$refused = http_request('/index.php?action=new', 'POST', $refusedForm, $adminCookies);
+assert_contains($refused['body'], 'Die Mitgliederverwaltung ist nicht erreichbar.', 'refused member voucher');
+assert_contains($refused['body'], " &middot; Nr. 9111\n", 'refused member voucher');
+assert_member_list_requests(1, 'refused member voucher');
+// Pages without a member number do not fetch the list, also not for a
+// member's row without a number (an empty cell as before) or the form of a
+// voucher with a number but without the Mitglied box (the number as text).
+if (@pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, amount, account, comment, date, person_type, file, vaccount)
+     VALUES ($flowVoucher + 1002, 20, 2, false, 9111, -700, 'TEST-ACCOUNT-1', 'Synthetic number without the member box', timestamp '2024-04-07 00:00:00', 1, 0, '')") === false) {
+    fail_test('row with a number but not a member: ' . pg_last_error($database));
+}
+membership_stub_mode('ok');
+$noMemberForm = http_request('/index.php?action=edit&id=' . ($flowVoucher + 1002), 'GET', [], $adminCookies);
+assert_contains($noMemberForm['body'], " &middot; Nr. 9111\n", 'form of a number without the member box');
+assert_member_list_requests(0, 'form of a number without the member box');
+if (@pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, amount, account, comment, date, person_type, file, vaccount)
+     VALUES ($flowVoucher + 1001, 1, 2, true, NULL, 700, 'TEST-ACCOUNT-1', 'Synthetic member row without a number', timestamp '2024-04-07 00:00:00', 1, 0, '')") === false) {
+    fail_test('member row without a number: ' . pg_last_error($database));
+}
+membership_stub_mode('ok');
+foreach (['/index.php?action=all&filter_member_id=999999', '/index.php?action=new',
+    '/index.php?action=all&filter_text=Synthetic%20member%20row%20without%20a%20number'] as $path) {
+    $page = http_request($path, 'GET', [], $adminCookies);
+    assert_status($page, 200, $path);
+    assert_not_contains($page['body'], 'nicht in der Mitgliederliste', $path);
+    assert_member_list_requests(0, $path);
 }
 membership_stub_mode('ok');
 foreach (['DROP TABLE IF EXISTS ppmembers', 'CREATE TABLE ppmembers (id integer, name text, lo integer, paid integer)',

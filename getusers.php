@@ -36,6 +36,19 @@ function member_uuid_valid($uuid)
     return is_string($uuid) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $uuid) === 1;
 }
 
+// The member id, followed by the member's $name (if any), linked to the
+// member's profile in the membership system if $uuid (from the member list)
+// is a UUID: Admidio opens profiles by user_uuid only. Otherwise as plain
+// text. HTML.
+function member_link($id, $uuid, $name = null)
+{
+    $text = intval($id) . ($name === null ? '' : ' ' . html_escape($name));
+    if (!member_uuid_valid($uuid)) {
+        return $text;
+    }
+    return '<a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=' . $uuid . '">' . $text . '</a>';
+}
+
 // The member list settings of the configuration $file (sync-secrets.php in
 // the release root, resolved like the include of constants.php):
 // ['members_url' => 'https://...', 'members_token' => non-empty string,
@@ -189,8 +202,8 @@ function getusers_parse($body)
 // (other requests neither see nor replace it). Returns null, or the error
 // message for the page (the cause of a failed fetch goes to the error log);
 // the caller decides how to stop. $file: the configuration file (the tests
-// pass another one).
-function getUsers($file = 'sync-secrets.php')
+// pass another one). $timeout: the deadline of the fetch in seconds.
+function getUsers($file = 'sync-secrets.php', $timeout = 20)
 {
     global $dbconn;
     $config = getusers_config($file);
@@ -200,7 +213,7 @@ function getUsers($file = 'sync-secrets.php')
     // The member list is replaced only by a complete, valid response, in one
     // transaction; on any error the connection's previous list (if any)
     // stays as it was.
-    $body = getusers_fetch($config);
+    $body = getusers_fetch($config, $timeout);
     if ($body === null) {
         return 'Mitgliederliste konnte nicht abgerufen werden!';
     }
@@ -239,4 +252,54 @@ function getUsers($file = 'sync-secrets.php')
     }
     return null;
 
+}
+
+// getUsers() once per request: null, or its error message. The member list
+// of this request for the pages that show member numbers (member_number())
+// and save a member's voucher. $timeout: the deadline of the first call;
+// 5 seconds for a page that only shows member numbers, so that a slow
+// membership system delays it less (a save passes 20).
+function members_loaded($timeout = 5)
+{
+    static $error = false;
+    if ($error === false) {
+        $error = getUsers('sync-secrets.php', $timeout);
+    }
+    return $error;
+}
+
+// The member list of this request (members_loaded()), read once: [id =>
+// ['uuid' => ..., 'name' => ...]], or null if it cannot be loaded.
+function member_list()
+{
+    global $dbconn;
+    static $members = false;
+    if ($members === false) {
+        $members = null;
+        if (members_loaded() === null) {
+            $members = [];
+            $result = db_query($dbconn, 'SELECT id, uuid, name FROM pg_temp.ppmembers;');
+            while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
+                $members[$line['id']] = $line;
+            }
+            pg_free_result($result);
+        }
+    }
+    return $members;
+}
+
+// A member number as HTML: with the member's name and linked to the
+// profile if the member list (member_list()) has the member, with a hint
+// if not, as the number only if the list cannot be loaded.
+function member_number($id)
+{
+    $id = intval($id);
+    $members = member_list();
+    if ($members === null) {
+        return (string) $id;
+    }
+    if (!isset($members[$id])) {
+        return "$id (nicht in der Mitgliederliste)";
+    }
+    return member_link($id, $members[$id]['uuid'], $members[$id]['name']);
 }
