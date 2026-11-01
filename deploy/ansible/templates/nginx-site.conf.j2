@@ -76,9 +76,9 @@ server {
         add_header Cache-Control "no-cache" always;
     }
 
-    # The PHP entry points: the pages (index.php) and the membership export
-    # (mbapi.php).
-    location ~ ^/(index|mbapi)\.php$ {
+    # The PHP entry point of the pages (index.php). /mbapi.php (the former
+    # membership export) answers 404 like any other path.
+    location ~ ^/index\.php$ {
         try_files $uri =404;
         include fastcgi_params;
         # The resolved release directory, so a switch of the current symlink

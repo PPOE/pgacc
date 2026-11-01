@@ -9,7 +9,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Internal sync endpoint `internal/mbapi.php` (the provider side of the next
   membership sync), **off unless configured**: the membership payments of
-  `public/mbapi.php` as JSON (`[{"id", "amount_cents", "paid_until"}]`), for
+  the former `public/mbapi.php` as JSON (`[{"id", "amount_cents", "paid_until"}]`), for
   the membership system only, on an internal TLS listener with its own
   document root `internal/`. A request must come from an address of the new
   configuration file `sync.php` (release root, outside the document roots)
@@ -21,15 +21,26 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   self-signed certificate for the address (made again when it changes) and
   a second nginx `server`; `pgacc-deploy` links `sync.php`, requires `internal/` to hold only
   `mbapi.php` and, with the listener on, expects 403 from it without the
-  token in its smoke test. `public/mbapi.php` is unchanged. See
+  token in its smoke test. See
   [UPGRADING.md](UPGRADING.md), "Internal sync endpoint".
+
+### Removed
+
+- **Behaviour change**: `public/mbapi.php`, the encrypted membership-payment
+  export of the old membership sync (the old membership system that called
+  it is shut down): `/mbapi.php` on the public site now answers 404, and the
+  nginx site of `deploy/`, `public/.htaccess` and `scripts/release.sh` no
+  longer allow it. `internal/mbapi.php` replaces it. The helper
+  `membership_encrypt()` (only used by the export) is removed. See
+  [UPGRADING.md](UPGRADING.md), "Membership export `public/mbapi.php`
+  removed".
 
 ### Changed
 
 - **Deployment change** (for the next major release): the web server's
   document root is now `public/` of the release, not the release root
   ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).
-  `public/` holds only the entry points `index.php` and `mbapi.php`,
+  `public/` holds only the entry point `index.php`,
   `style.css`, `js/` and `icons/`; the page scripts, `functions.php`, `src/`,
   `vendor/`, the command-line scripts, `constants.php` and `files/` stay in
   the release root, so nothing there can be requested, whatever its name
@@ -43,7 +54,7 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `.jpg`, `.svg`, `.ico`, `.webp`, `.woff`; pgacc ships and links none) are
   no longer served; `/index.php/...` (PATH_INFO) answers 404. A symbolic
   link below `public/` is refused (403). The nginx site of `deploy/ansible/playbook.yml` serves
-  `current/public` with an allow list (`/`, the two entry points, the static
+  `current/public` with an allow list (`/`, the entry point, the static
   files, the short page addresses; anything else 404); run the playbook of
   the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
   release without `public/`; if the smoke test of the new release fails, it

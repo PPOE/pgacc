@@ -22,7 +22,7 @@
  *     when they exist (a symbolic link is refused with 403).
  * 'entry_link': only for the real servers (tests/web-server/run.sh; the
  *     router of tests/http-docroot.php links the entry points itself): the
- *     entry point public/mbapi.php replaced by a symbolic link to
+ *     entry point public/index.php replaced by a symbolic link to
  *     entry-sentinel.php in the release root must be refused with the
  *     status given per server, and the sentinel must not run.
  *
@@ -51,7 +51,6 @@ return [
         '/' => ['index.php', ''],
         '/index.php' => ['index.php', ''],
         '/index.php?action=login' => ['index.php', 'action=login'],
-        '/mbapi.php' => ['mbapi.php', ''],
         // The short page addresses: index.php?action=<name>, the query
         // string appended.
         '/donations?year=2024' => ['index.php', 'action=donations&year=2024'],
@@ -70,6 +69,8 @@ return [
         '/constants.php' => 404,
         '/sync.php' => 404,
         '/check.php' => 404,
+        // The former membership export (public/mbapi.php, removed).
+        '/mbapi.php' => 404,
         '/migrate-receipt-key.php' => 404,
         '/src/db.php' => 404,
         '/src/sync-api.php' => 404,
@@ -162,6 +163,6 @@ return [
     'entry_link' => [
         // nginx: try_files with disable_symlinks reports the refused link
         // as missing (404); Apache: public/.htaccess (-l) answers 403.
-        '/mbapi.php' => ['nginx' => 404, 'apache' => 403],
+        '/index.php' => ['nginx' => 404, 'apache' => 403],
     ],
 ];

@@ -5,13 +5,13 @@
  *
  *   php check.php plant <release> <secret>
  *       Plants the matrix files into <release> (web_server_plant()) and
- *       replaces public/index.php and public/mbapi.php with a stub that
+ *       replaces public/index.php with a stub that
  *       prints which script ran with which query string; writes
  *       entry-sentinel.php into <release> (matrix 'entry_link'); replaces
  *       internal/mbapi.php with a stub that runs the peer and token check of
  *       src/sync-api.php and answers JSON, and plants files into internal/.
  *   php check.php entry-link <nginx|apache> <base URL>
- *       Checks the 'entry_link' requests (run.sh has made public/mbapi.php
+ *       Checks the 'entry_link' requests (run.sh has made public/index.php
  *       a link to entry-sentinel.php).
  *   php check.php internal <base URL> <cafile> <token> <internal dir> <secret>
  *       Checks the internal sync listener (TLS verified with <cafile>):
@@ -51,10 +51,8 @@ if ($mode === 'plant' && $argc === 4) {
     $stub = "<?php\nheader('Content-Type: text/plain');\n"
         . "echo 'pgacc-stub ', \$_SERVER['SCRIPT_FILENAME'], ' query=', \$_SERVER['QUERY_STRING'] ?? '',"
         . " ' path_info=', \$_SERVER['PATH_INFO'] ?? '', \"\\n\";\n";
-    foreach (['index.php', 'mbapi.php'] as $name) {
-        if (file_put_contents($argv[2] . '/public/' . $name, $stub) === false) {
-            fail_check("could not write the stub $name");
-        }
+    if (file_put_contents($argv[2] . '/public/index.php', $stub) === false) {
+        fail_check('could not write the stub index.php');
     }
     $sentinel = "<?php echo 'pgacc-entry-sentinel-ran';\n";
     if (file_put_contents($argv[2] . '/entry-sentinel.php', $sentinel) === false) {

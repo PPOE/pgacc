@@ -121,7 +121,7 @@ constraints; no backup table, owners, permissions, credentials or rows).
   web server. The test servers serve `public/` through
   `tests/runtime/router.php`, which applies the allow list of the nginx site
   (`deploy/ansible/templates/nginx-site.conf.j2`): `/`, `index.php`,
-  `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page
+  `style.css`, `js/*.js`, `icons/*.png` and the short page
   addresses (`/donations`, ...), rewritten to `index.php?action=<name>`;
   dot files and backup copies answer 403, anything else 404. Like nginx, the
   router first decodes the path, merges slashes and resolves `.` and `..`
@@ -185,7 +185,7 @@ constraints; no backup table, owners, permissions, credentials or rows).
   form token) change the stored preference; the old GET `?hide=` does not.
 - `http-connect-failure.php`: with an unreachable database (a second server
   in the test container, `PGHOST=127.0.0.1 PGPORT=1`, coverage recorded),
-  `index.php` and `mbapi.php` answer "Verbindungsaufbau
+  `index.php` answers "Verbindungsaufbau
   fehlgeschlagen" and log the `pg_connect()` reason.
 - `http-csrf.php` (last in every lane): form tokens. For every write action
   (voucher creation, revision, approval, approval reset, receipt upload,
@@ -215,13 +215,13 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-receipts.php`: receipt upload, PDF import (`smalot/pdfparser` 2.x),
   download of `<n>.v2.aes`
   and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
-  migration script's 404 and the `mbapi.php` export. It reads and writes the
+  migration script's 404. It reads and writes the
   server's `files/` through a volume shared with the client.
 - `http-sync.php`: the internal sync endpoint `internal/mbapi.php` on servers
   of its own with `internal/` as document root: 403 with an empty body
   without the token of `tests/runtime/test-sync.php` (the image's and the
   development loop's `sync.php`), for another peer and without `sync.php`;
-  with it the payments as JSON, equal to the `mbapi.php` export; 500 without
+  with it the payments as JSON, ordered by member id; 500 without
   the database or the release root. `tests/unit/SyncApiTest.php` covers the
   configuration, the check and the payment selection (cutoff, threshold,
   `ack1`, deleted, type). Red evidence: an empty `sync_api_main()` answers
@@ -589,7 +589,7 @@ recording has:
   `null`, `'1e3'`, `' 12'`, UTF-8 and ISO-8859 bytes, floats, 64-bit limits).
 - Imports: synthetic BAWAG, ISO-8859-15, Handkassa, Sparkasse and PayPal CSV
   (`import.php`), generated PDF statements (`import2.php`,
-  `fixtures/make-pdf.php`), receipt upload/download, `mbapi.php` and the
+  `fixtures/make-pdf.php`), receipt upload/download and the
   member-fee page. `mitglieder.piratenpartei.at` resolves to the HTTPS stub
   (`membership/server.php`) inside the network; it serves
   `membership/adm_names.b64` (synthetic members, key in
@@ -728,8 +728,6 @@ Open harness items:
   new escaped mutants.
 - [ ] Extend the bank import test (`http-import.php`) to duplicate re-uploads
   of whole files.
-- [ ] Document the `mbapi.php` output contract and verify it against the
-  membership system's consumer or an agreed sample.
 - [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit only reports
   deprecations, `failOnDeprecation` is off; the implicit-connection ones are gone).
 - [ ] Report unused `tests/known-diagnostics.php` entries as failures.

@@ -9,13 +9,22 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Membership export `public/mbapi.php` removed
+
+`public/mbapi.php`, the encrypted membership-payment export of the old
+membership sync, is removed: `/mbapi.php` on the public site now answers 404.
+Its replacement is the internal sync endpoint below (the old membership
+system that called it is shut down). Remove `/mbapi.php` from the allow list
+of a web server configured by hand and from monitoring; the nginx site of
+`deploy/` and `public/.htaccess` no longer allow it.
+
 ## Internal sync endpoint `internal/mbapi.php` (optional)
 
 New and **off unless configured**: `internal/mbapi.php` gives the membership
 system the membership payments as JSON, on an internal TLS listener that the
 membership system calls directly (not through the reverse proxy). It is the
-provider side of the next membership sync; `public/mbapi.php` stays
-unchanged for now. Nothing changes for a host that does not configure it.
+provider side of the next membership sync and replaces `public/mbapi.php`
+(above). Nothing else changes for a host that does not configure it.
 
 - `internal/` is a document root of its own and holds only `mbapi.php`
   (which changes to the release root, like `public/index.php`). The
@@ -41,7 +50,7 @@ unchanged for now. Nothing changes for a host that does not configure it.
   socket's address, `REMOTE_ADDR`; the listener must not take it from a
   proxy header). Answers: 200 `application/json`
   `[{"id": 12, "amount_cents": 2500, "paid_until": "2026-12-31"}]` (the
-  members and amounts of `public/mbapi.php`: acknowledged, not deleted
+  members and amounts of the former `public/mbapi.php`: acknowledged, not deleted
   membership fees since 1 October of the previous year, at least 20.00 per
   member, paid until 31 December of the current year; `[]` if there are
   none); 403 with an empty body for another peer or without the token; 500
@@ -75,9 +84,8 @@ The web server's document root is now the `public/` directory of the release,
 not the release root. `public/` holds only what must be reachable over the
 web:
 
-- the entry points `index.php` (every page, the login, the receipt downloads
-  `index.php?action=file`, the CSV exports `format=csv`) and `mbapi.php` (called
-  by the membership system);
+- the entry point `index.php` (every page, the login, the receipt downloads
+  `index.php?action=file`, the CSV exports `format=csv`);
 - the static files `style.css`, `js/*.js` and `icons/*.png`;
 - `.htaccess` (Apache: the allow list, `AcceptPathInfo Off`,
   `short_open_tag` and the backup-copy rule; see Apache below).
@@ -87,12 +95,12 @@ page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
 command-line scripts (`migrate-receipt-key.php`, `check.php`), the docs, and
 `constants.php` and `files/`. Nothing there can be requested, whatever its
 name, so a copy such as `constants.php.bak` next to the configuration is no
-longer exposed. The entry points change to the release root (`chdir`) and
+longer exposed. The entry point changes to the release root (`chdir`) and
 load the code, `constants.php` and `files/` from there, as before; PHP's
 `include_path` must contain `.` (the default).
 
 The URLs stay the same: `/`, `/index.php?action=...`, the short page
-addresses (`/donations`, ...), `/mbapi.php`, `/style.css?v=...`,
+addresses (`/donations`, ...), `/style.css?v=...`,
 `/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
 answering: a direct request of a page script, `functions.php` or `src/*.php`
 printed nothing and now gets a 404, as do `/icons/readme.html` and
@@ -112,7 +120,7 @@ Upgrade steps:
    are rewritten as before.
 3. Deploy the release and check: `/` (the report), the login, a receipt
    download, a CSV export, `/donations`, `/style.css?v=<version>`,
-   `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
+   and `/icons/add.png` answer; `/functions.php`,
    `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404,
    and so do `/js/README.md` and `/index.php/x`, which are inside `public/`:
    they show that the allow list is active (an Apache without `AllowOverride
@@ -166,7 +174,7 @@ location = / {
 }
 location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
 }
-location ~ ^/(index|mbapi)\.php$ {
+location ~ ^/index\.php$ {
     try_files $uri =404;
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
@@ -186,7 +194,7 @@ nginx site template (`deploy/ansible/templates/nginx-site.conf.j2`); then
 check the paths of step 3 above.
 
 Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
-`index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
+`index.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
 page addresses, which it rewrites itself; dot files and symbolic links 403,
 anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
 short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it

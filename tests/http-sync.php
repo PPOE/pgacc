@@ -11,7 +11,7 @@
  * 1. Without the token, with a wrong one or another scheme: 403, empty.
  * 2. With the token: 200, application/json, the fees of the fixtures below
  *    (amounts, the 1 October cutoff, ack1, deleted, the 2000-cent
- *    threshold), equal to the members and amounts of public/mbapi.php.
+ *    threshold), ordered by member id.
  * 3. A release with a sync.php of its own (it is the one read): another
  *    peer, and no sync.php, get 403 (tests/unit/SyncApiTest.php covers
  *    the other configurations).
@@ -19,8 +19,6 @@
  * 5. No release root (open_basedir): 500, empty, the reason logged.
  */
 require __DIR__ . '/http-test-helpers.php';
-require_once dirname(__DIR__) . '/vendor/autoload.php';
-require_once dirname(__DIR__) . '/functions.php';
 
 const SYNC_TOKEN = 'synthetic-test-only-sync-token';
 
@@ -81,8 +79,7 @@ function assert_refused($response, $status, $label)
     }
 }
 
-// Membership fees: the same cases as the export test of tests/http-receipts.php
-// (member ids 9901xx here, so that both can run on one database).
+// Membership fees (member ids 9901xx).
 $year = intval(date('Y'));
 $database = pg_connect('');
 if ($database === false) {
@@ -138,17 +135,12 @@ $expected = [
 if ($ours !== $expected) {
     fail_test('payments: expected ' . json_encode($expected) . ', got ' . json_encode($ours));
 }
-// The same members and amounts as public/mbapi.php, in its order.
-$export = http_request('/mbapi.php');
-assert_status($export, 200, 'membership export');
-$lines = explode("\n", $export['body']);
-$text = rtrim((string) membership_decrypt('synthetic-reference-membership-key', (string) base64_decode($lines[1] ?? '', true)), "\0");
-$converted = '';
-foreach ($payments as $row) {
-    $converted .= $row['id'] . "\t" . $row['amount_cents'] . "\t" . $row['paid_until'] . "\n";
-}
-if ($converted !== $text || $lines[0] !== sha1($text)) {
-    fail_test('payments differ from public/mbapi.php: ' . var_export($converted, true) . ' vs ' . var_export($text, true));
+// Ordered by member id, each member once.
+$ids = array_column($payments, 'id');
+$sorted = array_unique($ids);
+sort($sorted);
+if ($ids !== $sorted) {
+    fail_test('payments: not ordered by member id: ' . json_encode($ids));
 }
 
 // 3. A release with a sync.php of its own (another peer), and one without.

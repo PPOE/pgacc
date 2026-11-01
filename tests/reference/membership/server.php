@@ -64,7 +64,7 @@ $certificates = [
     'wrongname' => '/etc/pgacc-test-tls/wrongname.pem',
 ];
 
-// As membership_encrypt() of functions.php: Rijndael-256/CBC, key
+// As the membership system: Rijndael-256/CBC, key
 // md5($datakey), IV md5(md5($datakey)), zero padding.
 function membership_stub_encrypt($plain)
 {

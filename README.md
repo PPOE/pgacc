@@ -17,10 +17,9 @@ Core concepts:
   spendings pages, donation lists.
 - **Import**: bank statement CSV import (BAWAG format).
 - **Membership integration**: `getusers.php` fetches member names from the
-  membership system, `mbapi.php` exports membership payments;
-  `internal/mbapi.php` exports them as JSON on an internal TLS listener (off
-  unless configured, [deploy/README.md](deploy/README.md), "Membership
-  system").
+  membership system; `internal/mbapi.php` exports membership payments as
+  JSON on an internal TLS listener (off unless configured,
+  [deploy/README.md](deploy/README.md), "Membership system").
 
 ## Requirements
 
@@ -72,9 +71,9 @@ Provisioning a Debian 13 host and deploying releases with scripts:
 4. Make `files/` writable by the web server. It holds the receipt files and
    must not be web-accessible.
 5. Serve `public/` over HTTPS: it is the document root and holds only the
-   entry points (`index.php`, `mbapi.php`) and the static files (`style.css`,
+   entry point (`index.php`) and the static files (`style.css`,
    `js/`, `icons/`). The code, `vendor/`, `constants.php` and `files/` stay in
-   the repository root, outside the document root; the entry points load them
+   the repository root, outside the document root; the entry point loads them
    from there. Web server examples (nginx, Apache, the short page
    addresses): [UPGRADING.md](UPGRADING.md), "Document root `public/`".
    `index.php` redirects unless the

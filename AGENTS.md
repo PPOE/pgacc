@@ -123,15 +123,15 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 | Path | Role |
 |---|---|
-| `public/` | Document root: only the entry points `index.php` and `mbapi.php` (they `chdir()` to the repository root, which holds the code, `constants.php` and `files/`), `style.css`, `js/`, `icons/` |
+| `public/` | Document root: only the entry point `index.php` (it `chdir()`s to the repository root, which holds the code, `constants.php` and `files/`), `style.css`, `js/`, `icons/` |
 | `public/index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
 | `functions.php` | Shared helpers: `acc_header`/`acc_footer`, `getfilter`, `getsort`, `rights2orgasql` (rights to SQL) |
-| `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure and log the calling page's file:line); outside the document root; loaded by `index.php` and `mbapi.php` after `functions.php` |
+| `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure and log the calling page's file:line); outside the document root; loaded by `index.php` after `functions.php` |
 | `src/format.php` | Formatting and parsing helpers: `amount_cents()` (exact amount parsing), `format_date()`, `format_amount()` (cents as `12.34` plus a unit); loaded by `index.php` after `src/db.php` |
 | `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), merge, revisions (finalization removed) |
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
-| `getusers.php`, `public/mbapi.php` | Membership-system interface (lookup and export API) |
+| `getusers.php` | Membership-system interface (member list lookup) |
 | `internal/mbapi.php`, `src/sync-api.php` | Internal sync endpoint: payments as JSON after a peer and token check against `sync.php` (release root, like `constants.php`); `internal/` is the document root of the internal nginx listener (off unless configured); tests `tests/http-sync.php`, `tests/unit/SyncApiTest.php` |
 | `file.php` | Encrypted receipt download (helpers in `functions.php`, phpseclib): `files/<n>.v2.aes` (AES-256 + HMAC, keyed on `$key` and file number), legacy `files/<n>.aes` (mcrypt-compatible) |
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |

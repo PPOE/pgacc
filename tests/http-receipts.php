@@ -1,9 +1,8 @@
 <?php
 
 /*
- * Encrypted receipts and the membership export over HTTP: receipt upload
- * (new.php), PDF import (import2.php), receipt download (file.php) and
- * mbapi.php. The byte-exact formats are pinned by tests/unit/CryptoTest.php
+ * Encrypted receipts over HTTP: receipt upload (new.php), PDF import
+ * (import2.php) and receipt download (file.php). The byte-exact formats are pinned by tests/unit/CryptoTest.php
  * (legacy, mcrypt) and tests/unit/ReceiptStorageTest.php (v2); this checks the
  * call sites and the stored files: new receipts are files/<n>.v2.aes (keyed on
  * the file number and the configured key), legacy files/<n>.aes (voucher ID,
@@ -13,8 +12,8 @@
  * runner (PGACC_TEST_APP_ROOT).
  */
 require __DIR__ . '/http-test-helpers.php';
-// The membership export and receipt files are encrypted and decrypted with
-// the application's helpers (pinned by the vectors).
+// The receipt files are encrypted and decrypted with the application's
+// helpers (pinned by the vectors).
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/functions.php';
 require_once dirname(__DIR__) . '/src/db.php';
@@ -1194,43 +1193,6 @@ foreach ($fixtureCases as $case => [$voucherId, $type]) {
 array_map('unlink', array_merge(glob("$migrationFiles/*"), ["$migrationFiles/.migrate-receipt-key.lock"]));
 rmdir($migrationFiles);
 
-// Membership export (mbapi.php): members whose acknowledged membership fees
-// since October of the previous year reach 20.00, as "<SHA-1>\n<base64>".
-$year = date('Y');
-$fees = [
-    [990001, 2500, "$year-01-02", 'reviewer-a', false],
-    [990002, 1000, "$year-01-02", 'reviewer-a', false],
-    [990002, 1000, ($year - 1) . '-10-01', 'reviewer-a', false],
-    [990003, 1999, "$year-01-02", 'reviewer-a', false],
-    [990004, 5000, ($year - 1) . '-09-30', 'reviewer-a', false],
-    [990005, 5000, "$year-01-02", null, false],
-    [990006, 5000, "$year-01-02", 'reviewer-a', true],
-];
-foreach ($fees as $index => $fee) {
-    receipts_query(
-        $database,
-        "INSERT INTO vouchers (id, voucher_id, type, orga, member, member_id, amount, comment, date, ack1, deleted)
-         VALUES ($1, $2, 1, 1, true, $3, $4, 'Synthetic membership fee', $5, $6, $7)",
-        [9200 + $index, 9200 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'],
-        "membership fee $index",
-    );
-}
-$export = http_request('/mbapi.php');
-assert_status($export, 200, 'membership export');
-$text = "990001\t2500\t$year-12-31\n990002\t2000\t$year-12-31\n";
-$lines = explode("\n", $export['body']);
-if (count($lines) !== 2 || $lines[0] !== sha1($text)) {
-    fail_test('membership export framing: ' . var_export($export['body'], true));
-}
-$ciphertext = base64_decode($lines[1], true);
-if ($ciphertext === false || strlen($ciphertext) !== 64) {
-    fail_test('membership export payload is not 64 bytes of base64: ' . var_export($lines[1], true));
-}
-// The synthetic $datakey of tests/runtime/test-constants.php.
-if (membership_decrypt('synthetic-reference-membership-key', $ciphertext) !== str_pad($text, 64, "\0")) {
-    fail_test('membership export payload does not decrypt to the expected members');
-}
-
 pg_close($database);
 assert_no_unexpected_diagnostics();
-echo "Receipt and membership export tests passed\n";
+echo "Receipt tests passed\n";

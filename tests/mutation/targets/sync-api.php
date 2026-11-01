@@ -103,7 +103,7 @@ return [
         ['id' => 'main-year-previous',
             'search' => 'sync_api_payments($dbconn, intval(date(\'Y\')))',
             'replace' => 'sync_api_payments($dbconn, intval(date(\'Y\')) - 1)',
-            'rationale' => 'The current year, as public/mbapi.php.'],
+            'rationale' => 'Paid until the end of the current year.'],
         ['id' => 'entry-chdir-failure-ignored', 'file' => 'internal/mbapi.php',
             'search' => 'if (!chdir(dirname(__DIR__))) {', 'replace' => 'if (!chdir(dirname(__DIR__)) && false) {',
             'rationale' => 'mbapi.php runs on in the document root and tries to load the code from there.'],

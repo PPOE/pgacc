@@ -2,13 +2,13 @@
 
 /*
  * The mcrypt replacement in functions.php (Rijndael-256 CBC, zero padding)
- * and its five call sites: receipt upload (new.php), PDF import
- * (import2.php), receipt download (file.php), membership import
- * (getusers.php) and export (mbapi.php); the receipt storage helpers
+ * and its four call sites: receipt upload (new.php), PDF import
+ * (import2.php), receipt download (file.php) and membership import
+ * (getusers.php); the receipt storage helpers
  * (configured key, <n>.v2.aes and legacy <n>.aes) and the receipt key
  * migration (migrate-receipt-key.php). Killed by the mcrypt contract vectors
  * (tests/unit/CryptoTest.php), the storage, getUsers(), import and migration
- * tests, and the HTTP receipt and export tests. See tests/mutation/README.md
+ * tests, and the HTTP receipt tests. See tests/mutation/README.md
  * for the format.
  */
 return [
@@ -78,9 +78,6 @@ return [
         ['id' => 'membership-iv-hashed-once',
             'search' => 'return [md5($datakey), md5(md5($datakey))];', 'replace' => 'return [md5($datakey), md5($datakey)];',
             'rationale' => 'The membership IV is md5(md5(datakey)).'],
-        ['id' => 'membership-encrypt-params-swapped',
-            'search' => "    return rijndael256_encrypt(\$cipherKey, \$data, \$iv);\n}\n\nfunction membership_decrypt", 'replace' => "    return rijndael256_encrypt(\$iv, \$data, \$cipherKey);\n}\n\nfunction membership_decrypt",
-            'rationale' => 'Encryption passes the key first.'],
 
         // Receipt storage helpers (functions.php).
         ['id' => 'key-short-accepted',
@@ -591,11 +588,5 @@ return [
         ['id' => 'members-not-base64-decoded', 'file' => 'getusers.php',
             'search' => '$decrypted = rtrim(membership_decrypt($datakey, base64_decode($sData)), "\0");', 'replace' => '$decrypted = rtrim(membership_decrypt($datakey, $sData), "\0");',
             'rationale' => 'The membership system sends base64.'],
-        ['id' => 'export-not-base64', 'file' => 'public/mbapi.php',
-            'search' => '$encrypted = base64_encode(membership_encrypt($datakey, $text));', 'replace' => '$encrypted = membership_encrypt($datakey, $text);',
-            'rationale' => 'The export is base64.'],
-        ['id' => 'export-checksum-of-ciphertext', 'file' => 'public/mbapi.php',
-            'search' => 'echo sha1($text) . "\\n";', 'replace' => 'echo sha1(membership_encrypt($datakey, $text)) . "\\n";',
-            'rationale' => 'The checksum is the SHA-1 of the plain text.'],
     ],
 ];

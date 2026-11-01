@@ -20,7 +20,7 @@
 # which query string, and with the planted files of the matrix. The servers
 # run without network (--network none); the client runs in the same network
 # namespace and connects to 127.0.0.1, the address the nginx site allows.
-# After the matrix, public/mbapi.php is replaced for one check by a symbolic
+# After the matrix, public/index.php is replaced for one check by a symbolic
 # link to a sentinel script in the release root (matrix 'entry_link'), then
 # restored.
 #
@@ -88,11 +88,11 @@ check() {
 }
 # entry_link <container> <server>: an entry point that is a symbolic link out of public/.
 entry_link() {
-  mv "$release/public/mbapi.php" "$tmp/mbapi.php"
-  ln -s ../entry-sentinel.php "$release/public/mbapi.php"
+  mv "$release/public/index.php" "$tmp/index.php"
+  ln -s ../entry-sentinel.php "$release/public/index.php"
   link_status=0
   docker exec "$1" php /tests/check.php entry-link "$2" http://127.0.0.1:80 || link_status=$?
-  rm "$release/public/mbapi.php" && mv "$tmp/mbapi.php" "$release/public/mbapi.php"
+  rm "$release/public/index.php" && mv "$tmp/index.php" "$release/public/index.php"
   return "$link_status"
 }
 
