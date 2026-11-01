@@ -805,9 +805,25 @@ return [
         [
             'id' => 'form-buttons-untrimmed',
             'file' => 'new.php',
-            'search' => "(has_right(\$rights, 'bgf') || in_array(trim(\$lo), konto2lo(\$rights2)))",
-            'replace' => "(in_array('bgf', explode(',', \$rights)) || in_array(trim(\$lo), konto2lo(\$rights2)))",
-            'rationale' => 'The save buttons follow the trimmed rights: "1, bgf" is bgf.',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "preg_grep('/^\\d+\$/D', explode(',', \$rights)) != []",
+            'rationale' => 'The save buttons follow the trimmed rights: "2 " is organization 2.',
+        ],
+        [
+            'id' => 'form-buttons-single-right-only',
+            'file' => 'new.php',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "(count(\$rights2) == 1 && preg_grep('/^\\d+\$/D', \$rights2) != [])",
+            'rationale' => 'Users with several rights ("1,2", "root,1", "Rbgf,2") get the save and '
+                . 'approval buttons too (before the fix only single rights did).',
+        ],
+        [
+            'id' => 'form-buttons-for-any-right',
+            'file' => 'new.php',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "\$rights2 != []",
+            'rationale' => 'Users without bgf and without an organization right (root alone, no '
+                . 'rights) get no save buttons.',
         ],
         [
             'id' => 'delete-link-untrimmed',

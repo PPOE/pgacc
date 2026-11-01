@@ -100,6 +100,8 @@ $mutations[] = [
     'search' => "if (write_rights(\$rights) !== false && (has_right(\$rights, 'bgf')",
     'replace' => "if (true && (has_right(\$rights, 'bgf')",
     'rationale' => 'The voucher form offers no save, approval or reset buttons to read-only bgf.',
+    'equivalent' => ['reason' => 'Rbgf alone is neither bgf nor an organization right, so the '
+        . 'right check that follows hides the buttons as well.'],
 ];
 
 return [
