@@ -465,17 +465,48 @@ return [
         [
             'id' => 'ack-receipt-check-unscoped',
             'region' => $ack,
-            'search' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
-            'replace' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id;',
-            'rationale' => 'The receipt check counts only the user\'s rows: an approved row without a '
-                . 'receipt is refused although a row of another organization is open.',
+            'search' => '(ack1 IS NULL OR $receipt) AND voucher_id = $id $rightssql;',
+            'replace' => '(ack1 IS NULL OR $receipt) AND voucher_id = $id;',
+            'rationale' => 'The open-row check counts only the user\'s rows: an approved row of a voucher '
+                . 'without a receipt is refused although a row of another organization is open.',
         ],
         [
             'id' => 'ack-receipt-check-counts-deleted',
             'region' => $ack,
-            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR file != 0)',
-            'replace' => 'WHERE (ack1 IS NULL OR file != 0)',
+            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR $receipt)',
+            'replace' => 'WHERE (ack1 IS NULL OR $receipt)',
             'rationale' => 'Old revisions do not count as open rows of the receipt check.',
+        ],
+        [
+            'id' => 'ack-receipt-check-without-receipt',
+            'region' => $ack,
+            'search' => '(ack1 IS NULL OR $receipt) AND',
+            'replace' => 'ack1 IS NULL AND',
+            'rationale' => 'A receipt on another organization\'s row of the voucher allows the second '
+                . 'approval of the user\'s approved row.',
+        ],
+        [
+            'id' => 'ack-receipt-own-rows-only',
+            'region' => $ack,
+            'search' => 'file != 0 AND voucher_id = $id)";',
+            'replace' => 'file != 0 AND voucher_id = $id $rightssql)";',
+            'rationale' => 'The receipt counts on any current row of the voucher, also one of another '
+                . 'organization.',
+        ],
+        [
+            'id' => 'ack-receipt-counts-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND file != 0 AND',
+            'replace' => 'WHERE file != 0 AND',
+            'rationale' => 'An old revision\'s receipt does not allow the second approval.',
+        ],
+        [
+            'id' => 'ack2-without-receipt',
+            'region' => $ack,
+            'search' => "ack1 != '\$name' AND \$receipt AND",
+            'replace' => "ack1 != '\$name' AND",
+            'rationale' => 'Second approval without a receipt: a user who also sees an open row '
+                . 'passes the check and gives the second approval of an approved row.',
         ],
         [
             'id' => 'ack1-update-stamps-deleted',
@@ -502,8 +533,8 @@ return [
         [
             'id' => 'ack2-update-unscoped',
             'region' => $ack,
-            'search' => "ack1 != '\$name' AND voucher_id = \$id \$rightssql;",
-            'replace' => "ack1 != '\$name' AND voucher_id = \$id;",
+            'search' => "\$receipt AND voucher_id = \$id \$rightssql;",
+            'replace' => "\$receipt AND voucher_id = \$id;",
             'rationale' => 'Wrong organization: the second approval sets ack2 on rows of other '
                 . 'organizations of the same voucher.',
         ],
@@ -723,9 +754,25 @@ return [
         [
             'id' => 'form-buttons-untrimmed',
             'file' => 'new.php',
-            'search' => "(has_right(\$rights, 'bgf') || in_array(trim(\$lo), konto2lo(\$rights2)))",
-            'replace' => "(in_array('bgf', explode(',', \$rights)) || in_array(trim(\$lo), konto2lo(\$rights2)))",
-            'rationale' => 'The save buttons follow the trimmed rights: "1, bgf" is bgf.',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "preg_grep('/^\\d+\$/D', explode(',', \$rights)) != []",
+            'rationale' => 'The save buttons follow the trimmed rights: "2 " is organization 2.',
+        ],
+        [
+            'id' => 'form-buttons-single-right-only',
+            'file' => 'new.php',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "(count(\$rights2) == 1 && preg_grep('/^\\d+\$/D', \$rights2) != [])",
+            'rationale' => 'Users with several rights ("1,2", "root,1", "Rbgf,2") get the save and '
+                . 'approval buttons too (before the fix only single rights did).',
+        ],
+        [
+            'id' => 'form-buttons-for-any-right',
+            'file' => 'new.php',
+            'search' => "preg_grep('/^\\d+\$/D', \$rights2) != []",
+            'replace' => "\$rights2 != []",
+            'rationale' => 'Users without bgf and without an organization right (root alone, no '
+                . 'rights) get no save buttons.',
         ],
         [
             'id' => 'delete-link-untrimmed',

@@ -32,9 +32,22 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   cell when there are none, instead of `<del></del> <del></del>`), and the
   spendings and in-kind donation lists write `Privatperson` and `Kontodaten`
   without `<i>`. The HTML pages are unchanged.
+- The voucher form shows its buttons (Speichern, Bestätigen, Beleg and
+  Buchungszeile hinzufügen) to users with several rights, such as "1,2",
+  "root,1" or "Rbgf,2"; before, only bgf and users with exactly one right
+  got them. Users without bgf and without an organization right ("root"
+  alone, no rights) now get none; read-only bgf ("Rbgf") still gets none.
+  Saving and approving check the rights as before.
 - Profile links of the member-fee page point to the profile page of
   Admidio 5 (`modules/profile/profile.php`) instead of the removed
   `adm_program/` path.
+- Approval ("Bestätigen") gives the second approval only when a current row
+  of the voucher has a receipt. Before, a user who also saw a row without a
+  first approval passed the receipt check and gave the second approval of
+  the other rows without any receipt. A receipt on any current row of the
+  voucher counts, also on a row of another organization (the user learns
+  only whether one exists); the second approval still comes from someone
+  other than the first approver.
 
 ## [2.3.0] - 2026-11-01
 

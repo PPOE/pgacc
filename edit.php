@@ -135,8 +135,11 @@ function page_edit_ack($rights)
     }
     pg_free_result($result);
 
+    // The second approval needs a receipt on a current row of the voucher,
+    // also on a row of another organization (only whether one exists counts).
+    $receipt = "EXISTS (SELECT 1 FROM vouchers WHERE NOT deleted AND file != 0 AND voucher_id = $id)";
     $hasfile = false;
-    $query = "SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;";
+    $query = "SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR $receipt) AND voucher_id = $id $rightssql;";
     $result = db_query($dbconn, $query);
     while ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
         $hasfile = true;
@@ -156,7 +159,7 @@ function page_edit_ack($rights)
     echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
     block_end();
 
-    $query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND voucher_id = $id $rightssql;";
+    $query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND $receipt AND voucher_id = $id $rightssql;";
     db_exec($dbconn, $query);
     relocate("index.php?action=edit&id=$id&hint=4");
 }
@@ -581,5 +584,5 @@ function merge()
     $bgfandack = has_right($rights, 'bgf') && ($acks == 2) && ($vouchers[0]['receipt_received'] != 't');
 
 
-    end_of_form($parts, $rights, $bgfandack && !$unsaved, $rights, true, !$unsaved);
+    end_of_form($parts, $rights, $bgfandack && !$unsaved, true, !$unsaved);
 }

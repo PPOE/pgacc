@@ -730,6 +730,19 @@ $twoUnitsRevision = edit_request(
 );
 assert_contains($twoUnitsRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision without organization by a user of two organizations');
 assert_database_count($database, $commentQuery, ['Synthetic revision without organization'], 0, 'revision without organization by a user of two organizations');
+// The voucher form offers its write controls to users of several
+// organizations as well (before, only to bgf and to users with exactly one
+// right); users with no organization right and no bgf get none.
+$twoUnitsForm = http_request('/index.php?action=edit&id=' . $twoUnitsDraftId, 'GET', [], $twoUnitsCookies);
+$twoUnitsNew = http_request('/index.php?action=new', 'GET', [], $twoUnitsCookies);
+foreach (['name="speichern"', 'name="ack"', 'name="addB"', 'name="add"'] as $control) {
+    assert_contains($twoUnitsForm['body'], $control, "voucher page for a user of two organizations ($control)");
+}
+assert_contains($twoUnitsNew['body'], 'name="speichern"', 'new voucher page for a user of two organizations');
+assert_contains(http_request('/index.php?action=new', 'GET', [], $rootOneCookies)['body'], 'name="speichern"', 'new voucher page for root,1');
+foreach (['root' => $rootOnlyCookies, 'no' => $noRightsCookies] as $userRights => $cookies) {
+    assert_not_contains(http_request('/index.php?action=new', 'GET', [], $cookies)['body'], 'name="speichern"', "new voucher page for $userRights rights");
+}
 // Organizations are compared as numbers, as the database compares them
 // ('01' is organization 1), and spaces around rights do not count.
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
@@ -749,6 +762,7 @@ assert_database_field(
     '2',
     'voucher without organization of trailing-space rights',
 );
+assert_contains(http_request('/index.php?action=new', 'GET', [], $trailingCookies)['body'], 'name="speichern"', 'new voucher page for trailing-space rights');
 $spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
 // (The voucher form of the edit page.)
 // The rights SQL trims the rights too: '1, bgf' reads every organization,
@@ -901,20 +915,54 @@ assert_voucher_rows(
     'partly finalized voucher after approval by organization two',
 );
 
-// The receipt check counts only the user's rows: organization two's row is
-// approved once and has no receipt, so its second approval is refused even
-// though organization one's row is still open.
+// The second approval needs a receipt on a current row of the voucher, also
+// on a row of another organization: organization two's row is approved once
+// and has no receipt, organization one's row has one.
 $receiptCheckId = create_voucher_from_form($database, two_organization_form('Synthetic voucher without a receipt', 9010), $adminCookies);
 pg_query_params(
     $database,
     "UPDATE vouchers SET ack1 = 'synthetic-first-approver', file = 0 WHERE voucher_id = $1 AND orga = 2",
     [$receiptCheckId],
 );
-$receiptCheckState = [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')];
 $receiptCheck = edit_request($receiptCheckId, $approveForm, $unitTwoCookies);
-assert_status($receiptCheck, 200, 'approval of a row without a receipt');
-assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
-assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
+assert_redirect($receiptCheck, edit_location($receiptCheckId, 4), 'approval of a row whose receipt is on another row');
+assert_voucher_rows(
+    $database,
+    $receiptCheckId,
+    [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', 'synthetic-unit-two', 'f')],
+    'voucher after the approval of a row whose receipt is on another row',
+);
+// Without a receipt on any current row (an old revision's does not count),
+// the second approval is refused.
+$noReceiptId = create_voucher_from_form($database, two_organization_form('Synthetic voucher without any receipt', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-first-approver' WHERE voucher_id = $1 AND orga = 2", [$noReceiptId]);
+pg_query_params($database, 'INSERT INTO vouchers (voucher_id, orga, deleted, file) VALUES ($1, 1, true, 9016)', [$noReceiptId]);
+$noReceiptState = [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')];
+$noReceipt = edit_request($noReceiptId, $approveForm, $unitTwoCookies);
+assert_status($noReceipt, 200, 'approval of a voucher without a receipt');
+assert_contains($noReceipt['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a voucher without a receipt');
+assert_voucher_rows($database, $noReceiptId, $noReceiptState, 'voucher after the approval of a voucher without a receipt');
+// A user who also sees an open row passes the check above: that row gets its
+// first approval, but the approved row still gets no second one.
+$reviewerNoReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
+assert_redirect($reviewerNoReceipt, edit_location($noReceiptId, 4), 'approval of a voucher without a receipt by bgf');
+assert_voucher_rows(
+    $database,
+    $noReceiptId,
+    [voucher_row_state('1', 'synthetic-reviewer', null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')],
+    'voucher without a receipt after the approval by bgf',
+);
+// With a receipt on organization one's row, the next approval by bgf is the
+// second one of organization two's row (not of its own first one).
+attach_receipt_numbers($database, $noReceiptId, [9017]);
+$reviewerWithReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
+assert_redirect($reviewerWithReceipt, edit_location($noReceiptId, 4), 'approval of a voucher with a receipt by bgf');
+assert_voucher_rows(
+    $database,
+    $noReceiptId,
+    [voucher_row_state('1', 'synthetic-reviewer', null, 'f'), voucher_row_state('2', 'synthetic-first-approver', 'synthetic-reviewer', 'f')],
+    'voucher with a receipt after the approval by bgf',
+);
 
 // A revision needs a current row of the voucher that the user sees; the
 // finalized and approved checks then cover the whole voucher, also the rows
@@ -1486,6 +1534,13 @@ foreach (['name="speichern"', 'name="ack"', 'name="addB"', 'href="index.php?acti
 foreach (['href="index.php?action=all', 'href="index.php?action=deleted', 'href="index.php?action=accounts"'] as $link) {
     assert_contains($readOnlyForm['body'], $link, "menu for read-only bgf ($link)");
 }
+assert_not_contains(http_request('/index.php?action=new', 'GET', [], $readOnlyCookies)['body'], 'name="speichern"', 'new voucher page for read-only bgf');
+// 'Rbgf,2' writes like a user of organization 2, so it gets the controls.
+$readOnlyTwoForm = http_request('/index.php?action=edit&id=' . $readOnlyTwoId, 'GET', [], $readOnlyTwoCookies);
+foreach (['name="speichern"', 'name="ack"', 'name="addB"'] as $control) {
+    assert_contains($readOnlyTwoForm['body'], $control, "voucher page for Rbgf,2 ($control)");
+}
+assert_contains(http_request('/index.php?action=new', 'GET', [], $readOnlyTwoCookies)['body'], 'name="speichern"', 'new voucher page for Rbgf,2');
 
 $readOnlyStates = [
     $readOnlyOneId => [voucher_row_state('1', null, null, 'f')],
