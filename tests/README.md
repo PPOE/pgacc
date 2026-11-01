@@ -258,7 +258,8 @@ tests, `tests/unit/MembershipStub.php`). The modes (`malformed`, `empty`,
 the header of `server.php`; `selfsigned` and `wrongname`
 present a self-signed and a wrong-name certificate (also generated per build)
 that `getusers()` must refuse. `tests/http-import.php` uses the modes for the
-failure cases and a member match; the refused handshakes' warnings are
+failure cases, a member match and the member numbers of the ledger and the
+voucher form (`/__stub/members-requests` counts the list fetches); the refused handshakes' warnings are
 attributed with `with_expected_diagnostics()` (`tests/http-diagnostics.php`), and
 `/__stub/list-requests` proves that no redirect was followed.
 `GetUsersTest` fetches the synthetic `flow` list

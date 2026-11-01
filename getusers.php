@@ -36,6 +36,19 @@ function member_uuid_valid($uuid)
     return is_string($uuid) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di', $uuid) === 1;
 }
 
+// The member id, followed by the member's $name (if any), linked to the
+// member's profile in the membership system if $uuid (from the member list)
+// is a UUID: Admidio opens profiles by user_uuid only. Otherwise as plain
+// text. HTML.
+function member_link($id, $uuid, $name = null)
+{
+    $text = intval($id) . ($name === null ? '' : ' ' . html_escape($name));
+    if (!member_uuid_valid($uuid)) {
+        return $text;
+    }
+    return '<a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=' . $uuid . '">' . $text . '</a>';
+}
+
 // The member list settings of the configuration $file (sync-secrets.php in
 // the release root, resolved like the include of constants.php):
 // ['members_url' => 'https://...', 'members_token' => non-empty string,
@@ -239,4 +252,35 @@ function getUsers($file = 'sync-secrets.php')
     }
     return null;
 
+}
+
+// getUsers() once per request: null, or its error message. The member list
+// of this request for the pages that show member numbers (member_number())
+// and save a member's voucher.
+function members_loaded()
+{
+    static $error = false;
+    if ($error === false) {
+        $error = getUsers();
+    }
+    return $error;
+}
+
+// A member number as HTML: with the member's name and linked to the
+// profile if the member list (members_loaded()) has the member, with a hint
+// if not, as the number only if the list cannot be loaded.
+function member_number($id)
+{
+    global $dbconn;
+    $id = intval($id);
+    if (members_loaded() !== null) {
+        return (string) $id;
+    }
+    $result = db_query($dbconn, "SELECT uuid, name FROM pg_temp.ppmembers WHERE id = $id;");
+    $member = pg_fetch_array($result, null, PGSQL_ASSOC);
+    pg_free_result($result);
+    if ($member === false) {
+        return "$id (nicht in der Mitgliederliste)";
+    }
+    return member_link($id, $member['uuid'], $member['name']);
 }

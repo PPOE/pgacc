@@ -1,17 +1,5 @@
 <?php
 
-// The member id, linked to the member's profile in the membership system if
-// $uuid (from the member list) is a UUID: Admidio opens profiles by
-// user_uuid only. Otherwise the id as plain text.
-function mb_member_link($id, $uuid)
-{
-    $id = intval($id);
-    if (!member_uuid_valid($uuid)) {
-        return (string) $id;
-    }
-    return '<a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_uuid=' . $uuid . '">' . $id . '</a>';
-}
-
 function page_mb($rights)
 {
     global $dbconn;
@@ -98,7 +86,7 @@ function page_mb($rights)
         if (($line['amount'] < 2000 && $line['paid'] == 1) || ($line['amount'] >= 2000 && $line['paid'] == 0)) {
             $count++;
             echo "<tr><td>$count</td>
-  <td>" . mb_member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
+  <td>" . member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
   <td>" . html_escape($line['name']) . "</td>
   <td>" . ($line['amount'] / 100.0) . "</td>
   <td>" . intval($line['paid']) . "</td></tr>";
@@ -117,7 +105,7 @@ function page_mb($rights)
         if (($line['amount'] >= 2000 && $line['paid'] == 1) || ($line['amount'] < 2000 && $line['paid'] == 0)) {
             $count++;
             echo "<tr><td>$count</td>
-  <td>" . mb_member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
+  <td>" . member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
   <td>" . html_escape($line['name']) . "</td>
   <td>" . ($line['amount'] / 100.0) . "</td>
   <td>" . intval($line['paid']) . "</td></tr>";
