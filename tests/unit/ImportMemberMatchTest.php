@@ -20,14 +20,13 @@ final class ImportMemberMatchTest extends FunctionsTestCase
      */
     private static function importAgainstMember($memberName, $text)
     {
-        $key = 'synthetic-import-member-key';
         // Padding members have spaces in their names; the import compares the
         // line without spaces, so they never match.
-        $plain = "1\t7101\t$memberName\t38\t1\n";
+        $members = [[7101, $memberName, 38, 1]];
         for ($i = 2; $i < 40; $i++) {
-            $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
+            $members[] = [7100 + $i, "Padding Member $i", 40, 0];
         }
-        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
+        MembershipStub::serveMembers($members);
         $csv = "Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt\r\n"
             . "05.04.2024;5,00;Handkassa;$text;;;Nein;Nein;;0;1;;;\r\n";
         $path = tempnam(sys_get_temp_dir(), 'pgacc-import');
@@ -39,8 +38,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             'error' => [0],
             'size' => [strlen($csv)],
         ]];
-        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
-        $GLOBALS['datakey'] = $key;
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         $diagnostics = [];
@@ -61,7 +58,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             restore_error_handler();
             MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
-            $GLOBALS['datakey'] = $datakey;
             $_FILES = [];
             unlink($path);
         }
@@ -74,12 +70,11 @@ final class ImportMemberMatchTest extends FunctionsTestCase
     // type with an upload error, so only a constructed upload reaches it.
     public function testUploadErrorShowsTheEncodedFileName()
     {
-        $key = 'synthetic-import-member-key';
-        $plain = '';
+        $members = [];
         for ($i = 1; $i < 40; $i++) {
-            $plain .= "$i\t" . (7100 + $i) . "\tPadding Member $i\t40\t0\n";
+            $members[] = [7100 + $i, "Padding Member $i", 40, 0];
         }
-        MembershipStub::serve(base64_encode(membership_encrypt($key, $plain)));
+        MembershipStub::serveMembers($members);
         $_FILES = ['uploadcsv' => [
             'name' => ['<i>a&b</i>.csv'],
             'type' => ['text/csv'],
@@ -87,8 +82,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             'error' => [UPLOAD_ERR_PARTIAL],
             'size' => [100],
         ]];
-        $datakey = isset($GLOBALS['datakey']) ? $GLOBALS['datakey'] : null;
-        $GLOBALS['datakey'] = $key;
         $connection = pg_connect(pgacc_test_connection_string());
         pg_query($connection, 'BEGIN');
         ob_start();
@@ -100,7 +93,6 @@ final class ImportMemberMatchTest extends FunctionsTestCase
             $output = ob_get_clean();
             MembershipStub::reset();
             pg_query($connection, 'ROLLBACK');
-            $GLOBALS['datakey'] = $datakey;
             $_FILES = [];
         }
         self::assertStringContainsString('Datei 1 (&lt;i&gt;a&amp;b&lt;/i&gt;.csv) wurde nicht erfolgreich hochgeladen', $output);
@@ -129,7 +121,7 @@ final class ImportMemberMatchTest extends FunctionsTestCase
         return [
             'percent sign' => ['%', 'Spende Synthetic'],
             'underscore' => ['A_B', 'Spende AxB'],
-            'backslash' => ['A\\\\', 'Spende Ab'],
+            'backslash' => ['A\\', 'Spende Ab'],
             'empty name' => ['', 'Spende Synthetic'],
         ];
     }

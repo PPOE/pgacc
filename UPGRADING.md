@@ -4,27 +4,406 @@ Deploy and upgrade steps for the release archive `pgacc-<version>.tar.gz`
 (code plus `vendor/`; production needs no Composer or GitHub access). Release
 notes: [CHANGELOG.md](CHANGELOG.md).
 
+On a Debian 13 host set up with `deploy/ansible/playbook.yml`, `deploy/deploy.sh`
+verifies, unpacks and activates the archive, with a smoke test and automatic
+rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
+steps below (pgacc has no database migrations); do them as described.
+
+## Sync v2 (membership sync)
+
+The data exchange with the membership system is replaced: two read-only
+JSON endpoints, called directly between the two hosts over TLS (not through
+the reverse proxy), with one token per direction and the caller's address
+checked, instead of the encrypted exports of the old membership system.
+The membership system's side is in the add-ons for it (`members.php`,
+`accsync.php`).
+
+Both directions are configured in `sync-secrets.php` in the release root
+(outside the document roots; with `deploy/` a link to
+`shared/sync-secrets.php`, like `constants.php`), readable by PHP but not
+writable (`root:<php group>`, mode 0640). It returns an array with the
+keys of the directions below; a direction without its keys refuses or
+fails closed, and so does a file that does not load (a syntax error):
+
+```php
+<?php
+return [
+    // internal/mbapi.php (payments for the membership system)
+    'payments_token' => '<64 hex characters>',
+    'payments_peers' => ['192.0.2.20'],
+    // getusers.php (member list from the membership system)
+    'members_url' => 'https://192.0.2.20:8443/members.php',
+    'members_token' => '<64 hex characters>',
+    'members_cafile' => '/etc/pgacc/admidio-addons-tls.crt',
+];
+```
+
+Each token is made once (`openssl rand -hex 32`) and the same value goes
+into the membership system's secrets file of that direction
+(`accsync-secrets.php` for the payments, `members-secrets.php` for the
+member list). With `deploy/` the playbook writes `shared/sync-secrets.php`
+from the inventory on every run (changes on the host are overwritten); see
+[deploy/README.md](deploy/README.md), "Membership system". Recommended:
+`pgacc_timezone: Europe/Vienna` (same section).
+
+### Internal sync endpoint `internal/mbapi.php` (optional)
+
+New and **off unless configured**: `internal/mbapi.php` gives the membership
+system the membership payments as JSON, on an internal TLS listener that the
+membership system calls directly. It replaces `public/mbapi.php` (below).
+Nothing else changes for a host that does not configure it.
+
+- `internal/` is a document root of its own and holds only `mbapi.php`
+  (which changes to the release root, like `public/index.php`). The
+  internal listener serves only `/mbapi.php` from it; the public site never
+  serves `internal/`.
+- Settings in `sync-secrets.php` (above): `payments_token` and
+  `payments_peers` (IPv4 addresses). Without them, with an empty token or
+  peer list, or if the file does not load, every request is refused.
+- Request: `GET https://<internal address>:8443/mbapi.php` with
+  `Authorization: Bearer <payments_token>`, from a peer address (the
+  connecting socket's address, `REMOTE_ADDR`; the listener must not take it
+  from a proxy header). Answers: 200 `application/json`
+  `[{"id": 12, "amount_cents": 2500, "paid_until": "2026-12-31"}]` (the
+  members and amounts of the former `public/mbapi.php`: acknowledged, not deleted
+  membership fees since 1 October of the previous year, at least 20.00 per
+  member, paid until 31 December of the current year; `[]` if there are
+  none); 403 with an empty body for another peer or without the token; 503
+  with an empty body without the database. Membership fees without a member
+  id are left out.
+- TLS: a certificate whose subject alternative name is the internal address
+  the membership system uses in its URL; that system needs this certificate
+  as its trust anchor (`cafile`). The listener has no access log (the
+  requests carry the token).
+
+With `deploy/` (Debian 13 host): make the token once
+(`openssl rand -hex 32`) and keep it in a vault, then set
+`pgacc_sync_listen_address` (the host's internal IPv4 address),
+`pgacc_sync_peers` (the membership system's address) and
+`pgacc_payments_token` in the inventory, optionally `pgacc_sync_port`
+(8443), and run the playbook: it writes `shared/sync-secrets.php`, a
+self-signed certificate `/etc/pgacc/sync-tls.crt` (key
+`/etc/pgacc/sync-tls.key`) for that address (again when the address
+changes), and the internal `server` of the nginx site. Then deploy the
+release (it links `sync-secrets.php` and expects 403 from the listener
+without the token), put the same token into the membership system's
+`accsync-secrets.php`, give it the certificate, and allow TCP to the port
+between exactly the two hosts in the firewall. Another web server needs the
+same: a TLS server on the internal address with `<release>/internal` as
+document root, serving only `/mbapi.php` (dot files and backup copies
+refused, no `PATH_INFO`), with the socket's address as `REMOTE_ADDR` and no
+access log.
+
+Rollback: `pgacc-deploy` refuses the archive of a release from before this
+change (it has no `internal/mbapi.php`), and while the listener is
+configured, switching back to such a release still in `releases/` fails the
+smoke test (it expects 403 from the listener). To roll back, first empty
+`pgacc_sync_listen_address` and run the playbook again.
+
+### Membership export `public/mbapi.php` removed
+
+`public/mbapi.php`, the encrypted membership-payment export of the old
+membership sync, is removed: `/mbapi.php` on the public site now answers 404.
+Its replacement is the internal sync endpoint above (the old membership
+system that called it is shut down). Remove `/mbapi.php` from the allow list
+of a web server configured by hand and from monitoring; the nginx site of
+`deploy/` and `public/.htaccess` no longer allow it.
+
+### Member list from the membership system (`getusers.php`)
+
+**Behaviour change.** `getusers.php` (the member-fee page, the bank import,
+saving a voucher with a member part) no longer fetches the encrypted
+`adm_api/adm_names.php` of the old membership system (shut down). It fetches
+the JSON member list of the membership system's `members.php` over its
+internal TLS listener, with a token. Settings in `sync-secrets.php` (above):
+`members_url` (https only), `members_token` and `members_cafile` (the
+membership system's certificate, the only trust anchor); with `deploy/` the
+inventory variables `pgacc_members_url`, `pgacc_members_token` and
+`pgacc_members_cert`, see [deploy/README.md](deploy/README.md), "Member
+list".
+
+- Without them, or if `sync-secrets.php` does not load, the pages that need
+  the list stop with "Mitgliederliste nicht konfiguriert!" (fail closed, as
+  for any failed fetch).
+- The fetch verifies the certificate and its name or address against
+  `members_cafile` only, sends `Authorization: Bearer <token>`, follows no
+  redirects, times out after 20 seconds and needs HTTP 200 with a complete
+  body of at most 4 MiB that matches its `Content-Length` header, if there
+  is one (1-18 digits; anything else fails). The list must be valid as a whole
+  (`[{"id": int, "uuid": string, "name": string, "lo": int|null, "paid": 0|1}]`,
+  exactly these fields, a positive id and a UUID per member, none twice);
+  otherwise "Daten von Mitgliederverwaltung ungültig!" and nothing is
+  loaded. Names are UTF-8 as sent (no more ISO-8859-15 conversion or
+  backslash unescaping). `lo` is mapped to the organizations as before (44
+  and unknown roles or none: 10).
+- The member list now also holds each member's `uuid`. The member-fee page
+  links a member's profile by `user_uuid` (the membership system opens
+  profiles by uuid only); the ledger listing and the voucher form show the
+  member id as plain text instead of a link.
+
+Rollout order: the membership system's listener must serve `members.php`
+before `pgacc_members_url` (or `members_url`) is set. Check it from the
+pgacc host with its certificate saved as `admidio-addons-tls.crt` (the
+playbook writes `/etc/pgacc/admidio-addons-tls.crt` only once the URL is
+set); it must print 200:
+
+```sh
+curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
+  https://192.0.2.20:8443/members.php -o /dev/null -w '%{http_code}\n'
+```
+
+### `$datakey` no longer used
+
+With both directions on sync v2 nothing reads `$datakey` of `constants.php`
+any more (it was the key of the encrypted exports). `constants.php` needs
+only `$key`; an existing `$datakey` line is ignored and can stay or be
+removed. The playbook of `deploy/` no longer writes one into a new
+`constants.php`.
+
+## Document root `public/` (deployment change)
+
+From 2.3.0 (see [CHANGELOG.md](CHANGELOG.md), "2.3.0"), pgacc is deployed
+differently.
+The web server's document root is now the `public/` directory of the release,
+not the release root. `public/` holds only what must be reachable over the
+web:
+
+- the entry point `index.php` (every page, the login, the receipt downloads
+  `index.php?action=file`, the CSV exports `format=csv`);
+- the static files `style.css`, `js/*.js` and `icons/*.png`;
+- `.htaccess` (Apache: the allow list, `AcceptPathInfo Off`,
+  `short_open_tag` and the backup-copy rule; see Apache below).
+
+Everything else stays in the release root, outside the document root: the
+page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
+command-line scripts (`migrate-receipt-key.php`, `check.php`), the docs, and
+`constants.php` and `files/`. Nothing there can be requested, whatever its
+name, so a copy such as `constants.php.bak` next to the configuration is no
+longer exposed. The entry point changes to the release root (`chdir`) and
+load the code, `constants.php` and `files/` from there, as before; PHP's
+`include_path` must contain `.` (the default).
+
+The URLs stay the same: `/`, `/index.php?action=...`, the short page
+addresses (`/donations`, ...), `/style.css?v=...`,
+`/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
+answering: a direct request of a page script, `functions.php` or `src/*.php`
+printed nothing and now gets a 404, as do `/icons/readme.html` and
+`/js/README.md` (not served by the allow lists below). Monitoring that
+expects 403 for `/files/`, `/vendor/`, `/constants.php` and the like gets
+404 now (only dot files and backup copies still answer 403). Static files
+other than `style.css`, `js/*.js` and `icons/*.png` (`.gif`, `.jpg`, `.svg`,
+`.ico`, `.woff`, ...) are not served; pgacc ships and links none.
+
+Upgrade steps:
+
+1. Keep `constants.php` and `files/` where they are: in the release root (or,
+   with `deploy/`, the links to `shared/` that `pgacc-deploy` creates there).
+   Do not move them into `public/`.
+2. Set the document root to `<release>/public` and serve only the allow list
+   below; keep the dot-file and backup-copy rules. The short page addresses
+   are rewritten as before.
+3. Deploy the release and check: `/` (the report), the login, a receipt
+   download, a CSV export, `/donations`, `/style.css?v=<version>`,
+   and `/icons/add.png` answer; `/functions.php`,
+   `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404,
+   and so do `/js/README.md` and `/index.php/x`, which are inside `public/`:
+   they show that the allow list is active (an Apache without `AllowOverride
+   All` serves all of `public/`).
+
+Hosts set up with `deploy/ansible/playbook.yml`: the playbook of the new
+release sets `root /srv/pgacc/current/public` and the allow list, and
+installs the new `pgacc-deploy`. From its nginx reload until the deploy the
+site answers 404 (the current release has no `public/`), so have the archive
+ready on the host first and deploy straight after the playbook:
+
+1. Download `pgacc-<version>.tar.gz` and `pgacc-<version>.tar.gz.sha256` from
+   the release page into a directory on the host that `pgacc-deploy` can
+   read, and verify them there: `sha256sum -c pgacc-<version>.tar.gz.sha256`.
+2. Run the playbook from a checkout of the new release.
+3. Right after it, without a download:
+   `sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz`
+   (it checks the `.sha256` next to the archive again).
+
+If the smoke test of that deploy fails, `pgacc-deploy` goes back to the
+release without `public/` only if its login page answers (the web server
+still serves `current/`); otherwise (it could only answer 404) the new
+release stays current. Either way it prints the recovery steps and exits
+with 1. A deploy of a release without `public/` is refused; to go back to
+such a release, run the playbook of that release's checkout first (document
+root `current/`), then `pgacc-deploy` of that version.
+
+nginx (as in `deploy/ansible/templates/nginx-site.conf.j2`, which also sets
+the caching headers; `tests/web-server/run.sh nginx` tests that template).
+`disable_symlinks ... from=$document_root` refuses symbolic links below
+`public/` (403) but not the `current` link above it. `SERVER_NAME $host`:
+`index.php` builds its HTTPS redirect from `SERVER_NAME`, so pass the host
+name when `server_name` is `_`:
+
+```
+root /srv/pgacc/current/public;
+disable_symlinks on from=$document_root;
+index index.php;
+autoindex off;
+
+location ~ (^|/)\. {
+    deny all;
+}
+location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+    deny all;
+}
+location ~ ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ {
+    rewrite ^/(.+)$ /index.php?action=$1 last;
+}
+location = / {
+}
+location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
+}
+location ~ ^/index\.php$ {
+    try_files $uri =404;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    fastcgi_param DOCUMENT_ROOT $realpath_root;
+    fastcgi_param SERVER_NAME $host;
+    fastcgi_pass unix:/run/php/php-fpm.sock;
+}
+location / {
+    return 404;
+}
+```
+
+Other web servers (pgacc ships and tests no configuration for them): set
+the document root to `public/` and implement the same allow list, deny rules,
+short page addresses and refusal of symbolic links below `public/` as the
+nginx site template (`deploy/ansible/templates/nginx-site.conf.j2`); then
+check the paths of step 3 above.
+
+Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
+`index.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
+page addresses, which it rewrites itself; dot files and symbolic links 403,
+anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
+short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it
+every request answers 500) and `AllowOverride All`. With PHP-FPM
+(`proxy_fcgi`) instead of PHP as an Apache module, `php_value` in
+`.htaccess` answers 500: remove that line and set `short_open_tag = On` in
+the pool (`php_admin_flag[short_open_tag] = on`) or in `php.ini`. The
+rewrite rule for the short page addresses in the virtual host is no longer
+needed (it does no harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
+request. With the document root `public/` it is never read, but only if
+the virtual host's former `<Directory /srv/pgacc/current>` block with
+`AllowOverride` is replaced by the `<Directory /srv/pgacc/current/public>`
+block below: while a `<Directory>` block for the release root still allows
+overrides, Apache merges the release root's `.htaccess` into every request
+below it, and the whole site answers 403. It is a safety net for a host
+whose document root is still the release root, which then answers 403
+instead of serving the code. Tested with Apache 2.4 and PHP as an
+Apache module (`tests/web-server/run.sh apache`, which runs this virtual
+host):
+
+<!-- tested: apache vhost -->
+```
+DocumentRoot /srv/pgacc/current/public
+<Directory /srv/pgacc/current/public>
+  Options -Indexes +SymLinksIfOwnerMatch
+  AllowOverride All
+  Require all granted
+</Directory>
+```
+
+Debian's Apache maps `/icons/` to its own icons (`Alias /icons/` in
+`/etc/apache2/mods-available/alias.conf`); comment that line out, or
+pgacc's icons answer 404 (as they did before this release).
+
+Symbolic links: `public/.htaccess` refuses a link as the requested file;
+Apache still follows a linked directory below `public/` if its owner matches
+(`SymLinksIfOwnerMatch`, which mod_rewrite needs). pgacc ships none.
+
+## Web server: deny backup and editor copies
+
+The deny rules below (`files/`, `vendor/`, `constants.php`, ...) match exact
+names. A copy made by hand or by an editor next to a protected file, such as
+`constants.php.bak`, `constants.php~`, `index.php.save`, `functions.php.orig`,
+or a database dump or archive (`*.sql`, `*.tar.gz`), is not on that list; it
+has no `.php` extension, so the web server sends it as plain text,
+credentials included. Deny these names anywhere in the tree: names ending in
+`~`, `.bak`, `.old`, `.orig`, `.save`, `.swp`, `.swo`, `.tmp`, `.deleteme`,
+`.dist`, `_backup`, `.sql`, `.tar`, `.tgz`, `.zip`, `.gz` (also `.sql.gz`,
+`.tar.gz`), `.7z`, `.rar`, any name with something after `.php`
+(`constants.php.bak`, `index.php~`, `config.php_backup`), and Emacs
+auto-save files (`#name#`). No file pgacc serves matches. Better still, never
+keep such copies in the served directory.
+
+nginx (the site of `deploy/ansible/playbook.yml` has this rule; put it before
+the locations for static files and `.php`, so it wins):
+
+```
+location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+    deny all;
+}
+```
+
+Apache: the shipped `.htaccess` has the same rule (`FilesMatch`, needs
+`AllowOverride` as before); with the document root `public/` (below) it is
+`public/.htaccess`. Other web servers need the same rule as the nginx one.
+
+With the document root `public/` (below) these rules are a second line of
+defence: only `public/` is served, so a copy in the release root cannot be
+requested at all.
+
+## Web server: long-term caching of `style.css` and `js/`
+
+From 2.2.0 (see [CHANGELOG.md](CHANGELOG.md), "2.2.0"), the pages
+link the stylesheet and the scripts with the release version in the URL
+(`style.css?v=<version>`, `js/vreport-chart.js?v=<version>`). Each upgrade
+changes these URLs, so browsers load the new files instead of a cached copy.
+The web server can therefore let browsers cache `style.css` and `/js/`
+long-term (for example `Cache-Control: public, max-age=31536000, immutable`).
+Only a release changes the version: a deploy of unreleased code with changed
+files is not picked up by such a cache. The icons (`/icons/`) keep URLs
+without a version; do not cache them long-term.
+
 ## Browsers
 
-From the release after 2.0.0 (the Tailwind CSS stylesheet, see
-[CHANGELOG.md](CHANGELOG.md), "Unreleased"), the pages need Chrome/Edge 111+,
+From 2.1.0 (the Tailwind CSS stylesheet, see
+[CHANGELOG.md](CHANGELOG.md), "2.1.0"), the pages need Chrome/Edge 111+,
 Safari 16.4+ or Firefox 128+. Older browsers still work but show the pages
 unstyled. The stylesheet is part of the release archive; nothing needs to be
 built on the server.
 
 ## Web server: deny `src/`
 
-From the release after 2.0.0 the archive has a `src/` directory with library
+From 2.1.0 the archive has a `src/` directory with library
 files (first `src/db.php`, the database helpers). Deny web access to `/src/`
-like `/vendor/` and `/tests/`. On Apache the shipped `src/.htaccess` does
-this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
-add `src` to the directory list of the rule below. A request would print
+like `/vendor/` and `/tests/`. On Apache the `src/.htaccess` shipped up to
+the document root `public/` did this (with that layout `src/` is outside the
+document root and the file is gone); other web servers deny it like
+`/vendor/`. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
+## Web server: short page addresses
+
+The pages link to `/donations`, `/kdonations`, `/spendings`, `/wk`,
+`/transactions`, `/vreport` and `/tinyreport` (with an optional query string,
+e.g. `/donations?year=2024`). The web server has to rewrite them to
+`index.php?action=<name>`, keeping the query string; this was always needed
+but only lived in the server configuration. The nginx site of
+`deploy/ansible/playbook.yml` and `public/.htaccess` (Apache) have this
+rewrite; other web servers need the same.
+
+## Passwords: bcrypt and 12 characters
+
+From 2.1.0 new and changed passwords are stored as bcrypt
+(`$2a$` hashes) instead of MD5-crypt (`$1$`). Nothing needs to be migrated:
+existing hashes stay valid and are replaced with bcrypt at the user's next
+successful login (or when the password is set). Accounts that never log in
+keep their MD5-crypt hash; root can set a new password for them. A
+password that is set needs at least 12 characters; login still accepts
+existing shorter passwords. bcrypt uses only the first 72 bytes of a
+password, so longer passwords give no extra strength.
+
 ## Member list: no shared table
 
-From the release after 2.0.0 each request keeps the member list of the
+From 2.1.0 each request keeps the member list of the
 membership system in a temporary table of its own database connection. The
 database user no longer needs to create tables in the `public` schema (only
 the `TEMPORARY` privilege on the database, which PostgreSQL grants to every
@@ -93,20 +472,12 @@ PHP 5.3 and PostgreSQL 8.4.
    tar xzf pgacc-<version>.tar.gz
    ```
 
-5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`, `/src/` (from the release after 2.0.0),
+5. Configure the web server to deny `/files/`, `/vendor/`, `/tests/`, `/src/` (from 2.1.0),
    `constants.php`, `migrate-receipt-key.php`, `check.php` and
    `composer.json`/`composer.lock`, and to disable directory listings.
    `migrate-receipt-key.php` and `check.php` run only on the command line
    and answer 404 over HTTP; on Apache, `.htaccess` denies only these two.
-   Lighttpd
-   (adjust the prefix if pgacc is not at the document root):
-
-   ```
-   $HTTP["url"] =~ "^/(files|vendor|tests|src)(/|$)|^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$" {
-     url.access-deny = ( "" )
-   }
-   dir-listing.activate = "disable"
-   ```
+   Other web servers: the same deny rules as the nginx site template.
 
 6. Tell users that everyone has to log in again: the deploy logs every user
    out once (old cookies are numbers, no longer valid session tokens).
@@ -140,20 +511,43 @@ command line. Do not post migration transcripts publicly.
    file as "would migrate" or "skipped, legacy kept" with the reason; the
    last line shows the fingerprint of the key the script read.
 4. Review the skipped files listed at the end ("Skipped, legacy kept: ...").
-   They keep working as legacy files. Optional, also as a dry run first:
+   They keep working as legacy files. A file that no voucher row references
+   is listed as such ("no voucher row references this file"); there is
+   nothing to migrate for it. A PDF whose header follows white-space
+   (spaces, tabs, line breaks, form feeds or NUL bytes, header within the
+   first 1024 bytes, as PDF readers accept it) counts as a PDF. The legacy
+   download sent such a PDF as `image/jpeg` (it looked only for `%PDF` at
+   the start); once migrated, it is sent as `application/pdf`, with the
+   same bytes. The same rule applies to every download of a migrated or
+   uploaded receipt: such a PDF, already stored as `<n>.v2.aes` or
+   uploaded later, is now shown as `application/pdf` instead of
+   being offered as `<n>.bin`. Optional, also as a dry run first:
    - `--include-unusual` also migrates files that decrypt to another
-     recognized type (PNG, GIF, TIFF), to an empty file, or to a PDF or JPEG
-     that looks incomplete or has data after its end. The download sends
-     the same bytes as before; PDFs and JPEGs also keep their type, but the
-     legacy download sent everything else as `image/jpeg`: a migrated PNG or
-     GIF is shown as `image/png` or `image/gif`, a TIFF, an empty file and
-     other types are offered as a download `<n>.bin`.
+     recognized type (PNG, GIF, TIFF), to an empty file, to text (such as an
+     HTML page uploaded as a receipt), or to a PDF or JPEG that looks
+     incomplete or has data after its end (also more than one block of NUL
+     bytes after `%%EOF`). The download sends the same bytes as before; PDFs
+     and JPEGs also keep their type, but the legacy download sent everything
+     else as `image/jpeg`: a migrated PNG or GIF is shown as `image/png` or
+     `image/gif`, a TIFF, an empty file, text and other types are offered as
+     a download `<n>.bin` (`application/octet-stream`, `Content-Disposition:
+     attachment`, `X-Content-Type-Options: nosniff`), so a migrated HTML
+     page is never shown as a page of the application. Text is accepted
+     only with the voucher IDs of the file's own rows, never by
+     `--search-voucher-ids`; with it, an empty file is the only unusual
+     type also found with another voucher ID (see below).
    - `--search-voucher-ids` tries the other voucher IDs for files that no
      voucher ID of their rows decrypts (after a voucher merge) and migrates
-     a file only if one decrypts it to a complete PDF or JPEG; the line
-     names the voucher ID found. (Such a receipt downloaded as unreadable
+     a file only if one decrypts it to a complete PDF or JPEG or, with
+     `--include-unusual`, to an empty file: a file of exactly 32 bytes that
+     decrypts to exactly 32 zero bytes (how the old code stored an empty
+     upload). The whole block must match, which a wrong voucher ID does with
+     a chance of 2^-256, a stronger check than a complete PDF or JPEG; text,
+     PNG, GIF, TIFF and incomplete PDFs or JPEGs are never accepted by the
+     search. The line names the voucher ID found. (Such a receipt downloaded as unreadable
      bytes before; afterwards it is the original receipt.) It costs one
-     single-block decryption per file and candidate ID (all voucher IDs up
+     single-block decryption per file and candidate ID (up to 1024 bytes
+     when the first block is white-space; all voucher IDs up
      to the highest one; roughly 0.15 ms each, so 20,000 IDs take about 3 s
      per file); IDs found for one file are tried first for the next. Run it
      after the normal migration, when only the skipped files are left.

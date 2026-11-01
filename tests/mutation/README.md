@@ -300,7 +300,8 @@ root, `/tmp` tmpfs). `runner.php`:
 
 Every command runs in its own process group (`setsid`); on timeout, or when a
 command leaves children behind, the group is killed, so a hung mutant cannot
-hold a port. The runner passes its served root as `PGACC_TEST_APP_ROOT`, and
+hold a port. The runner passes the copy (the application root; it serves its
+`public/`) as `PGACC_TEST_APP_ROOT`, and
 `tests/http-diagnostics.php` strips it before matching displayed diagnostics.
 
 | Status | Meaning |
@@ -319,7 +320,7 @@ A target is a PHP file in `targets/` that returns an array:
 ```php
 return array(
     'description' => 'index.php login() and logout branch',
-    'file' => 'index.php',                    // default for every mutation
+    'file' => 'public/index.php',                    // default for every mutation
     'region' => array('start' => '...', 'end' => '...'),   // optional default
     'tests' => array(                         // run in order, stop at first failure
         array('type' => 'http', 'script' => 'tests/http-login.php'),
@@ -405,11 +406,13 @@ All targets run on PHP 8.5 (`ci.sh`). The target files hold each mutation's rati
 | `report-prevcond` | `$prevcond` initialization in `page_report()` | `http-smoke.php` |
 | `amount-cents` | two-decimal amounts in `report.php` Anlage A, tabular digits in the `style.css` `td` rule (issue #1) | `http-smoke.php` |
 | `donations` | `page_donations()` captcha and login bypass | `http-donations.php` |
+| `year-links` | default year (the current one) and the year kept by the menu links of the report and the donation list: `$nav_year` in `index.php`, `acc_header()`, `donations_year()` | PHPUnit, `http-smoke.php`, `http-donations.php` |
+| `asset-versions` | release version (`?v=`) in the stylesheet URL of `acc_header()` and the chart script URLs of `vreport.php` | PHPUnit, `http-page-views.php` |
 | `year-nav` | year selector `year_nav()` (range, previous and next year, marked year, "Alle Jahre", escaped links) and its call sites in `report.php` and `donations.php` | `YearNavTest`, `http-smoke.php`, `http-donations.php` |
 | `edge-requests` | removed `transfer` action and creation-form `ack` branch, four-digit `year`, array parameters in `getfilter()`/`get_param()`, closed-listing columns, member lookup without a name, null guards for `users.hide`, `getoppsort()`, `convif()` | PHPUnit, `http-page-views.php`, `http-listing-prefs.php`, `http-output-escaping.php`, `write-workflows.php` |
 | `amount-parsing` | `amount_cents()` in `src/format.php` and its call sites: the voucher form (`new.php`, the refused save in `new.php`/`edit.php`, the amount field shown again) and every bank import format (`import.php`); the year range of `date_condition()` and `page_donations()` | `AmountParsingTest`, `http-donations.php`, `write-workflows.php`, `http-import.php` |
 | `output-escaping` | `html_escape()`, `listing_text()` and the CSV cell serialization in `tag()`; every HTML and URL encoding call site (one mutant per call), also the uncalled kdonations sink | `FunctionsTest`, `UnusedOutputTest`, `http-output-escaping.php` |
-| `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php`, `getusers.php`, `mbapi.php` | `CryptoTest`, `GetUsersTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
+| `receipt-crypto` | mcrypt-compatible helpers; receipt v2 (key validation, HKDF, MAC, chunked encryption and two-pass decryption, short reads); the migration (CLI guard, phases, lock, sync, checks); call sites in `file.php`, `new.php`, `import2.php` | `CryptoTest`, `ReceiptImportTest`, `ReceiptStorageTest`, `ReceiptMigrationTest`, `ReceiptMigrationCommandTest`, `http-receipts.php` |
 | `booking-progress` | `percent_of_bookings()` in `functions.php`: column order, the bar's segment widths, `aria-hidden`, no table without bookings | PHPUnit `testPercentOfBookings*` |
 
 Accepted equivalents (reasons in the target files):
@@ -425,7 +428,9 @@ Accepted equivalents (reasons in the target files):
 - `import-checks`: `upload-row-check-removed`, `upload-update-unscoped`,
   `upload-update-any-voucher` (the scoped row check before the finalized check
   already refuses those rows), `upload-update-ignores-previous-file` and
-  `import2-update-ignores-file` (differ only under a concurrent change).
+  `import2-update-ignores-file` (differ only under a concurrent change),
+  `members-timed-out-body-accepted` (on a TLS stream `fread()` returns false
+  on a read timeout, which `getusers_fetch()` refuses already).
 - `report-prevcond`: `prevcond-passes-prev-cond` (`unit_report()` never reads
   its first parameter).
 - `output-escaping`: the `html_escape()` around the `vreport.php` and `tinyreport.php` account links (they hold only a path and a `rawurlencode()`d value).

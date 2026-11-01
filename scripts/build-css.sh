@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build style.css from css/app.css with the Tailwind CSS standalone CLI (a
+# Build public/style.css from css/app.css with the Tailwind CSS standalone CLI (a
 # single binary, no Node.js). style.css is committed and served as is, so a
 # release needs no build step; css/ is a development source (.gitattributes
 # export-ignore).
@@ -88,7 +88,7 @@ fi
 if [ "$check" = true ]; then
   out="$repo_dir/build/tailwindcss/style.check.css"
 else
-  out="$repo_dir/style.css"
+  out="$repo_dir/public/style.css"
 fi
 # No content scanning (source(none) in css/app.css): the output depends only
 # on css/app.css and the CLI version. --optimize flattens the nesting and adds
@@ -99,9 +99,9 @@ fi
 }
 
 if [ "$check" = true ]; then
-  if ! cmp -s "$out" "$repo_dir/style.css"; then
-    diff -u "$repo_dir/style.css" "$out" | head -n 60 >&2 || true
-    echo "style.css is not the build of css/app.css; run sh scripts/build-css.sh and commit style.css" >&2
+  if ! cmp -s "$out" "$repo_dir/public/style.css"; then
+    diff -u "$repo_dir/public/style.css" "$out" | head -n 60 >&2 || true
+    echo "style.css is not the build of css/app.css; run sh scripts/build-css.sh and commit public/style.css" >&2
     exit 1
   fi
   echo "style.css matches css/app.css (Tailwind CSS $TAILWIND_VERSION)"

@@ -10,10 +10,4 @@ parameters:
 			message: '#^File ends with a trailing whitespace\. This may cause problems when running the code in the web browser\. Remove the closing \?\> mark or remove the whitespace\.$#'
 			identifier: whitespace.fileEnd
 			count: 1
-			path: ../../index.php
-
-		-
-			message: '#^Variable \$datakey might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../../mbapi.php
+			path: ../../public/index.php

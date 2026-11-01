@@ -512,9 +512,9 @@ return [
         [
             'id' => 'donations-late-year-unclamped',
             'file' => 'donations.php',
-            'search' => 'if ($year < 2012 || $year > 9999) {',
-            'replace' => 'if ($year < 2012) {',
-            'rationale' => 'A year after 9999 shows the 2013 page, like one before 2012.',
+            'search' => 'return $year < 2012 || $year > 9999 ? intval(date(\'Y\')) : $year;',
+            'replace' => 'return $year < 2012 ? intval(date(\'Y\')) : $year;',
+            'rationale' => 'A year after 9999 shows the current year, like one before 2012.',
         ],
     ],
 ];

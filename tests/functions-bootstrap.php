@@ -33,6 +33,9 @@ function pgacc_test_source($file)
     return getenv('PGACC_INFECTION_SOURCE') && is_file($copy) ? $copy : dirname(__DIR__) . '/' . $file;
 }
 
+// The release version PGACC_VERSION; index.php loads impressum.php before
+// functions.php.
+require_once pgacc_test_source('impressum.php');
 require_once pgacc_test_source('functions.php');
 
 // Database helpers, loaded after functions.php as in index.php.

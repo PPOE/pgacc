@@ -1,9 +1,8 @@
 <?php
 
 /*
- * Encrypted receipts and the membership export over HTTP: receipt upload
- * (new.php), PDF import (import2.php), receipt download (file.php) and
- * mbapi.php. The byte-exact formats are pinned by tests/unit/CryptoTest.php
+ * Encrypted receipts over HTTP: receipt upload (new.php), PDF import
+ * (import2.php) and receipt download (file.php). The byte-exact formats are pinned by tests/unit/CryptoTest.php
  * (legacy, mcrypt) and tests/unit/ReceiptStorageTest.php (v2); this checks the
  * call sites and the stored files: new receipts are files/<n>.v2.aes (keyed on
  * the file number and the configured key), legacy files/<n>.aes (voucher ID,
@@ -13,8 +12,8 @@
  * runner (PGACC_TEST_APP_ROOT).
  */
 require __DIR__ . '/http-test-helpers.php';
-// The membership export and receipt files are encrypted and decrypted with
-// the application's helpers (pinned by the vectors).
+// The receipt files are encrypted and decrypted with the application's
+// helpers (pinned by the vectors).
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/functions.php';
 require_once dirname(__DIR__) . '/src/db.php';
@@ -114,7 +113,7 @@ function assert_undecryptable_download($cookies, $id, $label, $baseUrl = null)
 // port and log file cannot collide with another run: every run
 // (PGACC_TEST_ID) has its own test container, with its own network namespace
 // and /tmp, and runs its HTTP test files one after another; the other files
-// use ports 8081 to 8083.
+// use ports 8081 to 8083 and 8085 to 8088.
 function receipt_download_log($cookies, $id)
 {
     static $baseUrl = null;
@@ -436,6 +435,14 @@ $form = receipt_voucher_form('Synthetic revision without parts', 0, 0);
 $form['parts'] = '0';
 unset($form['comment0']);
 assert_revision_refused($database, $unitOneCookies, 4780, $form, 'revision without parts', 'Keine Buchungszeile angegeben.');
+// A refused amount shows the posted form again, with the posted row and
+// receipt number: the preview of a receipt is shown only within the user's
+// rights, as the download (here the organization 2 receipt of 9101: none).
+$form = receipt_voucher_form('Synthetic revision with an invalid amount', 9101, $foreignFile);
+$form['amount0'] = 'synthetic';
+$response = revision_request($unitOneCookies, 4780, $form);
+assert_contains($response['body'], '<a href="?action=file&id=9101" target="_blank">Beleg Anzeigen</a>', 'posted receipt of another organization');
+assert_not_contains($response['body'], 'src="?action=file&id=9101', 'preview of a posted receipt of another organization');
 assert_receipt_number('99001', current_receipt_row($database, 'Synthetic revision with a receipt')['file'], 'receipt after the refused revisions');
 assert_receipt_number($foreignFile, receipts_query($database, 'SELECT file FROM vouchers WHERE id = 9183', [], 'row of organization 2')[0]['file'], 'receipt of organization 2 after the refused revisions');
 
@@ -571,7 +578,7 @@ register_shutdown_function(function () {
 });
 $memberCases = [
     'unreachable member list' => ['error', 4784, [], $membersUnavailable, true],
-    'invalid member list' => ['garbage', 4784, [], $membersUnavailable, true],
+    'invalid member list' => ['malformed', 4784, [], $membersUnavailable, true],
     'invalid amount' => ['error', 4784, ['amount0' => 'abc'], 'Ungültiger Betrag', true],
     'stale row' => ['error', 4784, ['bid0' => '9186'], 'Die Buchung wurde inzwischen geändert. Bitte neu laden.', false],
     'no parts' => ['error', 4784, ['parts' => '0'], 'Keine Buchungszeile angegeben.', false],
@@ -595,7 +602,7 @@ foreach ($memberCases as $label => $case) {
     if ($formShown) {
         assert_contains($response['body'], 'value="Synthetic member revision"', "member revision: $label");
     }
-    $fetched = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/names-requests');
+    $fetched = @file_get_contents('http://mitglieder.piratenpartei.at/__stub/members-requests');
     if ($fetched !== ($expected === $membersUnavailable ? "1\n" : "0\n")) {
         fail_test("member revision: $label fetched the member list " . var_export($fetched, true) . ' times');
     }
@@ -773,6 +780,17 @@ $storedCases = [
         $png, 'image/png', 'v2 PNG receipt'],
     [9129, 4711, 990023, ['v2.aes' => receipt_v2_encrypt($testKey, 990023, "II*\0synthetic")],
         "II*\0synthetic", 'application/octet-stream', 'v2 receipt of another type'],
+    // A PDF after whitespace is sent as a PDF from <n>.v2.aes; the legacy
+    // download sends it as JPEG, as before. Text such as an HTML page is
+    // only offered as a download, never rendered.
+    [9135, 4711, 990024, ['v2.aes' => receipt_v2_encrypt($testKey, 990024, "\n" . $pdf)],
+        "\n" . $pdf, 'application/pdf', 'v2 PDF after a newline'],
+    [9136, 4711, 990025, ['aes' => receipt_encrypt('4711', '', "\n" . $pdf)],
+        rijndael256_zero_pad("\n" . $pdf), 'image/jpeg', 'legacy PDF after a newline'],
+    [9137, 4711, 990026, ['v2.aes' => receipt_v2_encrypt($testKey, 990026, "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n")],
+        "<!DOCTYPE html>\n<html><body><script>alert(1)</script></body></html>\n", 'application/octet-stream', 'v2 HTML receipt'],
+    [9138, 4711, 990027, ['v2.aes' => receipt_v2_encrypt($testKey, 990027, "GIF89a\x01\0synthetic")],
+        "GIF89a\x01\0synthetic", 'image/gif', 'v2 GIF receipt'],
     // A <n>.v2.aes that fails its MAC while <n>.aes still exists (before
     // --delete-legacy, e.g. with another key): the legacy file is sent, as
     // before, and logged.
@@ -828,6 +846,39 @@ foreach ($storedCases as $case) {
         assert_undecryptable_download($adminCookies, $id, $label);
     } else {
         assert_receipt_download($adminCookies, $id, $body, $type, $fileNumber, $label, isset($files['v2.aes']) && !$legacyServed);
+    }
+}
+
+// The voucher page shows each receipt inline below its link, lazily loaded
+// from the download, by the type the download sends: a PDF in a frame, a
+// JPEG, PNG or GIF as an image; another type (also HTML) and a receipt the
+// download refuses get the link only.
+$previewCases = array_merge(
+    [[9101, 4711, 'application/pdf'], [9102, 815, 'image/jpeg']],
+    array_map(fn($case) => [$case[0], $case[1], $case[5]], $storedCases),
+);
+$pages = [];
+foreach ([4711, 815] as $voucherId) {
+    $page = http_request('/index.php?action=edit&id=' . $voucherId, 'GET', [], $adminCookies);
+    assert_status($page, 200, "voucher page $voucherId");
+    $pages[$voucherId] = $page['body'];
+}
+foreach ($previewCases as [$id, $voucherId, $type]) {
+    $link = '<a href="?action=file&id=' . $id . '" target="_blank">Beleg Anzeigen</a>';
+    if ($type === 'application/pdf') {
+        $preview = '<iframe src="?action=file&id=' . $id . '#toolbar=0&navpanes=0&view=FitH&pagemode=none&zoom=page-width"'
+            . ' class="receipt_preview" title="Beleg" loading="lazy"></iframe>';
+    } elseif ($type !== null && str_starts_with($type, 'image/')) {
+        $preview = '<img src="?action=file&id=' . $id . '" class="receipt_preview" alt="Beleg" loading="lazy" />';
+    } else {
+        $preview = null;
+    }
+    assert_contains($pages[$voucherId], $link, "receipt link of $id");
+    if ($preview !== null) {
+        assert_contains($pages[$voucherId], $preview, "receipt preview of $id ($type)");
+    }
+    if (preg_match_all('/src="\?action=file&id=' . $id . '[#"]/', $pages[$voucherId]) !== ($preview === null ? 0 : 1)) {
+        fail_test("receipt $id ($type) has the wrong number of previews");
     }
 }
 
@@ -1125,9 +1176,9 @@ assert_stored_receipt(receipt_file_number($database, 9133), $testKey, import2_te
     'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
     '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00']), 'PDF import of a cover page');
 
-// The receipt key migration is a command-line script; the web server must
-// not run it.
-$migration = http_request('/migrate-receipt-key.php');
+// The receipt key migration is a command-line script outside the document
+// root; a web server serving the release root must not run it either.
+$migration = http_request('/migrate-receipt-key.php', 'GET', [], [], start_release_root_server(8086));
 assert_status($migration, 404, 'migration script over HTTP');
 if ($migration['body'] !== '') {
     fail_test('migration script over HTTP answered ' . var_export($migration['body'], true));
@@ -1185,43 +1236,6 @@ foreach ($fixtureCases as $case => [$voucherId, $type]) {
 array_map('unlink', array_merge(glob("$migrationFiles/*"), ["$migrationFiles/.migrate-receipt-key.lock"]));
 rmdir($migrationFiles);
 
-// Membership export (mbapi.php): members whose acknowledged membership fees
-// since October of the previous year reach 20.00, as "<SHA-1>\n<base64>".
-$year = date('Y');
-$fees = [
-    [990001, 2500, "$year-01-02", 'reviewer-a', false],
-    [990002, 1000, "$year-01-02", 'reviewer-a', false],
-    [990002, 1000, ($year - 1) . '-10-01', 'reviewer-a', false],
-    [990003, 1999, "$year-01-02", 'reviewer-a', false],
-    [990004, 5000, ($year - 1) . '-09-30', 'reviewer-a', false],
-    [990005, 5000, "$year-01-02", null, false],
-    [990006, 5000, "$year-01-02", 'reviewer-a', true],
-];
-foreach ($fees as $index => $fee) {
-    receipts_query(
-        $database,
-        "INSERT INTO vouchers (id, voucher_id, type, orga, member, member_id, amount, comment, date, ack1, deleted)
-         VALUES ($1, $2, 1, 1, true, $3, $4, 'Synthetic membership fee', $5, $6, $7)",
-        [9200 + $index, 9200 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'],
-        "membership fee $index",
-    );
-}
-$export = http_request('/mbapi.php');
-assert_status($export, 200, 'membership export');
-$text = "990001\t2500\t$year-12-31\n990002\t2000\t$year-12-31\n";
-$lines = explode("\n", $export['body']);
-if (count($lines) !== 2 || $lines[0] !== sha1($text)) {
-    fail_test('membership export framing: ' . var_export($export['body'], true));
-}
-$ciphertext = base64_decode($lines[1], true);
-if ($ciphertext === false || strlen($ciphertext) !== 64) {
-    fail_test('membership export payload is not 64 bytes of base64: ' . var_export($lines[1], true));
-}
-// The synthetic $datakey of tests/runtime/test-constants.php.
-if (membership_decrypt('synthetic-reference-membership-key', $ciphertext) !== str_pad($text, 64, "\0")) {
-    fail_test('membership export payload does not decrypt to the expected members');
-}
-
 pg_close($database);
 assert_no_unexpected_diagnostics();
-echo "Receipt and membership export tests passed\n";
+echo "Receipt tests passed\n";

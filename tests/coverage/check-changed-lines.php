@@ -15,7 +15,7 @@
  * line; "#" starts a comment) are relative to the repository root, e.g. the
  * output of tests/coverage/changed-lines.sh. Lines that are not executable
  * (comments, blank lines, HTML outside PHP tags, declarations) are ignored.
- * A top-level or src/ PHP file missing from the report is an error; other paths
+ * A top-level, public/, internal/ or src/ PHP file missing from the report is an error; other paths
  * (tests/, non-PHP files) are outside the coverage scope and are skipped.
  *
  * Needs SimpleXML; runs inside or outside the container:
@@ -123,7 +123,7 @@ $checked = 0;
 $covered = 0;
 foreach ($wanted as $path => $lines) {
     if (!isset($byRelative[$path])) {
-        if (preg_match('#^(src/)?[^/]+\.php$#', $path) === 1) {
+        if (preg_match('#^((public|internal|src)/)?[^/]+\.php$#', $path) === 1) {
             fwrite(STDERR, "$path: changed, but not in the coverage report\n");
             $failed = true;
         } else {

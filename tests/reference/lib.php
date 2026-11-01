@@ -19,7 +19,8 @@
  *   the hidden answer is consistent ({{captcha-c=INCONSISTENT}} otherwise).
  * - PostgreSQL's real clock: users.login values other than the fixture value
  *   become {{now}}, vouchers.save_date is always {{save_date}}, and
- *   md5-crypt password hashes (random salt) become {{md5-crypt}}.
+ *   md5-crypt and bcrypt (cost 10) password hashes (random salt) become
+ *   {{md5-crypt}} and {{bcrypt}}.
  * - The impressum's PHP and PostgreSQL server versions (phpversion(),
  *   pg_version()) become {{php-version}} and {{pg-version}}.
  * - Response headers Date, Host, Connection and X-Powered-By (PHP version)
@@ -404,6 +405,9 @@ function ref_normalize_cell($table, $column, $value)
     }
     if ($table === 'users' && $column === 'hash' && preg_match('/^\$1\$[.\/0-9A-Za-z]{1,8}\$[.\/0-9A-Za-z]{22}$/', $value) === 1) {
         return '{{md5-crypt}}';
+    }
+    if ($table === 'users' && $column === 'hash' && preg_match('/^\$2a\$10\$[.\/0-9A-Za-z]{53}$/', $value) === 1) {
+        return '{{bcrypt}}';
     }
     if ($table === 'vouchers' && $column === 'save_date') {
         return '{{save_date}}';

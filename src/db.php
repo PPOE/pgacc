@@ -1,13 +1,13 @@
 <?php
 
 /*
- * Database helpers for the pages (index.php and mbapi.php load this file
- * after functions.php). The connection is always passed explicitly. A failed
+ * Database helpers for the pages (index.php loads this file after
+ * functions.php). The connection is always passed explicitly. A failed
  * statement ends the request as the pages always did: die() with
  * 'Abfrage fehlgeschlagen: ' and pg_last_error(). PHP reports the failed
  * pg_query() at this file, so db_fail() also logs the calling page's
  * file:line. The file only defines functions, so a direct request prints
- * nothing (the web server denies src/ anyway).
+ * nothing (src/ is outside the document root public/ anyway).
  */
 
 // Runs $sql and returns its result. With $show_sql the failure message

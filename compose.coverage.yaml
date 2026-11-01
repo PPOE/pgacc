@@ -22,7 +22,9 @@ services:
       - -S
       - 0.0.0.0:8080
       - -t
-      - /app
+      - /app/public
+      # The allow list of the nginx site (tests/runtime/router.php).
+      - /app/tests/runtime/router.php
     volumes:
       - coverage:/coverage
 

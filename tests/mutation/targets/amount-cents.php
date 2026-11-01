@@ -51,14 +51,14 @@ return [
         ],
         [
             'id' => 'td-tabular-nums-removed',
-            'file' => 'style.css',
+            'file' => 'public/style.css',
             'search' => "    font-variant-numeric: tabular-nums;\n",
             'replace' => "\n",
             'rationale' => 'Proportional digits: amounts no longer line up below each other.',
         ],
         [
             'id' => 'td-left-aligned',
-            'file' => 'style.css',
+            'file' => 'public/style.css',
             'search' => "    text-align: right;\n    font-variant-numeric: tabular-nums;",
             'replace' => "    text-align: left;\n    font-variant-numeric: tabular-nums;",
             'rationale' => 'Left-aligned amount cells: digits of different lengths do not line up.',

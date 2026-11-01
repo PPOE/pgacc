@@ -1,4 +1,12 @@
 <?php
+// The code, constants.php and files/ are in the release root, outside the
+// document root: relative includes and paths resolve there, as before.
+// Fail closed if that is not possible: nothing below may run elsewhere.
+if (!chdir(dirname(__DIR__))) {
+    error_log('pgacc: cannot change to the release root ' . dirname(__DIR__));
+    http_response_code(500);
+    exit(1);
+}
 if (empty($_SERVER['HTTP_X_FORWARDED_PROTO']) || $_SERVER['HTTP_X_FORWARDED_PROTO'] != 'https') {
     header("Location: https://" . $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"]);
     return;
@@ -17,8 +25,17 @@ function login($user, $pass)
     global $dbconn;
     $user = pg_escape_string($dbconn, $user);
     $pass = pg_escape_string($dbconn, $pass);
-    $data = db_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,rights FROM users WHERE name = '$user'");
+    $data = db_query($dbconn, "SELECT id,hash = crypt('$pass',hash) AS success,hash LIKE '\$1\$%' AS md5,rights FROM users WHERE name = '$user'");
+    if (pg_num_rows($data) === 0) {
+        // An unknown name costs one bcrypt (cost 10) like a known one, so the
+        // response time does not tell whether the name exists.
+        pg_free_result(db_query($dbconn, "SELECT crypt('$pass', '\$2a\$10\$67sp9/gQT74aBczejNIl6epXefU8dbycDMmqSmNfVAuexnugicmGy')"));
+    }
     while ($line = pg_fetch_array($data, null, PGSQL_ASSOC)) {
+        if ($line['md5'] == 't' && $line['success'] == 't') {
+            // An MD5-crypt hash from before bcrypt is replaced on login.
+            pg_free_result(db_query($dbconn, "UPDATE users SET hash = crypt('$pass', gen_salt('bf', 10)) WHERE id = " . intval($line['id']) . " AND hash LIKE '\$1\$%'"));
+        }
         // Fails closed without a valid $key, a CSPRNG or a stored session
         // (functions.php): the login form is shown again.
         if ($line['success'] == 't' && ($token = login_start_session($dbconn, $line['id'])) !== false) {
@@ -234,12 +251,21 @@ if ($page == "login" && login_redirect()) {
 
 $year = date('Y');
 
-if (!$make_csv) {
-    acc_header($dbconn, $page, $year);
-}
-
 if (isset($_GET["year"]) && preg_match('/^\d\d\d\d$/', $_GET["year"]) == 1) {
     $year = intval($_GET["year"]);
+}
+
+// Once a year was chosen, the report and the donation list pass the year they
+// show to the menu links of both, so that the other page shows it too.
+$nav_year = null;
+if (isset($_GET["year"]) && ($page == "index" || $page == "report")) {
+    $nav_year = $year;
+} elseif (isset($_GET["year"]) && $page == "donations") {
+    $nav_year = donations_year(intval($_GET["year"]));
+}
+
+if (!$make_csv) {
+    acc_header($dbconn, $page, date('Y'), $nav_year);
 }
 
 if ($page == "all") {
@@ -284,7 +310,7 @@ if ($page == "all") {
 } elseif ($page == "kdonations") {
     page_kdonations();
 } elseif ($page == "donations") {
-    page_donations(intval($_GET["year"] ?? 0));
+    page_donations(intval($_GET["year"] ?? date('Y')));
 } elseif ($page == "deleted") {
     $rights = checklogin('rights');
     page_deleted($rights);

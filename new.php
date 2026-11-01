@@ -292,7 +292,7 @@ function page_new_save($rights)
         page_new($form_rights);
         return;
     }
-    if (posted_member_part($parts, $rights) && getusers() !== null) {
+    if (posted_member_part($parts, $rights) && members_loaded(20) !== null) {
         save_refused(MEMBERS_UNAVAILABLE);
         page_new($form_rights);
         return;
@@ -512,7 +512,7 @@ function page_edit_form($part, $voucher, $rights)
 </select>
 </div>
 <div>
-<label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; <a href="https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id=' . $voucher['mitgliedsnummer'] . '" target="_blank">In MV öffnen</a>' : '') . '
+<label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; Nr. ' . ($voucher['member'] == 'true' ? member_number($voucher['mitgliedsnummer']) : intval($voucher['mitgliedsnummer'])) : '') . '
 </div>
 <div id="mitgliedsnummer' . $part . '">
 <label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '" onchange="clicked();" />
@@ -560,6 +560,16 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="file' . $part . '">Beleg</label>';
     if (intval($voucher['file']) > 0) {
         echo '<a href="?action=file&id=' . $voucher['bid'] . '" target="_blank">Beleg Anzeigen</a><input type="hidden" name="file' . $part . '" value="' . $voucher['file'] . '" />';
+        // Inline preview of a PDF or image, as file.php sends it (other types:
+        // the link only), loaded when scrolled into view. The PDF open
+        // parameters (never sent to the server) hide most of the viewer's UI;
+        // the link opens the full viewer.
+        $preview_type = receipt_preview_type($voucher['bid'], $rights);
+        if ($preview_type == 'application/pdf') {
+            echo '<iframe src="?action=file&id=' . $voucher['bid'] . '#toolbar=0&navpanes=0&view=FitH&pagemode=none&zoom=page-width" class="receipt_preview" title="Beleg" loading="lazy"></iframe>';
+        } elseif (in_array($preview_type, ['image/jpeg', 'image/png', 'image/gif'], true)) {
+            echo '<img src="?action=file&id=' . $voucher['bid'] . '" class="receipt_preview" alt="Beleg" loading="lazy" />';
+        }
     } elseif (intval($voucher['file']) == 0) {
         echo '
 <input type="hidden" name="MAX_FILE_SIZE" value="100000000" />

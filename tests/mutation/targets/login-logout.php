@@ -28,11 +28,21 @@ $logoutBlock = "if (\$page == \"logout\" && request_is_post()) {\n"
     . "    pg_close(\$dbconn);\n    return;\n}\n";
 $loginRedirectBlock = "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n";
 $pageStart = "\n\$year = date('Y');\n\nif (!\$make_csv)\n    acc_header(\$dbconn, \$page, \$year);\n";
+// The start of the page in index.php: the year, the year of the menu links
+// and acc_header().
+$headerStart = "\n\$year = date('Y');\n\n"
+    . "if (isset(\$_GET[\"year\"]) && preg_match('/^\\d\\d\\d\\d\$/', \$_GET[\"year\"]) == 1) {\n    \$year = intval(\$_GET[\"year\"]);\n}\n\n"
+    . "// Once a year was chosen, the report and the donation list pass the year they\n"
+    . "// show to the menu links of both, so that the other page shows it too.\n"
+    . "\$nav_year = null;\n"
+    . "if (isset(\$_GET[\"year\"]) && (\$page == \"index\" || \$page == \"report\")) {\n    \$nav_year = \$year;\n"
+    . "} elseif (isset(\$_GET[\"year\"]) && \$page == \"donations\") {\n    \$nav_year = donations_year(intval(\$_GET[\"year\"]));\n}\n\n"
+    . "if (!\$make_csv) {\n    acc_header(\$dbconn, \$page, date('Y'), \$nav_year);";
 
 return [
     'description' => 'Login and logout: index.php login(), early logout/login blocks, login.php, '
         . 'new.php page_new_buchung() signature (HTTP login/logout regressions)',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'tests' => [
         // Valid/rejected login, login with target, already logged in, cookie
         // attributes and database state, logout, empty redirect bodies, and
@@ -48,6 +58,37 @@ return [
             'search' => "if (\$line['success'] == 't' &&",
             'replace' => "if (\$line['success'] != 't' &&",
             'rationale' => 'Only a matching password hash may log in.',
+        ],
+        [
+            'id' => 'login-md5-not-upgraded',
+            'region' => $login,
+            'search' => "if (\$line['md5'] == 't' && \$line['success'] == 't') {",
+            'replace' => 'if (false) {',
+            'rationale' => 'A valid login replaces an MD5-crypt hash with bcrypt.',
+        ],
+        [
+            'id' => 'login-md5-upgraded-on-wrong-password',
+            'region' => $login,
+            'search' => "if (\$line['md5'] == 't' && \$line['success'] == 't') {",
+            'replace' => "if (\$line['md5'] == 't') {",
+            'rationale' => 'Only a valid password is stored; a wrong one must not replace the hash.',
+        ],
+        [
+            'id' => 'login-md5-upgraded-to-md5',
+            'region' => $login,
+            'search' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('bf', 10))",
+            'replace' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('md5'))",
+            'rationale' => 'The upgraded hash is bcrypt.',
+        ],
+        [
+            'id' => 'login-unknown-user-skips-dummy-hash',
+            'region' => $login,
+            'search' => 'if (pg_num_rows($data) === 0) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'An unknown user name costs one bcrypt like a known one (no timing difference).',
+            'equivalent' => ['reason' => 'Only the response time changes; the HTTP tests do not measure timing. '
+                . 'The unknown-user login of tests/http-login.php executes the dummy crypt() (coverage), '
+                . 'and the reference recording shows its SQL.'],
         ],
         [
             'id' => 'login-password-check-removed',
@@ -356,8 +397,8 @@ return [
         ],
         [
             'id' => 'logout-after-output',
-            'search' => "if (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);",
-            'replace' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);\n}\nif (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;",
+            'search' => "if (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart,
+            'replace' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart . "\n}\nif (\$page == \"logout\" && request_is_post()) {\n    // Ends the session on the server too: its cookies stop working even if\n    // a copy was kept. Wrong or missing cookies end nothing.\n    \$logoutId = checklogin('id', false);\n    if (\$logoutId > 0) {\n        pg_query(\$dbconn, \"UPDATE users SET cookie = NULL WHERE id = \$logoutId\");\n    }\n    header(login_cookie_header(\"pp_pgacc_login\", \"deleted\", 0), false);\n    header(login_cookie_header(\"pp_pgacc_id\", \"deleted\", 0), false);\n    header(\"Location: index.php\");\n    pg_close(\$dbconn);\n    return;",
             'rationale' => 'The original ordering: logout after acc_header() has output the page. The cookies '
                 . 'and redirect then depend on output buffering (fails with output_buffering=0).',
         ],
@@ -372,8 +413,8 @@ return [
         ],
         [
             'id' => 'login-after-output',
-            'search' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);",
-            'replace' => "\n\$year = date('Y');\n\nif (!\$make_csv) {\n    acc_header(\$dbconn, \$page, \$year);\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;",
+            'search' => "if (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;\n}\n" . $headerStart,
+            'replace' => $headerStart . "\n}\nif (\$page == \"login\" && login_redirect()) {\n    pg_close(\$dbconn);\n    return;",
             'rationale' => 'The original ordering: login after acc_header() has output the page. The cookies '
                 . 'and redirect then depend on output buffering (fails with output_buffering=0).',
         ],

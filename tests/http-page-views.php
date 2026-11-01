@@ -11,7 +11,7 @@
 require __DIR__ . '/http-test-helpers.php';
 
 // The pages index.php dispatches on ?action= (its in_array() list).
-$index = file_get_contents(__DIR__ . '/../index.php');
+$index = file_get_contents(__DIR__ . '/../public/index.php');
 if (preg_match('/if \(in_array\(\$_GET\["action"\],\s*\[([^\]]*)\]\)\)/', $index, $match) !== 1
     || preg_match_all('/"([a-z0-9]+)"/', $match[1], $actions) < 20) {
     fail_test('index.php: the ?action= dispatch list was not found');
@@ -23,8 +23,8 @@ $actions = $actions[1];
 function page_view_path($href, $actions)
 {
     $href = html_entity_decode($href, ENT_QUOTES, 'UTF-8');
-    if ($href === '/') {
-        return '/index.php';
+    if ($href === '/' || strpos($href, '/?') === 0) {
+        return '/index.php' . substr($href, 1);
     }
     if (strpos($href, 'index.php') === 0) {
         return '/' . $href;
@@ -33,6 +33,11 @@ function page_view_path($href, $actions)
         return '/index.php?action=' . $parts[1] . (isset($parts[2]) ? '&' . $parts[2] : '');
     }
     return null;
+}
+
+// The release version (PGACC_VERSION in impressum.php).
+if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR__ . '/../impressum.php'), $releaseVersion) !== 1) {
+    fail_test('impressum.php: PGACC_VERSION was not found');
 }
 
 function page_view($path, $cookies, $label)
@@ -44,10 +49,20 @@ function page_view($path, $cookies, $label)
     } elseif (strpos($response['body'], 'Fatal error') !== false) {
         $GLOBALS['page_view_problems'][] = "$label GET $path: Fatal error";
     }
+    // Every stylesheet and script of the application carries the release
+    // version, so that browsers load it again after an upgrade.
+    preg_match_all('/<(?:link\b[^>]*\bhref|script\b[^>]*\bsrc)="([^"]*)"/i', $response['body'], $assets);
+    foreach ($assets[1] as $asset) {
+        $GLOBALS['page_view_assets'][$asset] = true;
+        if (substr($asset, -strlen('?v=' . $GLOBALS['releaseVersion'][1])) !== '?v=' . $GLOBALS['releaseVersion'][1]) {
+            $GLOBALS['page_view_problems'][] = "$label GET $path: $asset without ?v={$GLOBALS['releaseVersion'][1]}";
+        }
+    }
     return $response;
 }
 
 $page_view_problems = [];
+$page_view_assets = [];
 $users = [
     'root,bgf' => login_user('synthetic-admin', 'correct-password'),
     'bgf' => login_user('synthetic-reviewer', 'reviewer-password'),
@@ -115,7 +130,7 @@ foreach ($scripts[1] as $attributes) {
         fail_test("vreport chart: inline script <script$attributes>");
     }
 }
-assert_contains($chart, "<script src=\"js/chart.umd.min.js\"></script>\n<script src=\"js/vreport-chart.js\"></script>\n", 'vreport chart scripts');
+assert_contains($chart, "<script src=\"js/chart.umd.min.js?v={$releaseVersion[1]}\"></script>\n<script src=\"js/vreport-chart.js?v={$releaseVersion[1]}\"></script>\n", 'vreport chart scripts');
 assert_contains($chart, '<div id="graph" style="position: relative; width: 100%; height: 400px;"><canvas id="graph-canvas"></canvas></div>', 'vreport chart canvas');
 assert_not_contains($chart, 'jquery', 'vreport chart without jQuery');
 if (preg_match('#<script type="application/json" id="graph-data">(.*?)</script>#s', $chart, $graphData) !== 1) {
@@ -135,7 +150,7 @@ if (json_decode($graphData[1], true) !== $points) {
 // The web server serves both files as they are (static files bypass the
 // diagnostics recorder, so they are read here instead of requested).
 foreach (['js/chart.umd.min.js' => 'Chart.js v4.6.1', 'js/vreport-chart.js' => "'graph-data'"] as $script => $marker) {
-    $content = @file_get_contents(__DIR__ . '/../' . $script);
+    $content = @file_get_contents(__DIR__ . '/../public/' . $script);
     if ($content === false) {
         fail_test("$script is missing");
     }
@@ -302,9 +317,6 @@ assert_contains($impressum, '<span style="font-weight: bold;">Diensteanbieter:</
     . 'Impressum: <a href="https://piratenpartei.at/rechtliches/impressum/">piratenpartei.at/rechtliches/impressum</a><br />', 'Impressum');
 assert_not_contains($impressum, 'Schadinagasse', 'Impressum');
 assert_not_contains($impressum, 'findet sich unter', 'Impressum');
-if (preg_match("/^const PGACC_VERSION = '([^']*)';$/m", file_get_contents(__DIR__ . '/../impressum.php'), $releaseVersion) !== 1) {
-    fail_test('impressum.php: PGACC_VERSION was not found');
-}
 // The version format of the release tooling (scripts/release.sh,
 // .github/workflows/release.yml), prereleases included.
 $releaseVersionPattern = '/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/D';
@@ -332,11 +344,11 @@ foreach ($lock['packages'] as $package) {
 }
 // The bundled software exists, so its rows are not stale.
 foreach (['js/chart.umd.min.js', 'icons/accept.png'] as $bundled) {
-    if (!is_file(__DIR__ . '/../' . $bundled)) {
+    if (!is_file(__DIR__ . '/../public/' . $bundled)) {
         fail_test("Impressum: $bundled no longer exists; update the software table");
     }
 }
-if (strncmp((string) file_get_contents(__DIR__ . '/../style.css'), '/*! tailwindcss v', 17) !== 0) {
+if (strncmp((string) file_get_contents(__DIR__ . '/../public/style.css'), '/*! tailwindcss v', 17) !== 0) {
     fail_test('Impressum: style.css is no longer built with Tailwind CSS; update the software table');
 }
 $expectedRows['Chart.js'] = ['https://www.chartjs.org', null, '–', 'MIT', 'https://spdx.org/licenses/MIT.html'];
@@ -380,6 +392,13 @@ if ($plain !== '') {
     fail_test('request without https answered ' . var_export($plain, true));
 }
 
+// The asset check above saw the stylesheet and both scripts.
+$v = '?v=' . $releaseVersion[1];
+foreach (["style.css$v", "js/chart.umd.min.js$v", "js/vreport-chart.js$v"] as $asset) {
+    if (!isset($page_view_assets[$asset])) {
+        $page_view_problems[] = "no page references $asset";
+    }
+}
 assert_no_problems($page_view_problems, 'plain page views:');
 assert_no_unexpected_diagnostics();
 echo "PHP/PostgreSQL plain page view tests passed\n";

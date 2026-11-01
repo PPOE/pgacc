@@ -1,13 +1,15 @@
 <?php
 
-// The released version, shown on the Impressum. Each release pull request sets
+// The released version, shown on the Impressum and appended to the stylesheet
+// and script URLs (?v=), so that browsers load them again after an upgrade
+// (functions.php acc_header(), vreport.php). Each release pull request sets
 // it to the new version together with the dated CHANGELOG.md section;
 // scripts/release.sh fails unless it equals the tagged version (README.md,
 // "Releases").
-const PGACC_VERSION = '2.0.0';
+const PGACC_VERSION = '2.3.0';
 
-// Third-party software shipped outside Composer (js/README.md, icons/, and
-// Tailwind CSS in style.css, built from css/app.css).
+// Third-party software shipped outside Composer (public/js/README.md,
+// public/icons/, and Tailwind CSS in public/style.css, built from css/app.css).
 const IMPRESSUM_BUNDLED = [
     ['Chart.js', 'https://www.chartjs.org', 'MIT', 'https://spdx.org/licenses/MIT.html'],
     ['Tailwind CSS', 'https://tailwindcss.com', 'MIT', 'https://spdx.org/licenses/MIT.html'],

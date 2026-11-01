@@ -44,23 +44,6 @@ function receipt_decrypt_vector($name, $id, $key, $cipher)
         'decrypted' => bin2hex($decrypted));
 }
 
-function mbapi_vector($name, $datakey, $text)
-{
-    // mbapi.php: SHA-1 of the plain text, a newline, then the base64 ciphertext.
-    $output = sha1($text) . "\n"
-        . base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($datakey), $text, MCRYPT_MODE_CBC, md5(md5($datakey))));
-    return array('name' => $name, 'datakey' => $datakey, 'text' => bin2hex($text), 'output' => $output);
-}
-
-function getusers_vector($name, $datakey, $plain)
-{
-    // The membership system's export as getusers.php reads it: base64 ciphertext.
-    $sData = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($datakey), $plain, MCRYPT_MODE_CBC, md5(md5($datakey))));
-    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($datakey), base64_decode($sData), MCRYPT_MODE_CBC, md5(md5($datakey))), "\0");
-    return array('name' => $name, 'datakey' => $datakey, 'plain' => bin2hex($plain), 'sData' => $sData,
-        'decrypted' => bin2hex($decrypted));
-}
-
 $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
 $jpeg = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
     . "\xFF\xDB\x00\x43\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\x09\x09\x08\x0A\x0C\x14\x0D\x0C\x0B\x0B\x0C"
@@ -97,39 +80,10 @@ $receiptDecrypts = array(
         substr(hex2bin($receipts[5]['cipher']), 0, 50)),
 );
 
-$memberExport = "x\t1001\tSynthetic Member \xE4\xF6\xFC\t38\t1\n"
-    . "x\t1002\tO\\'Synthetic\t44\t0\n"
-    . "x\t1003\tThird Synthetic\t99\t1\n";
-$mbapi = array(
-    mbapi_vector('two members', 'synthetic-membership-key', "1001\t2500\t2026-12-31\n1002\t12000\t2026-12-31\n"),
-    mbapi_vector('no members', 'synthetic-membership-key', ''),
-    mbapi_vector('empty datakey (test constants)', '', "1001\t2500\t2026-12-31\n"),
-);
-// Long enough for getUsers(), which rejects responses under 1000 characters:
-// every organization code it maps, an unknown one, a short line it skips, an
-// escaped quote and an ISO-8859-15 euro sign.
-$getUsersExport = "x\n";
-$organizations = array(37, 38, 39, 40, 41, 42, 43, 44, 45, 99);
-for ($i = 0; $i < 30; $i++) {
-    $getUsersExport .= sprintf("x\t%d\tSynthetic Member %02d\t%d\t%d\n", 2001 + $i, $i, $organizations[$i % 10], $i % 2);
-}
-$getUsersExport .= "x\t2031\tO\\'Synthetic \xA4uro\t38\t1\n";
-// Not block-aligned: the zero padding (5 bytes) must be stripped before parsing.
-$getUsersExport .= "x\t2032\tLast Synthetic\t40\t0\n";
-
-$getusers = array(
-    getusers_vector('getUsers() export', 'synthetic-membership-key', $getUsersExport),
-    getusers_vector('member export', 'synthetic-membership-key', $memberExport),
-    getusers_vector('block-aligned export', 'synthetic-membership-key', str_repeat("x\t1004\tAligned\t40\t1\n", 4) . "abcdefghijkl\n"),
-    getusers_vector('export ending in NUL bytes', 'synthetic-membership-key', $memberExport . "\0\0"),
-);
-
 $vectors = array(
     'generator' => 'tests/fixtures/mcrypt/generate-vectors.php',
     'php' => PHP_VERSION,
     'receipts' => $receipts,
     'receipt_decrypts' => $receiptDecrypts,
-    'mbapi' => $mbapi,
-    'getusers' => $getusers,
 );
 echo json_encode($vectors, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";

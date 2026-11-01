@@ -1,0 +1,142 @@
+# pgacc (deploy/ansible). Managed by Ansible.
+# Plain HTTP behind a TLS-terminating reverse proxy, which must send
+# X-Forwarded-Proto: https (index.php redirects otherwise). Only the proxy
+# and this host may connect, so the header is trusted only from them.
+
+# PHP responses without their own Cache-Control get "private, no-store": the
+# pages after login show personal and financial data and must never be kept
+# by a shared cache (or on disk). A Cache-Control the application sets wins;
+# an empty value makes add_header send nothing.
+map $upstream_http_cache_control $pgacc_php_cache_control {
+    ""      "private, no-store";
+    default "";
+}
+
+server {
+    listen 80 default_server;
+{% if ansible_facts.all_ipv6_addresses | default([]) | length > 0 %}
+    listen [::]:80 default_server;
+{% endif %}
+    server_name _;
+
+    allow 127.0.0.1;
+    allow ::1;
+{% for address in pgacc_trusted_proxies %}
+    allow {{ address }};
+{% endfor %}
+    deny all;
+
+    # Only public/ is served (UPGRADING.md, "Document root public/"): the
+    # code, vendor/, constants.php and files/ are in the release root, outside
+    # the document root, so nothing there can be requested, whatever its name.
+    root /srv/pgacc/current/public;
+    # No symbolic links below the document root (a link in public/ to a file
+    # outside it answers 403). Only the path below $document_root is
+    # checked, so the current -> releases/<tag> link itself still works.
+    disable_symlinks on from=$document_root;
+    index index.php;
+    autoindex off;
+    server_tokens off;
+    client_max_body_size 20M;
+    access_log /var/log/nginx/pgacc.access.log;
+    error_log /var/log/nginx/pgacc.error.log;
+
+    # Defence in depth, in case something lands in public/ anyway: dot files
+    # and backup copies.
+    location ~ (^|/)\. {
+        deny all;
+    }
+    # Backup, editor and dump copies (UPGRADING.md): constants.php.bak,
+    # index.php~, functions.php.orig, x.sql, a.tar.gz, #file# and the like.
+    # No address of the allow list below matches. Before the static-file and
+    # PHP locations, so it wins.
+    location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+        deny all;
+    }
+
+    # Short page addresses the application links to (/donations,
+    # /vreport?konto=...): index.php?action=<name>, the query string appended.
+    location ~ ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ {
+        rewrite ^/(.+)$ /index.php?action=$1 last;
+    }
+
+    # Allow list: only "/" (index.php, by the index directive), the static
+    # files and the PHP entry points below are served; every other address
+    # answers 404.
+    location = / {
+    }
+
+    # Static files: the browser keeps its copy but revalidates it on every
+    # use (ETag/Last-Modified, a 304 if unchanged). Each deploy is a new
+    # release directory and the asset URLs are not versioned, so without this
+    # browsers guess a freshness lifetime from Last-Modified and keep showing
+    # old files. Once the asset URLs carry ?v=<version>, this can become
+    # "public, max-age=31536000, immutable".
+    location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
+        add_header Cache-Control "no-cache" always;
+    }
+
+    # The PHP entry point of the pages (index.php). /mbapi.php (the former
+    # membership export) answers 404 like any other path.
+    location ~ ^/index\.php$ {
+        try_files $uri =404;
+        include fastcgi_params;
+        # The resolved release directory, so a switch of the current symlink
+        # never mixes files of two releases.
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        # index.php builds its HTTPS redirect from SERVER_NAME; server_name is
+        # "_", so pass the Host header (only the trusted proxies get here).
+        fastcgi_param SERVER_NAME $host;
+        fastcgi_pass unix:/run/php/pgacc-fpm.sock;
+        add_header Cache-Control $pgacc_php_cache_control always;
+    }
+
+    location / {
+        return 404;
+    }
+}
+{% if pgacc_sync_listen_address | default('') != '' %}
+
+# The internal sync listener (deploy/README.md, "Membership system"): TLS on
+# the internal address, for the membership system only, which calls
+# internal/mbapi.php directly (not through the reverse proxy). Its own
+# document root holds nothing but that entry point. REMOTE_ADDR is the
+# connecting socket's address; internal/mbapi.php checks it and the token
+# against sync-secrets.php. No access log: the requests carry the token.
+server {
+    listen {{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }} ssl;
+    server_name _;
+
+    ssl_certificate /etc/pgacc/sync-tls.crt;
+    ssl_certificate_key /etc/pgacc/sync-tls.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    root /srv/pgacc/current/internal;
+    disable_symlinks on from=$document_root;
+    autoindex off;
+    server_tokens off;
+    access_log off;
+    error_log /var/log/nginx/pgacc-sync.error.log;
+
+    # Dot files and backup copies, as on the public site.
+    location ~ (^|/)\. {
+        deny all;
+    }
+    location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+        deny all;
+    }
+
+    location = /mbapi.php {
+        try_files $uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/run/php/pgacc-fpm.sock;
+    }
+
+    location / {
+        return 404;
+    }
+}
+{% endif %}

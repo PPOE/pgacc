@@ -27,6 +27,7 @@ fi
 test_status=0
 php --version | head -n 1
 php tests/http-smoke.php || test_status=1
+php tests/http-docroot.php || test_status=1
 php tests/http-page-views.php || test_status=1
 php tests/http-login.php || test_status=1
 php tests/http-session-lifecycle.php || test_status=1
@@ -39,6 +40,7 @@ php tests/show-uncovered-functions.php /tmp/functions-clover.xml || test_status=
 php tests/write-workflows.php || test_status=1
 php tests/http-import.php || test_status=1
 php tests/http-receipts.php || test_status=1
+php tests/http-sync.php || test_status=1
 php tests/http-output-escaping.php || test_status=1
 php tests/http-csrf.php || test_status=1
 php tests/http-connect-failure.php || test_status=1

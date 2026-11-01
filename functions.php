@@ -174,7 +174,7 @@ function wrap($tag, $text)
     }
     return "<$tag>" . html_escape($text) . "</$tag>";
 }
-function acc_header($dbconn, $page = "index", $year = 2015)
+function acc_header($dbconn, $page = "index", $year = 2015, $navYear = null)
 {
     echo '
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -215,19 +215,22 @@ function acc_header($dbconn, $page = "index", $year = 2015)
     }
     echo '
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=' . PGACC_VERSION . '" />
 </head>
 <body>
 <div id="content">
 <div class="wiki motd">Die Daten werden sukzessive eingearbeitet und in einem 4-Augen-Prinzip bestätigt. Die Angaben im Rechenschaftsbericht können also derzeit noch geringfügig variieren.' . percent_of_bookings() . '</div>
 ';
     $rights = checklogin('rights', false);
+    // The links to the report and the donation list keep the year of these
+    // pages ($navYear, set by index.php once a year was chosen).
+    $yearQuery = $navYear === null ? '' : '?year=' . intval($navYear);
     echo '
 <div class="page ' . $page . '">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="/"' . ($page == "index" ? ' class="selected"' : '') . '>Rechenschaftsbericht</a>';
-    echo '<a href="donations"' . ($page == "donations" ? ' class="selected"' : '') . '>Spenden</a>
+<a href="/' . $yearQuery . '"' . ($page == "index" ? ' class="selected"' : '') . '>Rechenschaftsbericht</a>';
+    echo '<a href="donations' . $yearQuery . '"' . ($page == "donations" ? ' class="selected"' : '') . '>Spenden</a>
 <a href="kdonations"' . ($page == "kdonations" ? ' class="selected"' : '') . '>Sachspenden</a>
 <a href="spendings"' . ($page == "spendings" ? ' class="selected"' : '') . '>Ausgaben</a>
 <a href="wk"' . ($page == "wk" ? ' class="selected"' : '') . '>Wahlkampf</a>
@@ -802,9 +805,16 @@ function receipt_legacy_path($directory, $number)
 }
 
 // PDF, JPEG, PNG and GIF by their magic bytes; anything else is sent as a
-// download.
+// download. A PDF header may also follow white-space (PDF's, NUL included)
+// within the first 1024 bytes, as PDF readers accept it. ISO 32000 requires
+// %PDF- as the first line, and Acrobat and Poppler accept the header after
+// any bytes; only white-space is accepted here, to keep false positives
+// (a wrong voucher ID in the migration, other file types) rare.
 function receipt_content_type($plain)
 {
+    if (preg_match('/^[\0\t\n\f\r ]+%PDF-/', substr($plain, 0, 1024))) {
+        return 'application/pdf';
+    }
     $types = [
         '%PDF' => 'application/pdf',
         "\xFF\xD8\xFF" => 'image/jpeg',
@@ -1004,8 +1014,8 @@ function receipt_store($directory, $number, $source)
 /*
  * Opens files/<number>.v2.aes ($path) for sending, in two passes over one
  * open file, 64 KiB at a time: the MAC is checked over the whole file first;
- * then the last block gives the plain text length and the first block the
- * type. Returns [what receipt_v2_send() needs, null], or [false, why not]
+ * then the last block gives the plain text length and the first 1024 bytes
+ * the type. Returns [what receipt_v2_send() needs, null], or [false, why not]
  * for the caller's log line (it names neither the key nor its fingerprint).
  */
 function receipt_v2_open($path, $number)
@@ -1082,14 +1092,14 @@ function receipt_v2_open_handle($key, $number, $in)
         $valid = substr($last, -$padding) === str_repeat(chr($padding), $padding);
         $length -= $padding;
         fseek($in, 20);
-        $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, 16));
+        $head = receipt_v2_stream_cipher($encryptionKey, $iv)->decrypt((string) fread($in, min(1024, $stat['size'] - 52)));
     }
     if (!$valid) {
         fclose($in);
         return false;
     }
     return ['handle' => $in, 'key' => $encryptionKey, 'iv' => $iv, 'length' => $length,
-        'head' => substr($head, 0, min(16, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat)];
+        'head' => substr($head, 0, min(1024, $length)), 'number' => $number, 'stat' => receipt_v2_identity($stat)];
 }
 
 // Size and change times of an open file. Receipts are only replaced by rename,
@@ -1156,24 +1166,6 @@ function receipt_v2_send($receipt)
         error_log("pgacc: receipt {$receipt['number']}.v2.aes changed or could not be read while it was sent; "
           . 'the download is incomplete');
     }
-}
-
-// Membership-system exchange (getusers.php, mbapi.php): key and IV.
-function membership_cipher_params($datakey)
-{
-    return [md5($datakey), md5(md5($datakey))];
-}
-
-function membership_encrypt($datakey, $data)
-{
-    [$cipherKey, $iv] = membership_cipher_params($datakey);
-    return rijndael256_encrypt($cipherKey, $data, $iv);
-}
-
-function membership_decrypt($datakey, $data)
-{
-    [$cipherKey, $iv] = membership_cipher_params($datakey);
-    return rijndael256_decrypt($cipherKey, $data, $iv);
 }
 
 /*

@@ -1,4 +1,4 @@
-SELECT id,hash = crypt('wrong',hash) AS success,rights FROM users WHERE name = 'synthetic-admin'
+SELECT id,hash = crypt('wrong',hash) AS success,hash LIKE '$1$%' AS md5,rights FROM users WHERE name = 'synthetic-admin'
 -- next
 SELECT COUNT(*) AS c,COUNT(ack1) AS b,COUNT(ack2) AS a FROM vouchers WHERE date >= '2012-01-01' AND date < '2013-01-01' AND NOT deleted;
 -- next

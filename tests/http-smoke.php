@@ -18,6 +18,19 @@ assert_contains(http_request('/index.php?year=2012')['body'], "<div class=\"page
 $currentYear = intval(date('Y'));
 assert_contains(http_request("/index.php?year=$currentYear")['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'current report year selector');
 assert_contains(http_request('/index.php')['body'], "<div class=\"page_title\"><h1>Rechenschaftsbericht der Piratenpartei Österreichs {$currentYear}</h1>" . expected_year_nav($currentYear, 'index.php?year=') . '</div><br>', 'default report year selector');
+// The menu links to the report and the donation list keep the chosen year
+// (the current one for an invalid year); without a year, and on pages without
+// one, they carry none.
+$menu = fn($query, $selected) => '<a href="/' . $query . '"' . ($selected ? ' class="selected"' : '') . '>Rechenschaftsbericht</a><a href="donations' . $query . '">Spenden</a>' . "\n";
+assert_contains($report['body'], $menu('?year=2024', true), '2024 report menu');
+assert_contains(http_request('/index.php?year=2024-1')['body'], $menu("?year=$currentYear", true), 'invalid report year menu');
+assert_contains(http_request('/index.php?action=unknown&year=2019')['body'], $menu('?year=2019', false), 'unknown action report menu');
+assert_contains(http_request('/index.php')['body'], $menu('', true), 'default report menu');
+assert_contains(http_request('/index.php?action=spendings&year=2019')['body'], $menu('', false), 'spendings menu');
+// The ledger links of the logged-in menu keep the current year.
+$adminReport = http_request('/index.php?year=2019', 'GET', [], login_user('synthetic-admin', 'correct-password'))['body'];
+assert_contains($adminReport, $menu('?year=2019', true), 'logged-in 2019 report menu');
+assert_contains($adminReport, "<a href=\"index.php?action=open&filter_date=$currentYear\">Offen</a>", 'logged-in 2019 report ledger link');
 assert_contains($report['body'], 'Ausgaben für die Wahlwerbung Länder', '2024 report completeness');
 assert_contains($report['body'], 'Anlage B: Einnahmen aus Sponsoring', '2024 report completeness');
 // Issue #1: every amount has two decimals, also whole euros, so that the
@@ -38,15 +51,18 @@ if (preg_match_all($rowPattern, $anlage, $rows) !== 4) {
 // is read from the source tree: the diagnostics recorder only wraps PHP.
 // style.css is built from css/app.css (scripts/build-css.sh); the td rule is
 // indented inside its cascade layer.
-$css = file_get_contents(__DIR__ . '/../style.css');
+$css = file_get_contents(__DIR__ . '/../public/style.css');
 if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabular-nums;[^}]*\}/', $css) !== 1) {
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 
-// The library files only define functions: a direct request prints nothing
-// (the web server denies src/; the test server ignores .htaccess).
+// The document root is public/ (tests/http-docroot.php). A server with the
+// release root as its document root (a misconfigured web server) serves the
+// test-only page below, and the library files there print nothing: they only
+// define functions.
+$releaseRootUrl = start_release_root_server(8085);
 foreach (['src/db.php', 'src/format.php'] as $path) {
-    $library = http_request('/' . $path);
+    $library = http_request('/' . $path, 'GET', [], [], $releaseRootUrl);
     if ($library['body'] !== '') {
         fail_test($path . ': a direct request printed ' . var_export($library['body'], true));
     }
@@ -62,16 +78,16 @@ $failures = [
     'query-sql' => 'Abfrage (SELECT * FROM db_helpers_missing) fehlgeschlagen: ' . $missing . 'SELECT * FROM db_helpers_missing',
     'exec' => 'Abfrage fehlgeschlagen: ' . $missing . 'UPDATE db_helpers_missing SET n = 1',
 ];
-with_expected_diagnostics('db-helper-failure', [['src/db.php', 'pg_query(): Query failed']], function () use ($failures) {
+with_expected_diagnostics('db-helper-failure', [['src/db.php', 'pg_query(): Query failed']], function () use ($failures, $releaseRootUrl) {
     foreach ($failures as $helper => $expected) {
-        $failure = http_request('/tests/runtime/db-failure.php?helper=' . $helper);
+        $failure = http_request('/tests/runtime/db-failure.php?helper=' . $helper, 'GET', [], [], $releaseRootUrl);
         assert_status($failure, 200, "db helper failure $helper");
         if (strpos($failure['body'], "</b><br />\n" . $expected) === false || strpos($failure['body'], 'not ended') !== false) {
             fail_test("db helper failure $helper: " . var_export($failure['body'], true));
         }
     }
 });
-$noRow = http_request('/tests/runtime/db-failure.php?helper=next-value-no-row');
+$noRow = http_request('/tests/runtime/db-failure.php?helper=next-value-no-row', 'GET', [], [], $releaseRootUrl);
 assert_status($noRow, 200, 'db_next_value() without a row');
 if ($noRow['body'] !== 'Abfrage fehlgeschlagen: ') {
     fail_test('db_next_value() without a row: ' . var_export($noRow['body'], true));
@@ -134,8 +150,9 @@ assert_not_contains($report2025['body'], 'Abfrage fehlgeschlagen', '2025 report'
 assert_contains($report2025['body'], '<td width="150px">Kontostand 31.12.2024</td>', '2025 report opening balance');
 
 // check.php, the voucher number check, is a command-line script
-// (tests/unit/CheckCommandTest.php); the web server must not run it.
-$check = http_request('/check.php?kto=SYNTHETIC0&max=3');
+// (tests/unit/CheckCommandTest.php) outside the document root; a web server
+// serving the release root must not run it either.
+$check = http_request('/check.php?kto=SYNTHETIC0&max=3', 'GET', [], [], $releaseRootUrl);
 assert_status($check, 404, 'check.php over HTTP');
 if ($check['body'] !== '') {
     fail_test('check.php over HTTP answered ' . var_export($check['body'], true));

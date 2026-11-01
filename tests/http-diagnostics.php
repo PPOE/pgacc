@@ -64,7 +64,7 @@ function known_diagnostic_reason($record)
     return null;
 }
 
-// Application path relative to the served root: /app in the test images, or
+// Application path relative to the application root: /app in the test images, or
 // the copy the mutation runner serves (PGACC_TEST_APP_ROOT).
 function displayed_relative_file($file)
 {

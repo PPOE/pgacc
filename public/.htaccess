@@ -1,0 +1,35 @@
+php_value short_open_tag 1
+# The document root is this directory (UPGRADING.md, "Document root public/").
+# The virtual host needs AllowOverride All (php_value, mod_rewrite,
+# AcceptPathInfo, DirectoryIndex, the FilesMatch rule) and mod_rewrite.
+# Without mod_rewrite every request fails (500) instead of bypassing the
+# allow list below.
+DirectoryIndex index.php
+# No PATH_INFO: /index.php/x answers 404, as with nginx.
+AcceptPathInfo Off
+
+RewriteEngine On
+# Short page addresses the application links to (/donations,
+# /vreport?konto=...): index.php?action=<name>, the query string appended.
+RewriteRule ^(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ index.php?action=$1 [QSA,L]
+# Dot files, and symbolic links (to a file outside public/, for example):
+# 403.
+RewriteRule (^|/)\. - [F]
+RewriteCond %{REQUEST_FILENAME} -l
+RewriteRule ^ - [F]
+# Allow list: "/" (index.php), index.php, style.css, js/*.js, icons/*.png.
+# Anything else answers 404.
+RewriteRule ^(index\.php|style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)?$ - [L]
+RewriteRule ^ - [R=404,L]
+
+# Defence in depth: backup, editor and dump copies (constants.php.bak,
+# index.php~, x.sql, a.tar.gz, ...), in case one lands here anyway.
+<FilesMatch "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php.+|^#.*#)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

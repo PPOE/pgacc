@@ -2,7 +2,7 @@
 # request: GET /index.php?action=vreport&konto=TEST-ACCOUNT-1&date_begin=2024-01-01&date_end=2024-12-31 as anon
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (7054 bytes) ---
+--- body (7078 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -11,7 +11,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
   <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.3.0" />
 </head>
 <body>
 <div id="content">
@@ -30,8 +30,8 @@ header: Content-type: text/html; charset=UTF-8
 <ul><li><a href="vreport?konto=">Konto ''</a></li><li><a href="vreport?konto=TEST-VIRTUAL-1">Konto 'TEST-VIRTUAL-1'</a></li><li><a href="vreport?konto=TEST-VIRTUAL-10">Konto 'TEST-VIRTUAL-10'</a></li><li><a href="vreport?konto=TEST-VIRTUAL-2">Konto 'TEST-VIRTUAL-2'</a></li><li><a href="vreport?konto=TEST-VIRTUAL-4">Konto 'TEST-VIRTUAL-4'</a></li><li><a href="vreport?konto=TEST-VIRTUAL-6">Konto 'TEST-VIRTUAL-6'</a></li></ul><h1>Bericht Konto TEST-ACCOUNT-1</h1><br>
 <br style="clear: both;" />
 <div class="wiki use_terms">
-<script src="js/chart.umd.min.js"></script>
-<script src="js/vreport-chart.js"></script>
+<script src="js/chart.umd.min.js?v=2.3.0"></script>
+<script src="js/vreport-chart.js?v=2.3.0"></script>
 <script type="application/json" id="graph-data">[]</script>
 <div id="graph" style="position: relative; width: 100%; height: 400px;"><canvas id="graph-canvas"></canvas></div>
 <table><tr><td>

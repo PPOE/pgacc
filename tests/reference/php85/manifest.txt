@@ -290,7 +290,6 @@ receipt-download-anon	anon	GET /index.php?action=file&id=1001	302
 receipt-download-missing-file	admin	GET /index.php?action=file&id=103	500
 receipt-download-no-file	admin	GET /index.php?action=file&id=101	200
 edit-view-with-receipt	admin	GET /index.php?action=edit&id=5001	200
-mbapi	anon	GET /mbapi.php	200
 mb-admin	admin	GET /index.php?action=mb	200
 mb-unitone	unitone	GET /index.php?action=mb	200
 mb-anon	anon	GET /index.php?action=mb	302

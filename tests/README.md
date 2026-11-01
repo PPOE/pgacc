@@ -32,7 +32,7 @@ remove them with `docker rmi`.
 
 The lane:
 
-1. runs `php -l` on every top-level application file and `src/*.php` under PHP 8.5;
+1. runs `php -l` on every top-level application file, `public/*.php` and `src/*.php` under PHP 8.5;
 2. loads the data-free schema and synthetic fixtures and runs
    `database-characterization.sql` with `psql`;
 3. starts the application and runs the HTTP tests, the PHPUnit suite and the
@@ -117,6 +117,26 @@ constraints; no backup table, owners, permissions, credentials or rows).
   totals, report type mapping and review-progress counts.
 - `http-smoke.php`: public report, transactions, spendings, rejected and
   successful login, an authenticated ledger request.
+- `http-docroot.php`: the document root `public/` and the allow list of the
+  web server. The test servers serve `public/` through
+  `tests/runtime/router.php`, which applies the allow list of the nginx site
+  (`deploy/ansible/templates/nginx-site.conf.j2`): `/`, `index.php`,
+  `style.css`, `js/*.js`, `icons/*.png` and the short page
+  addresses (`/donations`, ...), rewritten to `index.php?action=<name>`;
+  dot files and backup copies answer 403, anything else 404. Like nginx, the
+  router first decodes the path, merges slashes and resolves `.` and `..`
+  (above the document root: 400), and refuses files reached through a
+  symbolic link (403). The requests and answers are the shared matrix
+  `tests/web-server/matrix.php` (also run against real nginx and Apache,
+  see "Web server allow lists" below). It checks this on the application
+  service, then on a release built in the test container's `/tmp` (code as
+  symbolic links to `/app`, `public/` copied, a synthetic `constants.php` of
+  its own that the entry points must load) with backup copies, a dump, an
+  archive, a text file, PHP scripts and a symbolic link planted in the
+  release root and in `public/`: none of them is served. Tests that need the release
+  root as document root (the test page `tests/runtime/db-failure.php`, the
+  command-line scripts' own 404) use a second server
+  (`start_release_root_server()` in `http-test-helpers.php`).
 - `http-page-views.php`: a plain GET of every page in the `index.php`
   `?action=` dispatch and of every link of the public and the logged-in menu,
   plus the year links (report, donations) and account links (tinyreport,
@@ -126,7 +146,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   Also the listing and account-report filters, a numeric virtual account for
   visitors, an organization balance in the report, an unknown action and the
   removed `?action=transfer` (both the report), array filter values (CSV
-  listing), the https redirect and `?year=2024-1` (the current year).
+  listing), the https redirect and `?year=2024-1` (the current year). Every
+  stylesheet and script URL ends with `?v=<PGACC_VERSION>`.
 - `http-login.php`: a valid login returns 302 with an empty body and
   `Location: index.php` (or the hex-decoded `target` if it is a page of the
   application; other targets, also absolute URLs, `//`, backslashes and line
@@ -164,7 +185,7 @@ constraints; no backup table, owners, permissions, credentials or rows).
   form token) change the stored preference; the old GET `?hide=` does not.
 - `http-connect-failure.php`: with an unreachable database (a second server
   in the test container, `PGHOST=127.0.0.1 PGPORT=1`, coverage recorded),
-  `index.php` and `mbapi.php` answer "Verbindungsaufbau
+  `index.php` answers "Verbindungsaufbau
   fehlgeschlagen" and log the `pg_connect()` reason.
 - `http-csrf.php` (last in every lane): form tokens. For every write action
   (voucher creation, revision, approval, approval reset, receipt upload,
@@ -179,8 +200,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-donations.php`: the donation list answers the captcha like a browser.
   2024 (above the 100 € threshold) and 2025 show heading, year links, notice
   and an empty table; no donor name (plain or base64), row or sum may appear
-  (publication is disabled for legal reasons). Years before 2012 show 2013.
-  Requests without `year` are not tested (see `COMPATIBILITY_PLAN.md`).
+  (publication is disabled for legal reasons). Without `year` the page shows
+  the current year; years before 2012 and after 9999 show it without the
+  captcha. The menu links to the report and the donation list carry the year
+  shown once a year was chosen (also `http-smoke.php` for the report).
 - `write-workflows.php`: voucher creation, organization-scoped approval,
   distinct first and second reviewers, the removed finalization (a POST with
   `beleg` changes nothing), the finalized-entry edit lock, the approval reset,
@@ -192,21 +215,36 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-receipts.php`: receipt upload, PDF import (`smalot/pdfparser` 2.x),
   download of `<n>.v2.aes`
   and legacy `<n>.aes` (headers, legacy fallback, error cases, merges), the
-  migration script's 404 and the `mbapi.php` export. It reads and writes the
+  migration script's 404. It reads and writes the
   server's `files/` through a volume shared with the client.
+- `http-sync.php`: the internal sync endpoint `internal/mbapi.php` on servers
+  of its own with `internal/` as document root: 403 with an empty body
+  without the token of `tests/runtime/test-sync-secrets.php` (the image's and the
+  development loop's `sync-secrets.php`), for another peer, without
+  `sync-secrets.php` and with one that does not parse; with it the payments
+  as JSON, ordered by member id; 503 with an empty body without the
+  database or the release root. `tests/unit/SyncApiTest.php` covers the
+  configuration, the check and the payment selection (cutoff, threshold,
+  `ack1`, deleted, type). Red evidence: an empty `sync_api_main()` answers
+  200 without the token.
 
 The membership system never leaves the test network: `compose.test.yaml` runs
 the reference stub (`tests/reference/membership/server.php`) as the service
 `membership` under the alias `mitglieder.piratenpartei.at`, and
-`tests/runtime/test-constants.php` sets the synthetic `$datakey` of its member
-list. The application service waits for it.
+`tests/runtime/test-sync-secrets.php` (the image's and the development
+loop's `sync-secrets.php`) sets the URL, the synthetic token (which the stub
+requires; 403 otherwise) and the `members_cafile` of its member list. The
+application service waits for it.
 
-The stub speaks HTTPS, and `getusers()` verifies its certificate with PHP's
-default settings (verification is never turned off). A build stage of
+The stub speaks HTTPS, and `getusers()` verifies its certificate against
+`members_cafile` only (verification is never turned off). A build stage of
 `tests/php-runtime.Dockerfile` generates a synthetic test CA and a server
 certificate for `mitglieder.piratenpartei.at` on every image build; the CA key
 stays in that stage, and nothing is committed. The application image trusts
-the CA system-wide (`update-ca-certificates`), and the stub runs from the same
+the CA system-wide too (`update-ca-certificates`; `GetUsersTest` shows that
+a certificate the system trusts is refused unless it is from
+`members_cafile`, and that the stub's self-signed certificate is accepted
+when it is `members_cafile`), and the stub runs from the same
 image with the server certificate (`/etc/pgacc-test-tls/membership.pem`), so
 the reference image, which builds on it, gets both too. The certificates are
 valid from 2020 to 2099 because the reference runs fake the application's
@@ -214,23 +252,97 @@ clock. The tests control the stub over plain HTTP on port 80 (only the
 `/__stub/` controls are served there): `GET
 http://mitglieder.piratenpartei.at/__stub/mode?set=<mode>` switches the
 member-list response, and `POST .../__stub/body` serves a given body (the unit
-tests, `tests/unit/MembershipStub.php`). The modes (`short`, `garbage`,
-`empty`, `flow`, `overflow`, `redirect`, `redirect-http`, `selfsigned`,
-`wrongname`, `error`, ...) and the response format as `getusers.php` reads it
-are documented in the header of `server.php`; `selfsigned` and `wrongname`
+tests, `tests/unit/MembershipStub.php`). The modes (`malformed`, `empty`,
+`invalid-row`, `duplicate`, `bad-uuid`, `flow`, `overflow`, `redirect`,
+`redirect-http`, `selfsigned`, `wrongname`, `error`, `stall`) are documented in
+the header of `server.php`; `selfsigned` and `wrongname`
 present a self-signed and a wrong-name certificate (also generated per build)
 that `getusers()` must refuse. `tests/http-import.php` uses the modes for the
-failure cases and a member match; the refused handshakes' warnings are
+failure cases, a member match and the member numbers of the ledger and the
+voucher form (`/__stub/members-requests` counts the list fetches); the refused handshakes' warnings are
 attributed with `with_expected_diagnostics()` (`tests/http-diagnostics.php`), and
 `/__stub/list-requests` proves that no redirect was followed.
 `GetUsersTest` fetches the synthetic `flow` list
-(`tests/reference/membership/flow.tsv`) over HTTPS and checks the exact
-`ppmembers` rows.
+(`tests/reference/membership/flow.json`) over HTTPS and checks the exact
+`ppmembers` rows, refuses every kind of malformed list, a body over 4 MiB
+(exactly 4 MiB is read), a read that timed out (`stall`) and a
+`sync-secrets.php` that does not load, and checks the settings, the UUID
+check and the profile links.
 
 All test servers run with `output_buffering=4096`, but no redirect depends on
 it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat
 their redirects on a second server with `output_buffering=0` started inside
 the test container.
+
+### Web server allow lists
+
+`sh tests/web-server/run.sh [nginx] [apache]` (CI job `Web server allow
+lists (nginx, Apache)`, every push; about 15 seconds plus image pulls) runs
+the request matrix `tests/web-server/matrix.php` against real web servers,
+so loosening the production configuration fails a test even where the
+router (`tests/runtime/router.php`) still agrees with the matrix:
+
+- nginx (the version of Debian 13) with
+  `deploy/ansible/templates/nginx-site.conf.j2`, rendered with Jinja2 as the
+  playbook does and otherwise unchanged, and PHP-FPM on the socket the
+  template names;
+- Apache with PHP as a module, `public/.htaccess` and the virtual host of
+  UPGRADING.md (the code block after `<!-- tested: apache vhost -->`), plus a
+  virtual host whose document root is the release root, where the release
+  root's `.htaccess` must refuse every request (403).
+
+The release is built below `build/` in the layout of `deploy.sh`
+(`current` -> `releases/<tag>`), with the planted files of the matrix and the
+entry points replaced by a stub that prints the script (nginx: the resolved
+release, `$realpath_root`) and the query string it ran with. The servers have
+no network; the client runs in their network namespace. Intentional
+differences of a server are listed in `tests/web-server/check.php`
+(Apache refuses an encoded `/`). nginx also runs the internal sync listener
+of the template (rendered with `pgacc_sync_listen_address` 127.0.0.1; not
+rendered without it) with a certificate made by the playbook's `openssl`
+command and the release's `sync-secrets.php` rendered from
+`sync-secrets.php.j2` (also checked: off, it returns `[]`; with the member
+list too, the `members_*` keys): the client verifies it (`cafile`), `internal/mbapi.php` is a stub
+that runs the real peer and token check of `src/sync-api.php` (200 with
+JSON from 127.0.0.1 with the token; 403 without it, with a wrong one and
+from 127.0.0.2), and every other path answers 404 (dot files and backup
+copies 403). Containers and the release are removed at
+the end. Red evidence: `try_files $uri` in the catch-all location serves
+`/js/README.md`; a static location `\.(css|js|png)$` serves `/planted.js`;
+without `disable_symlinks` a link in `public/js/` is served; a `\.php$`
+location runs `public/evil.php`.
+
+The same CI job runs `sh tests/deploy-guards.sh` (no Docker, a second): the
+`public/` guards of `deploy/deploy.sh` on a fake `/srv/pgacc` in a temporary
+directory, with `id`, `sudo`, `sleep` and `curl` stubbed (refusing a release
+without `public/`, the smoke test of an already current release, the
+rollback to a release without `public/`), and that a release archive's
+`internal/` holds `mbapi.php` only and `sync-secrets.php` is linked to `shared/`.
+Red evidence: the `deploy.sh` before these guards fails 2 of its 5 cases;
+the one before the `internal/` check fails its 3 `internal/` cases.
+
+It also runs `sh tests/sync-secrets-template.sh` (Docker, ansible-core,
+PHP 8.5): `deploy/ansible/templates/sync-secrets.php.j2` rendered with
+Ansible's template module for payments only, members only and both, each
+file loaded with the real readers of the checkout, `sync_api_config()` and
+`getusers_config()` (a reader that is not there is skipped): the exact
+array, accepted with the expected values, refused without its keys. Red
+evidence: the template with `payment_token` and `member_token` fails.
+
+It also runs `sh tests/playbook-settings.sh` (Docker, ansible-core): the
+playbook's first task, "Check the settings", with the play's vars against
+localhost, the facts given as extra vars; the play must gather facts. Cases:
+the listener off and `pgacc_sync_listen_address` in
+`ansible_all_ipv4_addresses` pass, an address the host does not have fails.
+Red evidence: the playbook without that assertion passes the last case.
+
+It also runs `sh tests/sync-secrets-template.sh` (Docker, ansible-core,
+PHP 8.5): `deploy/ansible/templates/sync-secrets.php.j2` rendered with
+Ansible's template module for payments only, members only and both, each
+file loaded with the real readers of the checkout, `sync_api_config()` and
+`getusers_config()` (a reader that is not there is skipped): the exact
+array, accepted with the expected values, refused without its keys. Red
+evidence: the template with `payment_token` and `member_token` fails.
 
 ### PHPUnit
 
@@ -240,8 +352,8 @@ warnings fail the run (PHPUnit 13 reports them per test instead of throwing). Th
 rendering and the two PostgreSQL helpers), `src/format.php` (`AmountParsingTest.php`, `FormatTest.php`,
 `format_date()` in `FunctionsTest.php`), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
-(vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
-(stubbed `http://` stream wrapper), `ImportMemberMatchTest.php`,
+(receipt vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
+(the TLS membership stub, `MembershipStub.php`), `ImportMemberMatchTest.php`,
 `ReceiptImportTest.php` (the import's `<n>.v2.aes`, refusals without a valid
 key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
 short reads via `ShortReadStream.php`, and the 20 MB memory check
@@ -342,6 +454,7 @@ the coverage gate, the reference comparison and static analysis.
 | `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
 | `Mutation tests (PHP 8.5 / PostgreSQL 18)` (`tests/mutation/ci.sh`, blocking) | only with the `mutation` label: changed lines (`--changed-since=<base>`); skipped otherwise | every target |
 | `Reference comparison (PHP 8.5)` | yes | yes |
+| `Web server allow lists (nginx, Apache)` (`tests/web-server/run.sh`) | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 
 The coverage gate is off only on scheduled and manual runs, which have no
@@ -349,8 +462,8 @@ base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`).
 
 ## Coverage
 
-`tests/run.sh` adds `compose.coverage.yaml` and measures all 30 top-level
-application files and the library files in `src/`:
+`tests/run.sh` adds `compose.coverage.yaml` and measures all 28 top-level
+application files, the entry points in `public/` and the library files in `src/`:
 
 - The application server runs with `auto_prepend_file=tests/coverage/prepend.php`
   and `XDEBUG_MODE=coverage` (Xdebug 3.5.3). Per request the prepend starts Xdebug
@@ -413,7 +526,7 @@ the merge base, including uncommitted and untracked `*.php` files, as
 `file:start-end` ranges. `tests/coverage/check-changed-lines.php` then fails
 the lane if any of them is executable and unexecuted. Non-executable lines are
 ignored and paths outside the scope (`tests/`, non-PHP files) skipped; a
-changed top-level PHP file missing from the report is an error. Uncovered
+changed top-level, `public/` or `src/` PHP file missing from the report is an error. Uncovered
 branches on changed lines are warnings (`PGACC_COVERAGE_STRICT_BRANCHES=1`
 makes them fail).
 
@@ -511,12 +624,11 @@ recording has:
   `null`, `'1e3'`, `' 12'`, UTF-8 and ISO-8859 bytes, floats, 64-bit limits).
 - Imports: synthetic BAWAG, ISO-8859-15, Handkassa, Sparkasse and PayPal CSV
   (`import.php`), generated PDF statements (`import2.php`,
-  `fixtures/make-pdf.php`), receipt upload/download, `mbapi.php` and the
+  `fixtures/make-pdf.php`), receipt upload/download and the
   member-fee page. `mitglieder.piratenpartei.at` resolves to the HTTPS stub
   (`membership/server.php`) inside the network; it serves
-  `membership/adm_names.b64` (synthetic members, key in
-  `runtime/reference-constants.php`, regenerated by `membership/generate.php`)
-  and `membership-stub.txt` records what it received.
+  `membership/members.json` (synthetic members) and `membership-stub.txt`
+  records what it received.
 - `diagnostics/*.txt`: PHP diagnostics per request (compared like the rest:
   a new, changed or missing diagnostic fails).
 
@@ -556,7 +668,7 @@ It runs in its own image (`tests/static-analysis/Dockerfile`): pinned
 (PHP_CodeSniffer 4.0.4, PHPCompatibility 10.0.0-alpha2, PHPCSUtils 1.2.3,
 PHPStan 2.3.2, its PHAR SHA-256 checked). Only the build needs network; the
 analysis has no network, a read-only repository mount and root filesystem. It
-analyses a copy of the 30 tracked top-level application files and `src/*.php` (no `vendor/`,
+analyses a copy of the 28 tracked top-level application files, `public/*.php` and `src/*.php` (no `vendor/`,
 `tests/`, `files/`, `proxy/`), with `tests/runtime/test-constants.php` as
 `constants.php` and the locked `vendor/`, so `require()` paths resolve.
 `PGACC_TEST_ID` suffixes the image name.
@@ -650,8 +762,6 @@ Open harness items:
   new escaped mutants.
 - [ ] Extend the bank import test (`http-import.php`) to duplicate re-uploads
   of whole files.
-- [ ] Document the `mbapi.php` output contract and verify it against the
-  membership system's consumer or an agreed sample.
 - [ ] Apply the HTTP diagnostics strictness to PHPUnit (PHPUnit only reports
   deprecations, `failOnDeprecation` is off; the implicit-connection ones are gone).
 - [ ] Report unused `tests/known-diagnostics.php` entries as failures.

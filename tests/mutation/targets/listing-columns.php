@@ -138,7 +138,8 @@ $cells = [
     3 => ["\n        echo tag(\"td\", format_date(", null],
     4 => ["\n        echo tag(\"td\", \$line2[\"name\"]);", $typeLoop],
     5 => ["\n        echo tag(\"td\", \$line2[\"name\"]);", $loLoop],
-    6 => ["\n        if (\$make_csv) {\n            echo tag(\"td\", \$line[\"member\"]", null],
+    // Column 6: a member's number has its own branch (elseif).
+    6 => ["\n        echo tag(\"td\", \$line[\"member\"]", null, '} elseif ($line["member"]'],
     7 => ["\n        echo tag(\"td\", \$line[\"contra_account\"]);", null],
     8 => ["\n        echo tag(\"td\", \$line[\"account\"]);", null],
     9 => ["\n        echo tag(\"td\", \$line[\"vaccount\"]);", null],
@@ -155,8 +156,8 @@ $cells = [
 foreach ($cells as $col => $cell) {
     $mutation = [
         'id' => "row-$col-check-inverted",
-        'search' => $hidden . $cell[0],
-        'replace' => $shown . $cell[0],
+        'search' => isset($cell[2]) ? str_replace('} else {', $cell[2], $hidden) : $hidden . $cell[0],
+        'replace' => isset($cell[2]) ? str_replace('} else {', $cell[2], $shown) : $shown . $cell[0],
         'rationale' => "Row cell $col is empty exactly when the column is hidden (in CSV: omitted).",
     ];
     if ($cell[1] !== null) {

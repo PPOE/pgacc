@@ -3,7 +3,7 @@
 # form: speichern=Speichern&parts=1&bid0=0&dir0=out&in_type0=8&out_type0=20&wk_type0=21&date0=15.09.2024&person_type0=1&lo0=2&amount0=1e3&gegenkonto0=SYNTHETICREF&konto0=TESTACCOUNT2&vkonto0=TESTVIRTUAL2&comment0=Reference+%C3%9Cmlaut+%22Zitat%22+O%27Brien%0AZeile+2&commentgf0=Reference+workflow&mitgliedsnummer0=0&name0=J%C3%B6rg+%C3%84.+%C3%96sterreicher&street0=Test+Street+1&plz0=0000&city0=Test+City&file0=0&csrf_token=%7B%7Bcsrf-token%7D%7D
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (16988 bytes) ---
+--- body (16996 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -12,7 +12,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
   <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.3.0" />
 </head>
 <body>
 <div id="content">

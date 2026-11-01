@@ -1,1 +1,0 @@
-SELECT * FROM (SELECT SUM(amount) AS amount,MAX(date) AS date,member_id FROM vouchers WHERE type = 1 AND date >= '2025-10-01' AND NOT deleted AND ack1 IS NOT NULL GROUP BY member_id ORDER BY member_id) A WHERE amount >= 2000 ORDER BY member_id

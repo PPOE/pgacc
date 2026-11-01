@@ -2,7 +2,7 @@
 # request: GET /index.php?action=accounts as admin
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (9435 bytes) ---
+--- body (9467 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -11,7 +11,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
   <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.3.0" />
 </head>
 <body>
 <div id="content">
@@ -31,7 +31,7 @@ header: Content-type: text/html; charset=UTF-8
 <br style="clear: both;" />
 <div class="wiki use_terms">
 <form action="index.php?action=accounts" method="POST"><input type="hidden" name="csrf_token" value="{{csrf-token}}" /><table>
-<tr><td><b>Name</b></td><td><b>Passwort</b></td><td><b>Rechte</b></td></tr>
+<tr><td><b>Name</b></td><td><b>Passwort</b> (mindestens 12 Zeichen)</td><td><b>Rechte</b></td></tr>
 <tr><td>synthetic-admin</td><td><input type="password" name="password1" value="******"></td><td><input type="text" name="rights1" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 1 aktualisieren" /></td></tr>
 <tr><td>synthetic-hide-odd</td><td><input type="password" name="password4" value="******"></td><td><input type="text" name="rights4" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 4 aktualisieren" /></td></tr>
 <tr><td>synthetic-hide-even</td><td><input type="password" name="password5" value="******"></td><td><input type="text" name="rights5" value="root,bgf" /></td><td><input type="submit" name="submit" value="Benutzer 5 aktualisieren" /></td></tr>

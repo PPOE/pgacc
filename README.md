@@ -16,16 +16,22 @@ Core concepts:
 - **Public reports**: annual report (Rechenschaftsbericht), transactions and
   spendings pages, donation lists.
 - **Import**: bank statement CSV import (BAWAG format).
-- **Membership integration**: `getusers.php` fetches member names from the
-  membership system, `mbapi.php` exports membership payments.
+- **Membership integration** (sync v2, off unless configured):
+  `getusers.php` fetches the member list from the membership system as JSON
+  over its internal TLS listener with a token; `internal/mbapi.php` gives
+  the membership system the membership payments as JSON on pgacc's own
+  internal TLS listener. Settings in `sync-secrets.php`
+  ([deploy/README.md](deploy/README.md), "Membership system").
 
 ## Requirements
 
-- PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
-  exchange use `phpseclib` (same ciphertext; used automatically if loaded).
-- PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`).
+- PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts use `phpseclib` (same ciphertext;
+  used automatically if loaded).
+- PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`;
+  new passwords bcrypt, older MD5-crypt hashes still accepted).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
-- A PHP-capable web server (e.g. Apache or Lighttpd with PHP-CGI/FPM).
+- A web server with PHP: nginx with PHP-FPM (the tested setup of
+  `deploy/ansible`) or Apache.
 - Browsers: Chrome/Edge 111+, Safari 16.4+ or Firefox 128+ (the stylesheet
   uses Tailwind CSS v4 features such as cascade layers; older browsers show
   the pages unstyled).
@@ -37,6 +43,8 @@ not work on PHP 8 yet; see
 migration".
 
 Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
+Provisioning a Debian 13 host and deploying releases with scripts:
+[deploy/README.md](deploy/README.md).
 
 ## Setup
 
@@ -49,8 +57,7 @@ Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
 
    ```php
    <?php
-   $datakey = 'CHANGE-ME';  // shared key for the membership system exchange
-   $key = 'CHANGE-ME';      // key for encrypting uploaded receipts
+   $key = 'CHANGE-ME';  // key for encrypting uploaded receipts
    ```
 
    `$key` must have at least 16 characters and must not be the `CHANGE-ME`
@@ -61,10 +68,22 @@ Release notes and upgrade steps: [CHANGELOG.md](CHANGELOG.md).
    stay readable; `migrate-receipt-key.php` (command line only) re-encrypts
    them, see the runbook in [UPGRADING.md](UPGRADING.md).
 
+   `$datakey` (the key of the old encrypted membership exports) is no
+   longer used; an existing one is ignored. The membership sync settings
+   (tokens, peers, URL and certificate of the membership system) go into
+   `sync-secrets.php` next to it, also never committed: see
+   [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
+
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
    must not be web-accessible.
-5. Serve the repository root over HTTPS. `index.php` redirects unless the
+5. Serve `public/` over HTTPS: it is the document root and holds only the
+   entry point (`index.php`) and the static files (`style.css`,
+   `js/`, `icons/`). The code, `vendor/`, `constants.php` and `files/` stay in
+   the repository root, outside the document root; the entry point loads them
+   from there. Web server examples (nginx, Apache, the short page
+   addresses): [UPGRADING.md](UPGRADING.md), "Document root `public/`".
+   `index.php` redirects unless the
    request carries `X-Forwarded-Proto: https`, so it expects a TLS-terminating
    proxy in front. Older versions rely on PHP output buffering for the login
    redirect and cookies.
@@ -95,16 +114,16 @@ sh scripts/format.sh [files...]         # format (PER-CS 3.0, whitespace only)
 sh scripts/format.sh --check            # formatting check (CI: --check --ci)
 sh tests/mutation/run.sh 8.5 <target>   # target-driven mutation runner
 sh tests/mutation/infection.sh 8.5      # Infection
-sh scripts/build-css.sh                 # rebuild style.css from css/app.css
-sh scripts/build-css.sh --check         # style.css is up to date (CI)
+sh scripts/build-css.sh                 # rebuild public/style.css from css/app.css
+sh scripts/build-css.sh --check         # public/style.css is up to date (CI)
 ```
 
 The stylesheet source is `css/app.css`: it styles the elements, classes and
 ids the pages use with Tailwind CSS (`@apply` and the theme), and
-`scripts/build-css.sh` builds it into the committed `style.css` with the
+`scripts/build-css.sh` builds it into the committed `public/style.css` with the
 pinned Tailwind CSS standalone CLI (no Node.js; the binary is downloaded once,
 checked against its SHA-256 and cached in `build/`). Edit `css/app.css`, never
-`style.css`, and commit both; CI fails when they differ.
+`public/style.css`, and commit both; CI fails when they differ.
 
 PHP files follow PER Coding Style 3.0, whitespace rules only
 (`.php-cs-fixer.dist.php`, `sh scripts/format.sh`), checked in CI. Agents in
@@ -138,7 +157,8 @@ Releases are created only by the Release workflow
    [CHANGELOG.md](CHANGELOG.md) (`## [1.0.0] - YYYY-MM-DD (...)`), set
    `PGACC_VERSION` in `impressum.php` (shown on the Impressum) to the new
    version (re-record the reference, `sh tests/reference/run.sh record`: the
-   Impressum recording shows it), and merge to `master`. The build fails
+   Impressum and the stylesheet and script URLs of every page show it), and
+   merge to `master`. The build fails
    unless `PGACC_VERSION` equals the tagged version.
 2. On the merged commit: `git tag -a v1.0.0 -m 'pgacc 1.0.0'` and
    `git tag -a php5-last -m 'Last release for PHP 5.3'`, then

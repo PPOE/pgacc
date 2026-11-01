@@ -86,7 +86,7 @@ function page_mb($rights)
         if (($line['amount'] < 2000 && $line['paid'] == 1) || ($line['amount'] >= 2000 && $line['paid'] == 0)) {
             $count++;
             echo "<tr><td>$count</td>
-  <td><a href=\"https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id={$line['id']}\">{$line['id']}</a> (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
+  <td>" . member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
   <td>" . html_escape($line['name']) . "</td>
   <td>" . ($line['amount'] / 100.0) . "</td>
   <td>" . intval($line['paid']) . "</td></tr>";
@@ -105,7 +105,7 @@ function page_mb($rights)
         if (($line['amount'] >= 2000 && $line['paid'] == 1) || ($line['amount'] < 2000 && $line['paid'] == 0)) {
             $count++;
             echo "<tr><td>$count</td>
-  <td><a href=\"https://mitglieder.piratenpartei.at/adm_program/modules/profile/profile.php?user_id={$line['id']}\">{$line['id']}</a> (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
+  <td>" . member_link($line['id'], $line['uuid']) . " (<a href=\"https://finanzen.piratenpartei.at/index.php?action=all&filter_member_id={$line['id']}\">Buchungszeilen</a>)</td>
   <td>" . html_escape($line['name']) . "</td>
   <td>" . ($line['amount'] / 100.0) . "</td>
   <td>" . intval($line['paid']) . "</td></tr>";

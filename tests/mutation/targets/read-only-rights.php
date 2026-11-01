@@ -58,7 +58,7 @@ $mutations[] = [
 ];
 $mutations[] = [
     'id' => 'import2-read-only-allowed',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'region' => ['start' => 'elseif ($page == "import2")', 'end' => 'elseif ($page == "statistics")'],
     'search' => 'if (write_rights($rights) === false)',
     'replace' => 'if (false)',

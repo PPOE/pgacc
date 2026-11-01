@@ -2,7 +2,7 @@
 # request: GET /index.php?year=2023 as anon
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (11924 bytes) ---
+--- body (11952 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -11,7 +11,7 @@ header: Content-type: text/html; charset=UTF-8
   <meta name="description" content="Der vorläufige Rechenschaftsbericht der Piratenpartei Österreichs" />
   <meta name="keywords" content="einnahmen, ausgaben, rechenschaftsbericht, spenden, spendenliste, sachspenden, wahlkampf, wahlkampfabrechnung, piratenpartei, österreichs, österreich" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+<link rel="stylesheet" type="text/css" media="screen" href="style.css?v=2.3.0" />
 </head>
 <body>
 <div id="content">
@@ -20,7 +20,7 @@ header: Content-type: text/html; charset=UTF-8
 <div class="page index">
 <div class="main" id="default">
 <div class="slot_default" id="slot_default"><div class="ui_tabs"><div class="ui_tabs_links">
-<a href="/" class="selected">Rechenschaftsbericht</a><a href="donations">Spenden</a>
+<a href="/?year=2023" class="selected">Rechenschaftsbericht</a><a href="donations?year=2023">Spenden</a>
 <a href="kdonations">Sachspenden</a>
 <a href="spendings">Ausgaben</a>
 <a href="wk">Wahlkampf</a>

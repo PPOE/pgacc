@@ -1,0 +1,500 @@
+---
+# Sets up a Debian 13 (trixie) host for pgacc. See deploy/README.md.
+#
+#   ansible-playbook -i inventory.yml deploy/ansible/playbook.yml
+#   ansible-playbook -i inventory.yml deploy/ansible/playbook.yml -e pgacc_fresh_install=true
+#
+# A normal run never touches the database contents, constants.php or files/.
+# Only -e pgacc_fresh_install=true creates the database with the schema, and
+# it refuses if the database exists.
+- name: Provision a pgacc host
+  hosts: all
+  become: true
+  # Handlers (reloads, the constants.php notice) run even if a later task fails.
+  force_handlers: true
+  vars:
+    pgacc_fixtures: "{{ playbook_dir }}/../../tests/fixtures"
+    # An IPv4 address in dotted-decimal form.
+    pgacc_ipv4: '^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'
+
+  handlers:
+    - name: Reload php-fpm
+      ansible.builtin.systemd_service:
+        name: php8.5-fpm.service
+        state: reloaded
+
+    - name: Check nginx
+      ansible.builtin.command: nginx -t -q
+      changed_when: false
+      listen: Reload nginx
+
+    - name: Reload nginx service
+      ansible.builtin.systemd_service:
+        name: nginx.service
+        state: reloaded
+      listen: Reload nginx
+
+    - name: Announce the new constants.php
+      ansible.builtin.debug:
+        msg: >-
+          Generated /srv/pgacc/shared/constants.php with a new random $key.
+          Copy it off this host now. When moving an installation, replace
+          the file with the old one before the first deploy.
+
+  tasks:
+    - name: Check the settings
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == 'Debian' and ansible_distribution_release == 'trixie'
+          - pgacc_trusted_proxies | default([]) | length > 0
+          - pgacc_trusted_proxies | reject('match', '^[0-9A-Fa-f.:]+(/[0-9]{1,3})?$') | list | length == 0
+          - pgacc_backup_keep_days | default(7) | int > 0
+          - pgacc_extra_hosts | default([]) | rejectattr('ip', 'defined') | list | length == 0
+          - pgacc_extra_hosts | default([]) | rejectattr('names', 'defined') | list | length == 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address is match(pgacc_ipv4)
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address in ansible_all_ipv4_addresses
+          - pgacc_sync_peers | default([]) | reject('match', pgacc_ipv4) | list | length == 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_peers | default([]) | length > 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_payments_token | default('') is match('^[0-9a-f]{64}$')
+          - pgacc_sync_port | default(8443) | int > 0 and pgacc_sync_port | default(8443) | int < 65536
+        fail_msg: >-
+          Needs Debian 13 and pgacc_trusted_proxies: the addresses or CIDR
+          ranges of the TLS-terminating reverse proxy (X-Forwarded-Proto is
+          trusted only from them). pgacc_extra_hosts entries need ip and
+          names. pgacc_sync_listen_address: empty or an IPv4 address of this
+          host (ansible_all_ipv4_addresses), then
+          pgacc_sync_peers (one or more IPv4 addresses) and
+          pgacc_payments_token (64 hex characters); pgacc_sync_port 1-65535.
+
+    - name: Check the member list settings
+      ansible.builtin.assert:
+        that:
+          - pgacc_members_url | default('') == '' or pgacc_members_url is match('^https://[A-Za-z0-9.:/_-]+$')
+          - pgacc_members_url | default('') == '' or pgacc_members_token | default('') is match('^[0-9a-f]{64}$')
+          - pgacc_members_url | default('') == '' or 'BEGIN CERTIFICATE' in pgacc_members_cert | default('')
+        fail_msg: >-
+          pgacc_members_url: empty or an https:// URL, then pgacc_members_token
+          (64 hex characters) and pgacc_members_cert (PEM).
+
+    # --- Packages: PostgreSQL from apt.postgresql.org, PHP from packages.sury.org
+
+    - name: Install the base packages
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, locales, logrotate, postgresql-common, sudo]
+        install_recommends: false
+        update_cache: true
+        cache_valid_time: 3600
+
+    # The collation of the database (as on the existing installation).
+    - name: Enable the en_US.UTF-8 locale
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#? *en_US\.UTF-8 UTF-8$'
+        line: en_US.UTF-8 UTF-8
+
+    - name: List the locales
+      ansible.builtin.command: locale -a
+      register: pgacc_locales
+      changed_when: false
+
+    - name: Generate the locales
+      ansible.builtin.command: locale-gen
+      when: "'en_US.utf8' not in pgacc_locales.stdout_lines"
+      changed_when: true
+
+    - name: Add the PostgreSQL repository (postgresql-common's script)
+      ansible.builtin.command: /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+      args:
+        creates: /etc/apt/sources.list.d/pgdg.sources
+
+    - name: Install the packages.sury.org keyring
+      ansible.builtin.apt:
+        deb: https://packages.sury.org/debsuryorg-archive-keyring.deb
+
+    - name: Add the packages.sury.org PHP repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/php.sources
+        mode: "0644"
+        content: |
+          Types: deb
+          URIs: https://packages.sury.org/php/
+          Suites: {{ ansible_distribution_release }}
+          Components: main
+          Signed-By: /usr/share/keyrings/debsuryorg-archive-keyring.gpg
+      register: pgacc_sury_repo
+
+    - name: Install nginx, PHP 8.5 and PostgreSQL 18
+      ansible.builtin.apt:
+        name: [nginx, php8.5-fpm, php8.5-cli, php8.5-pgsql, php8.5-mbstring, postgresql-18]
+        install_recommends: false
+        update_cache: "{{ pgacc_sury_repo is changed }}"
+
+    # Read-only, so it runs in check mode too. There PHP may not be
+    # installed yet; then the check is skipped.
+    - name: List the PHP extensions
+      ansible.builtin.command: php8.5 -m
+      register: pgacc_php_modules
+      changed_when: false
+      check_mode: false
+      failed_when: pgacc_php_modules.rc != 0 and not ansible_check_mode
+
+    - name: Check the PHP extensions pgacc needs
+      ansible.builtin.assert:
+        that: item in pgacc_php_modules.stdout_lines
+        quiet: true
+      loop: [pgsql, mbstring, iconv, zlib, sodium, openssl]
+      when: pgacc_php_modules.rc == 0
+
+    # Lets the host reach names the internal DNS does not resolve (e.g. the
+    # membership system through the reverse proxy). Empty: nothing written.
+    - name: Add the extra /etc/hosts entries (pgacc_extra_hosts)
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} pgacc_extra_hosts (Ansible)"
+        block: |
+          {% for entry in pgacc_extra_hosts | default([]) %}
+          {{ entry.ip }} {{ entry.names | join(' ') }}
+          {% endfor %}
+        state: "{{ 'present' if pgacc_extra_hosts | default([]) | length > 0 else 'absent' }}"
+        # Falls back to writing in place where /etc/hosts is a bind mount
+        # (Docker), which cannot be replaced by a rename.
+        unsafe_writes: true
+
+    # --- Users and layout: pgacc runs PHP, pgacc-deploy owns the releases
+
+    - name: Create the users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: /srv/pgacc
+        create_home: false
+      loop: [pgacc, pgacc-deploy]
+
+    - name: Create the directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.owner }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /srv/pgacc, owner: pgacc-deploy, mode: "0755" }
+        - { path: /srv/pgacc/releases, owner: pgacc-deploy, mode: "0755" }
+        - { path: /srv/pgacc/shared, owner: root, mode: "0755" }
+        - { path: /srv/pgacc/shared/files, owner: pgacc, mode: "0700" }
+        - { path: /var/log/pgacc, owner: pgacc, mode: "0750" }
+        - { path: /var/backups/pgacc, owner: postgres, mode: "0700" }
+
+    - name: Create constants.php if there is none
+      ansible.builtin.copy:
+        dest: /srv/pgacc/shared/constants.php
+        force: false
+        owner: root
+        group: pgacc
+        mode: "0640"
+        content: |
+          <?php
+          // Generated by deploy/ansible. Keep a copy off this host: without
+          // $key the stored receipts cannot be decrypted.
+          $key = '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_lowercase', 'digits'], length=64) }}';
+      no_log: true
+      notify: Announce the new constants.php
+
+    - name: Keep constants.php readable but not writable for PHP
+      ansible.builtin.file:
+        path: /srv/pgacc/shared/constants.php
+        owner: root
+        group: pgacc
+        mode: "0640"
+
+    # --- Sync v2 (deploy/README.md, "Membership system"): sync-secrets.php
+    # holds the settings of both directions, written from the inventory on
+    # every run (templates/sync-secrets.php.j2: the payments_* keys while the
+    # internal sync listener is on, the members_* keys while the member list
+    # is configured). It is linked into each release like constants.php.
+    # /etc/pgacc holds the certificates.
+
+    - name: Create the configuration directory
+      ansible.builtin.file:
+        path: /etc/pgacc
+        state: directory
+        mode: "0755"
+
+    - name: Write sync-secrets.php from the inventory
+      ansible.builtin.template:
+        src: sync-secrets.php.j2
+        dest: /srv/pgacc/shared/sync-secrets.php
+        owner: root
+        group: pgacc
+        mode: "0640"
+      no_log: true
+
+    # --- PHP-FPM, nginx, deploy command
+
+    - name: Configure PHP
+      ansible.builtin.template:
+        src: php.ini.j2
+        dest: "/etc/php/8.5/{{ item }}/conf.d/90-pgacc.ini"
+        mode: "0644"
+      loop: [fpm, cli]
+      notify: Reload php-fpm
+
+    - name: Configure the PHP-FPM pool
+      ansible.builtin.template:
+        src: php-fpm-pool.conf.j2
+        dest: /etc/php/8.5/fpm/pool.d/pgacc.conf
+        mode: "0644"
+      notify: Reload php-fpm
+
+    - name: Disable the default PHP-FPM pool www
+      ansible.builtin.file:
+        path: /etc/php/8.5/fpm/pool.d/www.conf
+        state: absent
+      notify: Reload php-fpm
+
+    - name: Start PHP-FPM
+      ansible.builtin.systemd_service:
+        name: php8.5-fpm.service
+        enabled: true
+        state: started
+
+    # --- Internal sync listener (deploy/README.md, "Membership system"):
+    # only with pgacc_sync_listen_address; its token and peers are in
+    # sync-secrets.php (above). Before the nginx site that uses its certificate.
+
+    - name: Set up the internal sync listener
+      when: pgacc_sync_listen_address | default('') != ''
+      block:
+        # A certificate for another address (pgacc_sync_listen_address
+        # changed) is made again by the next task.
+        - name: Remove the TLS certificate of the internal listener if it is not for the address
+          ansible.builtin.shell: |
+            set -eu
+            [ -e /etc/pgacc/sync-tls.crt ] || exit 0
+            if openssl x509 -in /etc/pgacc/sync-tls.crt -noout -checkip "$address" | grep -q '^IP .* does match certificate$'; then
+              exit 0
+            fi
+            rm -f /etc/pgacc/sync-tls.crt /etc/pgacc/sync-tls.key
+            echo removed
+          environment:
+            address: "{{ pgacc_sync_listen_address }}"
+          register: pgacc_sync_cert_check
+          changed_when: pgacc_sync_cert_check.stdout == 'removed'
+
+        # Self-signed, for the address the membership system connects to,
+        # which needs /etc/pgacc/sync-tls.crt as its only trust anchor
+        # (cafile). openssl writes the key with mode 0600.
+        - name: Create the TLS certificate of the internal listener if there is none
+          ansible.builtin.command:
+            argv:
+              - openssl
+              - req
+              - -x509
+              - -newkey
+              - ec
+              - -pkeyopt
+              - ec_paramgen_curve:prime256v1
+              - -nodes
+              - -days
+              - "3650"
+              - -subj
+              - /CN={{ pgacc_sync_listen_address }}
+              - -addext
+              - subjectAltName=IP:{{ pgacc_sync_listen_address }}
+              - -keyout
+              - /etc/pgacc/sync-tls.key
+              - -out
+              - /etc/pgacc/sync-tls.crt
+            creates: /etc/pgacc/sync-tls.crt
+          notify: Reload nginx
+
+        # For the smoke test of pgacc-deploy: a request without the token
+        # must get 403.
+        - name: Write the URL of the internal listener for pgacc-deploy
+          ansible.builtin.copy:
+            dest: /etc/pgacc/sync-url
+            content: "https://{{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }}/mbapi.php\n"
+            mode: "0644"
+
+    - name: Remove the URL of the internal listener while it is off
+      when: pgacc_sync_listen_address | default('') == ''
+      ansible.builtin.file:
+        path: /etc/pgacc/sync-url
+        state: absent
+
+    - name: Configure the nginx site
+      ansible.builtin.template:
+        src: nginx-site.conf.j2
+        dest: /etc/nginx/sites-available/pgacc
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable the nginx site
+      ansible.builtin.file:
+        src: ../sites-available/pgacc
+        dest: /etc/nginx/sites-enabled/pgacc
+        state: link
+      notify: Reload nginx
+
+    - name: Disable the default nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Install pgacc-deploy
+      ansible.builtin.copy:
+        src: ../deploy.sh
+        dest: /usr/local/bin/pgacc-deploy
+        mode: "0755"
+
+    - name: Allow pgacc-deploy to reload PHP-FPM
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/pgacc-deploy
+        mode: "0440"
+        validate: visudo -cf %s
+        content: |
+          pgacc-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.5-fpm.service
+
+    - name: Rotate the PHP error log
+      ansible.builtin.copy:
+        src: logrotate
+        dest: /etc/logrotate.d/pgacc
+        mode: "0644"
+
+    # --- Member list (deploy/README.md, "Member list"): the certificate of
+    # the membership system's internal listener, the only trust anchor of
+    # getusers.php (members_cafile in sync-secrets.php).
+
+    - name: Install the certificate of the membership system (pgacc_members_cert)
+      ansible.builtin.copy:
+        dest: /etc/pgacc/admidio-addons-tls.crt
+        content: "{{ pgacc_members_cert }}"
+        mode: "0644"
+      when: pgacc_members_url | default('') != ''
+
+    - name: Remove the certificate of the membership system while the member list is off
+      ansible.builtin.file:
+        path: /etc/pgacc/admidio-addons-tls.crt
+        state: absent
+      when: pgacc_members_url | default('') == ''
+
+    # --- PostgreSQL
+
+    - name: Start PostgreSQL
+      ansible.builtin.systemd_service:
+        name: postgresql.service
+        enabled: true
+        state: started
+
+    # --- Database: only with -e pgacc_fresh_install=true
+
+    - name: Create the database (fresh install)
+      when: pgacc_fresh_install | default(false) | bool
+      block:
+        - name: Query the database role and database
+          ansible.builtin.command:
+            argv:
+              - runuser
+              - -u
+              - postgres
+              - --
+              - psql
+              - -XtAc
+              - >-
+                SELECT (SELECT count(*) FROM pg_roles WHERE rolname = 'pgacc') || ':'
+                || (SELECT count(*) FROM pg_database WHERE datname = 'accounting')
+          register: pgacc_db_state
+          changed_when: false
+
+        - name: Refuse an existing database
+          ansible.builtin.fail:
+            msg: >-
+              The database accounting exists already. A fresh install never
+              touches an existing database; drop it by hand first if it really
+              is to be replaced.
+          when: pgacc_db_state.stdout.split(':')[1] != '0'
+
+        - name: Create the database role
+          ansible.builtin.command: runuser -u postgres -- psql -Xq -c 'CREATE ROLE pgacc LOGIN'
+          when: pgacc_db_state.stdout.split(':')[0] == '0'
+          changed_when: true
+
+        - name: Create the database with the schema
+          block:
+            - name: Create the database
+              ansible.builtin.command:
+                argv: [runuser, -u, postgres, --, createdb, --owner=pgacc, --encoding=UTF8, --locale=en_US.UTF-8, --template=template0, accounting]
+              changed_when: true
+
+            - name: Load pgcrypto and restrict access
+              ansible.builtin.command:
+                argv: [runuser, -u, postgres, --, psql, -Xq, -v, ON_ERROR_STOP=1, -d, accounting, -f, -]
+                stdin: |
+                  {{ lookup('ansible.builtin.file', pgacc_fixtures + '/pgcrypto.sql') }}
+                  REVOKE CONNECT, TEMPORARY ON DATABASE accounting FROM PUBLIC;
+                  GRANT CONNECT, TEMPORARY ON DATABASE accounting TO pgacc;
+              changed_when: true
+
+            - name: Load the schema as pgacc
+              ansible.builtin.command:
+                argv: [runuser, -u, pgacc, --, psql, -Xq, -v, ON_ERROR_STOP=1, --single-transaction, -d, accounting, -f, -]
+                stdin: "{{ lookup('ansible.builtin.file', pgacc_fixtures + '/schema.sql') }}"
+              changed_when: true
+          rescue:
+            # Only the database this run created: an existing one stopped the run above.
+            - name: Drop the new database again
+              ansible.builtin.command: runuser -u postgres -- dropdb --if-exists accounting
+              changed_when: true
+
+            - name: Stop
+              ansible.builtin.fail:
+                msg: Creating the database failed; dropped it so that a rerun starts clean.
+
+    # --- Nightly local database dump (the host backs up the whole system)
+
+    - name: Install the dump script
+      ansible.builtin.copy:
+        src: pgacc-backup
+        dest: /usr/local/sbin/pgacc-backup
+        mode: "0755"
+
+    - name: Install the dump service
+      ansible.builtin.template:
+        src: pgacc-backup.service.j2
+        dest: /etc/systemd/system/pgacc-backup.service
+        mode: "0644"
+      register: pgacc_backup_service
+
+    - name: Install the dump timer
+      ansible.builtin.copy:
+        src: pgacc-backup.timer
+        dest: /etc/systemd/system/pgacc-backup.timer
+        mode: "0644"
+      register: pgacc_backup_timer
+
+    - name: Enable the dump timer
+      ansible.builtin.systemd_service:
+        name: pgacc-backup.timer
+        enabled: true
+        state: started
+        daemon_reload: "{{ pgacc_backup_service is changed or pgacc_backup_timer is changed }}"
+
+    # --- The hosts are administered through the container runtime, not SSH.
+
+    - name: Look for the SSH server
+      ansible.builtin.stat:
+        path: /usr/lib/systemd/system/{{ item }}
+      loop: [ssh.socket, ssh.service]
+      register: pgacc_ssh_units
+
+    - name: Stop and disable the SSH server (pgacc_disable_sshd)
+      ansible.builtin.systemd_service:
+        name: "{{ item.item }}"
+        state: stopped
+        enabled: false
+      loop: "{{ pgacc_ssh_units.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: pgacc_disable_sshd | default(true) | bool and item.stat.exists

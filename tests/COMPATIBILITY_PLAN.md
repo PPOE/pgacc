@@ -559,6 +559,31 @@ with synthetic users and covered by a mutation target.
   killed. No voucher code changed here, and no new equivalence was assumed
   for that case. Resolve it with the security integration rather than
   expanding this login task. Raw mutation results remain visible.
+- [x] Password hashing and length (owner decision): `accounts.php` stores new
+  and changed passwords with `crypt(pw, gen_salt('bf', 10))` (pgcrypto's
+  default bcrypt cost is 6) instead of `gen_salt('md5')`. Login
+  (`index.php`) still compares `crypt(pw, hash)`, which reads the algorithm
+  from the stored hash, so MD5-crypt hashes, like the synthetic fixtures in
+  `tests/fixtures/data.sql` and `tests/http-session-lifecycle.php`, keep
+  working; a valid login replaces an MD5-crypt hash (`$1$`) with bcrypt
+  (only that user, only the hash). An unknown user name runs one `crypt()`
+  against a fixed bcrypt (cost 10) dummy hash, so it costs the same as a
+  known bcrypt account; the failure is the same. Setting a password (new
+  user, root change, own change) needs at least 12 characters
+  (`mb_strlen()`, UTF-8), otherwise "FEHLER: Das Passwort muss mindestens 12
+  Zeichen lang sein." with the form again, and nothing is saved; the form
+  shows "(mindestens 12 Zeichen)" next to "Passwort". "******" still means
+  unchanged; login does not check the length. bcrypt reads only the first
+  72 bytes. Tests: `tests/http-login.php` (MD5 fixture upgraded by a valid
+  login, kept by a wrong one, other users untouched, unknown user rejected
+  like before), `tests/http-session-lifecycle.php` (`password`: bcrypt
+  after own and root change; `length`: short, empty and 11-character UTF-8
+  passwords refused on all three paths, 12 `ä` and a new user stored as
+  `$2a$10$`). Mutants in `rights-checks` (length in bytes, MD5 on each of
+  the three paths) and `login-logout` (no upgrade, upgrade on a wrong
+  password, upgrade to MD5; skipping the dummy hash is equivalent for the
+  HTTP tests since only timing changes, its line is covered by the
+  unknown-user login and recorded in the reference SQL).
 - [x] Login cookie attributes. `pp_pgacc_login` and `pp_pgacc_id` were set
   with `setcookie()` and only an expiry: readable by scripts, sent over plain
   HTTP and on cross-site requests. `index.php` now sends both Set-Cookie
@@ -938,7 +963,7 @@ Still open from the 8.4 review:
 | `import.php:27` | `count($_FILES['uploadcsv']['name'])` assumes a multiple-upload array. Reproduced the missing-upload `TypeError` with the membership lookup stubbed locally. | [x] Fixed (plain page views): the upload loop runs only when the upload field was sent, so a GET shows the form as on PHP 5; `tests/http-page-views.php` covers it and the `RD-PHP8-COUNT-NULL-IMPORT*`/`-MANIFEST` entries are removed. |
 | `import2.php:24` | A normal authenticated GET with no uploaded PDF reproduced `count(null)` on PHP 8.0. | [x] Fixed (plain page views): the upload loop runs only when the upload field was sent, so a GET shows the form as on PHP 5; `tests/http-page-views.php` covers it and the `RD-PHP8-COUNT-NULL-IMPORT*`/`-MANIFEST` entries are removed. |
 | `donations.php:116-122` | With a synthetic qualifying donation and captcha submission, `$donations` is undefined and `array_multisort()` receives null. The collection assignment is commented out for legal reasons. Reproduced on PHP 8.0. | [x] Fixed: `page_donations()` initializes `$donations`, `$sort_sum` and `$sort_name` to empty arrays. Donor publication stays disabled (the commented-out assignment is untouched), so the list is the header row only, as before; only the diagnostics disappear (on 5.6/7.4 they were displayed between the header row and `</table>`). New `tests/http-donations.php` (captcha answered from the form, wrong/missing answer, 2024 above and 2025 below the threshold, years before 2012; asserts that no donor name, encoded name, row or sum appears) failed before the fix on 5.6 and 7.4 and passes on 5.6, 7.4 and 8.0. Mutation target `donations`. `kdonations.php` does not share the pattern: its loop body is empty (publication disabled the same way) and it collects nothing. |
-| `index.php:293`, `:289` (`?action=donations`/`kdonations` without `year`) | From the source, not run: `intval($_GET["year"])` without `isset()`, so the menu links (`href="donations"`, `href="kdonations"`) raise an undefined-index notice (warning on PHP 8). `tests/http-donations.php` therefore always passes `year`. | Default to 0 with `isset()` (same page: `page_donations()` maps years before 2012 to 2013) and test the menu links; `index.php` is being changed in parallel. |
+| `index.php:293`, `:289` (`?action=donations`/`kdonations` without `year`) | From the source, not run: `intval($_GET["year"])` without `isset()`, so the menu links (`href="donations"`, `href="kdonations"`) raise an undefined-index notice (warning on PHP 8). `tests/http-donations.php` therefore always passes `year`. | [x] Superseded (owner decision): without `year` the donation list shows the current year with the captcha; years before 2012 and after 9999 show the current year without it (`donations_year()`). Once a year was chosen, the menu links to the report and the donation list carry it (`acc_header()`, `$nav_year` in `index.php`). Tested in `tests/http-donations.php` and `tests/http-smoke.php`; mutation target `year-links`. |
 | `closed.php:222`, `:246` (`?action=closed`) | Found while testing the listing column preferences, not covered by the HTTP tests: `page_closed()` selects neither `vaccount` nor `ack1_old`/`ack2_old`, so `page_listing_line()` reads three undefined indexes per row (hidden notices on 5.6/7.4, warnings on PHP 8) and the closed listing always shows those columns empty. Observed on PHP 7.4 with `synthetic-admin`. | Behavior decision for the owner: selecting the columns changes the closed listing (it would then show virtual accounts and old confirmations, like the ledger); `isset()` defaults keep today's output. Then add `?action=closed` to the HTTP tests. |
 | `search.php:4` (`?action=search` without parameters) | Hidden notice "Undefined index: member", observed on PHP 7.4 while comparing listings before and after the fix above; not covered by the HTTP tests. | Review with the search form tests. |
 
@@ -1344,7 +1369,11 @@ differences above are only visible for out-of-range input.
     (libsodium, `ext-sodium`, interactive limits, fixed salt) so that a
     fingerprint seen on the root page is no fast test for guessed keys; the
     root page also warns about a key of fewer than 32 characters. `<n>.v2.aes` downloads now also send PNG and GIF inline as
-    `image/png`/`image/gif`. Genuine legacy files of
+    `image/png`/`image/gif`, and a PDF whose header follows white-space
+    (within 1024 bytes) as `application/pdf` (the legacy download: JPEG);
+    such PDFs count as complete. `--include-unusual` also accepts text (a
+    whole first block of printable ASCII and/or white-space, own voucher IDs only, never by
+    the search), downloaded as `<n>.bin` with `nosniff`. Genuine legacy files of
     the original code on PHP 5.3.3: `tests/fixtures/legacy-php53/`.
     `--delete-legacy`
     first runs `sync` (`--sync=COMMAND`; nothing is deleted if it fails),
@@ -1363,7 +1392,7 @@ differences above are only visible for out-of-range input.
     types (listed, exit status 3), and exits 2 when it cannot read
     the directory. Its first statement stops any server API but the
     command line (404 for web requests, a message for php-cgi from a shell,
-    exit status 1), before any include; `.htaccess` also denies it (defence
+    exit status 1), before any include; it is outside the document root `public/` (defence
     in depth; production runs Lighttpd). Runbook below.
   - Tests: `tests/unit/ReceiptStorageTest.php` (key validation, fingerprint,
     v2 vectors, random IV, rejected keys/numbers/modifications, atomic
@@ -1434,8 +1463,8 @@ differences above are only visible for out-of-range input.
      migrate" or "skipped, legacy kept" (with the reason) and writes
      nothing. Do not post migration transcripts publicly.
   5. Review the skipped files (listed at the end). Optional, dry run first:
-     `--include-unusual` (other recognized types, empty files, PDFs or JPEGs
-     that look incomplete; same bytes, but PNG/GIF then download as
+     `--include-unusual` (other recognized types, empty files, text, PDFs or
+     JPEGs that look incomplete; same bytes, but PNG/GIF then download as
      image/png/image/gif and other types as `<n>.bin` instead of
      image/jpeg) and `--search-voucher-ids` (merged vouchers: other voucher
      IDs, only a complete PDF or JPEG is accepted). Repeat the options for
@@ -1742,7 +1771,7 @@ Recommendation (owner decision):
   - [ ] Later steps change the syntax tree (`elseif`, visibility, closing tags,
     imports, ...) and run with the strict gates.
 
-- [ ] `.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
+- [ ] `public/.htaccess` still sets `php_value short_open_tag 1`, although the 1.0
   changelog says short tags are no longer needed (the
   `Generic.PHP.DisallowShortOpenTag` sniff keeps them out). Decide whether to
   drop the line (a runtime configuration change, separate from tooling); until

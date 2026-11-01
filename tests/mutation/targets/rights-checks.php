@@ -125,7 +125,7 @@ return [
         [
             'id' => 'revision-members-not-loaded',
             'file' => 'edit.php',
-            'search' => '    $members_error = posted_member_part($parts, $rights) ? getusers() : null;',
+            'search' => '    $members_error = posted_member_part($parts, $rights) ? members_loaded(20) : null;',
             'replace' => '    $members_error = null;',
             'rationale' => 'A member\'s revision loads the member list before the transaction.',
         ],
@@ -146,8 +146,8 @@ return [
         [
             'id' => 'new-members-unavailable-ignored',
             'file' => 'new.php',
-            'search' => '    if (posted_member_part($parts, $rights) && getusers() !== null) {',
-            'replace' => '    if (posted_member_part($parts, $rights) && getusers() === false) {',
+            'search' => '    if (posted_member_part($parts, $rights) && members_loaded(20) !== null) {',
+            'replace' => '    if (posted_member_part($parts, $rights) && members_loaded(20) === false) {',
             'rationale' => 'Without the member list a new member\'s voucher is refused with the form shown again, nothing written.',
         ],
         [
@@ -356,23 +356,51 @@ return [
         [
             'id' => 'new-account-creator-rights',
             'file' => 'accounts.php',
-            'search' => "crypt('\$pass', gen_salt('md5')), '\$nrights');",
-            'replace' => "crypt('\$pass', gen_salt('md5')), '\$rights');",
+            'search' => "crypt('\$pass', gen_salt('bf', 10)), '\$nrights');",
+            'replace' => "crypt('\$pass', gen_salt('bf', 10)), '\$rights');",
             'rationale' => 'A new user gets the entered rights, not those of the creating root user.',
         ],
         [
             'id' => 'accounts-own-password-keeps-sessions',
             'file' => 'accounts.php',
-            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL WHERE id = \$id\";",
-            'replace' => "crypt('\$pass', gen_salt('md5')) WHERE id = \$id\";",
+            'search' => "crypt('\$pass', gen_salt('bf', 10)), cookie = NULL WHERE id = \$id\";",
+            'replace' => "crypt('\$pass', gen_salt('bf', 10)) WHERE id = \$id\";",
             'rationale' => 'An own password change ends the sessions of that user (stolen cookies stop working).',
         ],
         [
             'id' => 'accounts-root-password-keeps-sessions',
             'file' => 'accounts.php',
-            'search' => "crypt('\$pass', gen_salt('md5')), cookie = NULL\" : \"\")",
-            'replace' => "crypt('\$pass', gen_salt('md5'))\" : \"\")",
+            'search' => "crypt('\$pass', gen_salt('bf', 10)), cookie = NULL\" : \"\")",
+            'replace' => "crypt('\$pass', gen_salt('bf', 10))\" : \"\")",
             'rationale' => 'A password change by root ends the sessions of that user.',
+        ],
+        [
+            'id' => 'accounts-password-length-unchecked',
+            'file' => 'accounts.php',
+            'search' => "mb_strlen(\$rawPass, 'UTF-8') < 12",
+            'replace' => "strlen(\$rawPass) < 12",
+            'rationale' => 'New passwords need 12 characters, counted in UTF-8 characters, not bytes.',
+        ],
+        [
+            'id' => 'accounts-own-password-md5',
+            'file' => 'accounts.php',
+            'search' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('bf', 10)),",
+            'replace' => "\"UPDATE users SET hash = crypt('\$pass', gen_salt('md5')),",
+            'rationale' => 'Changed passwords are stored as bcrypt, not MD5-crypt.',
+        ],
+        [
+            'id' => 'accounts-root-password-md5',
+            'file' => 'accounts.php',
+            'search' => "\", hash = crypt('\$pass', gen_salt('bf', 10)), cookie = NULL\"",
+            'replace' => "\", hash = crypt('\$pass', gen_salt('md5')), cookie = NULL\"",
+            'rationale' => 'A password set by root is stored as bcrypt, not MD5-crypt.',
+        ],
+        [
+            'id' => 'accounts-new-user-md5',
+            'file' => 'accounts.php',
+            'search' => "VALUES ('\$name', crypt('\$pass', gen_salt('bf', 10)),",
+            'replace' => "VALUES ('\$name', crypt('\$pass', gen_salt('md5')),",
+            'rationale' => 'A new user is stored with a bcrypt hash, not MD5-crypt.',
         ],
         [
             'id' => 'accounts-own-id-rechecked',
@@ -507,7 +535,7 @@ return [
         ],
         [
             'id' => 'finalization-write-restored',
-            'file' => 'index.php',
+            'file' => 'public/index.php',
             'search' => '    } elseif (isset($_POST["belegfehler"])) {',
             'replace' => '    } elseif (isset($_POST["beleg"]) && pg_query($dbconn, "UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} elseif (isset($_POST["belegfehler"])) {',
             'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',
@@ -543,8 +571,8 @@ return [
         [
             'id' => 'accounts-rights-column-root-substring',
             'file' => 'accounts.php',
-            'search' => "<td><b>Passwort</b></td>' . (has_right(\$rights, 'root') ?",
-            'replace' => "<td><b>Passwort</b></td>' . (strpos(\$rights,'root') !== false ?",
+            'search' => "<td><b>Passwort</b> (mindestens 12 Zeichen)</td>' . (has_right(\$rights, 'root') ?",
+            'replace' => "<td><b>Passwort</b> (mindestens 12 Zeichen)</td>' . (strpos(\$rights,'root') !== false ?",
             'rationale' => 'The rights column is shown to root only.',
         ],
         [

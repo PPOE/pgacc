@@ -40,7 +40,7 @@ SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 3 AND login > now() - '24 hours'::interval
 -- next
-UPDATE users SET hash = crypt('unit-password', gen_salt('md5')), cookie = NULL WHERE id = 3
+UPDATE users SET hash = crypt('unit-password', gen_salt('bf', 10)), cookie = NULL WHERE id = 3
 -- next
 SELECT * FROM users  WHERE id = 3  ORDER BY rights DESC,id ASC
 -- next
