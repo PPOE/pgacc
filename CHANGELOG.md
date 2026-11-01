@@ -30,6 +30,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Profile links of the member-fee page point to the profile page of
   Admidio 5 (`modules/profile/profile.php`) instead of the removed
   `adm_program/` path.
+- Approval ("Bestätigen") gives the second approval only when a current row
+  of the voucher has a receipt. Before, a user who also saw a row without a
+  first approval passed the receipt check and gave the second approval of
+  the other rows without any receipt. A receipt on any current row of the
+  voucher counts, also on a row of another organization (the user learns
+  only whether one exists); the second approval still comes from someone
+  other than the first approver.
 
 ## [2.3.0] - 2026-11-01
 

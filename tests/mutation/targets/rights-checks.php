@@ -465,17 +465,48 @@ return [
         [
             'id' => 'ack-receipt-check-unscoped',
             'region' => $ack,
-            'search' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id $rightssql;',
-            'replace' => '(ack1 IS NULL OR file != 0) AND voucher_id = $id;',
-            'rationale' => 'The receipt check counts only the user\'s rows: an approved row without a '
-                . 'receipt is refused although a row of another organization is open.',
+            'search' => '(ack1 IS NULL OR $receipt) AND voucher_id = $id $rightssql;',
+            'replace' => '(ack1 IS NULL OR $receipt) AND voucher_id = $id;',
+            'rationale' => 'The open-row check counts only the user\'s rows: an approved row of a voucher '
+                . 'without a receipt is refused although a row of another organization is open.',
         ],
         [
             'id' => 'ack-receipt-check-counts-deleted',
             'region' => $ack,
-            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR file != 0)',
-            'replace' => 'WHERE (ack1 IS NULL OR file != 0)',
+            'search' => 'WHERE NOT deleted AND (ack1 IS NULL OR $receipt)',
+            'replace' => 'WHERE (ack1 IS NULL OR $receipt)',
             'rationale' => 'Old revisions do not count as open rows of the receipt check.',
+        ],
+        [
+            'id' => 'ack-receipt-check-without-receipt',
+            'region' => $ack,
+            'search' => '(ack1 IS NULL OR $receipt) AND',
+            'replace' => 'ack1 IS NULL AND',
+            'rationale' => 'A receipt on another organization\'s row of the voucher allows the second '
+                . 'approval of the user\'s approved row.',
+        ],
+        [
+            'id' => 'ack-receipt-own-rows-only',
+            'region' => $ack,
+            'search' => 'file != 0 AND voucher_id = $id)";',
+            'replace' => 'file != 0 AND voucher_id = $id $rightssql)";',
+            'rationale' => 'The receipt counts on any current row of the voucher, also one of another '
+                . 'organization.',
+        ],
+        [
+            'id' => 'ack-receipt-counts-deleted',
+            'region' => $ack,
+            'search' => 'WHERE NOT deleted AND file != 0 AND',
+            'replace' => 'WHERE file != 0 AND',
+            'rationale' => 'An old revision\'s receipt does not allow the second approval.',
+        ],
+        [
+            'id' => 'ack2-without-receipt',
+            'region' => $ack,
+            'search' => "ack1 != '\$name' AND \$receipt AND",
+            'replace' => "ack1 != '\$name' AND",
+            'rationale' => 'Second approval without a receipt: a user who also sees an open row '
+                . 'passes the check and gives the second approval of an approved row.',
         ],
         [
             'id' => 'ack1-update-stamps-deleted',
@@ -502,8 +533,8 @@ return [
         [
             'id' => 'ack2-update-unscoped',
             'region' => $ack,
-            'search' => "ack1 != '\$name' AND voucher_id = \$id \$rightssql;",
-            'replace' => "ack1 != '\$name' AND voucher_id = \$id;",
+            'search' => "\$receipt AND voucher_id = \$id \$rightssql;",
+            'replace' => "\$receipt AND voucher_id = \$id;",
             'rationale' => 'Wrong organization: the second approval sets ack2 on rows of other '
                 . 'organizations of the same voucher.',
         ],

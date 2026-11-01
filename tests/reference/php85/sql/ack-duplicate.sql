@@ -44,6 +44,6 @@ SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = 5000 ;
 -- next
 SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = 5000;
 -- next
-SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR file != 0) AND voucher_id = 5000 ;
+SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR EXISTS (SELECT 1 FROM vouchers WHERE NOT deleted AND file != 0 AND voucher_id = 5000)) AND voucher_id = 5000 ;
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
