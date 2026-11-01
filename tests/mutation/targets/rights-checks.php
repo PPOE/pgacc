@@ -509,6 +509,57 @@ return [
                 . 'passes the check and gives the second approval of an approved row.',
         ],
         [
+            'id' => 'ack-unchanged-reported-as-approved',
+            'region' => $ack,
+            'search' => 'if ($acked == 0) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'An approval that changes no row is not reported as "Buchung bestätigt".',
+        ],
+        [
+            'id' => 'ack-second-approval-not-counted',
+            'region' => $ack,
+            'search' => '$acked += $acked2;',
+            'replace' => '',
+            'rationale' => 'A second approval alone is a change: it is reported as approved, not refused.',
+        ],
+        [
+            'id' => 'ack-partial-not-reported',
+            'region' => $ack,
+            'search' => 'if ($acked2 < $waiting) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A partial approval (a row keeps the user\'s own first approval) says so.',
+        ],
+        [
+            'id' => 'ack-partial-always',
+            'region' => $ack,
+            'search' => 'if ($acked2 < $waiting) {',
+            'replace' => 'if (true) {',
+            'rationale' => 'A complete approval is reported without the partial note.',
+        ],
+        [
+            'id' => 'ack-refused-link-unchecked',
+            'region' => $ack,
+            'search' => "if (is_string(\$id) && preg_match('/^\\d+\$/D', \$id) == 1) {",
+            'replace' => 'if (true) {',
+            'rationale' => 'An invalid voucher number is not put into the back link.',
+        ],
+        [
+            'id' => 'ack-unchanged-reason-swapped',
+            'region' => $ack,
+            'search' => '$own ? ',
+            'replace' => '!$own ? ',
+            'rationale' => 'The refusal names its reason: the user\'s own first approval, or a voucher '
+                . 'that is approved twice.',
+        ],
+        [
+            'id' => 'ack-unchanged-reason-unscoped',
+            'region' => $ack,
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND ack2 IS NULL AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND ack2 IS NULL AND voucher_id = $id;',
+            'rationale' => 'The reason looks only at the user\'s rows: a row of another organization '
+                . 'without a second approval does not make it the user\'s own first approval.',
+        ],
+        [
             'id' => 'ack1-update-stamps-deleted',
             'region' => $ack,
             'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id',

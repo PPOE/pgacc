@@ -94,7 +94,7 @@ function page_edit_ack($rights)
     global $dbconn;
     $rights = write_rights($rights);
     if ($rights === false) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Keine Zugriffsrechte.</div><br /><br /><br />';
+        edit_ack_refused($_GET["id"] ?? $_POST["id"] ?? null, 'Keine Zugriffsrechte.');
         return;
     }
     $parts = posted_parts();
@@ -106,7 +106,7 @@ function page_edit_ack($rights)
         $id = $_POST["id"];
     }
     if (!is_string($id) || preg_match('/^\d+$/D', $id) != 1) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Buchung nicht gefunden.</div><br /><br /><br />';
+        edit_ack_refused($id, 'Buchung nicht gefunden.');
         return;
     }
     // Writers of a voucher's rows take its lock (voucher_lock()).
@@ -118,7 +118,7 @@ function page_edit_ack($rights)
     $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND voucher_id = $id $rightssql;";
     $result = db_query($dbconn, $query);
     if (!pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
+        edit_ack_refused($id, 'Hier fehlt noch der Beleg!');
         pg_free_result($result);
         return;
     }
@@ -129,7 +129,7 @@ function page_edit_ack($rights)
     $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND receipt_received AND voucher_id = $id;";
     $result = db_query($dbconn, $query);
     if ($line = pg_fetch_array($result, null, PGSQL_ASSOC)) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.</div><br /><br /><br />';
+        edit_ack_refused($id, 'Die Buchung wurde bereits finalisiert und kann jetzt nicht mehr verändert werden.');
         pg_free_result($result);
         return;
     }
@@ -147,21 +147,51 @@ function page_edit_ack($rights)
     pg_free_result($result);
 
     if (!$hasfile) {
-        echo '<div class="slot_error" id="slot_error">FEHLER: Hier fehlt noch der Beleg!</div><br /><br /><br />';
+        edit_ack_refused($id, 'Hier fehlt noch der Beleg!');
         return;
     }
     $name = pg_escape_string($dbconn, checklogin('name'));
+    // The user's rows that wait for a second approval: those that do not get
+    // it below (the user's own first approval, no receipt) make a partial
+    // result.
+    $query = "SELECT COUNT(*) AS n FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NULL AND voucher_id = $id $rightssql;";
+    $result = db_query($dbconn, $query);
+    $line = pg_fetch_array($result, null, PGSQL_ASSOC);
+    $waiting = intval($line['n']);
+    pg_free_result($result);
     $query = "UPDATE vouchers SET ack1 = '$name',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack1 IS NULL AND voucher_id = $id $rightssql;";
-    db_exec($dbconn, $query);
-
-    echo "<h1>Buchung bestätigt - Buchung Nr. $id</h1>";
-    block_start();
-    echo "<a href=\"index.php?action=edit&id=$id&hint=4\">Zurück zur Buchung</a>";
-    block_end();
+    $acked = db_exec($dbconn, $query);
 
     $query = "UPDATE vouchers SET ack2 = '$name', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != '$name' AND $receipt AND voucher_id = $id $rightssql;";
-    db_exec($dbconn, $query);
+    $acked2 = db_exec($dbconn, $query);
+    $acked += $acked2;
+    if ($acked == 0) {
+        // Nothing to approve: the user's rows are approved twice, or once by
+        // the user, whose second approval must come from someone else.
+        $query = "SELECT 1 FROM vouchers WHERE NOT deleted AND ack2 IS NULL AND voucher_id = $id $rightssql;";
+        $result = db_query($dbconn, $query);
+        $own = pg_fetch_array($result, null, PGSQL_ASSOC) !== false;
+        pg_free_result($result);
+        edit_ack_refused($id, $own ? 'Du hast bereits die 1. Bestätigung gegeben – die 2. muss jemand anderer machen.' : 'Alle Buchungszeilen, die du bestätigen kannst, sind bereits vollständig bestätigt.');
+        return;
+    }
+    if ($acked2 < $waiting) {
+        relocate("index.php?action=edit&id=$id&hint=7");
+    }
     relocate("index.php?action=edit&id=$id&hint=4");
+}
+// The answer of a refused approval of voucher $id: $message and a link back
+// to the voucher, or to the open vouchers when $id is no voucher number.
+function edit_ack_refused($id, $message)
+{
+    echo '<div class="slot_error" id="slot_error">FEHLER: ' . $message . '</div><br /><br /><br />';
+    block_start();
+    if (is_string($id) && preg_match('/^\d+$/D', $id) == 1) {
+        echo "<a href=\"index.php?action=edit&id=$id\">Zurück zur Buchung</a>";
+    } else {
+        echo '<a href="index.php?action=open">Zurück zur Übersicht</a>';
+    }
+    block_end();
 }
 // The current rows of voucher $id in the order of their IDs (id, file,
 // receipt_received, mine: whether the user sees the row); with $lock locked
@@ -472,6 +502,9 @@ function page_edit($rights, $unsaved = false)
             break;
         case 4:
             echo '<div class="slot_notice" id="slot_notice"><h1>Buchung bestätigt - Buchung Nr. ' . $id . '</h1></div>';
+            break;
+        case 7:
+            echo '<div class="slot_notice" id="slot_notice"><h1>Buchung bestätigt - Buchung Nr. ' . $id . '</h1>Einige Buchungszeilen konnten nicht bestätigt werden (z. B. weil du ihre 1. Bestätigung gegeben hast).</div>';
             break;
         case 5:
             echo '<div class="slot_notice" id="slot_notice"><h1>Buchung aktualisiert - Buchung Nr. ' . $id . '</h1></div>';

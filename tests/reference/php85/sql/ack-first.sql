@@ -48,6 +48,8 @@ SELECT file FROM vouchers WHERE NOT deleted AND (ack1 IS NULL OR EXISTS (SELECT 
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT COUNT(*) AS n FROM vouchers WHERE NOT deleted AND ack1 IS NOT NULL AND ack2 IS NULL AND voucher_id = 5000 ;
+-- next
 UPDATE vouchers SET ack1 = 'synthetic-admin',ack2 = NULL, ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack1 IS NULL AND voucher_id = 5000 ;
 -- next
 UPDATE vouchers SET ack2 = 'synthetic-admin', ack1_old = NULL, ack2_old = NULL WHERE NOT deleted AND ack2 IS NULL AND ack1 IS NOT NULL AND ack1 != 'synthetic-admin' AND EXISTS (SELECT 1 FROM vouchers WHERE NOT deleted AND file != 0 AND voucher_id = 5000) AND voucher_id = 5000 ;
