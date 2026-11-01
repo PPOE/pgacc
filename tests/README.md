@@ -219,8 +219,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   server's `files/` through a volume shared with the client.
 - `http-sync.php`: the internal sync endpoint `internal/mbapi.php` on servers
   of its own with `internal/` as document root: 403 with an empty body
-  without the token of `tests/runtime/test-sync.php` (the image's and the
-  development loop's `sync.php`), for another peer and without `sync.php`;
+  without the token of `tests/runtime/test-sync-secrets.php` (the image's and the
+  development loop's `sync-secrets.php`), for another peer and without `sync-secrets.php`;
   with it the payments as JSON, ordered by member id; 500 without
   the database or the release root. `tests/unit/SyncApiTest.php` covers the
   configuration, the check and the payment selection (cutoff, threshold,
@@ -305,7 +305,7 @@ The same CI job runs `sh tests/deploy-guards.sh` (no Docker, a second): the
 directory, with `id`, `sudo`, `sleep` and `curl` stubbed (refusing a release
 without `public/`, the smoke test of an already current release, the
 rollback to a release without `public/`), and that a release archive's
-`internal/` holds `mbapi.php` only and `sync.php` is linked to `shared/`.
+`internal/` holds `mbapi.php` only and `sync-secrets.php` is linked to `shared/`.
 Red evidence: the `deploy.sh` before these guards fails 2 of its 5 cases;
 the one before the `internal/` check fails its 3 `internal/` cases.
 

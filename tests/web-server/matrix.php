@@ -67,7 +67,7 @@ return [
         '/getusers.php' => 404,
         '/impressum.php' => 404,
         '/constants.php' => 404,
-        '/sync.php' => 404,
+        '/sync-secrets.php' => 404,
         '/check.php' => 404,
         // The former membership export (public/mbapi.php, removed).
         '/mbapi.php' => 404,

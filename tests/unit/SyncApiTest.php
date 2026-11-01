@@ -2,7 +2,7 @@
 
 /*
  * Internal sync endpoint helpers in src/sync-api.php: the configuration
- * sync.php, the peer and token check, and the payment selection (in a
+ * sync-secrets.php, the peer and token check, and the payment selection (in a
  * transaction that is rolled back). The requests themselves:
  * tests/http-sync.php.
  */

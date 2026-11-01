@@ -2,7 +2,7 @@
 
 /*
  * The internal sync endpoint internal/mbapi.php and src/sync-api.php: the
- * configuration sync.php, the peer and token check (403, empty), the payment
+ * configuration sync-secrets.php, the peer and token check (403, empty), the payment
  * selection and its JSON, 500 without the database or the release root.
  * Killed by SyncApiTest and tests/http-sync.php. See tests/mutation/README.md
  * for the format.

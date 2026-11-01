@@ -5,15 +5,15 @@
  * membership system fetches the acknowledged membership fees as JSON. PHP's
  * built-in server serves internal/, the document root of the internal nginx
  * listener (deploy/ansible/templates/nginx-site.conf.j2), from 127.0.0.1;
- * the test configuration tests/runtime/test-sync.php (sync.php of the image
+ * the test configuration tests/runtime/test-sync-secrets.php (sync-secrets.php of the image
  * and of the development loop) allows that peer with a synthetic token.
  *
  * 1. Without the token, with a wrong one or another scheme: 403, empty.
  * 2. With the token: 200, application/json, the fees of the fixtures below
  *    (amounts, the 1 October cutoff, ack1, deleted, the 2000-cent
  *    threshold), ordered by member id.
- * 3. A release with a sync.php of its own (it is the one read): another
- *    peer, and no sync.php, get 403 (tests/unit/SyncApiTest.php covers
+ * 3. A release with a sync-secrets.php of its own (it is the one read): another
+ *    peer, and no sync-secrets.php, get 403 (tests/unit/SyncApiTest.php covers
  *    the other configurations).
  * 4. An unreachable database: 500, empty, the reason logged.
  * 5. No release root (open_basedir): 500, empty, the reason logged.
@@ -143,7 +143,7 @@ if ($ids !== $sorted) {
     fail_test('payments: not ordered by member id: ' . json_encode($ids));
 }
 
-// 3. A release with a sync.php of its own (another peer), and one without.
+// 3. A release with a sync-secrets.php of its own (another peer), and one without.
 // include_path "." first: the development loop's include_path puts the test
 // configuration first (tests/dev/php.ini).
 $release = '/tmp/pgacc-sync-release';
@@ -159,12 +159,12 @@ if ($status !== 0) {
     fail_test("could not copy $appRoot/internal");
 }
 $releaseUrl = start_internal_server(8093, $release, ' -d include_path=.:/usr/local/lib/php', '', true, false, 'sync-release');
-// First without sync.php (PHP's realpath cache would still find a deleted one).
-assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'no sync.php');
-// The release's own sync.php is the one read: its token is accepted.
-file_put_contents($release . '/sync.php', "<?php\nreturn ['token' => 'release-token', 'peers' => ['127.0.0.1']];\n");
+// First without sync-secrets.php (PHP's realpath cache would still find a deleted one).
+assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'no sync-secrets.php');
+// The release's own sync-secrets.php is the one read: its token is accepted.
+file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['token' => 'release-token', 'peers' => ['127.0.0.1']];\n");
 assert_status(sync_request($releaseUrl, 'Bearer release-token'), 200, 'the release token');
-file_put_contents($release . '/sync.php', "<?php\nreturn ['token' => '" . SYNC_TOKEN . "', 'peers' => ['192.0.2.1']];\n");
+file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['token' => '" . SYNC_TOKEN . "', 'peers' => ['192.0.2.1']];\n");
 assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'another peer');
 exec('rm -rf ' . escapeshellarg($release));
 

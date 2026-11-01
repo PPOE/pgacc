@@ -28,7 +28,7 @@
 # pgacc_sync_listen_address 127.0.0.1, port 8443) and its certificate, made
 # with the playbook's openssl command. internal/mbapi.php is a stub that runs
 # the real peer and token check of src/sync-api.php against the release's
-# sync.php (peer 127.0.0.1) and answers JSON instead of the payments; the
+# sync-secrets.php (peer 127.0.0.1) and answers JSON instead of the payments; the
 # client checks the certificate (cafile) and sends from 127.0.0.1 and, for
 # another peer, from 127.0.0.2. Containers and the temporary directory are
 # removed at the end.
@@ -75,7 +75,7 @@ for file in functions.php file.php edit.php getusers.php impressum.php check.php
 done
 cp "$repo/tests/runtime/test-constants.php" "$release/constants.php"
 sync_token=pgacc-test-sync-token-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-printf "<?php\nreturn ['token' => '%s', 'peers' => ['127.0.0.1']];\n" "$sync_token" >"$release/sync.php"
+printf "<?php\nreturn ['token' => '%s', 'peers' => ['127.0.0.1']];\n" "$sync_token" >"$release/sync-secrets.php"
 echo '<?php // vendor' >"$release/vendor/autoload.php"
 echo "$secret" >"$release/files/1.v2.aes"
 ln -s "releases/$tag" "$tmp/pgacc/current"

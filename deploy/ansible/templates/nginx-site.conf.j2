@@ -103,7 +103,7 @@ server {
 # internal/mbapi.php directly (not through the reverse proxy). Its own
 # document root holds nothing but that entry point. REMOTE_ADDR is the
 # connecting socket's address; internal/mbapi.php checks it and the token
-# against sync.php. No access log: the requests carry the token.
+# against sync-secrets.php. No access log: the requests carry the token.
 server {
     listen {{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }} ssl;
     server_name _;

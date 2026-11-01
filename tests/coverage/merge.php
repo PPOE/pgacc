@@ -15,7 +15,7 @@
  *
  * <coverage-dir> contains phpunit.cov and http/*.ser. Scope: every
  * application PHP file: the top-level files in /app (except the test-only
- * constants.php and sync.php), the entry points in /app/public and
+ * constants.php and sync-secrets.php), the entry points in /app/public and
  * /app/internal and the library files in /app/src. Files that
  * no test reaches are included with zero coverage (statically analysed, never
  * executed).
@@ -44,7 +44,7 @@ $appRoot = '/app';
 
 $files = [];
 foreach (array_merge(glob($appRoot . '/*.php'), glob($appRoot . '/public/*.php'), glob($appRoot . '/internal/*.php'), glob($appRoot . '/src/*.php')) as $file) {
-    if (!in_array(substr($file, strlen($appRoot) + 1), ['constants.php', 'sync.php'], true)) {
+    if (!in_array(substr($file, strlen($appRoot) + 1), ['constants.php', 'sync-secrets.php'], true)) {
         $files[] = $file;
     }
 }

@@ -12,14 +12,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the former `public/mbapi.php` as JSON (`[{"id", "amount_cents", "paid_until"}]`), for
   the membership system only, on an internal TLS listener with its own
   document root `internal/`. A request must come from an address of the new
-  configuration file `sync.php` (release root, outside the document roots)
+  configuration file `sync-secrets.php` (release root, outside the document roots)
   and carry its token (`Authorization: Bearer`); otherwise, and without
-  `sync.php`, it gets 403 with an empty body; errors get an empty 500.
+  `sync-secrets.php`, it gets 403 with an empty body; errors get an empty 500.
   Membership fees without a member id are left out. `deploy/`: the variables
   `pgacc_sync_listen_address` (empty: off), `pgacc_sync_peers` and
-  `pgacc_sync_port` (8443) add `shared/sync.php` with a random token, a
+  `pgacc_sync_port` (8443) add `shared/sync-secrets.php` with a random token, a
   self-signed certificate for the address (made again when it changes) and
-  a second nginx `server`; `pgacc-deploy` links `sync.php`, requires `internal/` to hold only
+  a second nginx `server`; `pgacc-deploy` links `sync-secrets.php`, requires `internal/` to hold only
   `mbapi.php` and, with the listener on, expects 403 from it without the
   token in its smoke test. See
   [UPGRADING.md](UPGRADING.md), "Internal sync endpoint".

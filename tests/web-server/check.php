@@ -59,7 +59,7 @@ if ($mode === 'plant' && $argc === 4) {
         fail_check('could not write entry-sentinel.php');
     }
     $internal = "<?php\nchdir(dirname(__DIR__)) || exit(1);\nrequire 'src/sync-api.php';\n"
-        . "if (!sync_api_allowed(sync_api_config('sync.php'), \$_SERVER)) {\n    http_response_code(403);\n    return;\n}\n"
+        . "if (!sync_api_allowed(sync_api_config('sync-secrets.php'), \$_SERVER)) {\n    http_response_code(403);\n    return;\n}\n"
         . "header('Content-Type: application/json');\n"
         . "echo json_encode(['script' => \$_SERVER['SCRIPT_FILENAME'], 'peer' => \$_SERVER['REMOTE_ADDR']]);\n";
     $planted = "<?php \$key = '" . $argv[3] . "'; echo 'pgacc-planted-php-ran';\n";
@@ -129,12 +129,12 @@ if ($mode === 'internal' && $argc === 7) {
         ['/notes.txt', $bearer, '127.0.0.1', 404],
         ['/mbapi.php/x', $bearer, '127.0.0.1', 404],
         ['/MBAPI.PHP', $bearer, '127.0.0.1', 404],
-        ['/sync.php', $bearer, '127.0.0.1', 404],
+        ['/sync-secrets.php', $bearer, '127.0.0.1', 404],
         ['/src/sync-api.php', $bearer, '127.0.0.1', 404],
         ['/public/index.php', $bearer, '127.0.0.1', 404],
         ['/mbapi.php~', $bearer, '127.0.0.1', 403],
         ['/.htaccess', $bearer, '127.0.0.1', 403],
-        ['/../sync.php', $bearer, '127.0.0.1', 400],
+        ['/../sync-secrets.php', $bearer, '127.0.0.1', 400],
     ];
     foreach ($refused as [$target, $authorization, $from, $want]) {
         $response = $request($target, $authorization, $from);

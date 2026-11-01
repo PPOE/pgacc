@@ -94,7 +94,7 @@ expect 1 v2.0.0 "--file without public/index.php: refused" --file "$tmp/pgacc-3.
 has 'no public/index.php or vendor/autoload.php' "--file without public/"
 [ ! -e "$root/releases/v3.0.0" ] || { echo "FAIL: releases/v3.0.0 was created" >&2 && failures=$((failures + 1)); }
 
-# --file: internal/ must hold mbapi.php only; then sync.php is linked like constants.php.
+# --file: internal/ must hold mbapi.php only; then sync-secrets.php is linked like constants.php.
 # archive <version> <file...>: an archive with public/index.php, vendor/autoload.php and the files.
 archive() {
   version=$1 && shift
@@ -112,8 +112,8 @@ for case in none:"" extra:"internal/mbapi.php internal/evil.php"; do
 done
 archive 3.0.0 internal/mbapi.php
 expect 0 v3.0.0 "--file with internal/mbapi.php: deployed" --file "$tmp/pgacc-3.0.0.tar.gz"
-[ "$(readlink "$root/releases/v3.0.0/sync.php")" = "$root/shared/sync.php" ] ||
-  { echo "FAIL: sync.php is not linked to shared/" >&2 && failures=$((failures + 1)); }
+[ "$(readlink "$root/releases/v3.0.0/sync-secrets.php")" = "$root/shared/sync-secrets.php" ] ||
+  { echo "FAIL: sync-secrets.php is not linked to shared/" >&2 && failures=$((failures + 1)); }
 current v2.0.0
 
 # With the internal sync listener (etc/sync-url): it must answer 403 without the token.

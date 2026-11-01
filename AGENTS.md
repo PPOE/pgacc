@@ -132,7 +132,7 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
 | `getusers.php` | Membership-system interface (member list lookup) |
-| `internal/mbapi.php`, `src/sync-api.php` | Internal sync endpoint: payments as JSON after a peer and token check against `sync.php` (release root, like `constants.php`); `internal/` is the document root of the internal nginx listener (off unless configured); tests `tests/http-sync.php`, `tests/unit/SyncApiTest.php` |
+| `internal/mbapi.php`, `src/sync-api.php` | Internal sync endpoint: payments as JSON after a peer and token check against `sync-secrets.php` (release root, like `constants.php`); `internal/` is the document root of the internal nginx listener (off unless configured); tests `tests/http-sync.php`, `tests/unit/SyncApiTest.php` |
 | `file.php` | Encrypted receipt download (helpers in `functions.php`, phpseclib): `files/<n>.v2.aes` (AES-256 + HMAC, keyed on `$key` and file number), legacy `files/<n>.aes` (mcrypt-compatible) |
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `check.php` | Command-line voucher number check of one account, `php check.php <account> <max>` (404 over HTTP) |

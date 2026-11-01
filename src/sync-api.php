@@ -4,7 +4,7 @@
  * Internal sync endpoint (internal/mbapi.php): the membership system fetches
  * the acknowledged membership fees as JSON, over the internal TLS listener
  * (deploy/README.md, "Membership system"). A request must come from a peer
- * of the configuration file sync.php in the release root and carry its
+ * of the configuration file sync-secrets.php in the release root and carry its
  * token ("Authorization: Bearer <token>"); otherwise, and without a valid
  * configuration, it gets 403 with an empty body. Errors answer 500 with an
  * empty body. The file only defines functions, so a direct request prints
@@ -61,7 +61,7 @@ function sync_api_payments($dbconn, $year)
 // fails, otherwise the payments as JSON.
 function sync_api_main()
 {
-    if (!sync_api_allowed(sync_api_config('sync.php'), $_SERVER)) {
+    if (!sync_api_allowed(sync_api_config('sync-secrets.php'), $_SERVER)) {
         http_response_code(403);
         return;
     }
