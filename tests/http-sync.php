@@ -12,9 +12,9 @@
  * 2. With the token: 200, application/json, the fees of the fixtures below
  *    (amounts, the 1 October cutoff, ack1, deleted, the 2000-cent
  *    threshold), equal to the members and amounts of public/mbapi.php.
- * 3. A release whose sync.php allows another peer, and one without
- *    sync.php: 403 (tests/unit/SyncApiTest.php covers the other
- *    configurations).
+ * 3. A release with a sync.php of its own (it is the one read): another
+ *    peer, and no sync.php, get 403 (tests/unit/SyncApiTest.php covers
+ *    the other configurations).
  * 4. An unreachable database: 500, empty, the reason logged.
  * 5. No release root (open_basedir): 500, empty, the reason logged.
  */
@@ -97,12 +97,14 @@ $fees = [
     [990105, 5000, "$year-01-02", null, false],
     [990106, 5000, "$year-01-02", 'reviewer-a', true],
 ];
+// Removed again at the end, also after a failure (the later tests share the database).
+register_shutdown_function(fn() => pg_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9400 AND 9406'));
 foreach ($fees as $index => $fee) {
     $result = @pg_query_params(
         $database,
         "INSERT INTO vouchers (id, voucher_id, type, orga, member, member_id, amount, comment, date, ack1, deleted)
          VALUES ($1, $2, 1, 1, true, $3, $4, 'Synthetic membership fee', $5, $6, $7)",
-        [9300 + $index, 9300 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'],
+        [9400 + $index, 9400 + $index, $fee[0], $fee[1], $fee[2], $fee[3], $fee[4] ? 't' : 'f'],
     );
     if ($result === false) {
         fail_test("membership fee $index: " . pg_last_error($database));
@@ -157,14 +159,21 @@ exec('rm -rf ' . escapeshellarg($release));
 if (!mkdir($release, 0700, true)) {
     fail_test("could not create $release");
 }
-foreach (['internal', 'src'] as $entry) {
-    symlink($appRoot . '/' . $entry, $release . '/' . $entry);
+// internal/ is a copy: its entry point changes to dirname(__DIR__), the
+// resolved directory (a link would lead back to the application root).
+symlink($appRoot . '/src', $release . '/src');
+exec('cp -R ' . escapeshellarg($appRoot . '/internal') . ' ' . escapeshellarg($release . '/internal'), $output, $status);
+if ($status !== 0) {
+    fail_test("could not copy $appRoot/internal");
 }
-file_put_contents($release . '/sync.php', "<?php\nreturn ['token' => '" . SYNC_TOKEN . "', 'peers' => ['192.0.2.1']];\n");
 $releaseUrl = start_internal_server(8093, $release, ' -d include_path=.:/usr/local/lib/php', '', true, false, 'sync-release');
-assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'another peer');
-unlink($release . '/sync.php');
+// First without sync.php (PHP's realpath cache would still find a deleted one).
 assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'no sync.php');
+// The release's own sync.php is the one read: its token is accepted.
+file_put_contents($release . '/sync.php', "<?php\nreturn ['token' => 'release-token', 'peers' => ['127.0.0.1']];\n");
+assert_status(sync_request($releaseUrl, 'Bearer release-token'), 200, 'the release token');
+file_put_contents($release . '/sync.php', "<?php\nreturn ['token' => '" . SYNC_TOKEN . "', 'peers' => ['192.0.2.1']];\n");
+assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'another peer');
 exec('rm -rf ' . escapeshellarg($release));
 
 // 4. An unreachable database.
@@ -212,7 +221,5 @@ if (substr_count($logText, 'pgacc: cannot change to the release root ' . $appRoo
 }
 exec('rm -rf ' . escapeshellarg($logDir));
 
-pg_query($database, 'DELETE FROM vouchers WHERE id BETWEEN 9300 AND 9306');
-pg_close($database);
 assert_no_unexpected_diagnostics();
 echo "Internal sync endpoint tests passed\n";
