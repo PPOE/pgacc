@@ -299,6 +299,14 @@ without `public/`, the smoke test of an already current release, the
 rollback to a release without `public/`). Red evidence: the `deploy.sh`
 before these guards fails 2 of its 5 cases.
 
+It also runs `sh tests/sync-secrets-template.sh` (Docker, ansible-core,
+PHP 8.5): `deploy/ansible/templates/sync-secrets.php.j2` rendered with
+Ansible's template module for payments only, members only and both, each
+file loaded with the real readers of the checkout, `sync_api_config()` and
+`getusers_config()` (a reader that is not there is skipped): the exact
+array, accepted with the expected values, refused without its keys. Red
+evidence: the template with `payment_token` and `member_token` fails.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets

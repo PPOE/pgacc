@@ -116,6 +116,8 @@ jobs:
         run: sh tests/web-server/run.sh
       - name: Test the public/ guards of deploy/deploy.sh (stubbed, no server)
         run: sh tests/deploy-guards.sh
+      - name: Test the rendering of sync-secrets.php.j2 with the PHP readers
+        run: sh tests/sync-secrets-template.sh
 
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness
