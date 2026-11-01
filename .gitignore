@@ -1,4 +1,5 @@
 constants.php
+/sync.php
 vendor/
 build/
 tests/mutation/results/

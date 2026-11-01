@@ -1,6 +1,7 @@
 .git
 .github
 constants.php
+sync.php
 files
 proxy
 vendor

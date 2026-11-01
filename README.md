@@ -17,7 +17,10 @@ Core concepts:
   spendings pages, donation lists.
 - **Import**: bank statement CSV import (BAWAG format).
 - **Membership integration**: `getusers.php` fetches member names from the
-  membership system, `mbapi.php` exports membership payments.
+  membership system, `mbapi.php` exports membership payments;
+  `internal/mbapi.php` exports them as JSON on an internal TLS listener (off
+  unless configured, [deploy/README.md](deploy/README.md), "Membership
+  system").
 
 ## Requirements
 

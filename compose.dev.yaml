@@ -9,7 +9,8 @@
 # directories vendor/ and files/ when they are missing. constants.php is not
 # mounted (its mount point would be an empty file in the checkout): the
 # include_path of tests/dev/php.ini resolves "constants.php" to the test
-# constants first, so a local constants.php is never read.
+# constants first, so a local constants.php is never read (likewise
+# "sync.php", tests/runtime/test-sync.php).
 services:
   # Copies the image's vendor/ into the dev-vendor volume on every
   # "tests/dev.sh up", so it always matches the image.
@@ -38,6 +39,7 @@ services:
       - dev-vendor:/app/vendor:ro
       - ./tests/dev/php.ini:/usr/local/etc/php/conf.d/zz-pgacc-dev.ini:ro
       - ./tests/runtime/test-constants.php:/opt/pgacc-dev/constants.php:ro
+      - ./tests/runtime/test-sync.php:/opt/pgacc-dev/sync.php:ro
 
   # Long-running test client: tests/dev.sh runs the tests in it with
   # "docker compose exec" (no container start per test).
@@ -48,6 +50,7 @@ services:
       - dev-vendor:/app/vendor:ro
       - ./tests/dev/php.ini:/usr/local/etc/php/conf.d/zz-pgacc-dev.ini:ro
       - ./tests/runtime/test-constants.php:/opt/pgacc-dev/constants.php:ro
+      - ./tests/runtime/test-sync.php:/opt/pgacc-dev/sync.php:ro
 
 volumes:
   dev-vendor: {}
