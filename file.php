@@ -114,9 +114,10 @@ function receipt_preview_type($bid, $rights)
         return false;
     }
     $size = filesize($legacy);
-    $block = (string) fread($in, 32);
+    // A failed or short read is refused, as by receipt_read_file().
+    $block = (string) @fread($in, 32);
     fclose($in);
-    if ($size < 32 || $size % 32 !== 0) {
+    if ($size < 32 || $size % 32 !== 0 || strlen($block) !== 32) {
         return false;
     }
     return str_starts_with(receipt_decrypt($row['voucher_id'], '', $block), '%PDF') ? 'application/pdf' : 'image/jpeg';
