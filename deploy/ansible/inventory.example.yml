@@ -24,7 +24,7 @@ all:
     pgacc_trusted_proxies:
       - 192.0.2.1
     # Optional (defaults shown).
-    # pgacc_timezone: UTC
+    # pgacc_timezone: UTC   # Europe/Vienna with the membership sync (deploy/README.md)
     # pgacc_backup_keep_days: 7
     # pgacc_disable_sshd: true
     # /etc/hosts entries, e.g. when the internal DNS does not resolve the
@@ -37,4 +37,5 @@ all:
     # empty (the default).
     # pgacc_sync_listen_address: 192.0.2.10
     # pgacc_sync_peers: [192.0.2.20]
+    # pgacc_payments_token: "{{ vault_pgacc_payments_token }}"   # openssl rand -hex 32
     # pgacc_sync_port: 8443

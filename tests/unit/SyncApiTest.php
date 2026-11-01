@@ -11,7 +11,7 @@ require_once dirname(__DIR__, 2) . '/src/sync-api.php';
 
 final class SyncApiTest extends FunctionsTestCase
 {
-    private const CONFIG = ['token' => 'synthetic-sync-token', 'peers' => ['192.0.2.20', '192.0.2.21']];
+    private const CONFIG = ['payments_token' => 'synthetic-sync-token', 'payments_peers' => ['192.0.2.20', '192.0.2.21']];
 
     private $files = [];
 
@@ -39,13 +39,14 @@ final class SyncApiTest extends FunctionsTestCase
     {
         return [
             'no return value' => ["<?php\n\$token = 'x';\n"],
+            'the old key names' => ["<?php\nreturn ['token' => 'synthetic-sync-token', 'peers' => ['192.0.2.20']];\n"],
             'not an array' => ["<?php\nreturn 'synthetic-sync-token';\n"],
-            'no token' => ["<?php\nreturn ['peers' => ['192.0.2.20']];\n"],
-            'empty token' => ["<?php\nreturn ['token' => '', 'peers' => ['192.0.2.20']];\n"],
-            'token not a string' => ["<?php\nreturn ['token' => 12345678, 'peers' => ['192.0.2.20']];\n"],
-            'no peers' => ["<?php\nreturn ['token' => 'synthetic-sync-token'];\n"],
-            'empty peers' => ["<?php\nreturn ['token' => 'synthetic-sync-token', 'peers' => []];\n"],
-            'peers not a list' => ["<?php\nreturn ['token' => 'synthetic-sync-token', 'peers' => '192.0.2.20'];\n"],
+            'no token' => ["<?php\nreturn ['payments_peers' => ['192.0.2.20']];\n"],
+            'empty token' => ["<?php\nreturn ['payments_token' => '', 'payments_peers' => ['192.0.2.20']];\n"],
+            'token not a string' => ["<?php\nreturn ['payments_token' => 12345678, 'payments_peers' => ['192.0.2.20']];\n"],
+            'no peers' => ["<?php\nreturn ['payments_token' => 'synthetic-sync-token'];\n"],
+            'empty peers' => ["<?php\nreturn ['payments_token' => 'synthetic-sync-token', 'payments_peers' => []];\n"],
+            'peers not a list' => ["<?php\nreturn ['payments_token' => 'synthetic-sync-token', 'payments_peers' => '192.0.2.20'];\n"],
         ];
     }
 
@@ -53,6 +54,36 @@ final class SyncApiTest extends FunctionsTestCase
     public function testConfigRefusesAnInvalidConfiguration($content)
     {
         self::assertNull(sync_api_config($this->configFile($content)));
+    }
+
+    // A file that does not parse (or throws) is refused like an invalid one,
+    // not a fatal error of the request.
+    public static function brokenConfigProvider()
+    {
+        return [
+            'parse error' => ["<?php\nreturn ['payments_token' => 'synthetic-sync-token',;\n"],
+            'throws' => ["<?php\nthrow new RuntimeException('synthetic');\n"],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('brokenConfigProvider')]
+    public function testConfigRefusesABrokenFile($content)
+    {
+        $file = $this->configFile($content);
+        $log = $this->configFile('');
+        $previous = ini_set('error_log', $log);
+        try {
+            $config = sync_api_config($file);
+        } catch (Throwable $e) {
+            $config = 'sync_api_config() let ' . get_class($e) . ' through';
+        } finally {
+            ini_set('error_log', $previous);
+        }
+
+        self::assertNull($config);
+        // Only the class: the message of a parse error can quote the file.
+        self::assertMatchesRegularExpression('/sync-secrets\.php cannot be loaded \((ParseError|RuntimeException)\)$/', trim(file_get_contents($log)));
+        self::assertStringNotContainsString('synthetic', file_get_contents($log));
     }
 
     public function testConfigRefusesAMissingFile()

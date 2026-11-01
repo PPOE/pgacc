@@ -28,7 +28,8 @@
 # pgacc_sync_listen_address 127.0.0.1, port 8443) and its certificate, made
 # with the playbook's openssl command. internal/mbapi.php is a stub that runs
 # the real peer and token check of src/sync-api.php against the release's
-# sync-secrets.php (peer 127.0.0.1) and answers JSON instead of the payments; the
+# sync-secrets.php (rendered from the playbook's sync-secrets.php.j2, peer
+# 127.0.0.1) and answers JSON instead of the payments; the
 # client checks the certificate (cafile) and sends from 127.0.0.1 and, for
 # another peer, from 127.0.0.2. Containers and the temporary directory are
 # removed at the end.
@@ -74,8 +75,10 @@ for file in functions.php file.php edit.php getusers.php impressum.php check.php
   cp "$repo/$file" "$release/$file"
 done
 cp "$repo/tests/runtime/test-constants.php" "$release/constants.php"
-sync_token=pgacc-test-sync-token-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-printf "<?php\nreturn ['token' => '%s', 'peers' => ['127.0.0.1']];\n" "$sync_token" >"$release/sync-secrets.php"
+# 64 hex characters, as the playbook requires of pgacc_payments_token. For
+# nginx, sync-secrets.php is replaced by the playbook's template below.
+sync_token=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+printf "<?php\nreturn ['payments_token' => '%s', 'payments_peers' => ['127.0.0.1']];\n" "$sync_token" >"$release/sync-secrets.php"
 echo '<?php // vendor' >"$release/vendor/autoload.php"
 echo "$secret" >"$release/files/1.v2.aes"
 ln -s "releases/$tag" "$tmp/pgacc/current"
@@ -99,7 +102,9 @@ entry_link() {
 if echo " $servers " | grep -q ' nginx '; then
   # Rendered as ansible.builtin.template does (Jinja2, trim_blocks); no
   # trusted proxies, no IPv6 address.
-  docker run --rm --user "$user" -e HOME=/tmp -v "$repo/deploy/ansible/templates:/templates:ro" -v "$tmp:/out" \
+  # sync-secrets.php.j2 likewise: listener on (the release's sync-secrets.php),
+  # off, and with the member list as well.
+  docker run --rm --user "$user" -e HOME=/tmp -e SYNC_TOKEN="$sync_token" -v "$repo/deploy/ansible/templates:/templates:ro" -v "$tmp:/out" \
     "$python_image" sh -c "pip install --quiet --disable-pip-version-check --user jinja2==$jinja2_version && python -c '
 import jinja2
 environment = jinja2.Environment(loader=jinja2.FileSystemLoader(\"/templates\"), trim_blocks=True,
@@ -108,7 +113,25 @@ template = environment.get_template(\"nginx-site.conf.j2\")
 open(\"/out/nginx-site.conf\", \"w\").write(template.render(ansible_facts={}, pgacc_trusted_proxies=[],
     pgacc_sync_listen_address=\"127.0.0.1\"))
 open(\"/out/nginx-site-off.conf\", \"w\").write(template.render(ansible_facts={}, pgacc_trusted_proxies=[]))
+import os
+secrets = environment.get_template(\"sync-secrets.php.j2\")
+listener = dict(pgacc_sync_listen_address=\"127.0.0.1\", pgacc_sync_peers=[\"127.0.0.1\"],
+    pgacc_payments_token=os.environ[\"SYNC_TOKEN\"])
+open(\"/out/sync-secrets.php\", \"w\").write(secrets.render(**listener))
+open(\"/out/sync-secrets-off.php\", \"w\").write(secrets.render())
+open(\"/out/sync-secrets-both.php\", \"w\").write(secrets.render(pgacc_sync_peers=[\"127.0.0.1\", \"192.0.2.20\"],
+    pgacc_members_url=\"https://192.0.2.20:8443/members.php\", pgacc_members_token=64 * \"b\",
+    **{k: v for k, v in listener.items() if k != \"pgacc_sync_peers\"}))
 '"
+  cp "$tmp/sync-secrets.php" "$release/sync-secrets.php"
+  docker run --rm --network none --user "$user" -v "$tmp:/out:ro" -e SYNC_TOKEN="$sync_token" "$fpm_image" php -r '
+    $want = ["payments_token" => getenv("SYNC_TOKEN"), "payments_peers" => ["127.0.0.1"]];
+    $both = $want + ["members_url" => "https://192.0.2.20:8443/members.php", "members_token" => str_repeat("b", 64),
+        "members_cafile" => "/etc/pgacc/admidio-addons-tls.crt"];
+    $both["payments_peers"][] = "192.0.2.20";
+    exit((include "/out/sync-secrets.php") === $want && (include "/out/sync-secrets-off.php") === []
+        && (include "/out/sync-secrets-both.php") === $both ? 0 : 1);' ||
+    { echo "sync-secrets.php.j2 does not render the expected settings" >&2 && exit 1; }
   # Without pgacc_sync_listen_address: no internal listener.
   if grep -q 'current/internal' "$tmp/nginx-site-off.conf" || ! grep -q 'listen 127.0.0.1:8443 ssl;' "$tmp/nginx-site.conf"; then
     echo "nginx: the internal listener must be rendered only with pgacc_sync_listen_address" >&2

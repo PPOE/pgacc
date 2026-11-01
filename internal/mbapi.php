@@ -6,7 +6,7 @@
 // possible: nothing below may run elsewhere.
 if (!chdir(dirname(__DIR__))) {
     error_log('pgacc: cannot change to the release root ' . dirname(__DIR__));
-    http_response_code(500);
+    http_response_code(503);
     exit(1);
 }
 

@@ -113,7 +113,7 @@ if [ ! -d "$release" ]; then
   [ -f "$work/$name/internal/mbapi.php" ] && [ "$(ls -A "$work/$name/internal")" = mbapi.php ] ||
     die "the archive's internal/ must hold mbapi.php only"
   ln -s "$root/shared/constants.php" "$work/$name/constants.php"
-  # A dangling link while the sync listener is off: internal/mbapi.php then refuses every request.
+  # Written by the playbook on every run; without it the sync refuses (deploy/README.md, "Membership system").
   ln -s "$root/shared/sync-secrets.php" "$work/$name/sync-secrets.php"
   ln -s "$root/shared/files" "$work/$name/files"
   mv "$work/$name" "$release"

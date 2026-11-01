@@ -13,14 +13,14 @@
  *    (amounts, the 1 October cutoff, ack1, deleted, the 2000-cent
  *    threshold), ordered by member id.
  * 3. A release with a sync-secrets.php of its own (it is the one read): another
- *    peer, and no sync-secrets.php, get 403 (tests/unit/SyncApiTest.php covers
- *    the other configurations).
- * 4. An unreachable database: 500, empty, the reason logged.
- * 5. No release root (open_basedir): 500, empty, the reason logged.
+ *    peer, no sync-secrets.php and one that does not parse get 403
+ *    (tests/unit/SyncApiTest.php covers the other configurations).
+ * 4. An unreachable database: 503, empty, the reason logged.
+ * 5. No release root (open_basedir): 503, empty, the reason logged.
  */
 require __DIR__ . '/http-test-helpers.php';
 
-const SYNC_TOKEN = 'synthetic-test-only-sync-token';
+const SYNC_TOKEN = 'synthetic-test-only-payments-token';
 
 // The served application: /app, or the mutant copy of the mutation runner.
 $appRoot = getenv('PGACC_TEST_APP_ROOT') ? rtrim(getenv('PGACC_TEST_APP_ROOT'), '/') : '/app';
@@ -162,10 +162,13 @@ $releaseUrl = start_internal_server(8093, $release, ' -d include_path=.:/usr/loc
 // First without sync-secrets.php (PHP's realpath cache would still find a deleted one).
 assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'no sync-secrets.php');
 // The release's own sync-secrets.php is the one read: its token is accepted.
-file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['token' => 'release-token', 'peers' => ['127.0.0.1']];\n");
+file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['payments_token' => 'release-token', 'payments_peers' => ['127.0.0.1']];\n");
 assert_status(sync_request($releaseUrl, 'Bearer release-token'), 200, 'the release token');
-file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['token' => '" . SYNC_TOKEN . "', 'peers' => ['192.0.2.1']];\n");
+file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['payments_token' => '" . SYNC_TOKEN . "', 'payments_peers' => ['192.0.2.1']];\n");
 assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'another peer');
+// A sync-secrets.php that does not parse refuses (403, empty), not a fatal error.
+file_put_contents($release . '/sync-secrets.php', "<?php\nreturn ['payments_token' => '" . SYNC_TOKEN . "', 'payments_peers' => ['127.0.0.1'];\n");
+assert_refused(sync_request($releaseUrl, 'Bearer ' . SYNC_TOKEN), 403, 'unparsable sync-secrets.php');
 exec('rm -rf ' . escapeshellarg($release));
 
 // 4. An unreachable database.
@@ -180,7 +183,7 @@ $failureUrl = start_internal_server(
     true,
     'sync-connect-failure',
 );
-assert_refused(sync_request($failureUrl, 'Bearer ' . SYNC_TOKEN, false), 500, 'unreachable database');
+assert_refused(sync_request($failureUrl, 'Bearer ' . SYNC_TOKEN, false), 503, 'unreachable database');
 if (strpos((string) @file_get_contents($log), 'pg_connect(): Unable to connect to PostgreSQL server') === false) {
     fail_test('unreachable database: no logged reason: ' . @file_get_contents($log));
 }
@@ -205,7 +208,7 @@ $noRootUrl = start_internal_server(
     true,
     'sync-no-release-root',
 );
-assert_refused(sync_request($noRootUrl, 'Bearer ' . SYNC_TOKEN, false), 500, 'no release root');
+assert_refused(sync_request($noRootUrl, 'Bearer ' . SYNC_TOKEN, false), 503, 'no release root');
 $logText = (string) @file_get_contents($log);
 if (substr_count($logText, 'pgacc: cannot change to the release root ' . $appRoot) !== 1
     || preg_match('/Failed opening|Fatal error/', $logText) === 1) {

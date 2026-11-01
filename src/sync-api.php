@@ -6,19 +6,29 @@
  * (deploy/README.md, "Membership system"). A request must come from a peer
  * of the configuration file sync-secrets.php in the release root and carry its
  * token ("Authorization: Bearer <token>"); otherwise, and without a valid
- * configuration, it gets 403 with an empty body. Errors answer 500 with an
+ * configuration, it gets 403 with an empty body. Errors answer 503 with an
  * empty body. The file only defines functions, so a direct request prints
  * nothing (src/ is outside every document root anyway).
  */
 
 // The configuration $file (resolved like the include of constants.php):
-// ['token' => non-empty string, 'peers' => non-empty list of addresses], or
-// null if it is missing or not of that form.
+// ['payments_token' => non-empty string, 'payments_peers' => non-empty list
+// of addresses, ...], or null if it is missing, does not load (a parse error
+// or an exception: logged by class only) or is not of that form.
 function sync_api_config($file)
 {
-    $config = stream_resolve_include_path($file) === false ? null : include $file;
-    if (!is_string($config['token'] ?? null) || $config['token'] === ''
-        || !is_array($config['peers'] ?? null) || $config['peers'] === []) {
+    if (stream_resolve_include_path($file) === false) {
+        return null;
+    }
+    try {
+        $config = include $file;
+    } catch (Throwable $e) {
+        // Only the class: the message of a parse error can quote the file.
+        error_log('sync-api: sync-secrets.php cannot be loaded (' . get_class($e) . ')');
+        return null;
+    }
+    if (!is_string($config['payments_token'] ?? null) || $config['payments_token'] === ''
+        || !is_array($config['payments_peers'] ?? null) || $config['payments_peers'] === []) {
         return null;
     }
     return $config;
@@ -29,8 +39,8 @@ function sync_api_config($file)
 function sync_api_allowed($config, $server)
 {
     return $config !== null
-        && in_array($server['REMOTE_ADDR'] ?? null, $config['peers'], true)
-        && hash_equals('Bearer ' . $config['token'], (string) ($server['HTTP_AUTHORIZATION'] ?? ''));
+        && in_array($server['REMOTE_ADDR'] ?? null, $config['payments_peers'], true)
+        && hash_equals('Bearer ' . $config['payments_token'], (string) ($server['HTTP_AUTHORIZATION'] ?? ''));
 }
 
 // The members whose acknowledged (ack1), not deleted membership fees
@@ -57,7 +67,7 @@ function sync_api_payments($dbconn, $year)
     return $payments;
 }
 
-// The request: 403 unless allowed, 500 without the database or if the query
+// The request: 403 unless allowed, 503 without the database or if the query
 // fails, otherwise the payments as JSON.
 function sync_api_main()
 {
@@ -68,7 +78,7 @@ function sync_api_main()
     $dbconn = pg_connect('dbname=accounting');
     $payments = $dbconn === false ? null : sync_api_payments($dbconn, intval(date('Y')));
     if ($payments === null) {
-        http_response_code(500);
+        http_response_code(503);
         return;
     }
     header('Content-Type: application/json');

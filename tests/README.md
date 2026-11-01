@@ -220,9 +220,10 @@ constraints; no backup table, owners, permissions, credentials or rows).
 - `http-sync.php`: the internal sync endpoint `internal/mbapi.php` on servers
   of its own with `internal/` as document root: 403 with an empty body
   without the token of `tests/runtime/test-sync-secrets.php` (the image's and the
-  development loop's `sync-secrets.php`), for another peer and without `sync-secrets.php`;
-  with it the payments as JSON, ordered by member id; 500 without
-  the database or the release root. `tests/unit/SyncApiTest.php` covers the
+  development loop's `sync-secrets.php`), for another peer, without
+  `sync-secrets.php` and with one that does not parse; with it the payments
+  as JSON, ordered by member id; 503 with an empty body without the
+  database or the release root. `tests/unit/SyncApiTest.php` covers the
   configuration, the check and the payment selection (cutoff, threshold,
   `ack1`, deleted, type). Red evidence: an empty `sync_api_main()` answers
   200 without the token.
@@ -290,7 +291,9 @@ differences of a server are listed in `tests/web-server/check.php`
 (Apache refuses an encoded `/`). nginx also runs the internal sync listener
 of the template (rendered with `pgacc_sync_listen_address` 127.0.0.1; not
 rendered without it) with a certificate made by the playbook's `openssl`
-command: the client verifies it (`cafile`), `internal/mbapi.php` is a stub
+command and the release's `sync-secrets.php` rendered from
+`sync-secrets.php.j2` (also checked: off, it returns `[]`; with the member
+list too, the `members_*` keys): the client verifies it (`cafile`), `internal/mbapi.php` is a stub
 that runs the real peer and token check of `src/sync-api.php` (200 with
 JSON from 127.0.0.1 with the token; 403 without it, with a wrong one and
 from 127.0.0.2), and every other path answers 404 (dot files and backup
