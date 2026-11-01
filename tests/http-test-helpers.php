@@ -305,18 +305,53 @@ function login_redirect_location($uri)
 }
 
 // Starts a second application server on $port without output buffering
-// (otherwise like the application service: same document root and
+// (otherwise like the application service: same document root, router and
 // diagnostics recorder), so that tests can check that headers do not
 // depend on output buffering. Returns its base URL; the server is stopped
 // when the test script ends.
 function start_unbuffered_server($port)
 {
-    $log = unbuffered_server_log($port);
-    $command = 'exec php -d output_buffering=0'
+    return start_test_server(
+        $port,
+        'php -d output_buffering=0'
         . ' -d auto_prepend_file=' . escapeshellarg(__DIR__ . '/runtime/diagnostics-prepend.php')
-        . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__));
+        . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__) . '/public')
+        . ' ' . escapeshellarg(__DIR__ . '/runtime/router.php'),
+        'output_buffering=0',
+    );
+}
+
+// Starts a server on $port whose document root is the release root instead
+// of public/, without the router: the layout of a misconfigured web server.
+// For the test-only page tests/runtime/db-failure.php and for the files that
+// must still answer nothing there (the command-line scripts' own 404, the
+// library files in src/). Diagnostics recorder and, in the coverage run,
+// coverage as on the application service.
+function start_release_root_server($port)
+{
+    $environment = '';
+    $prepend = __DIR__ . '/runtime/diagnostics-prepend.php';
+    $coverageDir = getenv('PGACC_COVERAGE_DIR');
+    if ($coverageDir !== false && $coverageDir !== '') {
+        $environment = 'env XDEBUG_MODE=coverage PGACC_COVERAGE_DIR=' . escapeshellarg($coverageDir . '/http')
+            . ' PGACC_COVERAGE_CHAINED_PREPEND=' . escapeshellarg($prepend) . ' ';
+        $prepend = __DIR__ . '/coverage/prepend.php';
+    }
+    return start_test_server(
+        $port,
+        $environment . 'php -d output_buffering=4096 -d auto_prepend_file=' . escapeshellarg($prepend)
+        . ' -S 127.0.0.1:' . $port . ' -t ' . escapeshellarg(dirname(__DIR__)),
+        'release-root',
+    );
+}
+
+// Runs $command (a php -S server on $port), waits until it accepts
+// connections and stops it when the test script ends. Returns its base URL.
+function start_test_server($port, $command, $label)
+{
+    $log = unbuffered_server_log($port);
     $server = proc_open(
-        $command,
+        'exec ' . $command,
         [
             0 => ['file', '/dev/null', 'r'],
             1 => ['file', $log, 'a'],
@@ -325,7 +360,7 @@ function start_unbuffered_server($port)
         $pipes,
     );
     if (!is_resource($server)) {
-        fail_test('could not start the output_buffering=0 server');
+        fail_test("could not start the $label server");
     }
     register_shutdown_function('stop_unbuffered_server', $server);
     for ($attempt = 0; $attempt < 50; $attempt++) {
@@ -336,7 +371,7 @@ function start_unbuffered_server($port)
         }
         usleep(100000);
     }
-    fail_test('output_buffering=0 server did not start: ' . @file_get_contents($log));
+    fail_test("$label server did not start: " . @file_get_contents($log));
 }
 
 // Standard output and error (error_log()) of the server on $port.

@@ -32,7 +32,7 @@ remove them with `docker rmi`.
 
 The lane:
 
-1. runs `php -l` on every top-level application file and `src/*.php` under PHP 8.5;
+1. runs `php -l` on every top-level application file, `public/*.php` and `src/*.php` under PHP 8.5;
 2. loads the data-free schema and synthetic fixtures and runs
    `database-characterization.sql` with `psql`;
 3. starts the application and runs the HTTP tests, the PHPUnit suite and the
@@ -117,6 +117,26 @@ constraints; no backup table, owners, permissions, credentials or rows).
   totals, report type mapping and review-progress counts.
 - `http-smoke.php`: public report, transactions, spendings, rejected and
   successful login, an authenticated ledger request.
+- `http-docroot.php`: the document root `public/` and the allow list of the
+  web server. The test servers serve `public/` through
+  `tests/runtime/router.php`, which applies the allow list of the nginx site
+  (`deploy/ansible/templates/nginx-site.conf.j2`): `/`, `index.php`,
+  `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short page
+  addresses (`/donations`, ...), rewritten to `index.php?action=<name>`;
+  dot files and backup copies answer 403, anything else 404. Like nginx, the
+  router first decodes the path, merges slashes and resolves `.` and `..`
+  (above the document root: 400), and refuses files reached through a
+  symbolic link (403). The requests and answers are the shared matrix
+  `tests/web-server/matrix.php` (also run against real nginx and Apache,
+  see "Web server allow lists" below). It checks this on the application
+  service, then on a release built in the test container's `/tmp` (code as
+  symbolic links to `/app`, `public/` copied, a synthetic `constants.php` of
+  its own that the entry points must load) with backup copies, a dump, an
+  archive, a text file, PHP scripts and a symbolic link planted in the
+  release root and in `public/`: none of them is served. Tests that need the release
+  root as document root (the test page `tests/runtime/db-failure.php`, the
+  command-line scripts' own 404) use a second server
+  (`start_release_root_server()` in `http-test-helpers.php`).
 - `http-page-views.php`: a plain GET of every page in the `index.php`
   `?action=` dispatch and of every link of the public and the logged-in menu,
   plus the year links (report, donations) and account links (tinyreport,
@@ -235,6 +255,42 @@ it: `http-login.php`, `http-redirects.php` and `write-workflows.php` repeat
 their redirects on a second server with `output_buffering=0` started inside
 the test container.
 
+### Web server allow lists
+
+`sh tests/web-server/run.sh [nginx] [apache]` (CI job `Web server allow
+lists (nginx, Apache)`, every push; about 15 seconds plus image pulls) runs
+the request matrix `tests/web-server/matrix.php` against real web servers,
+so loosening the production configuration fails a test even where the
+router (`tests/runtime/router.php`) still agrees with the matrix:
+
+- nginx (the version of Debian 13) with
+  `deploy/ansible/templates/nginx-site.conf.j2`, rendered with Jinja2 as the
+  playbook does and otherwise unchanged, and PHP-FPM on the socket the
+  template names;
+- Apache with PHP as a module, `public/.htaccess` and the virtual host of
+  UPGRADING.md (the code block after `<!-- tested: apache vhost -->`), plus a
+  virtual host whose document root is the release root, where the release
+  root's `.htaccess` must refuse every request (403).
+
+The release is built below `build/` in the layout of `deploy.sh`
+(`current` -> `releases/<tag>`), with the planted files of the matrix and the
+entry points replaced by a stub that prints the script (nginx: the resolved
+release, `$realpath_root`) and the query string it ran with. The servers have
+no network; the client runs in their network namespace. Intentional
+differences of a server are listed in `tests/web-server/check.php`
+(Apache refuses an encoded `/`). Containers and the release are removed at
+the end. Red evidence: `try_files $uri` in the catch-all location serves
+`/js/README.md`; a static location `\.(css|js|png)$` serves `/planted.js`;
+without `disable_symlinks` a link in `public/js/` is served; a `\.php$`
+location runs `public/evil.php`.
+
+The same CI job runs `sh tests/deploy-guards.sh` (no Docker, a second): the
+`public/` guards of `deploy/deploy.sh` on a fake `/srv/pgacc` in a temporary
+directory, with `id`, `sudo`, `sleep` and `curl` stubbed (refusing a release
+without `public/`, the smoke test of an already current release, the
+rollback to a release without `public/`). Red evidence: the `deploy.sh`
+before these guards fails 2 of its 5 cases.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets
@@ -345,6 +401,7 @@ the coverage gate, the reference comparison and static analysis.
 | `PHP 8.5 / PostgreSQL 18 characterization harness` (coverage gate on changed lines) | yes | yes |
 | `Mutation tests (PHP 8.5 / PostgreSQL 18)` (`tests/mutation/ci.sh`, blocking) | only with the `mutation` label: changed lines (`--changed-since=<base>`); skipped otherwise | every target |
 | `Reference comparison (PHP 8.5)` | yes | yes |
+| `Web server allow lists (nginx, Apache)` (`tests/web-server/run.sh`) | yes | yes |
 | `Infection mutation report (functions\|shim, PHP 8.5, non-blocking)` | no | yes |
 
 The coverage gate is off only on scheduled and manual runs, which have no
@@ -352,8 +409,8 @@ base. CI keeps the default branch coverage (`PGACC_COVERAGE_BRANCHES=1`).
 
 ## Coverage
 
-`tests/run.sh` adds `compose.coverage.yaml` and measures all 30 top-level
-application files and the library files in `src/`:
+`tests/run.sh` adds `compose.coverage.yaml` and measures all 28 top-level
+application files, the entry points in `public/` and the library files in `src/`:
 
 - The application server runs with `auto_prepend_file=tests/coverage/prepend.php`
   and `XDEBUG_MODE=coverage` (Xdebug 3.5.3). Per request the prepend starts Xdebug
@@ -416,7 +473,7 @@ the merge base, including uncommitted and untracked `*.php` files, as
 `file:start-end` ranges. `tests/coverage/check-changed-lines.php` then fails
 the lane if any of them is executable and unexecuted. Non-executable lines are
 ignored and paths outside the scope (`tests/`, non-PHP files) skipped; a
-changed top-level PHP file missing from the report is an error. Uncovered
+changed top-level, `public/` or `src/` PHP file missing from the report is an error. Uncovered
 branches on changed lines are warnings (`PGACC_COVERAGE_STRICT_BRANCHES=1`
 makes them fail).
 
@@ -559,7 +616,7 @@ It runs in its own image (`tests/static-analysis/Dockerfile`): pinned
 (PHP_CodeSniffer 4.0.4, PHPCompatibility 10.0.0-alpha2, PHPCSUtils 1.2.3,
 PHPStan 2.3.2, its PHAR SHA-256 checked). Only the build needs network; the
 analysis has no network, a read-only repository mount and root filesystem. It
-analyses a copy of the 30 tracked top-level application files and `src/*.php` (no `vendor/`,
+analyses a copy of the 28 tracked top-level application files, `public/*.php` and `src/*.php` (no `vendor/`,
 `tests/`, `files/`, `proxy/`), with `tests/runtime/test-constants.php` as
 `constants.php` and the locked `vendor/`, so `require()` paths resolve.
 `PGACC_TEST_ID` suffixes the image name.

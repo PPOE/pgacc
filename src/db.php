@@ -7,7 +7,7 @@
  * 'Abfrage fehlgeschlagen: ' and pg_last_error(). PHP reports the failed
  * pg_query() at this file, so db_fail() also logs the calling page's
  * file:line. The file only defines functions, so a direct request prints
- * nothing (the web server denies src/ anyway).
+ * nothing (src/ is outside the document root public/ anyway).
  */
 
 // Runs $sql and returns its result. With $show_sql the failure message

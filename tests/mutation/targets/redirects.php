@@ -249,7 +249,7 @@ foreach (array_diff($protectedPages, ['import']) as $page) {
 return [
     'description' => 'Early redirects: login redirect of protected pages and member search before output, '
         . 'edit/merge buffer, relocate() and its targets (HTTP redirect and write-workflow tests)',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'tests' => [
         // Protected pages, CSV listings and ?hide= when not logged in, and
         // the member search, against the normal and an unbuffered server.

@@ -17,7 +17,7 @@ $merge = ['start' => 'function page_edit_merge($rights)', 'end' => 'function pag
 return [
     'description' => 'Form tokens and POST-only writes: index.php check, checklogin() token, column preferences, '
         . 'logout, merge, recovery and the token fields of the forms (HTTP CSRF and listing tests)',
-    'file' => 'index.php',
+    'file' => 'public/index.php',
     'tests' => [
         // Missing, wrong and other-user tokens per write action, GET on the
         // converted actions, the token fields, valid tokens, re-login.

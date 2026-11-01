@@ -535,7 +535,7 @@ return [
         ],
         [
             'id' => 'finalization-write-restored',
-            'file' => 'index.php',
+            'file' => 'public/index.php',
             'search' => '    } elseif (isset($_POST["belegfehler"])) {',
             'replace' => '    } elseif (isset($_POST["beleg"]) && pg_query($dbconn, "UPDATE vouchers SET receipt_received = true WHERE voucher_id = " . intval($_POST["id"])) && false) {} elseif (isset($_POST["belegfehler"])) {',
             'rationale' => 'The removed finalization: a POST with "beleg" writes nothing.',

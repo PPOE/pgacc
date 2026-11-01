@@ -114,7 +114,7 @@ function assert_undecryptable_download($cookies, $id, $label, $baseUrl = null)
 // port and log file cannot collide with another run: every run
 // (PGACC_TEST_ID) has its own test container, with its own network namespace
 // and /tmp, and runs its HTTP test files one after another; the other files
-// use ports 8081 to 8083.
+// use ports 8081 to 8083 and 8085 to 8088.
 function receipt_download_log($cookies, $id)
 {
     static $baseUrl = null;
@@ -1134,9 +1134,9 @@ assert_stored_receipt(receipt_file_number($database, 9133), $testKey, import2_te
     'Kontoauszug vom 31.03.2024', 'IBAN AT606000050110117300', '31.03 Zinsen HABEN LM/444444444',
     '30.06 Entgeltfuer Kontofuehrung', 'Neuer Kontostand zu Ihren Gunsten 1.000,00']), 'PDF import of a cover page');
 
-// The receipt key migration is a command-line script; the web server must
-// not run it.
-$migration = http_request('/migrate-receipt-key.php');
+// The receipt key migration is a command-line script outside the document
+// root; a web server serving the release root must not run it either.
+$migration = http_request('/migrate-receipt-key.php', 'GET', [], [], start_release_root_server(8086));
 assert_status($migration, 404, 'migration script over HTTP');
 if ($migration['body'] !== '') {
     fail_test('migration script over HTTP answered ' . var_export($migration['body'], true));

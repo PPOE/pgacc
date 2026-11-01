@@ -65,4 +65,4 @@ COPY --from=dependencies /dependencies/vendor ./vendor
 COPY tests/runtime/test-constants.php ./constants.php
 RUN printf 'date.timezone=UTC\n' >/usr/local/etc/php/conf.d/test-timezone.ini \
     && mkdir -p files
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "/app"]
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "/app/public", "/app/tests/runtime/router.php"]

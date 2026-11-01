@@ -101,6 +101,22 @@ jobs:
       - name: Check that style.css is the build of css/app.css (Tailwind CSS)
         run: sh scripts/build-css.sh --check
 
+  web-server:
+    # The request matrix of the document root public/ (tests/web-server/
+    # matrix.php) against real servers: nginx with the rendered site template
+    # of deploy/ansible, and Apache with public/.htaccess, the virtual host of
+    # UPGRADING.md and the release root's deny-all .htaccess.
+    name: Web server allow lists (nginx, Apache)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Run the request matrix against nginx and Apache
+        run: sh tests/web-server/run.sh
+      - name: Test the public/ guards of deploy/deploy.sh (stubbed, no server)
+        run: sh tests/deploy-guards.sh
+
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness
     needs: plan

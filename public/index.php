@@ -1,4 +1,12 @@
 <?php
+// The code, constants.php and files/ are in the release root, outside the
+// document root: relative includes and paths resolve there, as before.
+// Fail closed if that is not possible: nothing below may run elsewhere.
+if (!chdir(dirname(__DIR__))) {
+    error_log('pgacc: cannot change to the release root ' . dirname(__DIR__));
+    http_response_code(500);
+    exit(1);
+}
 if (empty($_SERVER['HTTP_X_FORWARDED_PROTO']) || $_SERVER['HTTP_X_FORWARDED_PROTO'] != 'https') {
     header("Location: https://" . $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"]);
     return;

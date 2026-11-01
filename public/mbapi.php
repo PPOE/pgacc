@@ -1,5 +1,14 @@
 <?php
 
+// The code, constants.php and files/ are in the release root, outside the
+// document root: relative includes and paths resolve there, as before.
+// Fail closed if that is not possible: nothing below may run elsewhere.
+if (!chdir(dirname(__DIR__))) {
+    error_log('pgacc: cannot change to the release root ' . dirname(__DIR__));
+    http_response_code(500);
+    exit(1);
+}
+
 include "constants.php";
 require "vendor/autoload.php";
 require "functions.php";

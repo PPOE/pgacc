@@ -5,6 +5,41 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Deployment change** (for the next major release): the web server's
+  document root is now `public/` of the release, not the release root
+  ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).
+  `public/` holds only the entry points `index.php` and `mbapi.php`,
+  `style.css`, `js/` and `icons/`; the page scripts, `functions.php`, `src/`,
+  `vendor/`, the command-line scripts, `constants.php` and `files/` stay in
+  the release root, so nothing there can be requested, whatever its name
+  (such as a backup copy `constants.php.bak`). `constants.php` and `files/`
+  stay where they are. The URLs stay the same; a direct request of a page
+  script, `functions.php` or `src/*.php` (which printed nothing) now gets a
+  404. Also relevant for monitoring: `/files/`, `/vendor/`, `/tests/`,
+  `/src/`, `/constants.php`, `/composer.json` and the command-line scripts
+  answer 404 instead of 403 (dot files and backup copies still 403);
+  `/icons/readme.html`, `/js/README.md` and files of other types (`.gif`,
+  `.jpg`, `.svg`, `.ico`, `.webp`, `.woff`; pgacc ships and links none) are
+  no longer served; `/index.php/...` (PATH_INFO) answers 404. A symbolic
+  link below `public/` is refused (403). The nginx site of `deploy/ansible/playbook.yml` serves
+  `current/public` with an allow list (`/`, the two entry points, the static
+  files, the short page addresses; anything else 404); run the playbook of
+  the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
+  release without `public/`; if the smoke test of the new release fails, it
+  rolls back to a previous release without `public/` only if that
+  release's login page still answers (the web server still serves the
+  release root); otherwise the new release stays current. Apache: `public/.htaccess` has the same allow list
+  (mod_rewrite, which is now required, and `AllowOverride All`; it also
+  rewrites the short page addresses and turns off `PATH_INFO`) and the rules
+  of the former `.htaccess`; on Debian, comment out Apache's `Alias /icons/`.
+  `src/.htaccess` removed; the top-level `.htaccess` now
+  denies every request (a safety net if the document root is still the
+  release root). The Lighttpd examples are removed from UPGRADING.md
+  and README.md (untested, no longer used); other web servers need the same
+  document root, allow list and deny rules as the nginx site template.
+
 ### Security
 
 - Web server: deny backup, editor and dump copies anywhere in the tree

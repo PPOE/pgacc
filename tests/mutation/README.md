@@ -300,7 +300,8 @@ root, `/tmp` tmpfs). `runner.php`:
 
 Every command runs in its own process group (`setsid`); on timeout, or when a
 command leaves children behind, the group is killed, so a hung mutant cannot
-hold a port. The runner passes its served root as `PGACC_TEST_APP_ROOT`, and
+hold a port. The runner passes the copy (the application root; it serves its
+`public/`) as `PGACC_TEST_APP_ROOT`, and
 `tests/http-diagnostics.php` strips it before matching displayed diagnostics.
 
 | Status | Meaning |
@@ -319,7 +320,7 @@ A target is a PHP file in `targets/` that returns an array:
 ```php
 return array(
     'description' => 'index.php login() and logout branch',
-    'file' => 'index.php',                    // default for every mutation
+    'file' => 'public/index.php',                    // default for every mutation
     'region' => array('start' => '...', 'end' => '...'),   // optional default
     'tests' => array(                         // run in order, stop at first failure
         array('type' => 'http', 'script' => 'tests/http-login.php'),

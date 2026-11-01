@@ -1,5 +1,5 @@
 /*
- * pgacc stylesheet, source of style.css.
+ * pgacc stylesheet, source of public/style.css.
  *
  * Built with the Tailwind CSS standalone CLI: sh scripts/build-css.sh (CI
  * checks that the committed style.css is the build of this file). The pages

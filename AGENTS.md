@@ -1,7 +1,7 @@
 # AGENTS.md
 
 pgacc is a legacy PHP/PostgreSQL accounting tool for a political party, with a German UI.
-It has 30 top-level PHP files plus library files in `src/`, global functions, no framework, `pg_*` calls (mostly through
+It has 28 top-level PHP files, the two entry points in `public/` (the document root) and library files in `src/`, global functions, no framework, `pg_*` calls (mostly through
 the `src/db.php` helpers), and SQL built by string concatenation.
 Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fix plan: `tests/COMPATIBILITY_PLAN.md`.
 
@@ -88,8 +88,8 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
   `scripts/claude-format-hook.sh`); run `sh scripts/format.sh` manually otherwise. CI fails on unformatted code
   (`sh scripts/format.sh --check --ci`). Never change inline HTML or string contents to satisfy the formatter.
 - Every text file of ours is LF (`.gitattributes`, `* text=auto eol=lf`). Test fixtures, the reference recordings
-  and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php85/`, `icons/`,
-  vendored `js/` files) are byte-exact (`-text`): never convert them.
+  and third-party files (`tests/fixtures/`, `tests/reference/fixtures/`, `tests/reference/php85/`, `public/icons/`,
+  vendored `public/js/` files) are byte-exact (`-text`): never convert them.
 - Token-changing modernization (array syntax, `elseif`, visibility, closing tags, imports) is a separate,
   planned change: don't mix it into fixes. The changed-line gates are strict (every changed line counts);
   `tests/coverage/ast-equivalence.sh` and `token-equivalence.sh` are standalone review tools. Exempting
@@ -123,14 +123,15 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 
 | Path | Role |
 |---|---|
-| `index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
+| `public/` | Document root: only the entry points `index.php` and `mbapi.php` (they `chdir()` to the repository root, which holds the code, `constants.php` and `files/`), `style.css`, `js/`, `icons/` |
+| `public/index.php` | Entry point: login/logout, `checklogin()`, requires every page file, dispatches on `?action=` (default: report) |
 | `functions.php` | Shared helpers: `acc_header`/`acc_footer`, `getfilter`, `getsort`, `rights2orgasql` (rights to SQL) |
-| `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure and log the calling page's file:line); web access denied (`src/.htaccess`); loaded by `index.php` and `mbapi.php` after `functions.php` |
+| `src/db.php` | Database helpers `db_query()`, `db_exec()`, `db_next_value()` (die with the pages' message on failure and log the calling page's file:line); outside the document root; loaded by `index.php` and `mbapi.php` after `functions.php` |
 | `src/format.php` | Formatting and parsing helpers: `amount_cents()` (exact amount parsing), `format_date()`, `format_amount()` (cents as `12.34` plus a unit); loaded by `index.php` after `src/db.php` |
 | `new.php`, `edit.php` | Voucher workflow: create, edit, approve (acks), merge, revisions (finalization removed) |
 | `report.php`, `vreport.php`, `tinyreport.php` | Financial reports (public report is the default page) |
 | `import.php`, `import2.php` | BAWAG bank CSV import |
-| `getusers.php`, `mbapi.php` | Membership-system interface (lookup and export API) |
+| `getusers.php`, `public/mbapi.php` | Membership-system interface (lookup and export API) |
 | `file.php` | Encrypted receipt download (helpers in `functions.php`, phpseclib): `files/<n>.v2.aes` (AES-256 + HMAC, keyed on `$key` and file number), legacy `files/<n>.aes` (mcrypt-compatible) |
 | `migrate-receipt-key.php` | Command-line migration of legacy receipts to `<n>.v2.aes` in two phases (404 over HTTP); runbook in `tests/COMPATIBILITY_PLAN.md` |
 | `check.php` | Command-line voucher number check of one account, `php check.php <account> <max>` (404 over HTTP) |
@@ -138,5 +139,6 @@ Overview: `README.md`. Test harness: `tests/README.md`. Open findings and the fi
 | `tests/run.sh`, `compose.test.yaml`, `compose.coverage.yaml`, `tests/php-runtime.Dockerfile` | Harness entry point, Compose files, PHP 8.5 image |
 | `tests/dev.sh`, `compose.dev.yaml`, `tests/dev/` | Local development loop (bind-mounted checkout, per-file state reset, no coverage) |
 | `tests/http-*.php`, `tests/write-workflows.php`, `tests/unit/` | HTTP, write-workflow and PHPUnit tests |
+| `tests/web-server/` | Request matrix of the document root (`matrix.php`, also run by `http-docroot.php`) and `run.sh`: real nginx (rendered site template) and Apache (`public/.htaccess`, UPGRADING.md virtual host) |
 | `tests/coverage/`, `tests/mutation/`, `tests/static-analysis/` | Coverage gate, mutation runners, analysis plus baselines |
 | `tests/reference/` | Golden master `php85/` (recorded on PHP 8.5 x PG 18, diagnostics included), `run.sh record` / `run.sh compare 8.5`, `allowlist.php` (empty; only for real nondeterminism) |

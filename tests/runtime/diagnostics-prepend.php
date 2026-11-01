@@ -54,9 +54,16 @@ function pgacc_test_diagnostics_type_name($type)
     return isset($names[$type]) ? $names[$type] : 'E_UNKNOWN_' . $type;
 }
 
+// Relative to the application root: the document root, or the directory
+// above it when that is public/ (the entry points in public/ load the code
+// from there).
 function pgacc_test_diagnostics_relative_file($file)
 {
-    $root = rtrim(isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '', '/') . '/';
+    $root = rtrim(isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '', '/');
+    if (basename($root) === 'public') {
+        $root = dirname($root);
+    }
+    $root .= '/';
     if ($root !== '/' && strpos($file, $root) === 0) {
         return substr($file, strlen($root));
     }

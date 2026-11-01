@@ -7,7 +7,7 @@
 #
 #   sh tests/rector/run.sh [--dry-run] [files...]
 #       default files: the tracked application pages (top-level *.php
-#       without .php-cs-fixer.dist.php) and src/*.php
+#       without .php-cs-fixer.dist.php), public/*.php and src/*.php
 #
 # Afterwards: sh scripts/format.sh (PER-CS layout) and
 # sh tests/coverage/ast-equivalence.sh --check <base> (the proof).
@@ -22,7 +22,7 @@ if [ "${1:-}" = --dry-run ]; then
 fi
 if [ $# -eq 0 ]; then
   # shellcheck disable=SC2046 # plain file names ([A-Za-z0-9_.-])
-  set -- $({ git -C "$repo_dir" ls-files ':(top)*.php' | grep -v / | grep -vx '.php-cs-fixer.dist.php'; git -C "$repo_dir" ls-files ':(top)src/*.php' | grep -v '^src/.*/'; })
+  set -- $({ git -C "$repo_dir" ls-files ':(top)*.php' | grep -v / | grep -vx '.php-cs-fixer.dist.php'; git -C "$repo_dir" ls-files ':(top)public/*.php' ':(top)src/*.php' | grep -v '^\(public\|src\)/.*/'; })
 fi
 for file; do
   case "$file" in

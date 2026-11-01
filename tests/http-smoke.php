@@ -51,15 +51,18 @@ if (preg_match_all($rowPattern, $anlage, $rows) !== 4) {
 // is read from the source tree: the diagnostics recorder only wraps PHP.
 // style.css is built from css/app.css (scripts/build-css.sh); the td rule is
 // indented inside its cascade layer.
-$css = file_get_contents(__DIR__ . '/../style.css');
+$css = file_get_contents(__DIR__ . '/../public/style.css');
 if (preg_match('/\n *td \{[^}]*text-align: right;[^}]*font-variant-numeric: tabular-nums;[^}]*\}/', $css) !== 1) {
     fail_test('style.css: the td rule has no right alignment with tabular digits');
 }
 
-// The library files only define functions: a direct request prints nothing
-// (the web server denies src/; the test server ignores .htaccess).
+// The document root is public/ (tests/http-docroot.php). A server with the
+// release root as its document root (a misconfigured web server) serves the
+// test-only page below, and the library files there print nothing: they only
+// define functions.
+$releaseRootUrl = start_release_root_server(8085);
 foreach (['src/db.php', 'src/format.php'] as $path) {
-    $library = http_request('/' . $path);
+    $library = http_request('/' . $path, 'GET', [], [], $releaseRootUrl);
     if ($library['body'] !== '') {
         fail_test($path . ': a direct request printed ' . var_export($library['body'], true));
     }
@@ -75,16 +78,16 @@ $failures = [
     'query-sql' => 'Abfrage (SELECT * FROM db_helpers_missing) fehlgeschlagen: ' . $missing . 'SELECT * FROM db_helpers_missing',
     'exec' => 'Abfrage fehlgeschlagen: ' . $missing . 'UPDATE db_helpers_missing SET n = 1',
 ];
-with_expected_diagnostics('db-helper-failure', [['src/db.php', 'pg_query(): Query failed']], function () use ($failures) {
+with_expected_diagnostics('db-helper-failure', [['src/db.php', 'pg_query(): Query failed']], function () use ($failures, $releaseRootUrl) {
     foreach ($failures as $helper => $expected) {
-        $failure = http_request('/tests/runtime/db-failure.php?helper=' . $helper);
+        $failure = http_request('/tests/runtime/db-failure.php?helper=' . $helper, 'GET', [], [], $releaseRootUrl);
         assert_status($failure, 200, "db helper failure $helper");
         if (strpos($failure['body'], "</b><br />\n" . $expected) === false || strpos($failure['body'], 'not ended') !== false) {
             fail_test("db helper failure $helper: " . var_export($failure['body'], true));
         }
     }
 });
-$noRow = http_request('/tests/runtime/db-failure.php?helper=next-value-no-row');
+$noRow = http_request('/tests/runtime/db-failure.php?helper=next-value-no-row', 'GET', [], [], $releaseRootUrl);
 assert_status($noRow, 200, 'db_next_value() without a row');
 if ($noRow['body'] !== 'Abfrage fehlgeschlagen: ') {
     fail_test('db_next_value() without a row: ' . var_export($noRow['body'], true));
@@ -147,8 +150,9 @@ assert_not_contains($report2025['body'], 'Abfrage fehlgeschlagen', '2025 report'
 assert_contains($report2025['body'], '<td width="150px">Kontostand 31.12.2024</td>', '2025 report opening balance');
 
 // check.php, the voucher number check, is a command-line script
-// (tests/unit/CheckCommandTest.php); the web server must not run it.
-$check = http_request('/check.php?kto=SYNTHETIC0&max=3');
+// (tests/unit/CheckCommandTest.php) outside the document root; a web server
+// serving the release root must not run it either.
+$check = http_request('/check.php?kto=SYNTHETIC0&max=3', 'GET', [], [], $releaseRootUrl);
 assert_status($check, 404, 'check.php over HTTP');
 if ($check['body'] !== '') {
     fail_test('check.php over HTTP answered ' . var_export($check['body'], true));

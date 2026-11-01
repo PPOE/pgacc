@@ -34,10 +34,11 @@ if [ ! -f "$repo_dir/tests/static-analysis/Dockerfile" ]; then
   exit 2
 fi
 
-# Tracked top-level application files and the library files in src/ only:
+# Tracked top-level application files, the entry points in public/ and the
+# library files in src/ only:
 # vendor/, tests/, files/ and proxy/ are excluded, as is the untracked
 # deployment constants.php.
-files=$({ git -C "$repo_dir" ls-files -- '*.php' | grep -v /; git -C "$repo_dir" ls-files -- 'src/*.php' | grep -v '^src/.*/'; } || true)
+files=$({ git -C "$repo_dir" ls-files -- '*.php' | grep -v /; git -C "$repo_dir" ls-files -- 'public/*.php' 'src/*.php' | grep -v '^\(public\|src\)/.*/'; } || true)
 if [ -z "$files" ]; then
   echo "No tracked top-level PHP files found" >&2
   exit 1

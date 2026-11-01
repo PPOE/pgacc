@@ -13,9 +13,10 @@
  * coverage only): the legacy functions have far too many paths for the metric
  * to be useful.
  *
- * <coverage-dir> contains phpunit.cov and http/*.ser. Scope: every top-level
- * application PHP file in /app, except the test-only constants.php, and the
- * library files in /app/src. Files that
+ * <coverage-dir> contains phpunit.cov and http/*.ser. Scope: every
+ * application PHP file: the top-level files in /app (except the test-only
+ * constants.php), the entry points in /app/public and the library files in
+ * /app/src. Files that
  * no test reaches are included with zero coverage (statically analysed, never
  * executed).
  */
@@ -42,7 +43,7 @@ $outputDir = rtrim($argv[2], '/');
 $appRoot = '/app';
 
 $files = [];
-foreach (array_merge(glob($appRoot . '/*.php'), glob($appRoot . '/src/*.php')) as $file) {
+foreach (array_merge(glob($appRoot . '/*.php'), glob($appRoot . '/public/*.php'), glob($appRoot . '/src/*.php')) as $file) {
     if (basename($file) !== 'constants.php') {
         $files[] = $file;
     }

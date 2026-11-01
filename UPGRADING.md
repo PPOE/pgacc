@@ -9,6 +9,163 @@ verifies, unpacks and activates the archive, with a smoke test and automatic
 rollback ([deploy/README.md](deploy/README.md)). It does not run the manual
 steps below (pgacc has no database migrations); do them as described.
 
+## Document root `public/` (deployment change)
+
+This release changes how pgacc is deployed; it is meant for a major release.
+The web server's document root is now the `public/` directory of the release,
+not the release root. `public/` holds only what must be reachable over the
+web:
+
+- the entry points `index.php` (every page, the login, the receipt downloads
+  `index.php?action=file`, the CSV exports `format=csv`) and `mbapi.php` (called
+  by the membership system);
+- the static files `style.css`, `js/*.js` and `icons/*.png`;
+- `.htaccess` (Apache: the allow list, `AcceptPathInfo Off`,
+  `short_open_tag` and the backup-copy rule; see Apache below).
+
+Everything else stays in the release root, outside the document root: the
+page scripts that `index.php` loads, `functions.php`, `src/`, `vendor/`, the
+command-line scripts (`migrate-receipt-key.php`, `check.php`), the docs, and
+`constants.php` and `files/`. Nothing there can be requested, whatever its
+name, so a copy such as `constants.php.bak` next to the configuration is no
+longer exposed. The entry points change to the release root (`chdir`) and
+load the code, `constants.php` and `files/` from there, as before; PHP's
+`include_path` must contain `.` (the default).
+
+The URLs stay the same: `/`, `/index.php?action=...`, the short page
+addresses (`/donations`, ...), `/mbapi.php`, `/style.css?v=...`,
+`/js/...?v=...`, `/icons/....png`. Only addresses that never were pages stop
+answering: a direct request of a page script, `functions.php` or `src/*.php`
+printed nothing and now gets a 404, as do `/icons/readme.html` and
+`/js/README.md` (not served by the allow lists below). Monitoring that
+expects 403 for `/files/`, `/vendor/`, `/constants.php` and the like gets
+404 now (only dot files and backup copies still answer 403). Static files
+other than `style.css`, `js/*.js` and `icons/*.png` (`.gif`, `.jpg`, `.svg`,
+`.ico`, `.woff`, ...) are not served; pgacc ships and links none.
+
+Upgrade steps:
+
+1. Keep `constants.php` and `files/` where they are: in the release root (or,
+   with `deploy/`, the links to `shared/` that `pgacc-deploy` creates there).
+   Do not move them into `public/`.
+2. Set the document root to `<release>/public` and serve only the allow list
+   below; keep the dot-file and backup-copy rules. The short page addresses
+   are rewritten as before.
+3. Deploy the release and check: `/` (the report), the login, a receipt
+   download, a CSV export, `/donations`, `/style.css?v=<version>`,
+   `/icons/add.png` and `/mbapi.php` answer; `/functions.php`,
+   `/composer.json`, `/vendor/autoload.php` and `/constants.php` answer 404,
+   and so do `/js/README.md` and `/index.php/x`, which are inside `public/`:
+   they show that the allow list is active (an Apache without `AllowOverride
+   All` serves all of `public/`).
+
+Hosts set up with `deploy/ansible/playbook.yml`: the playbook of the new
+release sets `root /srv/pgacc/current/public` and the allow list, and
+installs the new `pgacc-deploy`. From its nginx reload until the deploy the
+site answers 404 (the current release has no `public/`), so have the archive
+ready on the host first and deploy straight after the playbook:
+
+1. Download `pgacc-<version>.tar.gz` and `pgacc-<version>.tar.gz.sha256` from
+   the release page into a directory on the host that `pgacc-deploy` can
+   read, and verify them there: `sha256sum -c pgacc-<version>.tar.gz.sha256`.
+2. Run the playbook from a checkout of the new release.
+3. Right after it, without a download:
+   `sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz`
+   (it checks the `.sha256` next to the archive again).
+
+If the smoke test of that deploy fails, `pgacc-deploy` goes back to the
+release without `public/` only if its login page answers (the web server
+still serves `current/`); otherwise (it could only answer 404) the new
+release stays current. Either way it prints the recovery steps and exits
+with 1. A deploy of a release without `public/` is refused; to go back to
+such a release, run the playbook of that release's checkout first (document
+root `current/`), then `pgacc-deploy` of that version.
+
+nginx (as in `deploy/ansible/templates/nginx-site.conf.j2`, which also sets
+the caching headers; `tests/web-server/run.sh nginx` tests that template).
+`disable_symlinks ... from=$document_root` refuses symbolic links below
+`public/` (403) but not the `current` link above it. `SERVER_NAME $host`:
+`index.php` builds its HTTPS redirect from `SERVER_NAME`, so pass the host
+name when `server_name` is `_`:
+
+```
+root /srv/pgacc/current/public;
+disable_symlinks on from=$document_root;
+index index.php;
+autoindex off;
+
+location ~ (^|/)\. {
+    deny all;
+}
+location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
+    deny all;
+}
+location ~ ^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$ {
+    rewrite ^/(.+)$ /index.php?action=$1 last;
+}
+location = / {
+}
+location ~ ^/(style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)$ {
+}
+location ~ ^/(index|mbapi)\.php$ {
+    try_files $uri =404;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    fastcgi_param DOCUMENT_ROOT $realpath_root;
+    fastcgi_param SERVER_NAME $host;
+    fastcgi_pass unix:/run/php/php-fpm.sock;
+}
+location / {
+    return 404;
+}
+```
+
+Other web servers (pgacc ships and tests no configuration for them): set
+the document root to `public/` and implement the same allow list, deny rules,
+short page addresses and refusal of symbolic links below `public/` as the
+nginx site template (`deploy/ansible/templates/nginx-site.conf.j2`); then
+check the paths of step 3 above.
+
+Apache: `public/.htaccess` has the allow list (mod_rewrite: `/`,
+`index.php`, `mbapi.php`, `style.css`, `js/*.js`, `icons/*.png` and the short
+page addresses, which it rewrites itself; dot files and symbolic links 403,
+anything else 404), `AcceptPathInfo Off` (no `/index.php/...`), `php_value
+short_open_tag 1` and the backup-copy rule. It needs mod_rewrite (without it
+every request answers 500) and `AllowOverride All`. With PHP-FPM
+(`proxy_fcgi`) instead of PHP as an Apache module, `php_value` in
+`.htaccess` answers 500: remove that line and set `short_open_tag = On` in
+the pool (`php_admin_flag[short_open_tag] = on`) or in `php.ini`. The
+rewrite rule for the short page addresses in the virtual host is no longer
+needed (it does no harm). `src/.htaccess` is gone. The top-level `.htaccess` now denies every
+request. With the document root `public/` it is never read, but only if
+the virtual host's former `<Directory /srv/pgacc/current>` block with
+`AllowOverride` is replaced by the `<Directory /srv/pgacc/current/public>`
+block below: while a `<Directory>` block for the release root still allows
+overrides, Apache merges the release root's `.htaccess` into every request
+below it, and the whole site answers 403. It is a safety net for a host
+whose document root is still the release root, which then answers 403
+instead of serving the code. Tested with Apache 2.4 and PHP as an
+Apache module (`tests/web-server/run.sh apache`, which runs this virtual
+host):
+
+<!-- tested: apache vhost -->
+```
+DocumentRoot /srv/pgacc/current/public
+<Directory /srv/pgacc/current/public>
+  Options -Indexes +SymLinksIfOwnerMatch
+  AllowOverride All
+  Require all granted
+</Directory>
+```
+
+Debian's Apache maps `/icons/` to its own icons (`Alias /icons/` in
+`/etc/apache2/mods-available/alias.conf`); comment that line out, or
+pgacc's icons answer 404 (as they did before this release).
+
+Symbolic links: `public/.htaccess` refuses a link as the requested file;
+Apache still follows a linked directory below `public/` if its owner matches
+(`SymLinksIfOwnerMatch`, which mod_rewrite needs). pgacc ships none.
+
 ## Web server: deny backup and editor copies
 
 The deny rules below (`files/`, `vendor/`, `constants.php`, ...) match exact
@@ -33,16 +190,13 @@ location ~* "(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|g
 }
 ```
 
-Lighttpd:
+Apache: the shipped `.htaccess` has the same rule (`FilesMatch`, needs
+`AllowOverride` as before); with the document root `public/` (below) it is
+`public/.htaccess`. Other web servers need the same rule as the nginx one.
 
-```
-$HTTP["url"] =~ "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php[^/]+|(^|/)#[^/]*#)$" {
-  url.access-deny = ( "" )
-}
-```
-
-Apache: the shipped top-level `.htaccess` has the same rule (`FilesMatch`,
-needs `AllowOverride` as before).
+With the document root `public/` (below) these rules are a second line of
+defence: only `public/` is served, so a copy in the release root cannot be
+requested at all.
 
 ## Web server: long-term caching of `style.css` and `js/`
 
@@ -68,9 +222,10 @@ built on the server.
 
 From 2.1.0 the archive has a `src/` directory with library
 files (first `src/db.php`, the database helpers). Deny web access to `/src/`
-like `/vendor/` and `/tests/`. On Apache the shipped `src/.htaccess` does
-this (it needs `AllowOverride` like the top-level `.htaccess`); on Lighttpd
-add `src` to the directory list of the rule below. A request would print
+like `/vendor/` and `/tests/`. On Apache the `src/.htaccess` shipped up to
+the document root `public/` did this (with that layout `src/` is outside the
+document root and the file is gone); other web servers deny it like
+`/vendor/`. A request would print
 nothing (the files only define functions), but the code is not meant to be
 served.
 
@@ -80,16 +235,9 @@ The pages link to `/donations`, `/kdonations`, `/spendings`, `/wk`,
 `/transactions`, `/vreport` and `/tinyreport` (with an optional query string,
 e.g. `/donations?year=2024`). The web server has to rewrite them to
 `index.php?action=<name>`, keeping the query string; this was always needed
-but only lived in the server configuration. Lighttpd:
-
-```
-url.rewrite-once = (
-  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)$" => "index.php?action=$1",
-  "^/(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)\?(.*)$" => "index.php?action=$1&$2"
-)
-```
-
-The nginx site of `deploy/ansible/playbook.yml` has the same rule.
+but only lived in the server configuration. The nginx site of
+`deploy/ansible/playbook.yml` and `public/.htaccess` (Apache) have this
+rewrite; other web servers need the same.
 
 ## Passwords: bcrypt and 12 characters
 
@@ -178,15 +326,7 @@ PHP 5.3 and PostgreSQL 8.4.
    `composer.json`/`composer.lock`, and to disable directory listings.
    `migrate-receipt-key.php` and `check.php` run only on the command line
    and answer 404 over HTTP; on Apache, `.htaccess` denies only these two.
-   Lighttpd
-   (adjust the prefix if pgacc is not at the document root):
-
-   ```
-   $HTTP["url"] =~ "^/(files|vendor|tests|src)(/|$)|^/(constants\.php|migrate-receipt-key\.php|check\.php|composer\.(json|lock))$" {
-     url.access-deny = ( "" )
-   }
-   dir-listing.activate = "disable"
-   ```
+   Other web servers: the same deny rules as the nginx site template.
 
 6. Tell users that everyone has to log in again: the deploy logs every user
    out once (old cookies are numbers, no longer valid session tokens).

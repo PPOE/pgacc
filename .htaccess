@@ -1,22 +1,12 @@
-php_value short_open_tag 1
-# Command-line only (they also answer 404 to web requests).
-<FilesMatch "^(migrate-receipt-key|check)\.php$">
-  <IfModule mod_authz_core.c>
-    Require all denied
-  </IfModule>
-  <IfModule !mod_authz_core.c>
-    Order allow,deny
-    Deny from all
-  </IfModule>
-</FilesMatch>
-# Backup, editor and dump copies (constants.php.bak, index.php~, x.sql,
-# a.tar.gz, ...): without a .php extension they would be served as plain text.
-<FilesMatch "(?i)(~|\.(bak|old|orig|save|swp|swo|tmp|deleteme|dist|sql|tar|tgz|zip|gz|7z|rar)|_backup|\.php.+|^#.*#)$">
-  <IfModule mod_authz_core.c>
-    Require all denied
-  </IfModule>
-  <IfModule !mod_authz_core.c>
-    Order allow,deny
-    Deny from all
-  </IfModule>
-</FilesMatch>
+# Safety net only. The document root is public/ (UPGRADING.md, "Document
+# root public/"), so with a correct configuration the web server never reads
+# this file. If a host still serves the release root, nothing in it may be
+# served: the code, constants.php, files/, backup copies and the
+# command-line scripts. Deny every request.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
