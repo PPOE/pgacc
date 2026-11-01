@@ -37,6 +37,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   voucher counts, also on a row of another organization (the user learns
   only whether one exists); the second approval still comes from someone
   other than the first approver.
+- An approval that changes nothing no longer reports "Buchung bestätigt":
+  it says why ("Du hast bereits die 1. Bestätigung gegeben – die 2. muss
+  jemand anderer machen", or all the user's rows are approved twice). Every
+  refused approval links back to the voucher ("Zurück zur Buchung").
 
 ## [2.3.0] - 2026-11-01
 

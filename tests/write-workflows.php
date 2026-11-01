@@ -189,6 +189,9 @@ $unauthorizedApproval = http_request(
 );
 assert_status($unauthorizedApproval, 200, 'cross-organization approval');
 assert_contains($unauthorizedApproval['body'], 'Hier fehlt noch der Beleg', 'cross-organization approval');
+// Every refused approval links back to the voucher.
+$backToVoucher = '<a href="index.php?action=edit&id=' . $createdVoucherId . '">Zurück zur Buchung</a>';
+assert_contains($unauthorizedApproval['body'], $backToVoucher, 'cross-organization approval');
 $created = database_row(
     $database,
     'SELECT ack1, ack2 FROM vouchers WHERE id = $1',
@@ -220,7 +223,15 @@ $duplicateApproval = http_request(
     ['id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'],
     $adminCookies,
 );
-assert_redirect($duplicateApproval, edit_location($createdVoucherId, 4), 'duplicate approval');
+// The first approver's second click changes nothing and says why, instead
+// of "Buchung bestätigt".
+assert_status($duplicateApproval, 200, 'duplicate approval');
+assert_contains(
+    $duplicateApproval['body'],
+    'FEHLER: Du hast bereits die 1. Bestätigung gegeben – die 2. muss jemand anderer machen.',
+    'duplicate approval',
+);
+assert_contains($duplicateApproval['body'], $backToVoucher, 'duplicate approval');
 $created = database_row(
     $database,
     'SELECT id, ack1, ack2 FROM vouchers WHERE voucher_id = $1 AND NOT deleted',
@@ -247,6 +258,15 @@ $created = database_row(
 assert_database_field($created, 'ack1', 'synthetic-admin', 'voucher after second approval');
 assert_database_field($created, 'ack2', 'synthetic-reviewer', 'voucher after second approval');
 assert_database_field($created, 'receipt_received', 'f', 'voucher after second approval');
+$thirdApproval = http_request(
+    '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
+    'POST',
+    ['id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'],
+    $reviewerCookies,
+);
+assert_status($thirdApproval, 200, 'approval of an approved voucher');
+assert_contains($thirdApproval['body'], 'FEHLER: Alle Buchungszeilen, die du bestätigen kannst, sind bereits vollständig bestätigt.', 'approval of an approved voucher');
+assert_contains($thirdApproval['body'], $backToVoucher, 'approval of an approved voucher');
 
 // Finalization ("beleg") is removed: the form has had no button for it since
 // 68cda09 (2015), and production has a single finalized row. A POST with
@@ -841,6 +861,7 @@ finalize_in_database($database, $finalizedId);
 $finalizedApproval = edit_request($finalizedId, $approveForm, $adminCookies);
 assert_status($finalizedApproval, 200, 'approval of a finalized voucher');
 assert_contains($finalizedApproval['body'], 'bereits finalisiert', 'approval of a finalized voucher');
+assert_contains($finalizedApproval['body'], '<a href="index.php?action=edit&id=' . $finalizedId . '">Zurück zur Buchung</a>', 'approval of a finalized voucher');
 $crossFinalizedApproval = edit_request($finalizedId, $approveForm, $unitOneCookies);
 assert_status($crossFinalizedApproval, 200, 'cross-organization approval of a finalized voucher');
 assert_contains(
@@ -879,6 +900,24 @@ assert_voucher_rows(
         voucher_row_state('2', 'synthetic-unit-two', null, 'f'),
     ],
     'mixed voucher after approval by organization one',
+);
+
+// The refusal looks at the user's rows only: organization one's row is
+// approved twice, organization two's row not at all.
+$mixedApprovedId = create_voucher_from_form($database, two_organization_form('Synthetic voucher approved in organization one', 9018), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1 AND orga = 1", [$mixedApprovedId]);
+$mixedApproved = edit_request($mixedApprovedId, $approveForm, $unitOneCookies);
+assert_status($mixedApproved, 200, 'approval of rows approved twice');
+assert_contains(
+    $mixedApproved['body'],
+    'FEHLER: Alle Buchungszeilen, die du bestätigen kannst, sind bereits vollständig bestätigt.',
+    'approval of rows approved twice',
+);
+assert_voucher_rows(
+    $database,
+    $mixedApprovedId,
+    [voucher_row_state('1', 'synthetic-a', 'synthetic-b', 'f'), voucher_row_state('2', null, null, 'f')],
+    'voucher after the approval of rows approved twice',
 );
 
 $mixedFinalizedId = create_voucher_from_form(
@@ -927,6 +966,7 @@ $noReceiptState = [voucher_row_state('1', null, null, 'f'), voucher_row_state('2
 $noReceipt = edit_request($noReceiptId, $approveForm, $unitTwoCookies);
 assert_status($noReceipt, 200, 'approval of a voucher without a receipt');
 assert_contains($noReceipt['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a voucher without a receipt');
+assert_contains($noReceipt['body'], '<a href="index.php?action=edit&id=' . $noReceiptId . '">Zurück zur Buchung</a>', 'approval of a voucher without a receipt');
 assert_voucher_rows($database, $noReceiptId, $noReceiptState, 'voucher after the approval of a voucher without a receipt');
 // A user who also sees an open row passes the check above: that row gets its
 // first approval, but the approved row still gets no second one.

@@ -509,6 +509,36 @@ return [
                 . 'passes the check and gives the second approval of an approved row.',
         ],
         [
+            'id' => 'ack-unchanged-reported-as-approved',
+            'region' => $ack,
+            'search' => 'if ($acked == 0) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'An approval that changes no row is not reported as "Buchung bestätigt".',
+        ],
+        [
+            'id' => 'ack-second-approval-not-counted',
+            'region' => $ack,
+            'search' => '$acked += db_exec($dbconn, $query);',
+            'replace' => 'db_exec($dbconn, $query);',
+            'rationale' => 'A second approval alone is a change: it is reported as approved, not refused.',
+        ],
+        [
+            'id' => 'ack-unchanged-reason-swapped',
+            'region' => $ack,
+            'search' => '$own ? ',
+            'replace' => '!$own ? ',
+            'rationale' => 'The refusal names its reason: the user\'s own first approval, or a voucher '
+                . 'that is approved twice.',
+        ],
+        [
+            'id' => 'ack-unchanged-reason-unscoped',
+            'region' => $ack,
+            'search' => 'ack2 IS NULL AND voucher_id = $id $rightssql;',
+            'replace' => 'ack2 IS NULL AND voucher_id = $id;',
+            'rationale' => 'The reason looks only at the user\'s rows: a row of another organization '
+                . 'without a second approval does not make it the user\'s own first approval.',
+        ],
+        [
             'id' => 'ack1-update-stamps-deleted',
             'region' => $ack,
             'search' => 'WHERE NOT deleted AND ack1 IS NULL AND voucher_id',
