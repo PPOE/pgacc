@@ -15,7 +15,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   once per request and only by pages that show a member's number (the
   voucher form only for a voucher with the Mitglied box set), waiting at
   most 5 seconds (saves, the import and the member-fee page keep 20); the
-  CSV export keeps the plain number.
+  CSV export keeps the plain number. The linked number and name stay on
+  one line.
 
 ### Fixed
 
