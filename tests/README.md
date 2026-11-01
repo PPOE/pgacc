@@ -351,8 +351,8 @@ warnings fail the run (PHPUnit 13 reports them per test instead of throwing). Th
 rendering and the two PostgreSQL helpers), `src/format.php` (`AmountParsingTest.php`, `FormatTest.php`,
 `format_date()` in `FunctionsTest.php`), `InfectionShimTest.php` (the
 Infection wrapper, see [mutation notes](mutation/README.md)), `CryptoTest.php`
-(vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
-(stubbed `http://` stream wrapper), `ImportMemberMatchTest.php`,
+(receipt vectors in `tests/fixtures/mcrypt/vectors.json`), `GetUsersTest.php`
+(the TLS membership stub, `MembershipStub.php`), `ImportMemberMatchTest.php`,
 `ReceiptImportTest.php` (the import's `<n>.v2.aes`, refusals without a valid
 key), `ReceiptStorageTest.php` (v2 format against `tests/fixtures/receipt-v2/`,
 short reads via `ShortReadStream.php`, and the 20 MB memory check

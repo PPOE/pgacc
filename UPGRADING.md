@@ -156,7 +156,8 @@ curl --cacert admidio-addons-tls.crt -H 'Authorization: Bearer <token>' \
 With both directions on sync v2 nothing reads `$datakey` of `constants.php`
 any more (it was the key of the encrypted exports). `constants.php` needs
 only `$key`; an existing `$datakey` line is ignored and can stay or be
-removed.
+removed. The playbook of `deploy/` no longer writes one into a new
+`constants.php`.
 
 ## Document root `public/` (deployment change)
 

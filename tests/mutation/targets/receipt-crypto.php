@@ -70,12 +70,6 @@ return [
         ['id' => 'receipt-decrypt-params-swapped',
             'search' => "    return rijndael256_decrypt(\$cipherKey, \$data, \$iv);\n}\n\n/*\n * Receipt storage", 'replace' => "    return rijndael256_decrypt(\$iv, \$data, \$cipherKey);\n}\n\n/*\n * Receipt storage",
             'rationale' => 'Decryption passes key and IV in the same order as encryption.'],
-        ['id' => 'membership-key-not-hashed',
-            'search' => 'return [md5($datakey), md5(md5($datakey))];', 'replace' => 'return [md5(md5($datakey)), md5(md5($datakey))];',
-            'rationale' => 'The membership key is md5(datakey).'],
-        ['id' => 'membership-iv-hashed-once',
-            'search' => 'return [md5($datakey), md5(md5($datakey))];', 'replace' => 'return [md5($datakey), md5($datakey)];',
-            'rationale' => 'The membership IV is md5(md5(datakey)).'],
 
         // Receipt storage helpers (functions.php).
         ['id' => 'key-short-accepted',

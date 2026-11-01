@@ -58,6 +58,10 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
   member's uuid; the member-fee page links profiles by `user_uuid`, the
   ledger listing and the voucher form show the member id as text instead
   of a link. `membership_decrypt()` is removed.
+- With both directions on sync v2 nothing reads `$datakey` of
+  `constants.php` any more: `membership_cipher_params()` is removed, the
+  playbook of `deploy/` no longer writes a `$datakey` into a new
+  `constants.php`, and an existing `$datakey` line is ignored.
 
 ### Changed
 

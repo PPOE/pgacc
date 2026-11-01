@@ -5,7 +5,7 @@
  * padding) in functions.php. The expected bytes in
  * tests/fixtures/mcrypt/vectors.json were produced by the real mcrypt
  * extension (see tests/fixtures/mcrypt/generate-vectors.php), so existing
- * receipt files and the membership export stay readable.
+ * receipt files stay readable.
  */
 
 final class CryptoTest extends FunctionsTestCase
