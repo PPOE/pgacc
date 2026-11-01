@@ -609,8 +609,8 @@ $callSites = [
     [
         'id' => 'closed-acks-old-csv-empty-names-kept',
         'file' => 'closed.php',
-        'search' => "implode(\" \", \$make_csv ? array_filter(\$acks_old, function (\$s) {\n            return \$s !== '';\n        }) : \$acks_old)",
-        'replace' => 'implode(" ", $acks_old)',
+        'search' => "array_filter(\$acks_old, function (\$s) {\n            return \$s !== '';",
+        'replace' => "array_filter(\$acks_old, function (\$s) {\n            return true;",
         'rationale' => 'A CSV row without old acknowledgements gets a space instead of an empty cell.',
     ],
     [
