@@ -33,6 +33,7 @@
       <file>tests/unit/FormatTest.php</file>
       <file>tests/unit/DbHelpersTest.php</file>
       <file>tests/unit/YearNavTest.php</file>
+      <file>tests/unit/SyncApiTest.php</file>
     </testsuite>
   </testsuites>
   <coverage>
@@ -46,6 +47,7 @@
       <file>functions.php</file>
       <file>src/db.php</file>
       <file>src/format.php</file>
+      <file>src/sync-api.php</file>
       <file>getusers.php</file>
       <file>donations.php</file>
       <file>import.php</file>

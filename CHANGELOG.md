@@ -18,6 +18,28 @@ on every run (changes on the host are overwritten) and `pgacc-deploy`
 links it into each release. Recommended: `pgacc_timezone: Europe/Vienna`.
 See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
 
+- Internal sync endpoint `internal/mbapi.php` (the payments for the
+  membership system), **off unless configured**: the membership payments
+  of the former `public/mbapi.php` as JSON
+  (`[{"id", "amount_cents", "paid_until"}]`) on an internal TLS listener
+  with its own document root `internal/`. A request must come from an
+  address of `payments_peers` and carry `payments_token`
+  (`Authorization: Bearer`); otherwise, and without valid settings, 403
+  with an empty body; errors 503 with an empty body. Membership fees
+  without a member id are left out. `deploy/`: `pgacc_sync_listen_address`
+  (empty: off), `pgacc_sync_peers`, `pgacc_payments_token` (64 hex
+  characters from the inventory, the same as on the membership system) and
+  `pgacc_sync_port` (8443); a self-signed certificate
+  `/etc/pgacc/sync-tls.{crt,key}` for the address (made again when it
+  changes) and a second nginx `server`; `pgacc-deploy` requires `internal/`
+  to hold only `mbapi.php` and, with the listener on, expects 403 from it
+  without the token.
+- **Behaviour change**: `public/mbapi.php`, the encrypted
+  membership-payment export of the old membership sync, is removed:
+  `/mbapi.php` on the public site now answers 404, and the nginx site of
+  `deploy/`, `public/.htaccess` and `scripts/release.sh` no longer allow
+  it. The helper `membership_encrypt()` (only used by the export) is
+  removed.
 - **Behaviour change**: the member list (`getusers.php`; the member-fee
   page, the bank import, saving a member voucher) comes from the
   membership system's `members.php` as JSON over its internal TLS listener
@@ -42,7 +64,7 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
 - **Deployment change** (for the next major release): the web server's
   document root is now `public/` of the release, not the release root
   ([UPGRADING.md](UPGRADING.md), "Document root `public/`"; issue #80).
-  `public/` holds only the entry points `index.php` and `mbapi.php`,
+  `public/` holds only the entry point `index.php`,
   `style.css`, `js/` and `icons/`; the page scripts, `functions.php`, `src/`,
   `vendor/`, the command-line scripts, `constants.php` and `files/` stay in
   the release root, so nothing there can be requested, whatever its name
@@ -56,7 +78,7 @@ See [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
   `.jpg`, `.svg`, `.ico`, `.webp`, `.woff`; pgacc ships and links none) are
   no longer served; `/index.php/...` (PATH_INFO) answers 404. A symbolic
   link below `public/` is refused (403). The nginx site of `deploy/ansible/playbook.yml` serves
-  `current/public` with an allow list (`/`, the two entry points, the static
+  `current/public` with an allow list (`/`, the entry point, the static
   files, the short page addresses; anything else 404); run the playbook of
   the new release, then deploy it. `pgacc-deploy` refuses to switch back to a
   release without `public/`; if the smoke test of the new release fails, it

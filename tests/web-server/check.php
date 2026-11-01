@@ -5,12 +5,17 @@
  *
  *   php check.php plant <release> <secret>
  *       Plants the matrix files into <release> (web_server_plant()) and
- *       replaces public/index.php and public/mbapi.php with a stub that
+ *       replaces public/index.php with a stub that
  *       prints which script ran with which query string; writes
- *       entry-sentinel.php into <release> (matrix 'entry_link').
+ *       entry-sentinel.php into <release> (matrix 'entry_link'); replaces
+ *       internal/mbapi.php with a stub that runs the peer and token check of
+ *       src/sync-api.php and answers JSON, and plants files into internal/.
  *   php check.php entry-link <nginx|apache> <base URL>
- *       Checks the 'entry_link' requests (run.sh has made public/mbapi.php
+ *       Checks the 'entry_link' requests (run.sh has made public/index.php
  *       a link to entry-sentinel.php).
+ *   php check.php internal <base URL> <cafile> <token> <internal dir> <secret>
+ *       Checks the internal sync listener (TLS verified with <cafile>):
+ *       only /mbapi.php runs, and only from 127.0.0.1 with the token.
  *   php check.php <nginx|apache|apache-release-root> <base URL> <public dir>
  *       <script dir> <secret>
  *       Sends the request matrix (tests/web-server/matrix.php) to the server
@@ -46,14 +51,22 @@ if ($mode === 'plant' && $argc === 4) {
     $stub = "<?php\nheader('Content-Type: text/plain');\n"
         . "echo 'pgacc-stub ', \$_SERVER['SCRIPT_FILENAME'], ' query=', \$_SERVER['QUERY_STRING'] ?? '',"
         . " ' path_info=', \$_SERVER['PATH_INFO'] ?? '', \"\\n\";\n";
-    foreach (['index.php', 'mbapi.php'] as $name) {
-        if (file_put_contents($argv[2] . '/public/' . $name, $stub) === false) {
-            fail_check("could not write the stub $name");
-        }
+    if (file_put_contents($argv[2] . '/public/index.php', $stub) === false) {
+        fail_check('could not write the stub index.php');
     }
     $sentinel = "<?php echo 'pgacc-entry-sentinel-ran';\n";
     if (file_put_contents($argv[2] . '/entry-sentinel.php', $sentinel) === false) {
         fail_check('could not write entry-sentinel.php');
+    }
+    $internal = "<?php\nchdir(dirname(__DIR__)) || exit(1);\nrequire 'src/sync-api.php';\n"
+        . "if (!sync_api_allowed(sync_api_config('sync-secrets.php'), \$_SERVER)) {\n    http_response_code(403);\n    return;\n}\n"
+        . "header('Content-Type: application/json');\n"
+        . "echo json_encode(['script' => \$_SERVER['SCRIPT_FILENAME'], 'peer' => \$_SERVER['REMOTE_ADDR']]);\n";
+    $planted = "<?php \$key = '" . $argv[3] . "'; echo 'pgacc-planted-php-ran';\n";
+    foreach (['mbapi.php' => $internal, 'evil.php' => $planted, 'mbapi.php~' => $planted, 'notes.txt' => $planted] as $name => $content) {
+        if (file_put_contents($argv[2] . '/internal/' . $name, $content) === false) {
+            fail_check("could not write internal/$name");
+        }
     }
     exit(0);
 }
@@ -72,6 +85,72 @@ if ($mode === 'entry-link' && $argc === 4 && isset(WEB_SERVER_DIFFERENCES[$argv[
         }
     }
     echo 'entry point as a symbolic link: ' . count($matrix['entry_link']) . " request(s) refused\n";
+    exit(0);
+}
+
+if ($mode === 'internal' && $argc === 7) {
+    [, , $baseUrl, $cafile, $token, $internalDir, $secret] = $argv;
+    // GET $target over TLS (the certificate verified against $cafile, for
+    // the address of $baseUrl), sent from $from, exactly as given.
+    $request = function ($target, $authorization, $from = '127.0.0.1') use ($baseUrl, $cafile) {
+        $context = stream_context_create([
+            'ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'cafile' => $cafile],
+            'socket' => ['bindto' => $from . ':0'],
+        ]);
+        $address = 'tls://' . substr($baseUrl, strlen('https://'));
+        $socket = @stream_socket_client($address, $errno, $error, 10, STREAM_CLIENT_CONNECT, $context);
+        if ($socket === false) {
+            fail_check("internal: could not connect to $address from $from: $error");
+        }
+        stream_set_timeout($socket, 20);
+        fwrite($socket, "GET $target HTTP/1.0\r\nHost: 127.0.0.1\r\n"
+            . ($authorization === null ? '' : "Authorization: $authorization\r\n") . "Connection: close\r\n\r\n");
+        $parts = explode("\r\n\r\n", (string) stream_get_contents($socket), 2);
+        fclose($socket);
+        if (count($parts) !== 2 || preg_match('#^HTTP/\S+ (\d{3})#', $parts[0], $status) !== 1) {
+            fail_check("internal: no HTTP answer for GET $target");
+        }
+        return ['status' => intval($status[1]), 'headers' => explode("\r\n", $parts[0]), 'body' => $parts[1]];
+    };
+    $bearer = 'Bearer ' . $token;
+    $response = $request('/mbapi.php', $bearer);
+    $expected = json_encode(['script' => $internalDir . '/mbapi.php', 'peer' => '127.0.0.1']);
+    if ($response['status'] !== 200 || $response['body'] !== $expected
+        || !in_array('Content-Type: application/json', $response['headers'], true)) {
+        fail_check("internal: GET /mbapi.php answered {$response['status']} " . var_export(substr($response['body'], 0, 200), true));
+    }
+    $refused = [
+        ['/mbapi.php', null, '127.0.0.1', 403],
+        ['/mbapi.php', 'Bearer wrong', '127.0.0.1', 403],
+        ['/mbapi.php', $bearer, '127.0.0.2', 403],
+        ['/', $bearer, '127.0.0.1', 404],
+        ['/index.php', $bearer, '127.0.0.1', 404],
+        ['/evil.php', $bearer, '127.0.0.1', 404],
+        ['/notes.txt', $bearer, '127.0.0.1', 404],
+        ['/mbapi.php/x', $bearer, '127.0.0.1', 404],
+        ['/MBAPI.PHP', $bearer, '127.0.0.1', 404],
+        ['/sync-secrets.php', $bearer, '127.0.0.1', 404],
+        ['/src/sync-api.php', $bearer, '127.0.0.1', 404],
+        ['/public/index.php', $bearer, '127.0.0.1', 404],
+        ['/mbapi.php~', $bearer, '127.0.0.1', 403],
+        ['/.htaccess', $bearer, '127.0.0.1', 403],
+        ['/../sync-secrets.php', $bearer, '127.0.0.1', 400],
+    ];
+    foreach ($refused as [$target, $authorization, $from, $want]) {
+        $response = $request($target, $authorization, $from);
+        if ($response['status'] !== $want) {
+            fail_check("internal: GET $target from $from answered {$response['status']}, expected $want");
+        }
+        foreach (['<?php', 'pgacc-planted-php-ran', '"script"', $secret, $token] as $leak) {
+            if (strpos($response['body'], $leak) !== false) {
+                fail_check("internal: GET $target from $from showed $leak");
+            }
+        }
+        if ($want === 403 && $target === '/mbapi.php' && $response['body'] !== '') {
+            fail_check("internal: the refusal of GET /mbapi.php from $from has a body");
+        }
+    }
+    echo 'internal: ' . (count($refused) + 1) . " requests as expected\n";
     exit(0);
 }
 
@@ -102,7 +181,7 @@ if ($mode === 'apache-release-root' && $argc === 6) {
 }
 
 if (!isset(WEB_SERVER_DIFFERENCES[$mode]) || $argc !== 6) {
-    fail_check('usage: php check.php plant <release> <secret> | entry-link <nginx|apache> <base URL> | <nginx|apache|apache-release-root> <base URL> <public dir> <script dir> <secret>');
+    fail_check('usage: php check.php plant <release> <secret> | entry-link <nginx|apache> <base URL> | internal <base URL> <cafile> <token> <internal dir> <secret> | <nginx|apache|apache-release-root> <base URL> <public dir> <script dir> <secret>');
 }
 [, , $baseUrl, $publicDir, $scriptDir, $secret] = $argv;
 

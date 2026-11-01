@@ -30,11 +30,6 @@ final class CryptoTest extends FunctionsTestCase
         return self::vectors('receipt_decrypts');
     }
 
-    public static function mbapiProvider()
-    {
-        return self::vectors('mbapi');
-    }
-
     #[PHPUnit\Framework\Attributes\DataProvider('receiptProvider')]
     public function testReceiptEncryptionMatchesMcrypt(array $vector)
     {
@@ -68,17 +63,6 @@ final class CryptoTest extends FunctionsTestCase
         $vectors = self::vectors('receipt_decrypts');
         $vector = $vectors['empty ciphertext'][0];
         self::assertSame($vector['decrypted'], bin2hex(receipt_decrypt($vector['id'], $vector['key'], false)));
-    }
-
-    #[PHPUnit\Framework\Attributes\DataProvider('mbapiProvider')]
-    public function testMembershipExportFramingMatchesMcrypt(array $vector)
-    {
-        // mbapi.php: SHA-1 of the plain text, a newline, the base64 ciphertext.
-        $text = hex2bin($vector['text']);
-        self::assertSame(
-            $vector['output'],
-            sha1($text) . "\n" . base64_encode(membership_encrypt($vector['datakey'], $text)),
-        );
     }
 
     public function testBlockSizeIs256Bits()

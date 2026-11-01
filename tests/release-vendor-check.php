@@ -52,16 +52,6 @@ foreach ($vectors['receipt_decrypts'] as $vector) {
     }
     $checked++;
 }
-foreach ($vectors['mbapi'] as $vector) {
-    $text = hex2bin($vector['text']);
-    $params = membership_cipher_params($vector['datakey']);
-    $output = sha1($text) . "\n"
-        . base64_encode(rijndael256_cbc($params[0], $params[1])->encrypt(rijndael256_zero_pad($text)));
-    if ($output !== $vector['output']) {
-        pgacc_vendor_check_fail("mbapi vector '{$vector['name']}' differs");
-    }
-    $checked++;
-}
 echo "vendor: phpseclib: $checked mcrypt contract vectors match\n";
 
 // The calls of import2.php on a one-page statement with one text line.

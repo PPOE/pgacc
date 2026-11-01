@@ -1158,16 +1158,10 @@ function receipt_v2_send($receipt)
     }
 }
 
-// Membership export (mbapi.php): key and IV.
+// Membership-system key and IV (unused since the v2 member list).
 function membership_cipher_params($datakey)
 {
     return [md5($datakey), md5(md5($datakey))];
-}
-
-function membership_encrypt($datakey, $data)
-{
-    [$cipherKey, $iv] = membership_cipher_params($datakey);
-    return rijndael256_encrypt($cipherKey, $data, $iv);
 }
 
 /*

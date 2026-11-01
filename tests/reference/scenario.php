@@ -11,7 +11,7 @@
  * dumps) and membership-stub.txt (requests the membership stub received).
  *
  * Steps run in a fixed order on a fresh database, so sequence values are
- * deterministic. Steps that need mcrypt (receipt upload/download, mbapi.php,
+ * deterministic. Steps that need mcrypt (receipt upload/download,
  * the membership import, the bank-statement import) run last, so that
  * lanes without mcrypt diverge as late as possible.
  *
@@ -461,7 +461,6 @@ step('receipt-download-missing-file', 'admin', 'GET', '/index.php?action=file&id
 step('receipt-download-no-file', 'admin', 'GET', '/index.php?action=file&id=101');
 step('edit-view-with-receipt', 'admin', 'GET', '/index.php?action=edit&id=' . $twoParts[0]);
 
-step('mbapi', 'anon', 'GET', '/mbapi.php');
 step('mb-admin', 'admin', 'GET', '/index.php?action=mb');
 step('mb-unitone', 'unitone', 'GET', '/index.php?action=mb');
 step('mb-anon', 'anon', 'GET', '/index.php?action=mb');

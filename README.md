@@ -16,15 +16,17 @@ Core concepts:
 - **Public reports**: annual report (Rechenschaftsbericht), transactions and
   spendings pages, donation lists.
 - **Import**: bank statement CSV import (BAWAG format).
-- **Membership integration**: `getusers.php` fetches the member list from
-  the membership system as JSON over its internal TLS listener with a token
-  (settings in `sync-secrets.php`, [deploy/README.md](deploy/README.md),
-  "Member list"); `mbapi.php` exports membership payments.
+- **Membership integration** (sync v2, off unless configured):
+  `getusers.php` fetches the member list from the membership system as JSON
+  over its internal TLS listener with a token; `internal/mbapi.php` gives
+  the membership system the membership payments as JSON on pgacc's own
+  internal TLS listener. Settings in `sync-secrets.php`
+  ([deploy/README.md](deploy/README.md), "Membership system").
 
 ## Requirements
 
-- PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts and the membership
-  exchange use `phpseclib` (same ciphertext; used automatically if loaded).
+- PHP 8.5 with the `pgsql` extension (`short_open_tag` is no longer needed). `mcrypt` is no longer needed: receipts use `phpseclib` (same ciphertext;
+  used automatically if loaded).
 - PostgreSQL 18 with the `pgcrypto` extension (passwords use `crypt()`;
   new passwords bcrypt, older MD5-crypt hashes still accepted).
 - Composer, for `smalot/pdfparser` and `phpseclib/phpseclib`.
@@ -55,8 +57,7 @@ Provisioning a Debian 13 host and deploying releases with scripts:
 
    ```php
    <?php
-   $datakey = 'CHANGE-ME';  // shared key of the membership export (mbapi.php)
-   $key = 'CHANGE-ME';      // key for encrypting uploaded receipts
+   $key = 'CHANGE-ME';  // key for encrypting uploaded receipts
    ```
 
    `$key` must have at least 16 characters and must not be the `CHANGE-ME`
@@ -67,17 +68,19 @@ Provisioning a Debian 13 host and deploying releases with scripts:
    stay readable; `migrate-receipt-key.php` (command line only) re-encrypts
    them, see the runbook in [UPGRADING.md](UPGRADING.md).
 
-   The member list settings (URL, token, certificate of the membership
-   system) go into `sync-secrets.php` next to it, also never committed: see
-   [UPGRADING.md](UPGRADING.md), "Member list from the membership system".
+   `$datakey` (the key of the old encrypted membership exports) is no
+   longer used; an existing one is ignored. The membership sync settings
+   (tokens, peers, URL and certificate of the membership system) go into
+   `sync-secrets.php` next to it, also never committed: see
+   [UPGRADING.md](UPGRADING.md), "Sync v2 (membership sync)".
 
 3. Run `composer install`.
 4. Make `files/` writable by the web server. It holds the receipt files and
    must not be web-accessible.
 5. Serve `public/` over HTTPS: it is the document root and holds only the
-   entry points (`index.php`, `mbapi.php`) and the static files (`style.css`,
+   entry point (`index.php`) and the static files (`style.css`,
    `js/`, `icons/`). The code, `vendor/`, `constants.php` and `files/` stay in
-   the repository root, outside the document root; the entry points load them
+   the repository root, outside the document root; the entry point loads them
    from there. Web server examples (nginx, Apache, the short page
    addresses): [UPGRADING.md](UPGRADING.md), "Document root `public/`".
    `index.php` redirects unless the

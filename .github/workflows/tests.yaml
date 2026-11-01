@@ -118,6 +118,8 @@ jobs:
         run: sh tests/deploy-guards.sh
       - name: Test the rendering of sync-secrets.php.j2 with the PHP readers
         run: sh tests/sync-secrets-template.sh
+      - name: Test the settings check of deploy/ansible/playbook.yml
+        run: sh tests/playbook-settings.sh
 
   docker-harness:
     name: PHP 8.5 / PostgreSQL 18 characterization harness

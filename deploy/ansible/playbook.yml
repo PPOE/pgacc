@@ -14,6 +14,8 @@
   force_handlers: true
   vars:
     pgacc_fixtures: "{{ playbook_dir }}/../../tests/fixtures"
+    # An IPv4 address in dotted-decimal form.
+    pgacc_ipv4: '^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'
 
   handlers:
     - name: Reload php-fpm
@@ -50,11 +52,20 @@
           - pgacc_backup_keep_days | default(7) | int > 0
           - pgacc_extra_hosts | default([]) | rejectattr('ip', 'defined') | list | length == 0
           - pgacc_extra_hosts | default([]) | rejectattr('names', 'defined') | list | length == 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address is match(pgacc_ipv4)
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address in ansible_all_ipv4_addresses
+          - pgacc_sync_peers | default([]) | reject('match', pgacc_ipv4) | list | length == 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_peers | default([]) | length > 0
+          - pgacc_sync_listen_address | default('') == '' or pgacc_payments_token | default('') is match('^[0-9a-f]{64}$')
+          - pgacc_sync_port | default(8443) | int > 0 and pgacc_sync_port | default(8443) | int < 65536
         fail_msg: >-
           Needs Debian 13 and pgacc_trusted_proxies: the addresses or CIDR
           ranges of the TLS-terminating reverse proxy (X-Forwarded-Proto is
           trusted only from them). pgacc_extra_hosts entries need ip and
-          names.
+          names. pgacc_sync_listen_address: empty or an IPv4 address of this
+          host (ansible_all_ipv4_addresses), then
+          pgacc_sync_peers (one or more IPv4 addresses) and
+          pgacc_payments_token (64 hex characters); pgacc_sync_port 1-65535.
 
     - name: Check the member list settings
       ansible.builtin.assert:
@@ -251,6 +262,70 @@
         name: php8.5-fpm.service
         enabled: true
         state: started
+
+    # --- Internal sync listener (deploy/README.md, "Membership system"):
+    # only with pgacc_sync_listen_address; its token and peers are in
+    # sync-secrets.php (above). Before the nginx site that uses its certificate.
+
+    - name: Set up the internal sync listener
+      when: pgacc_sync_listen_address | default('') != ''
+      block:
+        # A certificate for another address (pgacc_sync_listen_address
+        # changed) is made again by the next task.
+        - name: Remove the TLS certificate of the internal listener if it is not for the address
+          ansible.builtin.shell: |
+            set -eu
+            [ -e /etc/pgacc/sync-tls.crt ] || exit 0
+            if openssl x509 -in /etc/pgacc/sync-tls.crt -noout -checkip "$address" | grep -q '^IP .* does match certificate$'; then
+              exit 0
+            fi
+            rm -f /etc/pgacc/sync-tls.crt /etc/pgacc/sync-tls.key
+            echo removed
+          environment:
+            address: "{{ pgacc_sync_listen_address }}"
+          register: pgacc_sync_cert_check
+          changed_when: pgacc_sync_cert_check.stdout == 'removed'
+
+        # Self-signed, for the address the membership system connects to,
+        # which needs /etc/pgacc/sync-tls.crt as its only trust anchor
+        # (cafile). openssl writes the key with mode 0600.
+        - name: Create the TLS certificate of the internal listener if there is none
+          ansible.builtin.command:
+            argv:
+              - openssl
+              - req
+              - -x509
+              - -newkey
+              - ec
+              - -pkeyopt
+              - ec_paramgen_curve:prime256v1
+              - -nodes
+              - -days
+              - "3650"
+              - -subj
+              - /CN={{ pgacc_sync_listen_address }}
+              - -addext
+              - subjectAltName=IP:{{ pgacc_sync_listen_address }}
+              - -keyout
+              - /etc/pgacc/sync-tls.key
+              - -out
+              - /etc/pgacc/sync-tls.crt
+            creates: /etc/pgacc/sync-tls.crt
+          notify: Reload nginx
+
+        # For the smoke test of pgacc-deploy: a request without the token
+        # must get 403.
+        - name: Write the URL of the internal listener for pgacc-deploy
+          ansible.builtin.copy:
+            dest: /etc/pgacc/sync-url
+            content: "https://{{ pgacc_sync_listen_address }}:{{ pgacc_sync_port | default(8443) }}/mbapi.php\n"
+            mode: "0644"
+
+    - name: Remove the URL of the internal listener while it is off
+      when: pgacc_sync_listen_address | default('') == ''
+      ansible.builtin.file:
+        path: /etc/pgacc/sync-url
+        state: absent
 
     - name: Configure the nginx site
       ansible.builtin.template:

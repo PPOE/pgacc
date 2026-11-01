@@ -6,12 +6,13 @@
 #   sudo -u pgacc-deploy pgacc-deploy --file <dir>/pgacc-<version>.tar.gz
 #
 # Verifies and unpacks the release archive, switches /srv/pgacc/current
-# atomically, smoke-tests the login page and the allow list and rolls back
-# if that fails.
+# atomically, smoke-tests the login page, the allow list and the internal
+# sync listener (if it is set up) and rolls back if that fails.
 set -eu
 
 root=/srv/pgacc
 releases=$root/releases
+etc=/etc/pgacc
 
 say() { echo "deploy: $*"; }
 die() { echo "deploy: $*" >&2 && exit 1; }
@@ -46,15 +47,24 @@ status() {
 }
 # Reloads PHP-FPM, then expects the login form (a 2xx answer) within 5 tries
 # and, unless "login" is given, a 404 for two paths inside public/ that the
-# allow list does not serve.
+# allow list does not serve and, with $etc/sync-url (written by the playbook
+# while the internal sync listener is on), a 403 from that listener.
 check() {
   sudo -n /usr/bin/systemctl reload php8.5-fpm.service || return 1
   for _ in 1 2 3 4 5; do
     if curl -fsS --max-time 20 -H 'X-Forwarded-Proto: https' 'http://127.0.0.1/index.php?action=login' |
       grep -q 'name="pass"'; then
       [ "${1:-}" = login ] && return 0
-      [ "$(status /js/README.md)" = 404 ] && [ "$(status /index.php/x)" = 404 ] && return 0
-      say "the allow list is not active: /js/README.md or /index.php/x does not answer 404"
+      if [ "$(status /js/README.md)" != 404 ] || [ "$(status /index.php/x)" != 404 ]; then
+        say "the allow list is not active: /js/README.md or /index.php/x does not answer 404"
+        return 1
+      fi
+      # The internal sync listener, if the playbook set it up: without the
+      # token, internal/mbapi.php answers 403.
+      [ -f "$etc/sync-url" ] || return 0
+      [ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --proto =https --cacert "$etc/sync-tls.crt" \
+        "$(cat "$etc/sync-url")")" = 403 ] && return 0
+      say "the internal sync listener does not answer 403 without the token: $(cat "$etc/sync-url")"
       return 1
     fi
     sleep 1
@@ -99,6 +109,9 @@ if [ ! -d "$release" ]; then
   tar -xzf "$archive" -C "$work" --no-same-owner --no-same-permissions
   [ -f "$work/$name/public/index.php" ] && [ -f "$work/$name/vendor/autoload.php" ] ||
     die "the archive has no public/index.php or vendor/autoload.php"
+  # internal/ is the document root of the internal sync listener: mbapi.php only.
+  [ -f "$work/$name/internal/mbapi.php" ] && [ "$(ls -A "$work/$name/internal")" = mbapi.php ] ||
+    die "the archive's internal/ must hold mbapi.php only"
   ln -s "$root/shared/constants.php" "$work/$name/constants.php"
   # Written by the playbook on every run; without it the sync refuses (deploy/README.md, "Membership system").
   ln -s "$root/shared/sync-secrets.php" "$work/$name/sync-secrets.php"

@@ -8,7 +8,7 @@
 #   analyse.sh update-baselines FILE...  rewrite both baselines from the
 #                                        current findings (review the diff!)
 #
-# FILE... are the tracked top-level application PHP files, public/*.php and src/*.php. The repository is
+# FILE... are the tracked top-level application PHP files, public/*.php, internal/*.php and src/*.php. The repository is
 # mounted read-only at /app; analysis runs on a copy in /tmp/workspace.
 set -eu
 
@@ -38,11 +38,12 @@ if [ "$#" -eq 0 ]; then
 fi
 
 rm -rf "$work" "$results"
-mkdir -p "$work/tests" "$work/public" "$work/src" "$results"
+mkdir -p "$work/tests" "$work/public" "$work/internal" "$work/src" "$results"
 for file in "$@"; do
-  # A top-level file or a file directly in public/ or src/.
+  # A top-level file or a file directly in public/, internal/ or src/.
   case "$file" in
     public/*) name=${file#public/} ;;
+    internal/*) name=${file#internal/} ;;
     *) name=${file#src/} ;;
   esac
   case "$name" in

@@ -24,10 +24,11 @@ error_reporting(E_ALL);
 set_error_handler('test_client_error_handler');
 
 // $files: field name => array('name' => ..., 'type' => ..., 'content' => ...),
-// sent with $form as multipart/form-data (POST only).
+// sent with $form as multipart/form-data (POST only). $extraHeaders: further
+// request header lines.
 // POST requests of a session carry its form token, as the forms of the pages
 // do, unless $form sets csrf_token itself (null: no token).
-function http_request($path, $method = 'GET', $form = [], $cookies = [], $baseUrl = null, $files = [])
+function http_request($path, $method = 'GET', $form = [], $cookies = [], $baseUrl = null, $files = [], $extraHeaders = [])
 {
     if ($method === 'POST' && isset($cookies['pp_pgacc_login']) && !array_key_exists('csrf_token', $form)) {
         $form['csrf_token'] = session_csrf_token($cookies, $baseUrl);
@@ -45,6 +46,7 @@ function http_request($path, $method = 'GET', $form = [], $cookies = [], $baseUr
         'Host: pgacc.test',
         'Connection: close',
         'X-Pgacc-Test-Request: ' . $requestId,
+        ...$extraHeaders,
     ];
 
     if (count($cookies) > 0) {

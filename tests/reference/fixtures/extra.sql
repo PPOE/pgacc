@@ -51,8 +51,8 @@ INSERT INTO vouchers (
   date, ack1, ack2, person_type, file, save_user, commentgf, refund, vaccount
 )
 VALUES
-  -- Membership fees after the fixed "now" year's previous October (mb.php,
-  -- mbapi.php): member ids from tests/reference/membership/adm_names.tsv.
+  -- Membership fees after the fixed "now" year's previous October
+  -- (mb.php): member ids from tests/reference/membership/adm_names.tsv.
   (201, 2001, 1, 2, true, 9001, 'AT000000000000009001', 'Anna Synthetisch-Müller', 'Teststraße 1',
    '1010', 'Wien', 2400, 'TEST-ACCOUNT-1', 'MB 2026', true, true, false,
    timestamp '2025-11-03 00:00:00', 'reviewer-a', 'reviewer-b', 2, 0, 1, '', false, ''),

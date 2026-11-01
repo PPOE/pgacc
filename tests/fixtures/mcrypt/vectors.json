@@ -114,25 +114,5 @@
             "cipher": "d13924d2d6f9d08c86d159bba86c320eeabb9a348c6122fd8778171bade7a2ec8f92e88a7eeaec33ceb18919d5a7faa322fc",
             "decrypted": "255044462d312e340a25e2e3cfd30a312030206f626a0a3c3c202f547970652099aa3e9d79f1b82395d52ebfdb27d9a166b8cc3e6572307ac38980f6f5bd495c"
         }
-    ],
-    "mbapi": [
-        {
-            "name": "two members",
-            "datakey": "synthetic-membership-key",
-            "text": "31303031093235303009323032362d31322d33310a3130303209313230303009323032362d31322d33310a",
-            "output": "e4c8614ddce01e8e031a7815b55eaed1fd05cb80\nr1dn7ciW7ZKDnHavHLW4NfIn7gkQOr8rjeqy5L9VvLcU2aRXM06PHD2atJD9n366hdw0LUKK0erQm9Wbo1YCeA=="
-        },
-        {
-            "name": "no members",
-            "datakey": "synthetic-membership-key",
-            "text": "",
-            "output": "da39a3ee5e6b4b0d3255bfef95601890afd80709\n9llcm9d+41SC+IazY/n0tkrdXyQDVJOoT6bK6tzIADk="
-        },
-        {
-            "name": "empty datakey (test constants)",
-            "datakey": "",
-            "text": "31303031093235303009323032362d31322d33310a",
-            "output": "c06212339f9f2166d707959bd6078c09c9d91fff\nSogmbFUp/vigi6g8fjHEmOyhBOGLGgB5CgVfwc/+ckI="
-        }
     ]
 }

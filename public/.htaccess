@@ -17,9 +17,9 @@ RewriteRule ^(vreport|tinyreport|donations|kdonations|spendings|wk|transactions)
 RewriteRule (^|/)\. - [F]
 RewriteCond %{REQUEST_FILENAME} -l
 RewriteRule ^ - [F]
-# Allow list: "/" (index.php), index.php, mbapi.php, style.css, js/*.js,
-# icons/*.png. Anything else answers 404.
-RewriteRule ^(index\.php|mbapi\.php|style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)?$ - [L]
+# Allow list: "/" (index.php), index.php, style.css, js/*.js, icons/*.png.
+# Anything else answers 404.
+RewriteRule ^(index\.php|style\.css|js/[A-Za-z0-9._-]+\.js|icons/[A-Za-z0-9._-]+\.png)?$ - [L]
 RewriteRule ^ - [R=404,L]
 
 # Defence in depth: backup, editor and dump copies (constants.php.bak,

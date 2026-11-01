@@ -44,14 +44,6 @@ function receipt_decrypt_vector($name, $id, $key, $cipher)
         'decrypted' => bin2hex($decrypted));
 }
 
-function mbapi_vector($name, $datakey, $text)
-{
-    // mbapi.php: SHA-1 of the plain text, a newline, then the base64 ciphertext.
-    $output = sha1($text) . "\n"
-        . base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($datakey), $text, MCRYPT_MODE_CBC, md5(md5($datakey))));
-    return array('name' => $name, 'datakey' => $datakey, 'text' => bin2hex($text), 'output' => $output);
-}
-
 $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
 $jpeg = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
     . "\xFF\xDB\x00\x43\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\x09\x09\x08\x0A\x0C\x14\x0D\x0C\x0B\x0B\x0C"
@@ -88,16 +80,10 @@ $receiptDecrypts = array(
         substr(hex2bin($receipts[5]['cipher']), 0, 50)),
 );
 
-$mbapi = array(
-    mbapi_vector('two members', 'synthetic-membership-key', "1001\t2500\t2026-12-31\n1002\t12000\t2026-12-31\n"),
-    mbapi_vector('no members', 'synthetic-membership-key', ''),
-    mbapi_vector('empty datakey (test constants)', '', "1001\t2500\t2026-12-31\n"),
-);
 $vectors = array(
     'generator' => 'tests/fixtures/mcrypt/generate-vectors.php',
     'php' => PHP_VERSION,
     'receipts' => $receipts,
     'receipt_decrypts' => $receiptDecrypts,
-    'mbapi' => $mbapi,
 );
 echo json_encode($vectors, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
