@@ -106,10 +106,18 @@ function receipt_preview_type($bid, $rights)
         }
     }
     // Legacy <n>.aes, sent if it is whole 32-byte blocks: a PDF, or else as a
-    // JPEG. Its first block decrypts to the first 32 bytes.
-    $ciphertext = (string) receipt_read_file(receipt_legacy_path($directory, $row['file']));
-    if (strlen($ciphertext) < 32 || strlen($ciphertext) % 32 !== 0) {
+    // JPEG. Only its size and first block are read; the first block decrypts
+    // to the first 32 bytes.
+    $legacy = receipt_legacy_path($directory, $row['file']);
+    $in = receipt_open_regular($legacy);
+    if ($in === false) {
         return false;
     }
-    return str_starts_with(receipt_decrypt($row['voucher_id'], '', substr($ciphertext, 0, 32)), '%PDF') ? 'application/pdf' : 'image/jpeg';
+    $size = filesize($legacy);
+    $block = (string) fread($in, 32);
+    fclose($in);
+    if ($size < 32 || $size % 32 !== 0) {
+        return false;
+    }
+    return str_starts_with(receipt_decrypt($row['voucher_id'], '', $block), '%PDF') ? 'application/pdf' : 'image/jpeg';
 }
