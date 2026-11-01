@@ -776,20 +776,19 @@ Wurde die Buchung fehlerhaft durchgeführt und muss korrigiert werden?
 ';
             block_end();
             echo '</div>';
-        } else {
-
-            if ($open) {
-                block_start();
-                echo '<input name="speichern" id="speichern" value="Speichern" type="submit" />';
-                //if (strpos($rights,'bgf') !== false && $ack)
-                if ($ack) {
-                    echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/>';
-                }
-                echo '<input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/>';
-                echo '<input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>';
-
-                block_end();
+        }
+        // Both when the reset is offered for some rows while others are open.
+        if ($open) {
+            block_start();
+            echo '<input name="speichern" id="speichern" value="Speichern" type="submit" />';
+            //if (strpos($rights,'bgf') !== false && $ack)
+            if ($ack) {
+                echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/>';
             }
+            echo '<input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/>';
+            echo '<input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>';
+
+            block_end();
         }
     }
     echo '

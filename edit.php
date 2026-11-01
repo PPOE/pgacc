@@ -517,8 +517,10 @@ function page_edit($rights, $unsaved = false)
         $part_to_remove = intval($_POST["remove"]);
     }
     // The approvals of all rows the user sees: the fewest of any row (2 only
-    // when every row is approved twice), finalized when any row is.
+    // when every row is approved twice) and the most of any row, finalized
+    // when any row is.
     $acks = 2;
+    $acks_max = 0;
     $received = false;
     foreach ($vouchers as $voucher) {
         $row_acks = 0;
@@ -529,6 +531,7 @@ function page_edit($rights, $unsaved = false)
             $row_acks++;
         }
         $acks = min($acks, $row_acks);
+        $acks_max = max($acks_max, $row_acks);
         $received = $received || $voucher['receipt_received'] == 't';
     }
     // The merge form (POST, see merge() below) cannot be nested in mainform.
@@ -581,7 +584,7 @@ function merge()
         echo reset($states);
     } else {
         foreach ($states as $row_id => $state) {
-            echo '<br />Buchungszeile ' . $row_id . ': ' . $state;
+            echo '<br />Buchungszeile ' . $row_id . ': ' . ($state === ' ' ? 'offen' : $state);
         }
     }
     echo '</h4>';
@@ -600,7 +603,10 @@ function merge()
 
     $user_name = checklogin('name');
     $bgfandack = has_right($rights, 'bgf') && ($acks == 2) && !$received;
+    // bgf may reset as soon as any row is approved twice; the other buttons
+    // stay unless every row is.
+    $reset = has_right($rights, 'bgf') && ($acks_max == 2) && !$received;
 
 
-    end_of_form($parts, $rights, $bgfandack && !$unsaved, true, !$unsaved);
+    end_of_form($parts, $rights, $reset && !$unsaved, !($bgfandack && !$unsaved), !$unsaved);
 }

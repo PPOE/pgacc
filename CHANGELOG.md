@@ -35,10 +35,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Saving and approving check the rights as before.
 - The voucher page takes its approval state from all rows the user sees,
   not only from the first one: "Bestätigt von" lists each row when the rows
-  differ, and bgf gets "Bestätigungen zurücksetzen" only when every row is
-  approved twice and none is finalized. Before, a voucher whose first row
-  was approved twice offered bgf only the reset, and no "Bestätigen" for
-  its other open rows.
+  differ ("offen" for a row without approvals). bgf gets "Bestätigungen
+  zurücksetzen" when any row is approved twice and no row is finalized, and
+  the other buttons (with "Bestätigen") unless every row is approved twice.
+  Before, a voucher whose first row was approved twice offered bgf only the
+  reset, and no "Bestätigen" for its other open rows.
 - Profile links of the member-fee page point to the profile page of
   Admidio 5 (`modules/profile/profile.php`) instead of the removed
   `adm_program/` path.
