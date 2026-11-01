@@ -2,7 +2,7 @@
 # request: GET /index.php?action=new as norights
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (15016 bytes) ---
+--- body (14700 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -252,11 +252,6 @@ function clicked(init)
 </div>
 <br />
 
-</div>
-
-<br style="clear: both;" />
-<div class="wiki use_terms">
-<input name="speichern" id="speichern" value="Speichern" type="submit" /><input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/><input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>
 </div>
 
 <input value="1" type="hidden" id="parts" name="parts" />

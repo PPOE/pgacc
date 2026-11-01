@@ -730,6 +730,19 @@ $twoUnitsRevision = edit_request(
 );
 assert_contains($twoUnitsRevision['body'], 'FEHLER: Keine Zugriffsrechte.', 'revision without organization by a user of two organizations');
 assert_database_count($database, $commentQuery, ['Synthetic revision without organization'], 0, 'revision without organization by a user of two organizations');
+// The voucher form offers its write controls to users of several
+// organizations as well (before, only to bgf and to users with exactly one
+// right); users with no organization right and no bgf get none.
+$twoUnitsForm = http_request('/index.php?action=edit&id=' . $twoUnitsDraftId, 'GET', [], $twoUnitsCookies);
+$twoUnitsNew = http_request('/index.php?action=new', 'GET', [], $twoUnitsCookies);
+foreach (['name="speichern"', 'name="ack"', 'name="addB"', 'name="add"'] as $control) {
+    assert_contains($twoUnitsForm['body'], $control, "voucher page for a user of two organizations ($control)");
+}
+assert_contains($twoUnitsNew['body'], 'name="speichern"', 'new voucher page for a user of two organizations');
+assert_contains(http_request('/index.php?action=new', 'GET', [], $rootOneCookies)['body'], 'name="speichern"', 'new voucher page for root,1');
+foreach (['root' => $rootOnlyCookies, 'no' => $noRightsCookies] as $userRights => $cookies) {
+    assert_not_contains(http_request('/index.php?action=new', 'GET', [], $cookies)['body'], 'name="speichern"', "new voucher page for $userRights rights");
+}
 // Organizations are compared as numbers, as the database compares them
 // ('01' is organization 1), and spaces around rights do not count.
 $paddedForm = voucher_form('Synthetic voucher with a padded organization', '-6.65', 0);
@@ -749,6 +762,7 @@ assert_database_field(
     '2',
     'voucher without organization of trailing-space rights',
 );
+assert_contains(http_request('/index.php?action=new', 'GET', [], $trailingCookies)['body'], 'name="speichern"', 'new voucher page for trailing-space rights');
 $spacedCookies = create_test_user($database, 54, 'synthetic-spaced-rights', 'spaced-password', '1, bgf');
 // (The voucher form of the edit page.)
 // The rights SQL trims the rights too: '1, bgf' reads every organization,
@@ -1520,6 +1534,13 @@ foreach (['name="speichern"', 'name="ack"', 'name="addB"', 'href="index.php?acti
 foreach (['href="index.php?action=all', 'href="index.php?action=deleted', 'href="index.php?action=accounts"'] as $link) {
     assert_contains($readOnlyForm['body'], $link, "menu for read-only bgf ($link)");
 }
+assert_not_contains(http_request('/index.php?action=new', 'GET', [], $readOnlyCookies)['body'], 'name="speichern"', 'new voucher page for read-only bgf');
+// 'Rbgf,2' writes like a user of organization 2, so it gets the controls.
+$readOnlyTwoForm = http_request('/index.php?action=edit&id=' . $readOnlyTwoId, 'GET', [], $readOnlyTwoCookies);
+foreach (['name="speichern"', 'name="ack"', 'name="addB"'] as $control) {
+    assert_contains($readOnlyTwoForm['body'], $control, "voucher page for Rbgf,2 ($control)");
+}
+assert_contains(http_request('/index.php?action=new', 'GET', [], $readOnlyTwoCookies)['body'], 'name="speichern"', 'new voucher page for Rbgf,2');
 
 $readOnlyStates = [
     $readOnlyOneId => [voucher_row_state('1', null, null, 'f')],

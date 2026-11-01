@@ -27,6 +27,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The voucher form shows its buttons (Speichern, Bestätigen, Beleg and
+  Buchungszeile hinzufügen) to users with several rights, such as "1,2",
+  "root,1" or "Rbgf,2"; before, only bgf and users with exactly one right
+  got them. Users without bgf and without an organization right ("root"
+  alone, no rights) now get none; read-only bgf ("Rbgf") still gets none.
+  Saving and approving check the rights as before.
 - Profile links of the member-fee page point to the profile page of
   Admidio 5 (`modules/profile/profile.php`) instead of the removed
   `adm_program/` path.
