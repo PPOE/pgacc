@@ -53,6 +53,7 @@
           - pgacc_extra_hosts | default([]) | rejectattr('ip', 'defined') | list | length == 0
           - pgacc_extra_hosts | default([]) | rejectattr('names', 'defined') | list | length == 0
           - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address is match(pgacc_ipv4)
+          - pgacc_sync_listen_address | default('') == '' or pgacc_sync_listen_address in ansible_all_ipv4_addresses
           - pgacc_sync_peers | default([]) | reject('match', pgacc_ipv4) | list | length == 0
           - pgacc_sync_listen_address | default('') == '' or pgacc_sync_peers | default([]) | length > 0
           - pgacc_sync_listen_address | default('') == '' or pgacc_payments_token | default('') is match('^[0-9a-f]{64}$')
@@ -61,7 +62,8 @@
           Needs Debian 13 and pgacc_trusted_proxies: the addresses or CIDR
           ranges of the TLS-terminating reverse proxy (X-Forwarded-Proto is
           trusted only from them). pgacc_extra_hosts entries need ip and
-          names. pgacc_sync_listen_address: empty or an IPv4 address, then
+          names. pgacc_sync_listen_address: empty or an IPv4 address of this
+          host (ansible_all_ipv4_addresses), then
           pgacc_sync_peers (one or more IPv4 addresses) and
           pgacc_payments_token (64 hex characters); pgacc_sync_port 1-65535.
 

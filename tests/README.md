@@ -312,6 +312,13 @@ rollback to a release without `public/`), and that a release archive's
 Red evidence: the `deploy.sh` before these guards fails 2 of its 5 cases;
 the one before the `internal/` check fails its 3 `internal/` cases.
 
+It also runs `sh tests/playbook-settings.sh` (Docker, ansible-core): the
+playbook's first task, "Check the settings", with the play's vars against
+localhost, the facts given as extra vars; the play must gather facts. Cases:
+the listener off and `pgacc_sync_listen_address` in
+`ansible_all_ipv4_addresses` pass, an address the host does not have fails.
+Red evidence: the playbook without that assertion passes the last case.
+
 ### PHPUnit
 
 `tests/unit/` runs on PHPUnit 13.4 (PHP 8.5). Every configuration sets

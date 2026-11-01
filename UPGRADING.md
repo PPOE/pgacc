@@ -94,6 +94,12 @@ document root, serving only `/mbapi.php` (dot files and backup copies
 refused, no `PATH_INFO`), with the socket's address as `REMOTE_ADDR` and no
 access log.
 
+Rollback: `pgacc-deploy` refuses the archive of a release from before this
+change (it has no `internal/mbapi.php`), and while the listener is
+configured, switching back to such a release still in `releases/` fails the
+smoke test (it expects 403 from the listener). To roll back, first empty
+`pgacc_sync_listen_address` and run the playbook again.
+
 ### Membership export `public/mbapi.php` removed
 
 `public/mbapi.php`, the encrypted membership-payment export of the old
