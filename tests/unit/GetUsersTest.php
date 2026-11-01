@@ -186,6 +186,33 @@ final class GetUsersTest extends FunctionsTestCase
         self::assertNull($body === null ? null : strlen($body));
     }
 
+    // The timeout is overall: a response whose headers or body arrive in
+    // parts, each well within the timeout, is refused at the deadline.
+    public static function trickleProvider()
+    {
+        return [
+            'body' => ['trickle'],
+            'headers' => ['tricklehead'],
+        ];
+    }
+
+    #[PHPUnit\Framework\Attributes\DataProvider('trickleProvider')]
+    public function testATrickledResponseIsRefusedAtTheDeadline($mode)
+    {
+        $config = getusers_config('sync-secrets.php');
+        MembershipStub::mode($mode);
+        $start = microtime(true);
+        try {
+            $body = getusers_fetch($config, 2);
+            $elapsed = microtime(true) - $start;
+        } finally {
+            // Waits until the stub has given up on the response.
+            MembershipStub::reset();
+        }
+        self::assertNull($body === null ? null : strlen($body));
+        self::assertLessThan(4, $elapsed);
+    }
+
     public function testTheMembersCafileIsTheTrustAnchor()
     {
         // The self-signed certificate of the stub is accepted when it is the

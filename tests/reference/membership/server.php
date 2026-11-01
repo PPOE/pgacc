@@ -36,6 +36,9 @@
  *   stall         the member list, but only its first half, then nothing
  *                 for 3 seconds before the connection closes (a read
  *                 timeout; GetUsersTest)
+ *   trickle       the member list in 8 parts, one per second (each read
+ *                 is quick, the whole response is not; GetUsersTest)
+ *   tricklehead   as trickle, but 8 extra header lines, one per second
  * /__stub/list serves the member list on both ports (the redirect targets)
  * and counts its requests: GET http://.../__stub/list-requests answers the
  * count since the last mode switch, so the tests can prove that no redirect
@@ -55,7 +58,7 @@ $bodyFile = '/tmp/pgacc-membership-stub-body';
 $listRequestsFile = '/tmp/pgacc-membership-stub-list-requests';
 $membersRequestsFile = '/tmp/pgacc-membership-stub-members-requests';
 $modes = ['ok', 'malformed', 'empty', 'invalid-row', 'duplicate', 'bad-uuid', 'flow', 'overflow', 'body',
-    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error', 'stall'];
+    'redirect', 'redirect-http', 'selfsigned', 'wrongname', 'error', 'stall', 'trickle', 'tricklehead'];
 $membersToken = (require '/app/tests/runtime/test-sync-secrets.php')['members_token'];
 $certificates = [
     'selfsigned' => '/etc/pgacc-test-tls/selfsigned.pem',
@@ -209,6 +212,19 @@ while (true) {
         if ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0 && membership_stub_mode($modeFile) === 'stall') {
             @fwrite($client, $head . substr($responseBody, 0, intdiv(strlen($responseBody), 2)));
             sleep(3);
+        } elseif ($secure && $status === '200 OK' && strpos($uri, '/members.php') === 0
+            && in_array(membership_stub_mode($modeFile), ['trickle', 'tricklehead'], true)) {
+            $parts = membership_stub_mode($modeFile) === 'trickle'
+                ? array_merge([$head], str_split($responseBody, (int) ceil(strlen($responseBody) / 8)))
+                : array_merge(["HTTP/1.0 $status\r\n"], array_fill(0, 8, "X-Pad: a\r\n"), [substr($head, strlen("HTTP/1.0 $status\r\n")) . $responseBody]);
+            foreach ($parts as $i => $part) {
+                if ($i > 0) {
+                    sleep(1);
+                }
+                if (@fwrite($client, $part) === false) {
+                    break;
+                }
+            }
         } else {
             @fwrite($client, $head . $responseBody);
         }

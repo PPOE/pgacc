@@ -71,42 +71,71 @@ function getusers_config($file)
 // the host name or address of the URL. Redirects are not followed (a 3xx is
 // an error), so the list never comes from another host or over plain HTTP.
 // Only 200 is accepted, with a complete body of at most GETUSERS_MAX_BODY
-// bytes (a read that timed out is refused, not returned in part).
-// ignore_errors: an HTTP error status is checked here instead of raising a
-// warning. $timeout: seconds (the tests pass less). The token is never
-// logged.
+// bytes (a response not complete by the deadline is refused, not returned
+// in part). $timeout: seconds for connection, headers and body together
+// (PHP's own stream timeout applies to each read only; the tests pass less).
+// The token is never logged.
 function getusers_fetch($config, $timeout = 20)
 {
+    $deadline = microtime(true) + $timeout;
+    $url = parse_url($config['members_url']);
+    if (!is_array($url) || ($url['scheme'] ?? '') !== 'https' || !isset($url['host']) || isset($url['user']) || isset($url['pass'])) {
+        error_log('getusers: not an https URL');
+        return null;
+    }
+    $port = $url['port'] ?? 443;
     $context = stream_context_create([
-        'http' => [
-            'header' => 'Authorization: Bearer ' . $config['members_token'] . "\r\nAccept: application/json\r\n",
-            'ignore_errors' => true,
-            'follow_location' => 0,
-            'timeout' => $timeout,
-        ],
         'ssl' => [
             'verify_peer' => true,
             'verify_peer_name' => true,
+            'peer_name' => trim($url['host'], '[]'),
             'allow_self_signed' => false,
             'cafile' => $config['members_cafile'],
         ],
     ]);
     error_clear_last();
-    $stream = @fopen($config['members_url'], 'r', false, $context);
+    $stream = @stream_socket_client("ssl://{$url['host']}:$port", $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
     if ($stream === false) {
         $error = error_get_last();
-        error_log('getusers: ' . ($error === null ? 'fetch failed' : $error['message']));
+        error_log('getusers: ' . ($errstr !== '' ? $errstr : ($error === null ? 'fetch failed' : $error['message'])));
         return null;
     }
-    $body = stream_get_contents($stream, GETUSERS_MAX_BODY + 1);
-    $meta = stream_get_meta_data($stream);
+    // HTTP/1.0: no chunked body; the connection closes after the response.
+    $request = 'GET ' . ($url['path'] ?? '/') . (isset($url['query']) ? '?' . $url['query'] : '') . " HTTP/1.0\r\n"
+        . 'Host: ' . $url['host'] . (isset($url['port']) ? ':' . $port : '') . "\r\n"
+        . 'Authorization: Bearer ' . $config['members_token'] . "\r\nAccept: application/json\r\nConnection: close\r\n\r\n";
+    $response = '';
+    $timedOut = false;
+    $limit = 65536 + GETUSERS_MAX_BODY + 1;
+    $written = @fwrite($stream, $request) === strlen($request);
+    while ($written && !feof($stream) && strlen($response) < $limit) {
+        $left = $deadline - microtime(true);
+        if ($left <= 0) {
+            $timedOut = true;
+            break;
+        }
+        stream_set_timeout($stream, (int) $left, (int) (($left - (int) $left) * 1000000));
+        $chunk = @fread($stream, min(65536, $limit - strlen($response)));
+        if ($chunk === false || stream_get_meta_data($stream)['timed_out']) {
+            $timedOut = true;
+            break;
+        }
+        $response .= $chunk;
+    }
+    $complete = feof($stream);
     fclose($stream);
-    $status = $meta['wrapper_data'][0] ?? '';
-    if (!is_string($status) || !preg_match('#^HTTP/\S+ 200( |$)#', $status)) {
-        error_log('getusers: ' . (is_string($status) && $status !== '' ? $status : 'no status'));
+    if (!$written || $timedOut) {
+        error_log('getusers: ' . ($written ? 'timeout' : 'cannot send the request'));
         return null;
     }
-    if ($body === false || $meta['timed_out'] || strlen($body) > GETUSERS_MAX_BODY) {
+    $end = strpos($response, "\r\n\r\n");
+    $status = $end === false ? '' : strstr($response, "\r\n", true);
+    if (!preg_match('#^HTTP/\S+ 200( |$)#', $status)) {
+        error_log('getusers: ' . ($status !== '' ? $status : 'no status'));
+        return null;
+    }
+    $body = substr($response, $end + 4);
+    if (!$complete || strlen($body) > GETUSERS_MAX_BODY) {
         error_log('getusers: incomplete or too large response');
         return null;
     }
