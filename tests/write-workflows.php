@@ -267,6 +267,19 @@ $thirdApproval = http_request(
 assert_status($thirdApproval, 200, 'approval of an approved voucher');
 assert_contains($thirdApproval['body'], 'FEHLER: Alle Buchungszeilen, die du bestätigen kannst, sind bereits vollständig bestätigt.', 'approval of an approved voucher');
 assert_contains($thirdApproval['body'], $backToVoucher, 'approval of an approved voucher');
+// Refusals before the voucher checks link back as well: to the voucher, or
+// to the open vouchers for an invalid voucher number.
+$readOnlyApproval = http_request(
+    '/index.php?action=edit&id=' . rawurlencode($createdVoucherId),
+    'POST',
+    ['id' => $createdVoucherId, 'parts' => '1', 'ack' => 'Bestätigen'],
+    login_user('synthetic-read-only', 'read-only-password'),
+);
+assert_contains($readOnlyApproval['body'], 'FEHLER: Keine Zugriffsrechte.', 'approval by read-only bgf');
+assert_contains($readOnlyApproval['body'], $backToVoucher, 'approval by read-only bgf');
+$invalidApproval = edit_request('12x', ['ack' => 'Bestätigen'], $adminCookies);
+assert_contains($invalidApproval['body'], 'FEHLER: Buchung nicht gefunden.', 'approval of an invalid voucher number');
+assert_contains($invalidApproval['body'], '<a href="index.php?action=open">Zurück zur Übersicht</a>', 'approval of an invalid voucher number');
 
 // Finalization ("beleg") is removed: the form has had no button for it since
 // 68cda09 (2015), and production has a single finalized row. A POST with
@@ -920,6 +933,27 @@ assert_voucher_rows(
     'voucher after the approval of rows approved twice',
 );
 
+// A partial result: bgf's click gives organization two's row its first
+// approval, but organization one's row has bgf's own first approval, so its
+// second one must come from someone else. "Buchung bestätigt" says so.
+$partialId = create_voucher_from_form($database, two_organization_form('Synthetic partly approvable voucher', 9020), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-reviewer' WHERE voucher_id = $1 AND orga = 1", [$partialId]);
+$partial = edit_request($partialId, $approveForm, $reviewerCookies);
+assert_redirect($partial, edit_location($partialId, 7), 'partial approval');
+assert_voucher_rows(
+    $database,
+    $partialId,
+    [voucher_row_state('1', 'synthetic-reviewer', null, 'f'), voucher_row_state('2', 'synthetic-reviewer', null, 'f')],
+    'voucher after a partial approval',
+);
+$partialPage = http_request('/index.php?action=edit&id=' . $partialId . '&hint=7', 'GET', [], $reviewerCookies);
+assert_contains($partialPage['body'], 'Buchung bestätigt - Buchung Nr. ' . $partialId, 'page after a partial approval');
+assert_contains(
+    $partialPage['body'],
+    'Einige Buchungszeilen konnten nicht bestätigt werden (z. B. weil du ihre 1. Bestätigung gegeben hast).',
+    'page after a partial approval',
+);
+
 $mixedFinalizedId = create_voucher_from_form(
     $database,
     two_organization_form('Synthetic partly finalized voucher', 9006),
@@ -969,9 +1003,10 @@ assert_contains($noReceipt['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'appro
 assert_contains($noReceipt['body'], '<a href="index.php?action=edit&id=' . $noReceiptId . '">Zurück zur Buchung</a>', 'approval of a voucher without a receipt');
 assert_voucher_rows($database, $noReceiptId, $noReceiptState, 'voucher after the approval of a voucher without a receipt');
 // A user who also sees an open row passes the check above: that row gets its
-// first approval, but the approved row still gets no second one.
+// first approval, but the approved row still gets no second one (a partial
+// result).
 $reviewerNoReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
-assert_redirect($reviewerNoReceipt, edit_location($noReceiptId, 4), 'approval of a voucher without a receipt by bgf');
+assert_redirect($reviewerNoReceipt, edit_location($noReceiptId, 7), 'approval of a voucher without a receipt by bgf');
 assert_voucher_rows(
     $database,
     $noReceiptId,
@@ -979,10 +1014,11 @@ assert_voucher_rows(
     'voucher without a receipt after the approval by bgf',
 );
 // With a receipt on organization one's row, the next approval by bgf is the
-// second one of organization two's row (not of its own first one).
+// second one of organization two's row (not of its own first one, so the
+// result is partial).
 attach_receipt_numbers($database, $noReceiptId, [9017]);
 $reviewerWithReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
-assert_redirect($reviewerWithReceipt, edit_location($noReceiptId, 4), 'approval of a voucher with a receipt by bgf');
+assert_redirect($reviewerWithReceipt, edit_location($noReceiptId, 7), 'approval of a voucher with a receipt by bgf');
 assert_voucher_rows(
     $database,
     $noReceiptId,

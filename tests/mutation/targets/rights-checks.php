@@ -518,9 +518,30 @@ return [
         [
             'id' => 'ack-second-approval-not-counted',
             'region' => $ack,
-            'search' => '$acked += db_exec($dbconn, $query);',
-            'replace' => 'db_exec($dbconn, $query);',
+            'search' => '$acked += $acked2;',
+            'replace' => '',
             'rationale' => 'A second approval alone is a change: it is reported as approved, not refused.',
+        ],
+        [
+            'id' => 'ack-partial-not-reported',
+            'region' => $ack,
+            'search' => 'if ($acked2 < $waiting) {',
+            'replace' => 'if (false) {',
+            'rationale' => 'A partial approval (a row keeps the user\'s own first approval) says so.',
+        ],
+        [
+            'id' => 'ack-partial-always',
+            'region' => $ack,
+            'search' => 'if ($acked2 < $waiting) {',
+            'replace' => 'if (true) {',
+            'rationale' => 'A complete approval is reported without the partial note.',
+        ],
+        [
+            'id' => 'ack-refused-link-unchecked',
+            'region' => $ack,
+            'search' => "if (is_string(\$id) && preg_match('/^\\d+\$/D', \$id) == 1) {",
+            'replace' => 'if (true) {',
+            'rationale' => 'An invalid voucher number is not put into the back link.',
         ],
         [
             'id' => 'ack-unchanged-reason-swapped',
@@ -533,8 +554,8 @@ return [
         [
             'id' => 'ack-unchanged-reason-unscoped',
             'region' => $ack,
-            'search' => 'ack2 IS NULL AND voucher_id = $id $rightssql;',
-            'replace' => 'ack2 IS NULL AND voucher_id = $id;',
+            'search' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND ack2 IS NULL AND voucher_id = $id $rightssql;',
+            'replace' => 'SELECT 1 FROM vouchers WHERE NOT deleted AND ack2 IS NULL AND voucher_id = $id;',
             'rationale' => 'The reason looks only at the user\'s rows: a row of another organization '
                 . 'without a second approval does not make it the user\'s own first approval.',
         ],

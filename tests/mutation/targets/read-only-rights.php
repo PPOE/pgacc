@@ -15,6 +15,7 @@
  */
 $check = "if (\$rights === false) {\n        echo '<div class=\"slot_error\" id=\"slot_error\">FEHLER: Keine Zugriffsrechte.";
 $checkHelper = "if (\$rights === false) {\n        save_refused('Keine Zugriffsrechte.');";
+$checkAck = "if (\$rights === false) {\n        edit_ack_refused(";
 $scoped = '$rights = write_rights($rights);';
 $unscoped = '$rights = write_rights($rights) === false ? false : $rights;';
 $mutations = [];
@@ -29,8 +30,8 @@ foreach ($regions as $name => $region) {
         'id' => "$name-read-only-allowed",
         'file' => $region[0],
         'region' => ['start' => $region[1], 'end' => $region[2]],
-        'search' => in_array($name, ['save', 'new-save'], true) ? $checkHelper : $check,
-        'replace' => str_replace('if ($rights === false)', 'if (false)', in_array($name, ['save', 'new-save'], true) ? $checkHelper : $check),
+        'search' => in_array($name, ['save', 'new-save'], true) ? $checkHelper : ($name === 'ack' ? $checkAck : $check),
+        'replace' => str_replace('if ($rights === false)', 'if (false)', in_array($name, ['save', 'new-save'], true) ? $checkHelper : ($name === 'ack' ? $checkAck : $check)),
         'rationale' => 'Fail-open: read-only bgf changes data.',
     ];
     if ($name === 'new-save') {
