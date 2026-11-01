@@ -901,20 +901,54 @@ assert_voucher_rows(
     'partly finalized voucher after approval by organization two',
 );
 
-// The receipt check counts only the user's rows: organization two's row is
-// approved once and has no receipt, so its second approval is refused even
-// though organization one's row is still open.
+// The second approval needs a receipt on a current row of the voucher, also
+// on a row of another organization: organization two's row is approved once
+// and has no receipt, organization one's row has one.
 $receiptCheckId = create_voucher_from_form($database, two_organization_form('Synthetic voucher without a receipt', 9010), $adminCookies);
 pg_query_params(
     $database,
     "UPDATE vouchers SET ack1 = 'synthetic-first-approver', file = 0 WHERE voucher_id = $1 AND orga = 2",
     [$receiptCheckId],
 );
-$receiptCheckState = [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')];
 $receiptCheck = edit_request($receiptCheckId, $approveForm, $unitTwoCookies);
-assert_status($receiptCheck, 200, 'approval of a row without a receipt');
-assert_contains($receiptCheck['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a row without a receipt');
-assert_voucher_rows($database, $receiptCheckId, $receiptCheckState, 'voucher after the approval of a row without a receipt');
+assert_redirect($receiptCheck, edit_location($receiptCheckId, 4), 'approval of a row whose receipt is on another row');
+assert_voucher_rows(
+    $database,
+    $receiptCheckId,
+    [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', 'synthetic-unit-two', 'f')],
+    'voucher after the approval of a row whose receipt is on another row',
+);
+// Without a receipt on any current row (an old revision's does not count),
+// the second approval is refused.
+$noReceiptId = create_voucher_from_form($database, two_organization_form('Synthetic voucher without any receipt', 0), $adminCookies);
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-first-approver' WHERE voucher_id = $1 AND orga = 2", [$noReceiptId]);
+pg_query_params($database, 'INSERT INTO vouchers (voucher_id, orga, deleted, file) VALUES ($1, 1, true, 9016)', [$noReceiptId]);
+$noReceiptState = [voucher_row_state('1', null, null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')];
+$noReceipt = edit_request($noReceiptId, $approveForm, $unitTwoCookies);
+assert_status($noReceipt, 200, 'approval of a voucher without a receipt');
+assert_contains($noReceipt['body'], 'FEHLER: Hier fehlt noch der Beleg!', 'approval of a voucher without a receipt');
+assert_voucher_rows($database, $noReceiptId, $noReceiptState, 'voucher after the approval of a voucher without a receipt');
+// A user who also sees an open row passes the check above: that row gets its
+// first approval, but the approved row still gets no second one.
+$reviewerNoReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
+assert_redirect($reviewerNoReceipt, edit_location($noReceiptId, 4), 'approval of a voucher without a receipt by bgf');
+assert_voucher_rows(
+    $database,
+    $noReceiptId,
+    [voucher_row_state('1', 'synthetic-reviewer', null, 'f'), voucher_row_state('2', 'synthetic-first-approver', null, 'f')],
+    'voucher without a receipt after the approval by bgf',
+);
+// With a receipt on organization one's row, the next approval by bgf is the
+// second one of organization two's row (not of its own first one).
+attach_receipt_numbers($database, $noReceiptId, [9017]);
+$reviewerWithReceipt = edit_request($noReceiptId, $approveForm, $reviewerCookies);
+assert_redirect($reviewerWithReceipt, edit_location($noReceiptId, 4), 'approval of a voucher with a receipt by bgf');
+assert_voucher_rows(
+    $database,
+    $noReceiptId,
+    [voucher_row_state('1', 'synthetic-reviewer', null, 'f'), voucher_row_state('2', 'synthetic-first-approver', 'synthetic-reviewer', 'f')],
+    'voucher with a receipt after the approval by bgf',
+);
 
 // A revision needs a current row of the voucher that the user sees; the
 // finalized and approved checks then cover the whole voucher, also the rows
