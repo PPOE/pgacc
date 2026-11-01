@@ -5,6 +5,13 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Voucher page: a row's receipt is shown inline below "Beleg Anzeigen", loaded
+  from the same download when scrolled into view: a PDF in a frame, a JPEG,
+  PNG or GIF as an image. Other types (also HTML) and receipts the download
+  refuses keep the link only.
+
 ### Changed
 
 - The ledger listings (all, open, closed, deleted) and the voucher form show

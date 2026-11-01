@@ -1239,6 +1239,21 @@
     margin-left: 29%;
   }
 
+  :is(.login, .vertical) .receipt_preview {
+    margin-bottom: calc(var(--spacing) * 1.5);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--color-neutral-400);
+    max-width: 68%;
+    margin-left: 29%;
+    display: block;
+  }
+
+  :is(.login, .vertical) iframe.receipt_preview {
+    width: 68%;
+    height: 80vh;
+  }
+
   .login input[type="text"], .login input[type="password"] {
     width: calc(var(--spacing) * 48);
   }
@@ -1268,6 +1283,15 @@
     :is(.login, .vertical) input[type="text"], :is(.login, .vertical) input[type="password"], :is(.login, .vertical) select, :is(.login, .vertical) input[type="submit"] {
       width: 100%;
       margin-left: 0;
+    }
+
+    :is(.login, .vertical) .receipt_preview {
+      max-width: 100%;
+      margin-left: 0;
+    }
+
+    :is(.login, .vertical) iframe.receipt_preview {
+      width: 100%;
     }
   }
 

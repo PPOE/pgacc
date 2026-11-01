@@ -531,6 +531,15 @@
     & input[type="submit"] {
       @apply ml-[29%];
     }
+
+    /* Inline receipt preview (new.php), in the field column. */
+    & .receipt_preview {
+      @apply mb-1.5 ml-[29%] block max-w-[68%] border border-neutral-400;
+    }
+
+    & iframe.receipt_preview {
+      @apply h-[80vh] w-[68%];
+    }
   }
 
   .login {
@@ -564,6 +573,14 @@
       & select,
       & input[type="submit"] {
         @apply ml-0 w-full;
+      }
+
+      & .receipt_preview {
+        @apply ml-0 max-w-full;
+      }
+
+      & iframe.receipt_preview {
+        @apply w-full;
       }
     }
   }
