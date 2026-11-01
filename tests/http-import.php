@@ -484,6 +484,17 @@ foreach ($memberViews as $mode => [$listed, $unlisted]) {
     assert_not_contains($csv['body'], 'profile.php', "CSV member number ($mode)");
     assert_not_contains($csv['body'], 'nicht in der Mitgliederliste', "CSV member number ($mode)");
 }
+// A slow membership system: a page that shows member numbers waits at most
+// 5 seconds for the list (the stub's "trickle" list takes 8 seconds), then
+// shows the plain numbers.
+membership_stub_mode('trickle');
+$started = microtime(true);
+$slowLedger = http_request($memberLedger, 'GET', [], $adminCookies);
+$waited = microtime(true) - $started;
+assert_contains($slowLedger['body'], '<td>9111</td>', 'ledger with a slow member list');
+if ($waited > 7) {
+    fail_test(sprintf('ledger with a slow member list waited %.1f seconds', $waited));
+}
 // A refused save of a member's part (no member list) shows the form again
 // with the posted number: still one fetch.
 membership_stub_mode('error');
@@ -497,7 +508,16 @@ assert_contains($refused['body'], 'Die Mitgliederverwaltung ist nicht erreichbar
 assert_contains($refused['body'], " &middot; Nr. 9111\n", 'refused member voucher');
 assert_member_list_requests(1, 'refused member voucher');
 // Pages without a member number do not fetch the list, also not for a
-// member's row without a number (an empty cell as before).
+// member's row without a number (an empty cell as before) or the form of a
+// voucher with a number but without the Mitglied box (the number as text).
+if (@pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, amount, account, comment, date, person_type, file, vaccount)
+     VALUES ($flowVoucher + 1002, 20, 2, false, 9111, -700, 'TEST-ACCOUNT-1', 'Synthetic number without the member box', timestamp '2024-04-07 00:00:00', 1, 0, '')") === false) {
+    fail_test('row with a number but not a member: ' . pg_last_error($database));
+}
+membership_stub_mode('ok');
+$noMemberForm = http_request('/index.php?action=edit&id=' . ($flowVoucher + 1002), 'GET', [], $adminCookies);
+assert_contains($noMemberForm['body'], " &middot; Nr. 9111\n", 'form of a number without the member box');
+assert_member_list_requests(0, 'form of a number without the member box');
 if (@pg_query($database, "INSERT INTO vouchers (voucher_id, type, orga, member, member_id, amount, account, comment, date, person_type, file, vaccount)
      VALUES ($flowVoucher + 1001, 1, 2, true, NULL, 700, 'TEST-ACCOUNT-1', 'Synthetic member row without a number', timestamp '2024-04-07 00:00:00', 1, 0, '')") === false) {
     fail_test('member row without a number: ' . pg_last_error($database));

@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=5001 as admin
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (24073 bytes) ---
+--- body (23923 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -242,7 +242,7 @@ function merge()
 </select>
 </div>
 <div>
-<label class="ui_field_label" for="member0">Mitglied</label><input type="checkbox" id="member0" name="member0" value="1"  onchange="clicked();" /> &middot; Nr. <a href="https://mitglieder.piratenpartei.at/modules/profile/profile.php?user_uuid=00000000-0000-4000-8000-000000009001">9001 Anna Synthetisch-Müller</a>
+<label class="ui_field_label" for="member0">Mitglied</label><input type="checkbox" id="member0" name="member0" value="1"  onchange="clicked();" /> &middot; Nr. 9001
 </div>
 <div id="mitgliedsnummer0">
 <label class="ui_field_label" for="mitgliedsnummer0">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer0" value="9001" onchange="clicked();" />

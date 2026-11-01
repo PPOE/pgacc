@@ -434,7 +434,7 @@ return [
         [
             'id' => 'member-number-list-error-ignored',
             'file' => 'getusers.php',
-            'search' => "    if (members_loaded() !== null) {\n        return (string) \$id;",
+            'search' => "    if (\$members === null) {\n        return (string) \$id;",
             'replace' => "    if (false) {\n        return (string) \$id;",
             'rationale' => 'Without a member list the number is shown as before and the page renders.',
         ],
@@ -469,9 +469,30 @@ return [
         [
             'id' => 'form-member-number-plain',
             'file' => 'new.php',
-            'search' => "' &middot; Nr. ' . member_number(\$voucher['mitgliedsnummer'])",
-            'replace' => "' &middot; Nr. ' . intval(\$voucher['mitgliedsnummer'])",
+            'search' => "? member_number(\$voucher['mitgliedsnummer']) : intval(",
+            'replace' => "? intval(\$voucher['mitgliedsnummer']) : intval(",
             'rationale' => 'The voucher form links the member\'s number with the name.',
+        ],
+        [
+            'id' => 'form-member-box-ignored',
+            'file' => 'new.php',
+            'search' => "(\$voucher['member'] == 'true' ? member_number(",
+            'replace' => "(true ? member_number(",
+            'rationale' => 'The voucher form fetches the member list only for a member\'s voucher.',
+        ],
+        [
+            'id' => 'members-display-deadline-long',
+            'file' => 'getusers.php',
+            'search' => 'function members_loaded($timeout = 5)',
+            'replace' => 'function members_loaded($timeout = 20)',
+            'rationale' => 'A page that shows member numbers waits at most 5 seconds for the list.',
+        ],
+        [
+            'id' => 'getusers-timeout-not-passed',
+            'file' => 'getusers.php',
+            'search' => '    $body = getusers_fetch($config, $timeout);',
+            'replace' => '    $body = getusers_fetch($config);',
+            'rationale' => 'getUsers() fetches with the caller\'s deadline.',
         ],
     ],
 ];

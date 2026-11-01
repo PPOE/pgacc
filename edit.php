@@ -309,7 +309,7 @@ function page_edit_save($rights)
     // The member list of a member's part is loaded before the transaction (no
     // external call while the voucher is locked); when it is missing, the
     // revision is refused after the other checks.
-    $members_error = posted_member_part($parts, $rights) ? members_loaded() : null;
+    $members_error = posted_member_part($parts, $rights) ? members_loaded(20) : null;
 
     // The voucher's lock (voucher_lock(), for the transaction), then its
     // current rows, locked: the checks, the approval reset, the replacement of

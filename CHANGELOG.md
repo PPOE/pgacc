@@ -12,8 +12,10 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the member's profile in the membership system; a number not in the list
   gets the hint "nicht in der Mitgliederliste". If the member list cannot be
   loaded, the number is shown as text as before. The list is fetched at most
-  once per request and only by pages that show a member's number; the CSV
-  export keeps the plain number.
+  once per request and only by pages that show a member's number (the
+  voucher form only for a voucher with the Mitglied box set), waiting at
+  most 5 seconds (saves, the import and the member-fee page keep 20); the
+  CSV export keeps the plain number.
 
 ### Fixed
 
