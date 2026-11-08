@@ -90,6 +90,100 @@ if ($kaffee['orga'] !== '2' || $kaffee['date'] !== '2024-02-15 00:00:00') {
 $paypal = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal.csv');
 $importedPaypal = import_csv('paypal.csv', $paypal, $adminCookies);
 assert_contains($importedPaypal['body'], 'wurde erfolgreich importiert', 'paypal fixture');
+// A current PayPal export (41 columns, UTF-8 with a byte order mark, CRLF,
+// every field quoted, "," between the fields; tests/reference/fixtures/
+// import/paypal-current.csv): the header is recognized and not imported, the
+// lines are read with "," (fields with ";", ",", quotes and line breaks), and
+// each line gives the payment and its fee booking (as the old export), the
+// comment with "Betreff" and "Hinweis" where set. The same file again
+// imports nothing (import.line).
+$paypalCurrent = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal-current.csv');
+function paypal_rows($database, $like)
+{
+    $result = @pg_query_params($database, 'SELECT amount, date::date AS date, name, contra_account, comment, orga, account FROM vouchers WHERE comment LIKE $1 ORDER BY id', [$like]);
+    if ($result === false) {
+        fail_test('paypal query failed: ' . pg_last_error($database));
+    }
+    $rows = [];
+    while (($row = pg_fetch_array($result, null, PGSQL_ASSOC)) !== false) {
+        if ($row['orga'] !== '10' || $row['account'] !== 'spende@piratenpartei.at') {
+            fail_test('paypal row: ' . var_export($row, true));
+        }
+        $rows[] = implode(' | ', [$row['amount'], $row['date'], $row['name'], $row['contra_account'], $row['comment']]);
+    }
+    pg_free_result($result);
+    return $rows;
+}
+function assert_paypal_import($cookies, $name, $content, $created, $label)
+{
+    $response = import_csv($name, $content, $cookies);
+    assert_contains($response['body'], "Datei 1 ($name) wurde erfolgreich importiert", $label);
+    assert_not_contains($response['body'], 'Ungültige Buchungszeile', $label);
+    assert_not_contains($response['body'], 'fehlgeschlagen', $label);
+    if (substr_count($response['body'], ' erstellt!') !== $created) {
+        fail_test("$label: " . substr_count($response['body'], ' erstellt!') . " vouchers created, expected $created");
+    }
+}
+assert_paypal_import($adminCookies, 'paypal-current.csv', $paypalCurrent, 3, 'paypal current');
+assert_paypal_import($adminCookies, 'paypal-current.csv', $paypalCurrent, 0, 'paypal current again');
+$currentFound = paypal_rows($database, '%Transaktion: XFAKETXN000000_ZZ;%');
+if ($currentFound !== [
+    '3500 | 2025-01-17 | Erika Fiktiv | erika.fiktiv@example.com | Transaktion: XFAKETXN0000001ZZ; Brutto: 35,00€; Gebühr: -1,49€; Erika Fiktiv',
+    '-149 | 2025-01-17 | Paypal |  | Transaktion: XFAKETXN0000001ZZ; Brutto: 35,00€; Gebühr: -1,49€; Erika Fiktiv',
+    '-7500 | 2025-07-22 | Hugo Erfunden | hugo.erfunden@example.org | FAKE-PURPOSE-A; Transaktion: XFAKETXN0000002ZZ; Brutto: -75,00€; Gebühr: 0,00€; Hugo Erfunden',
+    '0 | 2025-07-22 | Paypal |  | FAKE-PURPOSE-A; Transaktion: XFAKETXN0000002ZZ; Brutto: -75,00€; Gebühr: 0,00€; Hugo Erfunden',
+    "123456 | 2025-09-04 | Lina Ausgedacht | lina.ausgedacht@example.com | Fiktivspende; Wahlkampf, Fiktivstadt; FAKE-PURPOSE-B; Fiktive Notiz \"zitiert\"\nzweite Zeile; Transaktion: XFAKETXN0000003ZZ; Brutto: 1.234,56€; Gebühr: -20,00€; Lina Ausgedacht",
+    "-2000 | 2025-09-04 | Paypal |  | Fiktivspende; Wahlkampf, Fiktivstadt; FAKE-PURPOSE-B; Fiktive Notiz \"zitiert\"\nzweite Zeile; Transaktion: XFAKETXN0000003ZZ; Brutto: 1.234,56€; Gebühr: -20,00€; Lina Ausgedacht",
+]) {
+    fail_test('paypal current: imported ' . var_export($currentFound, true));
+}
+$headerLines = @pg_query($database, "SELECT COUNT(*) FROM import WHERE line LIKE '%Artikelbezeichnung%'");
+if (intval(pg_fetch_result($headerLines, 0, 0)) !== 0) {
+    fail_test('paypal current: the header was stored as an import line');
+}
+// Without the byte order mark and with LF the header is recognized too; a
+// line with an invalid date or amount, or with a missing quote (its fields
+// would shift by one), is reported with its number and skipped.
+$currentLines = explode("\r\n", substr($paypalCurrent, 3));
+$currentPlain = $currentLines[0] . "\n"
+    . str_replace(['XFAKETXN0000002ZZ', '22.07.2025'], ['XFAKETXN0000101ZZ', '23.07.2025'], $currentLines[2]) . "\n"
+    . str_replace(['XFAKETXN0000002ZZ', '22.07.2025'], ['XFAKETXN0000102ZZ', '2025-07-32'], $currentLines[2]) . "\n"
+    . str_replace(['XFAKETXN0000002ZZ', '"-75,00"'], ['XFAKETXN0000103ZZ', '"1e3"'], $currentLines[2]) . "\n"
+    . str_replace(['XFAKETXN0000002ZZ', '"Hugo Erfunden",'], ['XFAKETXN0000104ZZ', '"Hugo Erfunden,'], $currentLines[2]) . "\n";
+$plainImport = import_csv('paypal-current-plain.csv', $currentPlain, $adminCookies);
+assert_contains($plainImport['body'], 'Datei 1 (paypal-current-plain.csv): 3 Buchungszeilen übersprungen (Zeilen 3, 4, 5)', 'paypal current without BOM');
+assert_contains($plainImport['body'], 'Das erkannte CSV Format ist Paypal.', 'paypal current without BOM');
+foreach (['XFAKETXN0000101ZZ' => 2, 'XFAKETXN0000102ZZ' => 0, 'XFAKETXN0000103ZZ' => 0, 'XFAKETXN0000104ZZ' => 0] as $code => $expected) {
+    if (import_count($database, "%Transaktion: $code;%") !== $expected) {
+        fail_test("paypal current without BOM: $code imported " . import_count($database, "%Transaktion: $code;%") . " times");
+    }
+}
+// An older export in the same quoted style (38 columns, other option column
+// names, no byte order mark, LF; paypal-quoted-older.csv): the columns are
+// found by their names.
+$paypalOlder = file_get_contents(__DIR__ . '/reference/fixtures/import/paypal-quoted-older.csv');
+assert_paypal_import($adminCookies, 'paypal-quoted-older.csv', $paypalOlder, 2, 'paypal quoted older');
+assert_paypal_import($adminCookies, 'paypal-quoted-older.csv', $paypalOlder, 0, 'paypal quoted older again');
+$olderFound = paypal_rows($database, '%Transaktion: XFAKETXN000001_ZZ;%');
+if ($olderFound !== [
+    '1200 | 2016-03-03 | Otto Beispielmann | otto.beispielmann@example.org | Transaktion: XFAKETXN0000011ZZ; Brutto: 12,00€; Gebühr: 0,00€; Otto Beispielmann',
+    '0 | 2016-03-03 | Paypal |  | Transaktion: XFAKETXN0000011ZZ; Brutto: 12,00€; Gebühr: 0,00€; Otto Beispielmann',
+    '3000 | 2016-12-15 | Greta Phantasie | greta.phantasie@example.com | Fiktive Notiz; Transaktion: XFAKETXN0000012ZZ; Brutto: 30,00€; Gebühr: 0,00€; Greta Phantasie',
+    '0 | 2016-12-15 | Paypal |  | Fiktive Notiz; Transaktion: XFAKETXN0000012ZZ; Brutto: 30,00€; Gebühr: 0,00€; Greta Phantasie',
+]) {
+    fail_test('paypal quoted older: imported ' . var_export($olderFound, true));
+}
+// A header like that without one of the columns used is not taken for
+// PayPal: the file is reported as before (BAWAG, unknown account).
+$olderLines = explode("\n", $paypalOlder);
+$missing = import_csv('paypal-missing-column.csv', str_replace('"Artikelbezeichnung"', '"Titel"', $olderLines[0]) . "\n"
+    . str_replace('XFAKETXN0000011ZZ', 'XFAKETXN0000201ZZ', $olderLines[1]) . "\n", $adminCookies);
+assert_contains($missing['body'], 'Ungültige Buchungszeile in Datei 1 (paypal-missing-column.csv) <br />', 'paypal header without a used column');
+assert_contains($missing['body'], 'Das erkannte CSV Format ist BAWAG.', 'paypal header without a used column');
+if (import_count($database, '%XFAKETXN0000201ZZ%') !== 0) {
+    fail_test('paypal header without a used column: line imported');
+}
+
 // Sparkasse statements (lo 6, account 20815 6659403): the comment joins
 // Umsatzzeile1, Zusatztext and Auftraggeber.
 $sparkasse = "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"

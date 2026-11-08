@@ -5,6 +5,22 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Import: current PayPal CSV exports and older ones in the same style (every
+  field quoted, separated by ",", with or without a UTF-8 byte order mark,
+  header starting with "Datum","Uhrzeit","Zeitzone","Name") are recognized
+  as PayPal instead of failing as BAWAG with "Ungültige Buchungszeile".
+  Their lines are read with "," as separator, so fields containing ";", ","
+  or line breaks keep their place, and the columns used (date, name, gross,
+  fee, sender and recipient e-mail, transaction code, item title) are found
+  by their names; "Betreff" and "Hinweis", where set, are added to the
+  comment. A line whose number of fields differs from the header (e.g. a
+  missing quote) is reported as an invalid line. The vouchers are otherwise
+  stored as for the oldest (unquoted) export, including the fee booking, also
+  for a fee of 0,00. The oldest export and the other formats are imported as
+  before.
+
 ## [2.4.0] - 2026-11-08
 
 Inline receipts on the voucher page, member names in the ledger listings,

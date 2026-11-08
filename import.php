@@ -69,12 +69,17 @@ function page_import($rights)
             continue;
         }
         $csvformat = 'BAWAG';
+        // Field separator of the lines: ";", or "," after the header of a
+        // current PayPal export (every field quoted, see $paypalcolumns).
+        $delimiter = ';';
+        $paypalcolumns = [];
+        $paypalheader = [];
         if (($handle = fopen($_FILES['uploadcsv']['tmp_name'][$i], "r")) !== false) {
             echo "<h2>Importiere " . html_escape($_FILES['uploadcsv']['name'][$i]) . "</h2>\n";
             $voucher_number = 0;
             $lineno = 0;
             $skipped = [];
-            while (($data = fgetcsv($handle, 0, ";", '"', "\\")) !== false) {
+            while (($data = ($delimiter === ',' ? fgetcsv($handle, 0, ",", '"', "") : fgetcsv($handle, 0, ";", '"', "\\"))) !== false) {
                 $lineno++;
                 $voucher2 = [];
                 $dovoucher2 = false;
@@ -92,6 +97,38 @@ function page_import($rights)
                 $paypalcsvline = 'Datum,Zeit,Zeitzone,Name,Art,Status,Währung,Brutto,Gebühr,Netto,VonE-Mail-Adresse,AnE-Mail-Adresse,Transaktionscode,StatusderGegenpartei,Adressstatus,Verwendungszweck,Artikelnummer,BetragfürVersandkosten,Versicherungsbetrag,Umsatzsteuer,Option1-Name,Option1-Wert,Option2-Name,Option2-Wert,Auktions-Site,Käufer-ID,Artikel-URL,Angebotsende,Vorgangs-Nr.,Rechnungs-Nr.,Txn-Referenzkennung,Rechnungsnummer,IndividuelleNummer,Bestätigungsnummer,Guthaben,Adresse,ZusätzlicheAngaben,Ort,Staat/Provinz/Region/Landkreis/Territorium/Präfektur/Republik,PLZ,Land,TelefonnummerderKontaktperson,';
                 if ($csvline == $paypalcsvline) {
                     $csvformat = 'Paypal';
+                }
+                // The header of a current PayPal export (several variants):
+                // every field quoted, separated by ",", possibly after a UTF-8
+                // byte order mark, starting with "Datum","Uhrzeit","Zeitzone",
+                // "Name" and naming every column used below. The lines after
+                // it are read with "," (their fields may contain ";" or ","),
+                // and the columns are found by their names: $paypalcolumns
+                // maps the positions of the old export to them ("Betreff" and
+                // "Hinweis", where present, are added to the comment). A line
+                // with another number of fields than the header (e.g. a
+                // missing quote) is reported, not read with shifted columns.
+                if ($delimiter === ';' && strpos(str_replace(["\xEF\xBB\xBF", '"'], ['', ''], $csvline), 'Datum,Uhrzeit,Zeitzone,Name,') === 0) {
+                    $header = array_map('trim', explode(',', str_replace(["\xEF\xBB\xBF", '"'], ['', ''], convif($convert, $rawcsvline))));
+                    $paypalcolumns = [];
+                    foreach ([0 => 'Datum', 3 => 'Name', 7 => 'Brutto', 8 => 'Gebühr', 10 => 'Absender E-Mail-Adresse', 11 => 'Empfänger E-Mail-Adresse', 12 => 'Transaktionscode', 15 => 'Artikelbezeichnung'] as $old => $name) {
+                        $column = array_search($name, $header, true);
+                        if ($column !== false) {
+                            $paypalcolumns[$old] = $column;
+                        }
+                    }
+                    if (count($paypalcolumns) == 8) {
+                        foreach (['betreff' => 'Betreff', 'hinweis' => 'Hinweis'] as $key => $name) {
+                            $column = array_search($name, $header, true);
+                            if ($column !== false) {
+                                $paypalcolumns[$key] = $column;
+                            }
+                        }
+                        $paypalheader = $header;
+                        $csvformat = 'Paypal';
+                        $delimiter = ',';
+                        continue;
+                    }
                 }
                 $handkassacsvline = 'Datum;Betrag;Konto;Text;Kommentar;Fremdkonto;Zweckwidmung;Kostenrückerstattung;Name;Mitgliedsnummer;Lo;Adresse;PLZ;Stadt';
                 if ($csvline == $handkassacsvline) {
@@ -194,7 +231,18 @@ function page_import($rights)
                     $voucher['gegenkonto'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[14] . " " . $data[15])));
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[13])));
                 } elseif ($csvformat == 'Paypal') {
-                    $data = str_getcsv($data[0], ",", '"', "\\");
+                    if ($delimiter === ';') {
+                        $data = str_getcsv($data[0], ",", '"', "\\");
+                    } else {
+                        $fields = [];
+                        foreach ($paypalcolumns as $old => $column) {
+                            $fields[$old] = $data[$column] ?? '';
+                        }
+                        if (count($data) != count($paypalheader)) {
+                            $fields[7] = '';
+                        }
+                        $data = $fields;
+                    }
                     $voucher['amount'] = amount_cents($data[7], ',.', ',.', true);
                     if ($voucher['amount'] === 0) {
                         continue;
@@ -204,6 +252,11 @@ function page_import($rights)
                     $cmt = "";
                     if ($data[15] != '') {
                         $cmt .= convif($convert, $data[15]) . "; ";
+                    }
+                    foreach (['betreff', 'hinweis'] as $key) {
+                        if (($data[$key] ?? '') != '') {
+                            $cmt .= convif($convert, $data[$key]) . "; ";
+                        }
                     }
                     $cmt .= "Transaktion: " . convif($convert, $data[12]) . "; ";
                     $cmt .= "Brutto: " . convif($convert, $data[7]) . "€; ";
