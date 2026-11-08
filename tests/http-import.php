@@ -184,6 +184,99 @@ if (import_count($database, '%XFAKETXN0000201ZZ%') !== 0) {
     fail_test('paypal header without a used column: line imported');
 }
 
+// The same three transactions (incoming with a fee, outgoing with a zero fee,
+// incoming with a thousands separator) in each PayPal format: the oldest
+// unquoted export (fields with "," quoted), the quoted 38-column and the
+// current 41-column one. Every format stores the same vouchers, every column
+// compared (all but id and save_date): the payment and its fee booking with
+// one voucher_id. The import skips lines it has seen (import.line), so each
+// format has its own transaction codes XFAKETXN00003<format><n>ZZ; the code
+// is in the comment and is replaced by XFAKETXN before comparing. The amounts
+// are written "1.234,56" in every format (the oldest one also takes
+// "1,234.56", see the amount cases below), as the comment keeps them as
+// written. The values locked here are what the import stores now: the payment
+// type 8 (no member) or 28 (negative), the fee booking type 20 "Paypal"
+// without contra account; person_type is the column default 2 for both (the
+// import sets 1, but does not store person_type), no member, no address,
+// committed and receipt_received false.
+function paypal_format_line($header, $quoted, $fields)
+{
+    $values = [];
+    foreach (explode(',', $header) as $column) {
+        $value = $fields[trim($column, " \"\r\n\xEF\xBB\xBF")] ?? '';
+        $values[] = ($quoted || str_contains($value, ',')) ? "\"$value\"" : $value;
+    }
+    return implode(',', $values);
+}
+function paypal_format_rows($database, $format)
+{
+    $result = @pg_query_params($database, 'SELECT voucher_id, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received, deleted, date, ack1, ack2, person_type, file, save_user, commentgf, refund, vaccount, ack1_old, ack2_old, ack_rp1, ack_rp2, ack_rp1_old, ack_rp2_old FROM vouchers WHERE comment LIKE $1 ORDER BY id', ["%Transaktion: XFAKETXN00003{$format}_ZZ;%"]);
+    if ($result === false) {
+        fail_test('paypal formats query failed: ' . pg_last_error($database));
+    }
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    $voucherIds = array_column($rows, 'voucher_id');
+    foreach ($rows as $index => $row) {
+        if ($row['voucher_id'] !== $voucherIds[$index - $index % 2]) {
+            fail_test("paypal format $format: fee booking with another voucher_id " . var_export($rows, true));
+        }
+        unset($rows[$index]['voucher_id']);
+        $rows[$index]['comment'] = preg_replace('/XFAKETXN00003\d\dZZ/', 'XFAKETXN', $row['comment']);
+    }
+    return $rows;
+}
+$paypalFormats = [
+    1 => [explode("\n", $paypal)[0], false, "\r\n", 'Von E-Mail-Adresse', 'An E-Mail-Adresse', 'Verwendungszweck'],
+    2 => [$olderLines[0], true, "\n", 'Absender E-Mail-Adresse', 'Empfänger E-Mail-Adresse', 'Artikelbezeichnung'],
+    3 => ["\xEF\xBB\xBF" . $currentLines[0], true, "\r\n", 'Absender E-Mail-Adresse', 'Empfänger E-Mail-Adresse', 'Artikelbezeichnung'],
+];
+$paypalTransactions = [
+    ['05.02.2025', 'Fritz Erdacht', '40,00', '-1,66', '38,34', 'fritz.erdacht@example.org', 'spende@piratenpartei.at', ''],
+    ['06.02.2025', 'Wilma Ersonnen', '-60,00', '0,00', '-60,00', 'spende@piratenpartei.at', 'wilma.ersonnen@example.com', 'FAKE-PURPOSE-C'],
+    ['07.02.2025', 'Kurt Erfindung', '2.500,00', '-35,25', '2.464,75', 'kurt.erfindung@example.net', 'spende@piratenpartei.at', ''],
+];
+foreach ($paypalFormats as $format => [$header, $quoted, $eol, $from, $to, $purpose]) {
+    $content = $header . (str_ends_with($header, "\r") ? "\n" : $eol);
+    foreach ($paypalTransactions as $n => $transaction) {
+        $content .= paypal_format_line($header, $quoted, [
+            'Datum' => $transaction[0], 'Zeit' => '12:00:00', 'Uhrzeit' => '12:00:00', 'Zeitzone' => 'CET',
+            'Name' => $transaction[1], 'Status' => 'Abgeschlossen', 'Währung' => 'EUR',
+            'Brutto' => $transaction[2], 'Gebühr' => $transaction[3], 'Netto' => $transaction[4],
+            $from => $transaction[5], $to => $transaction[6], 'Transaktionscode' => 'XFAKETXN00003' . $format . ($n + 1) . 'ZZ',
+            $purpose => $transaction[7],
+        ]) . $eol;
+    }
+    assert_paypal_import($adminCookies, "paypal-format-$format.csv", $content, 3, "paypal format $format");
+}
+$paypalCommon = ['orga' => '10', 'member' => 'f', 'member_id' => '0', 'street' => '', 'plz' => '', 'city' => '',
+    'account' => 'spende@piratenpartei.at', 'committed' => 'f', 'receipt_received' => 'f', 'deleted' => 'f',
+    'ack1' => null, 'ack2' => null, 'person_type' => '2', 'file' => '0', 'save_user' => null, 'commentgf' => '',
+    'refund' => 'f', 'vaccount' => '', 'ack1_old' => null, 'ack2_old' => null, 'ack_rp1' => null, 'ack_rp2' => null,
+    'ack_rp1_old' => null, 'ack_rp2_old' => null];
+$paypalExpected = [];
+foreach ([
+    ['8', 'fritz.erdacht@example.org', 'Fritz Erdacht', '4000', '20', '-166', '2025-02-05', 'Transaktion: XFAKETXN; Brutto: 40,00€; Gebühr: -1,66€; Fritz Erdacht'],
+    ['28', 'wilma.ersonnen@example.com', 'Wilma Ersonnen', '-6000', '20', '0', '2025-02-06', 'FAKE-PURPOSE-C; Transaktion: XFAKETXN; Brutto: -60,00€; Gebühr: 0,00€; Wilma Ersonnen'],
+    ['8', 'kurt.erfindung@example.net', 'Kurt Erfindung', '250000', '20', '-3525', '2025-02-07', 'Transaktion: XFAKETXN; Brutto: 2.500,00€; Gebühr: -35,25€; Kurt Erfindung'],
+] as [$type, $contra, $name, $amount, $feeType, $fee, $date, $comment]) {
+    $paypalExpected[] = ['type' => $type, 'contra_account' => $contra, 'name' => $name, 'amount' => $amount, 'comment' => $comment, 'date' => "$date 00:00:00"];
+    $paypalExpected[] = ['type' => $feeType, 'contra_account' => '', 'name' => 'Paypal', 'amount' => $fee, 'comment' => $comment, 'date' => "$date 00:00:00"];
+}
+foreach ($paypalExpected as $index => $row) {
+    $paypalExpected[$index] = array_merge($paypalCommon, $row);
+    ksort($paypalExpected[$index]);
+}
+foreach (array_keys($paypalFormats) as $format) {
+    $rows = paypal_format_rows($database, $format);
+    foreach ($rows as $index => $row) {
+        ksort($rows[$index]);
+    }
+    if ($rows !== $paypalExpected) {
+        fail_test("paypal format $format: imported " . var_export($rows, true));
+    }
+}
+
 // Sparkasse statements (lo 6, account 20815 6659403): the comment joins
 // Umsatzzeile1, Zusatztext and Auftraggeber.
 $sparkasse = "Bezeichnung;Valutadatum;Betrag;Währung;Buchungsdatum;Umsatzzeile1;Zusatztext;Auftraggeber;"
