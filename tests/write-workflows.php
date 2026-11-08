@@ -1243,6 +1243,35 @@ assert_redirect($bgfReset, edit_location($resetId, 3), 'approval reset by a bgf 
 assert_voucher_approvals($database, $resetId, [
     approval_row('2', null, null, 'synthetic-admin', 'synthetic-reviewer', 'Synthetic approved voucher'),
 ], 'voucher after approval reset by a bgf user');
+// The voucher page takes the approval state from all rows the user sees,
+// not from the first one: a voucher whose first row is approved twice and
+// whose second row is open offers bgf the approval besides the reset, and
+// its status lists each row ("offen" for a row without approvals).
+$mixedStatusId = create_voucher_from_form($database, two_organization_form('Synthetic partly approved voucher', 9019), $adminCookies);
+$mixedStatusRows = pg_fetch_all_columns(pg_query_params($database, 'SELECT id FROM vouchers WHERE voucher_id = $1 AND NOT deleted ORDER BY id', [$mixedStatusId]));
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE id = $1", [$mixedStatusRows[0]]);
+$mixedStatus = http_request('/index.php?action=edit&id=' . $mixedStatusId, 'GET', [], $reviewerCookies);
+assert_contains($mixedStatus['body'], 'name="ack" id="ack"', 'partly approved voucher for bgf');
+assert_contains($mixedStatus['body'], 'name="belegfehler"', 'partly approved voucher for bgf');
+// Enter in a field submits the first submit button: Speichern, not the reset.
+if (strpos($mixedStatus['body'], 'name="speichern"') > strpos($mixedStatus['body'], 'name="belegfehler"')) {
+    fail_test('partly approved voucher for bgf: the reset button comes before Speichern');
+}
+assert_contains(
+    $mixedStatus['body'],
+    '<h4>Bestätigt von: <br />Buchungszeile ' . $mixedStatusRows[0] . ': synthetic-a synthetic-b<br />Buchungszeile ' . $mixedStatusRows[1] . ': offen</h4>',
+    'status of a partly approved voucher',
+);
+// Approved twice in every row: only the reset, and one status line.
+pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", [$mixedStatusId]);
+$approvedStatus = http_request('/index.php?action=edit&id=' . $mixedStatusId, 'GET', [], $reviewerCookies);
+assert_contains($approvedStatus['body'], 'name="belegfehler"', 'approved voucher for bgf');
+assert_not_contains($approvedStatus['body'], 'name="ack" id="ack"', 'approved voucher for bgf');
+assert_contains($approvedStatus['body'], '<h4>Bestätigt von: synthetic-a synthetic-b</h4>', 'status of an approved voucher');
+// A finalized row other than the first one hides the reset as well.
+finalize_in_database($database, $mixedStatusId, 2);
+$finalizedStatus = http_request('/index.php?action=edit&id=' . $mixedStatusId, 'GET', [], $reviewerCookies);
+assert_not_contains($finalizedStatus['body'], 'name="belegfehler"', 'partly finalized approved voucher for bgf');
 // A finalized voucher refuses the reset too, as every other change.
 $finalizedResetId = create_voucher($database, 'Synthetic finalized approved voucher', '-10.60', 9015, $adminCookies);
 pg_query_params($database, "UPDATE vouchers SET ack1 = 'synthetic-a', ack2 = 'synthetic-b' WHERE voucher_id = $1", [$finalizedResetId]);

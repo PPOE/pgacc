@@ -763,6 +763,21 @@ function end_of_form($parts, $rights, $bgfandack, $open = true, $ack = true)
     $rights2 = rights_tokens($rights);
     // bgf or any organization right (saving and approving check each row).
     if (write_rights($rights) !== false && (has_right($rights, 'bgf') || preg_grep('/^\d+$/D', $rights2) != [])) {
+        // Both when the reset is offered for some rows while others are open:
+        // the buttons first, so that Enter in a field saves (the first submit
+        // button) and does not reset the approvals.
+        if ($open) {
+            block_start();
+            echo '<input name="speichern" id="speichern" value="Speichern" type="submit" />';
+            //if (strpos($rights,'bgf') !== false && $ack)
+            if ($ack) {
+                echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/>';
+            }
+            echo '<input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/>';
+            echo '<input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>';
+
+            block_end();
+        }
         if ($bgfandack) {
             echo '<div id="belegdiv">';
             block_start();
@@ -776,20 +791,6 @@ Wurde die Buchung fehlerhaft durchgeführt und muss korrigiert werden?
 ';
             block_end();
             echo '</div>';
-        } else {
-
-            if ($open) {
-                block_start();
-                echo '<input name="speichern" id="speichern" value="Speichern" type="submit" />';
-                //if (strpos($rights,'bgf') !== false && $ack)
-                if ($ack) {
-                    echo '<input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/>';
-                }
-                echo '<input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/>';
-                echo '<input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>';
-
-                block_end();
-            }
         }
     }
     echo '
