@@ -5,6 +5,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-08
+
+Inline receipts on the voucher page, member names in the ledger listings,
+CSV exports without HTML markup, and approval fixes. No deployment change:
+`pgacc-deploy v2.4.0` is enough on hosts set up with `deploy/`.
+
 ### Added
 
 - Voucher page: a row's receipt is shown inline below "Beleg Anzeigen", loaded
