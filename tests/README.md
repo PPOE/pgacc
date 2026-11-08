@@ -623,7 +623,7 @@ recording has:
   comparisons, sorting) over a deterministic corpus (numeric strings, `''`,
   `null`, `'1e3'`, `' 12'`, UTF-8 and ISO-8859 bytes, floats, 64-bit limits).
 - Imports: synthetic BAWAG, ISO-8859-15, Handkassa, Sparkasse and PayPal CSV
-  (`import.php`), generated PDF statements (`import2.php`,
+  (old and current export; `import.php`), generated PDF statements (`import2.php`,
   `fixtures/make-pdf.php`), receipt upload/download and the
   member-fee page. `mitglieder.piratenpartei.at` resolves to the HTTPS stub
   (`membership/server.php`) inside the network; it serves
