@@ -5,6 +5,11 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-11-14
+
+Import of current PayPal CSV exports. No deployment change:
+`pgacc-deploy v2.4.1` is enough on hosts set up with `deploy/`.
+
 ### Fixed
 
 - Import: current PayPal CSV exports and older ones in the same style (every
