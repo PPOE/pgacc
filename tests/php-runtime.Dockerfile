@@ -53,7 +53,7 @@ RUN update-ca-certificates
 COPY --from=downloads /tmp/xdebug-3.5.3.tgz /tmp/xdebug-3.5.3.tgz
 RUN apt-get -o Acquire::Retries=3 update \
     && apt-get -o Acquire::Retries=3 install --yes --no-install-recommends \
-      libpq-dev=17.11-0+deb13u1 \
+      libpq-dev=17.12-0+deb13u1 \
     && docker-php-ext-install pgsql \
     && pecl install /tmp/xdebug-3.5.3.tgz \
     && docker-php-ext-enable xdebug \
