@@ -5,6 +5,14 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Import: the member number of a Handkassa line (column "Mitgliedsnummer") is
+  kept instead of being reset to 0. A number of one to nine digits greater
+  than 0 makes the line that member's membership fee (type 1, member "Ja");
+  the name is then not matched. Other values count as no number, and the name
+  is matched as before.
+
 ## [2.4.1] - 2026-11-14
 
 Import of current PayPal CSV exports. No deployment change:
