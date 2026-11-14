@@ -5,6 +5,28 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Edit page: member lookup for users with the exact `bgf` right (not `Rbgf`,
+  not organization users, whose form is unchanged). On a member's row
+  without a number of the member list, a "Mitglied suchen" field searches
+  all members by number (up to 9 digits) or by name words, posting the form
+  without saving (Enter in the field searches, it does not save); without a
+  search, members are suggested whose number (3 to 6 digits) is in the
+  booking text or whose name (at least 5 characters) is part of the row's
+  name or booking text. At most 20 hits are listed, with organization and
+  "(nicht bezahlt)" for members who have not paid. A picked member is saved
+  with "Speichern" only if the member list has it; the save sets the member
+  number, replaces the name with the member's name (as for a typed number;
+  the page says so) and resets the approvals like every revision. The
+  booking type is not changed: a member's income row of another type than
+  the membership fee shows a hint with the fee rule of the
+  Bundesfinanzordnung §2. After a save, a link "Nächste offene Buchung" opens
+  the next member's row without a number that is not finalized. Without the
+  member list the page says "Mitgliederliste nicht erreichbar – Nummer
+  manuell eintragen" and the number field works as before. Finalized
+  vouchers and the creation page are unchanged.
+
 ## [2.4.1] - 2026-11-14
 
 Import of current PayPal CSV exports. No deployment change:

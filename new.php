@@ -79,6 +79,16 @@ function get_voucher($part, $rights, $escape = true)
     $voucher['refund'] = get_param_bool($part, 'refund', 'false', null, 'true');
     $voucher['member'] = get_param_bool($part, 'member', 'false', null, 'true');
     $voucher['mitgliedsnummer'] = get_param($part, 'mitgliedsnummer', 0, '/^\d+$/');
+    // A member picked in the member lookup of the edit page
+    // (member_lookup_html(), exact bgf right): only a member of the member
+    // list, which is loaded for it (with the deadline of a save).
+    $pick = intval(get_param($part, 'mitgliedpick', 0, '/^\d{1,9}$/D'));
+    if ($pick > 0 && has_right($rights, 'bgf') && members_loaded(20) === null && isset(member_list()[$pick])) {
+        $voucher['member'] = 'true';
+        $voucher['mitgliedsnummer'] = $pick;
+    }
+    // The member search of the row (member_lookup_html()).
+    $voucher['mq'] = get_param($filepart, 'mq', '', null);
     $voucher['name'] = voucher_text(get_param($part, 'name', '', null), $escape);
     $voucher['street'] = voucher_text(get_param($part, 'street', '', null), $escape);
     $voucher['plz'] = voucher_text(get_param($part, 'plz', '', null), $escape);
@@ -392,7 +402,8 @@ function page_new_file($rights)
     block_end();
     relocate("index.php?action=edit&id=$id&bid=$bid&hint=1");
 }
-function page_edit_form($part, $voucher, $rights)
+// $lookup: the edit page offers the member lookup (member_lookup_html()).
+function page_edit_form($part, $voucher, $rights, $lookup = false)
 {
     global $dbconn;
     block_start();
@@ -515,7 +526,7 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; Nr. ' . ($voucher['member'] == 'true' ? member_number($voucher['mitgliedsnummer']) : intval($voucher['mitgliedsnummer'])) : '') . '
 </div>
 <div id="mitgliedsnummer' . $part . '">
-<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '" onchange="clicked();" />
+<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '" onchange="clicked();" />' . ($lookup && intval($voucher['bid']) > 0 && organization_allowed($voucher['lo'], $rights) ? member_lookup_html($part, $voucher) : '') . '
 </div>
 <div id="gegenkonto' . $part . '">
 <label class="ui_field_label" for="gegenkonto' . $part . '">Fremdkonto</label><input type="text" name="gegenkonto' . $part . '" value="' . html_escape($voucher['gegenkonto']) . '" onchange="clicked();" />
@@ -591,6 +602,54 @@ function page_edit_form($part, $voucher, $rights)
 <br />
 ';
     block_end();
+}
+
+// The member lookup of row $part of the edit page (exact bgf right, rows of a
+// voucher that is not finalized; page_edit()), HTML: a search field with a
+// button that posts the form without saving (Enter there searches too), and
+// for a member's row without a number of the member list the hits of the
+// search, or else suggestions (member_suggestions()), to pick one
+// (mitgliedpick, get_voucher()). A member's row of another type than the
+// membership fee (1) gets a hint.
+function member_lookup_html($part, $voucher)
+{
+    $html = '';
+    $number = intval($voucher['mitgliedsnummer']);
+    $query = $voucher['mq'] ?? '';
+    $members = null;
+    if ($voucher['member'] == 'true' || $query !== '') {
+        $members = member_list();
+        if ($members === null) {
+            return '<br />Mitgliederliste nicht erreichbar – Nummer manuell eintragen';
+        }
+    }
+    if ($number == 0 || ($voucher['member'] == 'true' && !isset($members[$number]))) {
+        $html .= '<br /><label class="ui_field_label" for="mq' . $part . '">Mitglied suchen</label><input type="text" id="mq' . $part . '" name="mq' . $part
+            . '" value="' . html_escape($query) . '" onkeydown="if (event.key == \'Enter\') { event.preventDefault(); this.form.submit(); }" />'
+            . '<input type="button" value="Mitglied suchen" onclick="document.mainform.submit();" />';
+        if ($members !== null) {
+            $rows = $query !== '' ? member_search($query) : member_suggestions($voucher['name'], $voucher['comment']);
+            if (is_string($rows)) {
+                $html .= '<br />' . $rows;
+            } elseif ($rows === [] && $query !== '') {
+                $html .= '<br />Keine Treffer.';
+            } elseif ($rows !== []) {
+                $html .= '<br /><label class="ui_field_label" for="mitgliedpick' . $part . '">' . ($query !== '' ? 'Treffer' : 'Vorschläge') . '</label>'
+                    . '<select id="mitgliedpick' . $part . '" name="mitgliedpick' . $part . '" onchange="clicked();"><option value="">– keine Auswahl –</option>';
+                foreach (array_slice($rows, 0, MEMBER_LOOKUP_LIMIT) as $row) {
+                    $html .= '<option value="' . intval($row['id']) . '">' . intval($row['id']) . ' – ' . html_escape($row['name'])
+                        . ($row['lo'] !== '' ? ' (' . html_escape($row['lo']) . ')' : '') . ($row['paid'] == 0 ? ' (nicht bezahlt)' : '') . '</option>';
+                }
+                $html .= '</select>' . (count($rows) > MEMBER_LOOKUP_LIMIT ? ' weitere Treffer – Suche verfeinern' : '')
+                    . '<br />Name wird durch den Mitgliedsnamen ersetzt; der Zahlername bleibt im Buchungstext.';
+            }
+        }
+    }
+    if ($voucher['member'] == 'true' && $voucher['dir'] == 'in' && $voucher['type'] != 1) {
+        $html .= '<br />Hinweis: Die Art der Einnahme wird nicht automatisch geändert. Ist dies ein Mitgliedsbeitrag, bitte „Mitgliedsbeitrag“ selbst wählen.'
+            . ' Laut Bundesfinanzordnung §2 legen Mitglieder ihren Beitrag zwischen 20 € und 1000 € pro Jahr fest; der Teil über 1000 € pro Jahr gilt als Spende.';
+    }
+    return $html;
 }
 
 function page_new_buchung($part, $part_to_remove, $rights, $add)

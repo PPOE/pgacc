@@ -404,7 +404,8 @@ function page_edit_save($rights)
     }
     relocate("index.php?action=edit&id=$id&hint=5$warn");
 }
-function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = 0)
+// $lookup: the member lookup of the rows (page_edit_form()).
+function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, $new_part = 0, $lookup = false)
 {
     global $dbconn;
     if (isset($_POST["changed"])) {
@@ -462,7 +463,26 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
         $voucher['dir'] = 'bel';
         $voucher['type'] = 45;
     }
-    page_edit_form($part, $voucher, $rights);
+    page_edit_form($part, $voucher, $rights, $lookup);
+}
+
+// The link to the next voucher after $id (then from the start) with a
+// member's row without a member number that the user may change (rights
+// $rights, write_rights()), not finalized, HTML; '' if there is none.
+function edit_next_open_link($id, $rights)
+{
+    global $dbconn;
+    $rightssql = rights2orgasql(write_rights($rights));
+    $query = "SELECT v.voucher_id FROM vouchers v WHERE NOT v.deleted AND v.member AND v.member_id = 0 AND v.voucher_id <> $id $rightssql"
+        . " AND NOT EXISTS (SELECT 1 FROM vouchers f WHERE NOT f.deleted AND f.receipt_received AND f.voucher_id = v.voucher_id)"
+        . " ORDER BY v.voucher_id < $id, v.voucher_id LIMIT 1;";
+    $result = db_query($dbconn, $query);
+    $line = pg_fetch_array($result, null, PGSQL_ASSOC);
+    pg_free_result($result);
+    if ($line === false) {
+        return '';
+    }
+    return '<div class="slot_notice"><a href="index.php?action=edit&id=' . intval($line['voucher_id']) . '">Nächste offene Buchung</a></div>';
 }
 
 // $unsaved: the form shows posted values that were not saved (a refused
@@ -512,6 +532,10 @@ function page_edit($rights, $unsaved = false)
         case 6:
             echo '<div class="slot_notice" id="slot_notice"><h1>Buchungen zusammengeführt - Buchung Nr. ' . $id . '</h1></div>';
             break;
+    }
+    // After a save, bgf works through the members' rows without a number.
+    if ($hint == 5 && has_right($rights, 'bgf')) {
+        echo edit_next_open_link($id, $rights);
     }
     // Values that the revision corrected (warn= of its redirect): fixed notes,
     // only for the known codes.
@@ -625,8 +649,11 @@ function merge()
     }
     echo '</h4>';
 
+    // The member lookup: the exact bgf right (not Rbgf), not on a finalized
+    // voucher.
+    $lookup = has_right($rights, 'bgf') && !$received;
     for ($i = 0; $i < $parts; $i++) {
-        page_edit_buchung($rights, $vouchers, $i, $part_to_remove);
+        page_edit_buchung($rights, $vouchers, $i, $part_to_remove, 0, $lookup);
     }
     if (isset($_POST["add"])) {
         page_edit_buchung($rights, $vouchers, $parts, $part_to_remove, 1);
