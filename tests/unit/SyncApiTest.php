@@ -152,6 +152,29 @@ final class SyncApiTest extends FunctionsTestCase
         ], $payments);
     }
 
+    public function testPaymentsSkipMemberNumberZero()
+    {
+        $dbconn = $GLOBALS['dbconn'];
+        pg_query($dbconn, 'BEGIN');
+        pg_query($dbconn, 'DELETE FROM vouchers');
+        // Member number 0 means "not set": such fees are not a member's payment.
+        foreach ([[0, 5000], [21, 3000]] as $index => [$member, $cents]) {
+            pg_query_params(
+                $dbconn,
+                "INSERT INTO vouchers (id, voucher_id, type, orga, member, member_id, amount, comment, date, ack1, deleted)
+                 VALUES ($1, $1, 1, 1, true, $2, $3, 'Synthetic fee', '2031-03-01', 'reviewer', false)",
+                [99200 + $index, $member, $cents],
+            );
+        }
+
+        $payments = sync_api_payments($dbconn, 2031);
+        pg_query($dbconn, 'ROLLBACK');
+
+        self::assertSame([
+            ['id' => 21, 'amount_cents' => 3000, 'paid_until' => '2031-12-31'],
+        ], $payments);
+    }
+
     public function testPaymentsAreEmptyWithoutFees()
     {
         $dbconn = $GLOBALS['dbconn'];
