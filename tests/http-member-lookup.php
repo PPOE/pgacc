@@ -250,7 +250,8 @@ $saved = lookup_page('/index.php?action=edit&id=97001&hint=5', $bgf);
 assert_contains($saved, '<div class="slot_notice"><a href="index.php?action=edit&id=97002">Nächste offene Buchung</a></div>', 'next open booking');
 assert_not_contains($saved, 'name="mq0"', 'member number set');
 assert_contains($saved, 'Bundesfinanzordnung §2', 'type hint after the pick');
-foreach (['organization' => $unit, 'Rbgf' => $readOnly] as $label => $cookies) {
+// (Rbgf,2 may change 97002, which would be its next open booking.)
+foreach (['organization' => $unit, 'Rbgf' => $readOnly, 'Rbgf,2' => $readOnlyTwo] as $label => $cookies) {
     assert_not_contains(lookup_page('/index.php?action=edit&id=97001&hint=5', $cookies), 'Nächste offene Buchung', "$label next open booking");
 }
 // The last open booking: no link (97003 is finalized). Open rows of other
