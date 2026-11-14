@@ -5,6 +5,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The payments feed for the membership system (`internal/mbapi.php`) no longer
+  reports acknowledged membership fees without a member number (member number
+  0) as payments of member 0; only member numbers greater than 0 are reported.
+
 ## [2.4.1] - 2026-11-14
 
 Import of current PayPal CSV exports. No deployment change:
