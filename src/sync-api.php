@@ -43,9 +43,9 @@ function sync_api_allowed($config, $server)
         && hash_equals('Bearer ' . $config['payments_token'], (string) ($server['HTTP_AUTHORIZATION'] ?? ''));
 }
 
-// The members whose acknowledged (ack1), not deleted membership fees
-// (type 1) since 1 October of the year before $year add up to at least
-// 20.00, ordered by member: [['id' => int, 'amount_cents' => int,
+// The members (member number > 0; 0 means not set) whose acknowledged
+// (ack1), not deleted membership fees (type 1) since 1 October of the year
+// before $year add up to at least 20.00, ordered by member: [['id' => int, 'amount_cents' => int,
 // 'paid_until' => '<$year>-12-31'], ...]. Null if the query fails (PHP has
 // logged the reason).
 function sync_api_payments($dbconn, $year)
@@ -53,7 +53,7 @@ function sync_api_payments($dbconn, $year)
     $result = pg_query_params(
         $dbconn,
         'SELECT member_id, SUM(amount) AS amount FROM vouchers'
-        . ' WHERE type = 1 AND date >= $1 AND NOT deleted AND ack1 IS NOT NULL AND member_id IS NOT NULL'
+        . ' WHERE type = 1 AND date >= $1 AND NOT deleted AND ack1 IS NOT NULL AND member_id > 0'
         . ' GROUP BY member_id HAVING SUM(amount) >= 2000 ORDER BY member_id',
         [($year - 1) . '-10-01'],
     );
