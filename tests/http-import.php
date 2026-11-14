@@ -366,6 +366,31 @@ if ($memberFields['name'] !== 'Synthetica' || $memberFields['member_id'] !== '90
     fail_test('member line: ' . var_export($memberFields, true));
 }
 
+// A Handkassa member number (digits only, at most nine, greater than 0) is
+// kept: the line is that member's fee (type 1), also when the name matches no
+// member or the line contains another member's name. Other values count as
+// no number: the name is matched as before (no match: type 8).
+$numberLines = $handkassaHeader
+    . "05.04.2024;6,00;Handkassa;Synthetic numbered line;;;Nein;Nein;Synthetic Nonmember;9002;1;;;\r\n"
+    . "05.04.2024;6,00;Handkassa;Synthetic numbered line Synthetica;;;Nein;Nein;;000009003;1;;;\r\n"
+    . "05.04.2024;6,00;Handkassa;Synthetic line with a long number;;;Nein;Nein;Synthetic Nonmember;1234567890;1;;;\r\n"
+    . "05.04.2024;6,00;Handkassa;Synthetic line with a signed number;;;Nein;Nein;Synthetic Nonmember;+9004;1;;;\r\n"
+    . "05.04.2024;6,00;Handkassa;Synthetic line with a zero number;;;Nein;Nein;Synthetic Nonmember;0;1;;;\r\n";
+$numberImport = import_csv('member-number.csv', $numberLines, $adminCookies);
+assert_contains($numberImport['body'], 'wurde erfolgreich importiert', 'import with member numbers');
+foreach ([
+    'Synthetic numbered line' => ['t', '9002', '1'],
+    'Synthetic numbered line Synthetica' => ['t', '9003', '1'],
+    'Synthetic line with a long number' => ['f', '0', '8'],
+    'Synthetic line with a signed number' => ['f', '0', '8'],
+    'Synthetic line with a zero number' => ['f', '0', '8'],
+] as $comment => $expected) {
+    $numberRow = pg_fetch_row(@pg_query_params($database, 'SELECT member, member_id, type FROM vouchers WHERE comment = $1', [$comment]));
+    if ($numberRow !== $expected) {
+        fail_test("member number line '$comment': " . var_export($numberRow, true));
+    }
+}
+
 // The organization of every line must be one the user may use.
 $orgCases = [
     'own organization' => [$unitOneCookies, '1', true],

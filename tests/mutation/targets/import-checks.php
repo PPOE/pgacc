@@ -488,6 +488,42 @@ return [
             'rationale' => 'A page that shows member numbers waits at most 5 seconds for the list.',
         ],
         [
+            'id' => 'handkassa-member-number-any-length',
+            'search' => "preg_match('/^\\d{1,9}$/D', \$data[9] ?? '')",
+            'replace' => "preg_match('/^\\d{1,}$/D', \$data[9] ?? '')",
+            'rationale' => 'A Handkassa member number has at most nine digits.',
+        ],
+        [
+            'id' => 'handkassa-member-number-signed',
+            'search' => "preg_match('/^\\d{1,9}$/D', \$data[9] ?? '')",
+            'replace' => "preg_match('/^[+]?\\d{1,9}$/D', \$data[9] ?? '')",
+            'rationale' => 'A Handkassa member number has digits only.',
+        ],
+        [
+            'id' => 'handkassa-member-number-dropped',
+            'search' => "                if (\$csvformat != 'Handkassa') {\n                    \$voucher['mitgliedsnummer'] = 0;",
+            'replace' => "                if (\$csvformat != 'Ignored') {\n                    \$voucher['mitgliedsnummer'] = 0;",
+            'rationale' => 'A Handkassa line keeps its member number.',
+        ],
+        [
+            'id' => 'handkassa-member-number-not-member',
+            'search' => "                \$voucher['member'] = \$voucher['mitgliedsnummer'] > 0 ? 'true' : 'false';",
+            'replace' => "                \$voucher['member'] = 'false';",
+            'rationale' => 'A line with a member number is a member\'s line.',
+        ],
+        [
+            'id' => 'handkassa-member-number-not-fee',
+            'search' => "                \$voucher['type'] = \$voucher['mitgliedsnummer'] > 0 ? 1 : 14;",
+            'replace' => "                \$voucher['type'] = 14;",
+            'rationale' => 'A line with a member number is that member\'s fee (type 1).',
+        ],
+        [
+            'id' => 'handkassa-member-number-line-search',
+            'search' => " && \$voucher['mitgliedsnummer'] == 0) {",
+            'replace' => ') {',
+            'rationale' => 'A member number is not replaced by a member name found in the line.',
+        ],
+        [
             'id' => 'getusers-timeout-not-passed',
             'file' => 'getusers.php',
             'search' => '    $body = getusers_fetch($config, $timeout);',

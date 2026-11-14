@@ -210,7 +210,8 @@ function page_import($rights)
                     $voucher['committed'] = ($data[6] == 'Ja' || $data[6] == 'Wahr' || $data[6] == '1') ? 'true' : 'false';
                     $voucher['refund'] = ($data[7] == 'Ja' || $data[7] == 'Wahr' || $data[7] == '1') ? 'true' : 'false';
                     $voucher['name'] = pg_escape_string($dbconn, str_replace("|", "\n", convif($convert, $data[8])));
-                    $voucher['mitgliedsnummer'] = intval($data[9]);
+                    // A member number: digits only, at most nine, greater than 0.
+                    $voucher['mitgliedsnummer'] = preg_match('/^\d{1,9}$/D', $data[9] ?? '') == 1 ? intval($data[9]) : 0;
                     if ($voucher['mitgliedsnummer'] != 0) {
                         $voucher['mitglied'] = 'true';
                         $voucher['person_type'] = 2;
@@ -293,8 +294,11 @@ function page_import($rights)
                 }
                 $voucher_number = db_next_value($dbconn, 'voucher_number');
                 $voucher['person_type'] = 1;
-                $voucher['member'] = 'false';
-                $voucher['mitgliedsnummer'] = 0;
+                // Only a Handkassa line brings its own member number.
+                if ($csvformat != 'Handkassa') {
+                    $voucher['mitgliedsnummer'] = 0;
+                }
+                $voucher['member'] = $voucher['mitgliedsnummer'] > 0 ? 'true' : 'false';
                 $voucher['street'] = '';
                 $voucher['plz'] = '';
                 $voucher['city'] = '';
@@ -313,8 +317,8 @@ function page_import($rights)
                         $voucher['name'] = $matches[2];
                     }
                 }
-                $voucher['type'] = 14;
-                if (strlen($voucher['name']) == 0) {
+                $voucher['type'] = $voucher['mitgliedsnummer'] > 0 ? 1 : 14;
+                if (strlen($voucher['name']) == 0 && $voucher['mitgliedsnummer'] == 0) {
                     // $csvline is escaped already. Member names are matched literally:
                     // their LIKE wildcards and the escape character are escaped (E''
                     // strings, independent of standard_conforming_strings), and an empty

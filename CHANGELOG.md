@@ -7,6 +7,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Import: the member number of a Handkassa line (column "Mitgliedsnummer") is
+  kept instead of being reset to 0. A number of one to nine digits greater
+  than 0 makes the line that member's membership fee (type 1, member "Ja");
+  the name is then not matched. Other values count as no number, and the name
+  is matched as before.
+
 - The payments feed for the membership system (`internal/mbapi.php`) no longer
   reports acknowledged membership fees without a member number (member number
   0) as payments of member 0; only member numbers greater than 0 are reported.

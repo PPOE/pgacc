@@ -89,8 +89,6 @@ SELECT 1 FROM import WHERE line = '16.02.2024;7;Handkassa;Porto;;;Nein;Ja;TestaM
 -- next
 SELECT nextval('voucher_number') AS num;
 -- next
-SELECT * FROM ppmembers WHERE lower(name) = lower('Testa Mitglied');
--- next
 INSERT INTO vouchers (voucher_id, date, type, orga, member, member_id, contra_account, name, street, plz, city, amount, account, comment, committed, receipt_received) VALUES (5019, '2024-02-16', 1,10,true,9031,'','Testa Mitglied','','','',700,'Handkassa','Porto',false,false)
 -- next
 INSERT INTO import (line) VALUES ('16.02.2024;7;Handkassa;Porto;;;Nein;Ja;TestaMitglied;9031;0;;;');
