@@ -303,3 +303,91 @@ function member_number($id)
     }
     return member_link($id, $members[$id]['uuid'], $members[$id]['name']);
 }
+
+// The most members that the member lookup of the edit page suggests
+// (member_lookup_html()); member_suggestions() reads one more, which tells
+// that there are more.
+const MEMBER_LOOKUP_LIMIT = 20;
+
+// The id of the member list of the edit page (member_datalist_html()), the
+// list of its member number fields.
+const MEMBER_DATALIST_ID = 'mitgliederliste';
+
+// The numbers of 3 to 6 digits in $text (not part of a longer number), each
+// once: candidates for member numbers.
+function member_text_numbers($text)
+{
+    preg_match_all('/(?<!\d)\d{3,6}(?!\d)/', $text, $matches);
+    return array_values(array_unique(array_map('intval', $matches[0])));
+}
+
+// The members of the member list (ppmembers, loaded by members_loaded())
+// that match the condition $where (placeholders $1, ... for $params), by
+// name and number, at most $limit (null: all): rows ['id', 'name', 'lo' (the
+// organization's name, '' if unknown), 'paid'].
+function member_lookup_rows($where, $params, $limit)
+{
+    global $dbconn;
+    $result = pg_query_params($dbconn, 'SELECT m.id, m.name, COALESCE(lo.name, \'\') AS lo, m.paid FROM pg_temp.ppmembers m'
+        . ' LEFT JOIN lo ON lo.id = m.lo WHERE ' . $where . ' ORDER BY m.name, m.id' . ($limit === null ? '' : ' LIMIT ' . intval($limit)) . ';', $params)
+        or db_fail($dbconn, null);
+    $rows = pg_fetch_all($result);
+    pg_free_result($result);
+    return $rows;
+}
+
+// A member of member_lookup_rows() as text: "number – name (organization)",
+// with "(nicht bezahlt)" for a member who has not paid; HTML.
+function member_option_text($row)
+{
+    return intval($row['id']) . ' – ' . html_escape($row['name']) . ($row['lo'] !== '' ? ' (' . html_escape($row['lo']) . ')' : '')
+        . ($row['paid'] == 0 ? ' (nicht bezahlt)' : '');
+}
+
+// Whether a number field of this request uses the member list of the edit
+// page (member_datalist_html()). $use: a member's number field asks for it,
+// which loads the member list (member_list()); true if it is loaded. Without
+// $use nothing is loaded, so a page without members' rows fetches nothing.
+function member_datalist_needed($use = false)
+{
+    static $needed = false;
+    if ($use && member_list() !== null) {
+        $needed = true;
+    }
+    return $needed;
+}
+
+// The member list of the edit page for the exact bgf right, who sees every
+// member anyway: a datalist of all members (member_option_text()) for the
+// member number fields (list="mitgliederliste"), which the browser filters
+// by number or name while typing; '' if the member list cannot be loaded.
+function member_datalist_html()
+{
+    if (member_list() === null) {
+        return '';
+    }
+    $html = '<datalist id="' . MEMBER_DATALIST_ID . '">';
+    foreach (member_lookup_rows('true', [], null) as $row) {
+        $html .= '<option value="' . intval($row['id']) . '">' . member_option_text($row) . '</option>';
+    }
+    return $html . '</datalist>';
+}
+
+// The members suggested for a booking row with the name $name and the
+// booking text $comment, as member_lookup_rows() (at most
+// MEMBER_LOOKUP_LIMIT + 1): the member numbers in the text
+// (member_text_numbers()) and the members whose name (at least 5
+// characters) is part of the name or the text, case-insensitive; none if
+// the name or the text is no valid UTF-8 (the database would refuse it).
+function member_suggestions($name, $comment)
+{
+    if (!mb_check_encoding($name . $comment, 'UTF-8')) {
+        return [];
+    }
+    return member_lookup_rows(
+        'm.id = ANY($1::integer[]) OR (length(trim(m.name)) >= 5'
+        . ' AND (strpos(lower($2), lower(trim(m.name))) > 0 OR strpos(lower($3), lower(trim(m.name))) > 0))',
+        ['{' . implode(',', member_text_numbers($comment)) . '}', $name, $comment],
+        MEMBER_LOOKUP_LIMIT + 1,
+    );
+}

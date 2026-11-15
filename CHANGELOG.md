@@ -5,6 +5,33 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Edit page: member lookup for users with the exact `bgf` right (not `Rbgf`,
+  not organization users, whose form is unchanged and who cause no member list
+  request). On a voucher that is not finalized, the "Mitgliedsnummer" field of
+  each member's row offers the whole member list (one HTML `datalist` per
+  page, loaded only for members' rows; "number – name (organization)", "(nicht
+  bezahlt)" for members who have not paid): the browser filters it by number
+  or name while typing and puts the picked number into the field (a number 0
+  is shown as an empty field with the placeholder "Nummer oder Name"), without
+  JavaScript and without another request. For a member's row without a number
+  of the member list, up to 20 members are suggested whose number (3 to 6
+  digits) is in the booking text or whose name (at least 5 characters) is part
+  of the row's name or booking text (none for a name or text that is no valid
+  UTF-8). Explanations sit behind an info marker "ⓘ" (opened by click, tap or
+  keyboard): that the save replaces the name with the member's name (as before
+  for a typed number), and, for a member's income row of another type than the
+  membership fee, that the type is not changed and the fee rule of the
+  Bundesfinanzordnung §2. A saved member number that the member list does not
+  have is kept, with the note "eine eingetragene Mitgliedsnummer ist nicht in
+  der Mitgliederliste – bitte prüfen". After a save, a link "Nächste offene
+  Buchung" (`bgf` only) opens the next member's row without a number that is
+  not finalized. Without the member list the page says "Mitgliederliste nicht
+  erreichbar – Nummer manuell eintragen" and the number field works as before;
+  a member's save is refused as before. Finalized vouchers, added rows and the
+  creation page are unchanged; saving resets the approvals as every revision.
+
 ### Fixed
 
 - Import: the member number of a Handkassa line (column "Mitgliedsnummer") is

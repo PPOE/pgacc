@@ -39,6 +39,7 @@ XDEBUG_MODE=coverage php -d memory_limit="$phpunit_memory" vendor/bin/phpunit --
 php tests/show-uncovered-functions.php /tmp/functions-clover.xml || test_status=1
 php tests/write-workflows.php || test_status=1
 php tests/http-import.php || test_status=1
+php tests/http-member-lookup.php || test_status=1
 php tests/http-receipts.php || test_status=1
 php tests/http-sync.php || test_status=1
 php tests/http-output-escaping.php || test_status=1

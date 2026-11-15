@@ -121,6 +121,18 @@ function posted_member_part($parts, $rights)
     }
     return false;
 }
+// Whether a posted member's part has a member number that the member list
+// (member_list(), loaded for the members' parts of the save) does not have.
+function posted_unknown_member($parts, $rights)
+{
+    for ($part = 0; $part < $parts; $part++) {
+        $voucher = get_voucher($part, $rights, false);
+        if ($voucher['member'] == 'true' && intval($voucher['mitgliedsnummer']) > 0 && !isset(member_list()[intval($voucher['mitgliedsnummer'])])) {
+            return true;
+        }
+    }
+    return false;
+}
 // The message of a save refused because the member list could not be loaded
 // (getusers() logged the cause).
 const MEMBERS_UNAVAILABLE = 'Die Mitgliederverwaltung ist nicht erreichbar. Bitte später erneut speichern.';
@@ -392,7 +404,8 @@ function page_new_file($rights)
     block_end();
     relocate("index.php?action=edit&id=$id&bid=$bid&hint=1");
 }
-function page_edit_form($part, $voucher, $rights)
+// $lookup: the edit page offers the member lookup (member_lookup_html()).
+function page_edit_form($part, $voucher, $rights, $lookup = false)
 {
     global $dbconn;
     block_start();
@@ -508,6 +521,10 @@ function page_edit_form($part, $voucher, $rights)
         }
         pg_free_result($result);
     }
+    // The member lookup's number field (bgf, a member's row): the member
+    // list, and empty instead of 0 so that the list is not filtered by "0"
+    // (an empty number is posted as 0, get_param()).
+    $listed = $lookup && $voucher['member'] == 'true' && member_datalist_needed(true);
     echo '
 </select>
 </div>
@@ -515,7 +532,7 @@ function page_edit_form($part, $voucher, $rights)
 <label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; Nr. ' . ($voucher['member'] == 'true' ? member_number($voucher['mitgliedsnummer']) : intval($voucher['mitgliedsnummer'])) : '') . '
 </div>
 <div id="mitgliedsnummer' . $part . '">
-<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '" onchange="clicked();" />
+<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . ($listed && intval($voucher['mitgliedsnummer']) == 0 ? '' : $voucher['mitgliedsnummer']) . '"' . ($listed ? ' list="' . MEMBER_DATALIST_ID . '" placeholder="Nummer oder Name"' : '') . ' onchange="clicked();" />' . ($lookup && $voucher['member'] == 'true' ? member_lookup_html($voucher) : '') . '
 </div>
 <div id="gegenkonto' . $part . '">
 <label class="ui_field_label" for="gegenkonto' . $part . '">Fremdkonto</label><input type="text" name="gegenkonto' . $part . '" value="' . html_escape($voucher['gegenkonto']) . '" onchange="clicked();" />
@@ -591,6 +608,45 @@ function page_edit_form($part, $voucher, $rights)
 <br />
 ';
     block_end();
+}
+
+// The member lookup of a member's row of the edit page (exact bgf right,
+// rows of a voucher that is not finalized; page_edit()), HTML after the
+// number field, whose list is the members of member_datalist_html(): a note
+// when the member list cannot be loaded; for a row without a number of the
+// member list the suggestions (member_suggestions()) and the note that a
+// save replaces the name; for an income row of another type than the
+// membership fee (1) a hint. The notes are behind one info marker
+// (info_hint_html()).
+function member_lookup_html($voucher)
+{
+    $members = member_list();
+    if ($members === null) {
+        return '<div class="field_note">Mitgliederliste nicht erreichbar – Nummer manuell eintragen</div>';
+    }
+    $html = '';
+    $hints = [];
+    if (!isset($members[intval($voucher['mitgliedsnummer'])])) {
+        $rows = member_suggestions($voucher['name'], $voucher['comment']);
+        if ($rows !== []) {
+            $html .= '<div class="field_note">Vorschläge: ' . implode(', ', array_map('member_option_text', array_slice($rows, 0, MEMBER_LOOKUP_LIMIT)))
+                . (count($rows) > MEMBER_LOOKUP_LIMIT ? ', …' : '') . '</div>';
+        }
+        $hints[] = 'Mit einer Nummer ersetzt das Speichern den Namen durch den Mitgliedsnamen; der Zahlername bleibt im Buchungstext.';
+    }
+    if ($voucher['dir'] == 'in' && $voucher['type'] != 1) {
+        $hints[] = 'Die Art der Einnahme wird nicht automatisch geändert. Ist dies ein Mitgliedsbeitrag, bitte „Mitgliedsbeitrag“ selbst wählen.'
+            . ' Laut Bundesfinanzordnung §2 legen Mitglieder ihren Beitrag zwischen 20 € und 1000 € pro Jahr fest; der Teil über 1000 € pro Jahr gilt als Spende.';
+    }
+    return ($hints !== [] ? ' ' . info_hint_html(implode(' ', $hints)) : '') . $html;
+}
+
+// The explanation $text (plain text) behind a small info marker "Hinweis",
+// HTML: a details element, opened by click, tap or keyboard without
+// JavaScript.
+function info_hint_html($text)
+{
+    return '<details class="hint"><summary aria-label="Hinweis" title="Hinweis">ⓘ</summary><span>' . html_escape($text) . '</span></details>';
 }
 
 function page_new_buchung($part, $part_to_remove, $rights, $add)

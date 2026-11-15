@@ -178,6 +178,23 @@ constraints; no backup table, owners, permissions, credentials or rows).
   Buchungszeile", line number) and skipped; the other lines and files are
   imported. A re-imported identical line is skipped (`import.line`); a BAWAG
   line with a voucher ID imports without diagnostics.
+- `http-member-lookup.php`: the member lookup of the edit page against a
+  synthetic member list of the membership stub (`/__stub/body`). Only the
+  exact `bgf` right gets the member list on the members' number fields (one
+  `datalist` per page, every member, escaped names and organizations,
+  "(nicht bezahlt)"), the suggestions (member numbers in the booking text,
+  member names in the name or text; at most 20; none for invalid UTF-8),
+  the explanations behind the info marker (the type hint not for a
+  membership fee or an outgoing row), the note on a saved number that the
+  member list does not have and, after a save, the link "Nächste offene
+  Buchung"; an organization user, `Rbgf` and finalized vouchers get the
+  form as before (no member list request, counted by the stub; neither for
+  bgf on a voucher without a member's row, viewed or saved), another
+  organization's voucher is not shown. Number 0 is an empty field with a
+  placeholder (saved as 0 again); a saved number resets the approvals;
+  without the member list a note, the plain field and the refused save. A
+  shutdown function removes the synthetic rows and undoes the other
+  changes to the shared database, also after a failed check.
 - `http-listing-prefs.php`: the ledger (`?action=all`, `closed.php`) with hidden
   columns. `synthetic-hide-odd`/`synthetic-hide-even` hide each of the 18
   columns once; header, filter row, voucher rows and CSV must match the output

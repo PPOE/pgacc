@@ -180,6 +180,24 @@
       @apply bg-neutral-900;
     }
   }
+
+  /* An explanation behind an info marker (info_hint_html()), inline. */
+  details.hint {
+    @apply inline;
+
+    & > summary {
+      @apply inline cursor-help list-none text-accent;
+    }
+
+    & > summary::-webkit-details-marker {
+      @apply hidden;
+    }
+
+    /* Opened: below the field, aligned with the fields. */
+    & > span {
+      @apply mb-1.5 ml-[29%] block text-sm text-neutral-600;
+    }
+  }
 }
 
 /*************************************************************************
@@ -528,6 +546,11 @@
       @apply mb-1.5 w-[68%];
     }
 
+    /* A note below a field, aligned with the fields (member lookup). */
+    & .field_note {
+      @apply mb-1.5 ml-[29%] text-sm;
+    }
+
     & input[type="submit"] {
       @apply ml-[29%];
     }
@@ -566,6 +589,11 @@
     .vertical {
       & .ui_field_label {
         @apply w-full text-left;
+      }
+
+      & .field_note,
+      & details.hint > span {
+        @apply ml-0;
       }
 
       & input[type="text"],

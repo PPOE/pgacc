@@ -34,6 +34,7 @@
       <file>tests/unit/DbHelpersTest.php</file>
       <file>tests/unit/YearNavTest.php</file>
       <file>tests/unit/SyncApiTest.php</file>
+      <file>tests/unit/MemberLookupTest.php</file>
     </testsuite>
   </testsuites>
   <coverage>

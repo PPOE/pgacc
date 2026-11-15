@@ -36,6 +36,8 @@ SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
 SELECT * FROM users WHERE id = 1 AND login > now() - '24 hours'::interval
 -- next
+SELECT v.voucher_id FROM vouchers v WHERE NOT v.deleted AND v.member AND v.member_id = 0 AND v.voucher_id <> 1004 AND NOT EXISTS (SELECT 1 FROM vouchers f WHERE NOT f.deleted AND f.receipt_received AND f.voucher_id = v.voucher_id) ORDER BY v.voucher_id < 1004, v.voucher_id LIMIT 1;
+-- next
 SELECT * FROM vouchers WHERE NOT deleted AND voucher_id = 1004  ORDER BY id ASC;
 -- next
 SELECT income FROM type WHERE id = 20
