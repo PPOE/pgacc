@@ -2,7 +2,7 @@
 # request: GET /index.php?action=edit&id=1004&bid=105 as admin
 status: 200
 header: Content-type: text/html; charset=UTF-8
---- body (18252 bytes) ---
+--- body (21252 bytes) ---
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -245,7 +245,7 @@ function merge()
 <label class="ui_field_label" for="member0">Mitglied</label><input type="checkbox" id="member0" name="member0" value="1"  onchange="clicked();" />
 </div>
 <div id="mitgliedsnummer0">
-<label class="ui_field_label" for="mitgliedsnummer0">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer0" value="" onchange="clicked();" /><br /><label class="ui_field_label" for="mq0">Mitglied suchen</label><input type="text" id="mq0" name="mq0" value="" onkeydown="if (event.key == 'Enter') { event.preventDefault(); this.form.submit(); }" /><input type="button" value="Mitglied suchen" onclick="document.mainform.submit();" />
+<label class="ui_field_label" for="mitgliedsnummer0">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer0" value="" list="mitgliederliste" onchange="clicked();" />
 </div>
 <div id="gegenkonto0">
 <label class="ui_field_label" for="gegenkonto0">Fremdkonto</label><input type="text" name="gegenkonto0" value="SYNTHETIC-005" onchange="clicked();" />
@@ -299,7 +299,7 @@ function merge()
 <br />
 
 </div>
-
+<datalist id="mitgliederliste"><option value="9001">9001 – Anna Synthetisch-Müller (Synthetic Unit Nine)</option><option value="9027">9027 – Ännchen Synthetisch (Synthetic Piratenpartei Six) (nicht bezahlt)</option><option value="9002">9002 – Bernd Synthetisch (Synthetic National Unit) (nicht bezahlt)</option><option value="9003">9003 – Carla Synthetisch (Synthetic Unit Three) (nicht bezahlt)</option><option value="9004">9004 – Dieter Synthetisch (Synthetic Regional Unit)</option><option value="9005">9005 – Emma Synthetisch (Synthetic Ünit Vier) (nicht bezahlt)</option><option value="9006">9006 – Franz Synthetisch-Müller (Synthetic Unit Five) (nicht bezahlt)</option><option value="9007">9007 – Gerda Synthetisch (Synthetic Piratenpartei Six)</option><option value="9034">9034 – Gerlinde Titelträgerin (Synthetic Unit Three) (nicht bezahlt)</option><option value="9008">9008 – Hannes Synthetisch (Synthetic Federal Unit) (nicht bezahlt)</option><option value="9009">9009 – Iris Synthetisch (Synthetic Unit Eight) (nicht bezahlt)</option><option value="9010">9010 – Jörg Synthetisch (Synthetic Federal Unit)</option><option value="9011">9011 – Käthe Synthetisch-Müller (Synthetic Unit Nine) (nicht bezahlt)</option><option value="9028">9028 – Ludwig Synthetisch (Synthetic Federal Unit)</option><option value="9012">9012 – Lukas Synthetisch (Synthetic National Unit) (nicht bezahlt)</option><option value="9013">9013 – Maria Synthetisch (Synthetic Unit Three)</option><option value="9030">9030 – Max Synthetisch (Synthetic Federal Unit) (nicht bezahlt)</option><option value="9032">9032 – Mitglied Zweitname (Synthetic National Unit) (nicht bezahlt)</option><option value="9014">9014 – Norbert Synthetisch (Synthetic Regional Unit) (nicht bezahlt)</option><option value="9033">9033 – O&#039;Brien Synthetisch (Synthetic Unit Eight)</option><option value="9015">9015 – Olga Synthetisch (Synthetic Ünit Vier) (nicht bezahlt)</option><option value="9026">9026 – Ömer Synthetisch-Müller (Synthetic Unit Five) (nicht bezahlt)</option><option value="9016">9016 – Paul Synthetisch-Müller (Synthetic Unit Five)</option><option value="9017">9017 – Rosa Synthetisch (Synthetic Piratenpartei Six) (nicht bezahlt)</option><option value="9029">9029 – Sophie Synthetisch (Synthetic Unit Eight) (nicht bezahlt)</option><option value="9018">9018 – Stefan Synthetisch (Synthetic Federal Unit) (nicht bezahlt)</option><option value="9035">9035 – Synthetica (Synthetic Unit Five)</option><option value="9031">9031 – Testa Mitglied (Synthetic Regional Unit)</option><option value="9019">9019 – Theresa Synthetisch (Synthetic Unit Eight)</option><option value="9020">9020 – Ulrich Synthetisch (Synthetic Federal Unit) (nicht bezahlt)</option><option value="9021">9021 – Vera Synthetisch-Müller (Synthetic Unit Nine) (nicht bezahlt)</option><option value="9022">9022 – Walter Synthetisch (Synthetic National Unit)</option><option value="9023">9023 – Xaver Synthetisch (Synthetic Unit Three) (nicht bezahlt)</option><option value="9024">9024 – Yvonne Synthetisch (Synthetic Regional Unit) (nicht bezahlt)</option><option value="9025">9025 – Zoë Synthetisch (Synthetic Ünit Vier)</option></datalist>
 <br style="clear: both;" />
 <div class="wiki use_terms">
 <input name="speichern" id="speichern" value="Speichern" type="submit" /><input name="ack" id="ack" value="Bestätigen (OHNE SPEICHERN)" type="submit" style="margin-left: 5%"/><input value="Beleg hinzufügen" type="submit" name="addB" style="margin-left: 15%"/><input value="Buchungszeile hinzufügen" type="submit" name="add" style="margin-left: 15%"/>

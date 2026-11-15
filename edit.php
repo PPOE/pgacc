@@ -341,8 +341,14 @@ function page_edit_save($rights)
     }
     // The member list of a member's part is loaded before the transaction (no
     // external call while the voucher is locked); when it is missing, the
-    // revision is refused after the other checks.
+    // revision is refused after the other checks. For the exact bgf right
+    // (member lookup, page_edit_form()), a member number that the member list
+    // does not have is saved with a note (warn=member-unknown).
     $members_error = posted_member_part($parts, $rights) ? members_loaded(20) : null;
+    $voucher_warnings = [];
+    if ($members_error === null && has_right($rights, 'bgf') && posted_unknown_member($parts, $rights)) {
+        $voucher_warnings[] = 'member-unknown';
+    }
 
     // The voucher's lock (voucher_lock(), for the transaction), then its
     // current rows, locked: the checks, the approval reset, the replacement of
@@ -392,7 +398,6 @@ function page_edit_save($rights)
     $query = "UPDATE vouchers SET deleted = true WHERE NOT deleted AND voucher_id = $id AND id IN (" . implode(',', array_keys($stored_files)) . ");";
     db_exec($dbconn, $query);
 
-    $voucher_warnings = [];
     for ($i = 0; $i < $parts; $i++) {
         page_save_buchung($id, $rights, $i, $ack1, $ack2, $voucher_warnings, $stored_files, $bids[$i]);
     }
@@ -467,13 +472,13 @@ function page_edit_buchung($rights, $vouchers, $part = 0, $part_to_remove = -1, 
 }
 
 // The link to the next voucher after $id (then from the start) with a
-// member's row without a member number that the user may change (rights
-// $rights, write_rights()), not finalized, HTML; '' if there is none.
-function edit_next_open_link($id, $rights)
+// member's row without a member number, not finalized, HTML; '' if there is
+// none. Only for the exact bgf right, which may change every organization's
+// rows.
+function edit_next_open_link($id)
 {
     global $dbconn;
-    $rightssql = rights2orgasql(write_rights($rights));
-    $query = "SELECT v.voucher_id FROM vouchers v WHERE NOT v.deleted AND v.member AND v.member_id = 0 AND v.voucher_id <> $id $rightssql"
+    $query = "SELECT v.voucher_id FROM vouchers v WHERE NOT v.deleted AND v.member AND v.member_id = 0 AND v.voucher_id <> $id"
         . " AND NOT EXISTS (SELECT 1 FROM vouchers f WHERE NOT f.deleted AND f.receipt_received AND f.voucher_id = v.voucher_id)"
         . " ORDER BY v.voucher_id < $id, v.voucher_id LIMIT 1;";
     $result = db_query($dbconn, $query);
@@ -535,7 +540,7 @@ function page_edit($rights, $unsaved = false)
     }
     // After a save, bgf works through the members' rows without a number.
     if ($hint == 5 && has_right($rights, 'bgf')) {
-        echo edit_next_open_link($id, $rights);
+        echo edit_next_open_link($id);
     }
     // Values that the revision corrected (warn= of its redirect): fixed notes,
     // only for the known codes.
@@ -543,6 +548,7 @@ function page_edit($rights, $unsaved = false)
         'date' => 'Gespeichert, aber: kein Datum angegeben – das Datum wurde auf 1800-01-01 gesetzt.',
         'refund' => 'Gespeichert, aber: eine Kostenrückerstattung ist nur bei einer Ausgabe möglich – die Kostenrückerstattung wurde entfernt.',
         'purpose' => 'Gespeichert, aber: eine Zweckwidmung ist nur bei einer Spende möglich – die Zweckwidmung wurde entfernt.',
+        'member-unknown' => 'Gespeichert, aber: eine eingetragene Mitgliedsnummer ist nicht in der Mitgliederliste – bitte prüfen.',
     ];
     $warn_codes = [];
     if (isset($_GET["warn"]) && is_string($_GET["warn"])) {
@@ -662,6 +668,10 @@ function merge()
     if (isset($_POST["addB"])) {
         page_edit_buchung($rights, $vouchers, $parts, $part_to_remove, 2);
         $parts++;
+    }
+    // One member list for the number fields of all rows (member lookup).
+    if ($lookup) {
+        echo member_datalist_html();
     }
 
     $user_name = checklogin('name');

@@ -60,12 +60,15 @@
     --color-neutral-300: oklch(87% 0 none);
     --color-neutral-400: oklch(70.8% 0 none);
     --color-neutral-500: oklch(55.6% 0 none);
+    --color-neutral-600: oklch(43.9% 0 none);
     --color-neutral-700: oklch(37.1% 0 none);
     --color-neutral-800: oklch(26.9% 0 none);
     --color-neutral-900: oklch(20.5% 0 none);
     --color-black: #000;
     --color-white: #fff;
     --spacing: .25rem;
+    --text-sm: .875rem;
+    --text-sm--line-height: calc(1.25 / .875);
     --text-base: 1rem;
     --text-base--line-height: calc(1.5 / 1);
     --text-lg: 1.125rem;
@@ -596,6 +599,30 @@
 
   :is(input[type="submit"], button:not(.link)):active {
     background-color: var(--color-neutral-900);
+  }
+
+  details.hint {
+    display: inline;
+  }
+
+  details.hint > summary {
+    cursor: help;
+    color: var(--color-accent);
+    list-style-type: none;
+    display: inline;
+  }
+
+  details.hint > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details.hint > span {
+    margin-bottom: calc(var(--spacing) * 1.5);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+    color: var(--color-neutral-600);
+    margin-left: 29%;
+    display: block;
   }
 }
 
@@ -1235,6 +1262,13 @@
     width: 68%;
   }
 
+  :is(.login, .vertical) .field_note {
+    margin-bottom: calc(var(--spacing) * 1.5);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+    margin-left: 29%;
+  }
+
   :is(.login, .vertical) input[type="submit"] {
     margin-left: 29%;
   }
@@ -1278,6 +1312,10 @@
     :is(.login, .vertical) .ui_field_label {
       text-align: left;
       width: 100%;
+    }
+
+    :is(.login, .vertical) .field_note, :is(.login, .vertical) details.hint > span {
+      margin-left: 0;
     }
 
     :is(.login, .vertical) input[type="text"], :is(.login, .vertical) input[type="password"], :is(.login, .vertical) select, :is(.login, .vertical) input[type="submit"] {

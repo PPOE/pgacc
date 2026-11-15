@@ -180,14 +180,19 @@ constraints; no backup table, owners, permissions, credentials or rows).
   line with a voucher ID imports without diagnostics.
 - `http-member-lookup.php`: the member lookup of the edit page against a
   synthetic member list of the membership stub (`/__stub/body`). Only the
-  exact `bgf` right gets the search field, the suggestions (member numbers
-  in the booking text, member names in the name or text), the hints and,
-  after a save, the link "Nächste offene Buchung"; an organization user,
-  `Rbgf` and finalized vouchers get the form as before, another
-  organization's voucher is not shown. Searches by number (at most 9
-  digits) and by words (`ILIKE`, `%`, `_` and `!` literal), escaped names,
-  the limit of 20 hits; a pick is saved only if the member list has it (and
-  resets the approvals); without the member list a note and the plain field.
+  exact `bgf` right gets the member list on the number fields (one
+  `datalist` per page, every member, escaped names and organizations,
+  "(nicht bezahlt)"), the suggestions (member numbers in the booking text,
+  member names in the name or text; at most 20; none for invalid UTF-8),
+  the explanations behind the info marker (the type hint not for a
+  membership fee or an outgoing row), the note on a saved number that the
+  member list does not have and, after a save, the link "Nächste offene
+  Buchung"; an organization user, `Rbgf` and finalized vouchers get the
+  form as before (no member list request, counted by the stub), another
+  organization's voucher is not shown. A saved number resets the approvals;
+  without the member list a note, the plain field and the refused save. A
+  shutdown function removes the synthetic rows and undoes the other
+  changes to the shared database, also after a failed check.
 - `http-listing-prefs.php`: the ledger (`?action=all`, `closed.php`) with hidden
   columns. `synthetic-hide-odd`/`synthetic-hide-even` hide each of the 18
   columns once; header, filter row, voucher rows and CSV must match the output

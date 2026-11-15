@@ -304,28 +304,14 @@ function member_number($id)
     return member_link($id, $members[$id]['uuid'], $members[$id]['name']);
 }
 
-// The most members that the member lookup of the edit page
-// (member_lookup_html()) lists; member_lookup_rows() reads one more, which
-// tells that there are more.
+// The most members that the member lookup of the edit page suggests
+// (member_lookup_html()); member_suggestions() reads one more, which tells
+// that there are more.
 const MEMBER_LOOKUP_LIMIT = 20;
 
-// The words of a member search: $q split on whitespace, at most 5 words of
-// at most 50 characters each (none for invalid UTF-8).
-function member_search_terms($q)
-{
-    $words = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
-    if ($words === false) {
-        return [];
-    }
-    return array_map(fn($word) => mb_substr($word, 0, 50, 'UTF-8'), array_slice($words, 0, 5));
-}
-
-// A LIKE pattern that finds $word anywhere in a text, with "!" as the escape
-// character (ESCAPE '!'): "%", "_" and "!" in $word are literal.
-function member_like_pattern($word)
-{
-    return '%' . strtr($word, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
-}
+// The id of the member list of the edit page (member_datalist_html()), the
+// list of its member number fields.
+const MEMBER_DATALIST_ID = 'mitgliederliste';
 
 // The numbers of 3 to 6 digits in $text (not part of a longer number), each
 // once: candidates for member numbers.
@@ -335,69 +321,60 @@ function member_text_numbers($text)
     return array_values(array_unique(array_map('intval', $matches[0])));
 }
 
-// What the member search $q looks for: ['id', member number] for digits only
-// (at most 9, so that the number fits an integer), ['name', words]
-// (member_search_terms(), at least 3 characters together), or ['error',
-// message].
-function member_search_query($q)
-{
-    $q = trim($q);
-    if (preg_match('/^\d+$/D', $q) === 1) {
-        if (strlen($q) > 9) {
-            return ['error', 'Mitgliedsnummer zu lang (höchstens 9 Ziffern).'];
-        }
-        return ['id', intval($q)];
-    }
-    $words = member_search_terms($q);
-    if (mb_strlen(implode('', $words), 'UTF-8') < 3) {
-        return ['error', 'Suchbegriff zu kurz (mindestens 3 Zeichen).'];
-    }
-    return ['name', $words];
-}
-
 // The members of the member list (ppmembers, loaded by members_loaded())
 // that match the condition $where (placeholders $1, ... for $params), by
-// name and number: at most MEMBER_LOOKUP_LIMIT + 1 rows ['id', 'name', 'lo'
-// (the organization's name, '' if unknown), 'paid'].
-function member_lookup_rows($where, $params)
+// name and number, at most $limit (null: all): rows ['id', 'name', 'lo' (the
+// organization's name, '' if unknown), 'paid'].
+function member_lookup_rows($where, $params, $limit)
 {
     global $dbconn;
     $result = pg_query_params($dbconn, 'SELECT m.id, m.name, COALESCE(lo.name, \'\') AS lo, m.paid FROM pg_temp.ppmembers m'
-        . ' LEFT JOIN lo ON lo.id = m.lo WHERE ' . $where . ' ORDER BY m.name, m.id LIMIT ' . (MEMBER_LOOKUP_LIMIT + 1) . ';', $params)
+        . ' LEFT JOIN lo ON lo.id = m.lo WHERE ' . $where . ' ORDER BY m.name, m.id' . ($limit === null ? '' : ' LIMIT ' . intval($limit)) . ';', $params)
         or db_fail($dbconn, null);
     $rows = pg_fetch_all($result);
     pg_free_result($result);
     return $rows;
 }
 
-// The members found by the member search $q (member_search_query(): the
-// number, or every word somewhere in the name, case-insensitive), as
-// member_lookup_rows(), or the message of an invalid search.
-function member_search($q)
+// A member of member_lookup_rows() as text: "number – name (organization)",
+// with "(nicht bezahlt)" for a member who has not paid; HTML.
+function member_option_text($row)
 {
-    [$kind, $value] = member_search_query($q);
-    if ($kind === 'error') {
-        return $value;
+    return intval($row['id']) . ' – ' . html_escape($row['name']) . ($row['lo'] !== '' ? ' (' . html_escape($row['lo']) . ')' : '')
+        . ($row['paid'] == 0 ? ' (nicht bezahlt)' : '');
+}
+
+// The member list of the edit page for the exact bgf right, who sees every
+// member anyway: a datalist of all members (member_option_text()) for the
+// member number fields (list="mitgliederliste"), which the browser filters
+// by number or name while typing; '' if the member list cannot be loaded.
+function member_datalist_html()
+{
+    if (member_list() === null) {
+        return '';
     }
-    if ($kind === 'id') {
-        return member_lookup_rows('m.id = $1', [$value]);
+    $html = '<datalist id="' . MEMBER_DATALIST_ID . '">';
+    foreach (member_lookup_rows('true', [], null) as $row) {
+        $html .= '<option value="' . intval($row['id']) . '">' . member_option_text($row) . '</option>';
     }
-    $conditions = [];
-    foreach ($value as $i => $word) {
-        $conditions[] = 'm.name ILIKE $' . ($i + 1) . " ESCAPE '!'";
-    }
-    return member_lookup_rows(implode(' AND ', $conditions), array_map('member_like_pattern', $value));
+    return $html . '</datalist>';
 }
 
 // The members suggested for a booking row with the name $name and the
-// booking text $comment, as member_lookup_rows(): the member numbers in the
-// text (member_text_numbers()) and the members whose name (at least 5
-// characters) is part of the name or the text, case-insensitive.
+// booking text $comment, as member_lookup_rows() (at most
+// MEMBER_LOOKUP_LIMIT + 1): the member numbers in the text
+// (member_text_numbers()) and the members whose name (at least 5
+// characters) is part of the name or the text, case-insensitive; none if
+// the name or the text is no valid UTF-8 (the database would refuse it).
 function member_suggestions($name, $comment)
 {
+    if (!mb_check_encoding($name . $comment, 'UTF-8')) {
+        return [];
+    }
     return member_lookup_rows(
         'm.id = ANY($1::integer[]) OR (length(trim(m.name)) >= 5'
         . ' AND (strpos(lower($2), lower(trim(m.name))) > 0 OR strpos(lower($3), lower(trim(m.name))) > 0))',
         ['{' . implode(',', member_text_numbers($comment)) . '}', $name, $comment],
+        MEMBER_LOOKUP_LIMIT + 1,
     );
 }

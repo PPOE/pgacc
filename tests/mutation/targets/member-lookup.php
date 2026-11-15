@@ -2,20 +2,21 @@
 
 /*
  * Member lookup of the edit page: the exact bgf right and the finalized
- * check (edit.php page_edit()), the pick check of get_voucher() (bgf, in the
- * member list), the escaped output and hit limit of member_lookup_html()
- * (new.php), the search validation, the ILIKE escaping and the suggestions
- * (getusers.php), and the link to the next open booking (edit.php
+ * check (edit.php page_edit()), the one member list (datalist) for the
+ * number fields, the escaped member texts, the suggestions with their limit
+ * and UTF-8 guard and the hints of member_lookup_html() (new.php,
+ * getusers.php), the note on a number that the member list does not have
+ * (page_edit_save()), and the link to the next open booking (edit.php
  * edit_next_open_link()). Tested with tests/http-member-lookup.php against a
  * synthetic member list of the membership stub, and MemberLookupTest.
  * See tests/mutation/README.md for the format.
  */
-$pickCheck = '$pick > 0 && has_right($rights, \'bgf\') && members_loaded(20) === null && isset(member_list()[$pick])';
 $lookup = '$lookup = has_right($rights, \'bgf\') && !$received;';
-$likeCall = "return member_lookup_rows(implode(' AND ', \$conditions), array_map('member_like_pattern', \$value));";
 $suggestion = "'m.id = ANY(\$1::integer[]) OR (length(trim(m.name)) >= 5'";
+$unknown = "if (\$members_error === null && has_right(\$rights, 'bgf') && posted_unknown_member(\$parts, \$rights)) {";
+$typeHint = "if (\$voucher['member'] == 'true' && \$voucher['dir'] == 'in' && \$voucher['type'] != 1) {";
 return [
-    'description' => 'Member lookup of the edit page (bgf only): pick check, search, escaping, next open booking',
+    'description' => 'Member lookup of the edit page (bgf only): member list, suggestions, notes, next open booking',
     'file' => 'new.php',
     'tests' => [
         ['type' => 'phpunit', 'filter' => 'MemberLookupTest', 'file' => 'tests/unit/MemberLookupTest.php'],
@@ -24,53 +25,48 @@ return [
     'timeout' => 120,
     'mutations' => [
         [
-            'id' => 'pick-without-bgf',
-            'search' => $pickCheck,
-            'replace' => str_replace(" && has_right(\$rights, 'bgf')", '', $pickCheck),
-            'rationale' => 'Fail-open: users without the exact bgf right set a member by a posted pick.',
+            'id' => 'list-attribute-without-member-list',
+            'search' => "(\$lookup && member_list() !== null ? ' list=\"'",
+            'replace' => "(\$lookup ? ' list=\"'",
+            'rationale' => 'Without the member list the number field points to a list that is not there.',
         ],
         [
-            'id' => 'pick-not-in-list',
-            'search' => $pickCheck,
-            'replace' => str_replace(' && isset(member_list()[$pick])', '', $pickCheck),
-            'rationale' => 'A picked number that the member list does not have is saved.',
+            'id' => 'suggestion-limit-removed',
+            'search' => "array_map('member_option_text', array_slice(\$rows, 0, MEMBER_LOOKUP_LIMIT))",
+            'replace' => "array_map('member_option_text', \$rows)",
+            'rationale' => 'More than 20 suggestions are listed.',
         ],
         [
-            'id' => 'member-name-unescaped',
-            'search' => "' – ' . html_escape(\$row['name'])",
-            'replace' => "' – ' . \$row['name']",
-            'rationale' => 'A member name from the membership system reaches the page as markup.',
+            'id' => 'type-hint-for-fee',
+            'search' => $typeHint,
+            'replace' => str_replace(" && \$voucher['type'] != 1", '', $typeHint),
+            'rationale' => 'A membership fee row gets the hint to choose the membership fee.',
         ],
         [
-            'id' => 'organization-name-unescaped',
-            'search' => "' (' . html_escape(\$row['lo']) . ')'",
-            'replace' => "' (' . \$row['lo'] . ')'",
-            'rationale' => 'An organization name reaches the page as markup.',
+            'id' => 'type-hint-for-outgoing',
+            'search' => $typeHint,
+            'replace' => str_replace(" && \$voucher['dir'] == 'in'", '', $typeHint),
+            'rationale' => 'An outgoing row gets the income type hint.',
         ],
         [
-            'id' => 'search-term-unescaped',
-            'search' => "'\" value=\"' . html_escape(\$query) . '\" onkeydown=",
-            'replace' => "'\" value=\"' . \$query . '\" onkeydown=",
-            'rationale' => 'The reflected search term reaches the page as markup.',
+            'id' => 'unknown-number-not-noted',
+            'search' => "if (\$voucher['member'] == 'true' && intval(\$voucher['mitgliedsnummer']) > 0 && !isset(\$members[intval(\$voucher['mitgliedsnummer'])])) {",
+            'replace' => 'if (false) {',
+            'rationale' => 'A number that the member list does not have is saved without a note.',
         ],
         [
-            'id' => 'hit-limit-removed',
-            'search' => 'foreach (array_slice($rows, 0, MEMBER_LOOKUP_LIMIT) as $row) {',
-            'replace' => 'foreach ($rows as $row) {',
-            'rationale' => 'More than 20 hits are listed.',
-        ],
-        [
-            'id' => 'unpaid-marker-inverted',
-            'search' => "(\$row['paid'] == 0 ? ' (nicht bezahlt)' : '')",
-            'replace' => "(\$row['paid'] == 1 ? ' (nicht bezahlt)' : '')",
-            'rationale' => 'Paying members are marked as not paid.',
+            'id' => 'unknown-number-note-without-bgf',
+            'file' => 'edit.php',
+            'search' => $unknown,
+            'replace' => str_replace(" && has_right(\$rights, 'bgf')", '', $unknown),
+            'rationale' => 'Organization users get the member lookup note.',
         ],
         [
             'id' => 'lookup-for-every-writer',
             'file' => 'edit.php',
             'search' => $lookup,
             'replace' => '$lookup = write_rights($rights) !== false && !$received;',
-            'rationale' => 'Organization users get the search over all members.',
+            'rationale' => 'Organization users get the list of all members.',
         ],
         [
             'id' => 'lookup-on-finalized-voucher',
@@ -78,6 +74,13 @@ return [
             'search' => $lookup,
             'replace' => '$lookup = has_right($rights, \'bgf\');',
             'rationale' => 'A finalized voucher offers the lookup.',
+        ],
+        [
+            'id' => 'datalist-without-lookup',
+            'file' => 'edit.php',
+            'search' => "    if (\$lookup) {\n        echo member_datalist_html();",
+            'replace' => "    if (true) {\n        echo member_datalist_html();",
+            'rationale' => 'Users without the exact bgf right get the list of all members.',
         ],
         [
             'id' => 'next-open-without-bgf',
@@ -94,25 +97,39 @@ return [
             'rationale' => 'A finalized voucher, which cannot be changed, is the next open booking.',
         ],
         [
-            'id' => 'number-digits-unlimited',
+            'id' => 'member-name-unescaped',
             'file' => 'getusers.php',
-            'search' => 'if (strlen($q) > 9) {',
-            'replace' => 'if (strlen($q) > 10) {',
-            'rationale' => 'A number of 10 digits (beyond integer) reaches the query.',
+            'search' => "' – ' . html_escape(\$row['name'])",
+            'replace' => "' – ' . \$row['name']",
+            'rationale' => 'A member name from the membership system reaches the page as markup.',
         ],
         [
-            'id' => 'like-unescaped',
+            'id' => 'organization-name-unescaped',
             'file' => 'getusers.php',
-            'search' => $likeCall,
-            'replace' => str_replace("'member_like_pattern'", "fn(\$word) => \"%\$word%\"", $likeCall),
-            'rationale' => '"%" and "_" in a search act as wildcards.',
+            'search' => "' (' . html_escape(\$row['lo']) . ')'",
+            'replace' => "' (' . \$row['lo'] . ')'",
+            'rationale' => 'An organization name reaches the page as markup.',
         ],
         [
-            'id' => 'like-escape-clause-removed',
+            'id' => 'unpaid-marker-inverted',
             'file' => 'getusers.php',
-            'search' => "\$conditions[] = 'm.name ILIKE \$' . (\$i + 1) . \" ESCAPE '!'\";",
-            'replace' => "\$conditions[] = 'm.name ILIKE \$' . (\$i + 1);",
-            'rationale' => 'The patterns are read with the default escape character: "!" no longer escapes.',
+            'search' => "(\$row['paid'] == 0 ? ' (nicht bezahlt)' : '')",
+            'replace' => "(\$row['paid'] == 1 ? ' (nicht bezahlt)' : '')",
+            'rationale' => 'Paying members are marked as not paid.',
+        ],
+        [
+            'id' => 'member-list-limited',
+            'file' => 'getusers.php',
+            'search' => "member_lookup_rows('true', [], null)",
+            'replace' => "member_lookup_rows('true', [], MEMBER_LOOKUP_LIMIT)",
+            'rationale' => 'The member list of the number fields misses members.',
+        ],
+        [
+            'id' => 'suggestion-invalid-utf8',
+            'file' => 'getusers.php',
+            'search' => "if (!mb_check_encoding(\$name . \$comment, 'UTF-8')) {",
+            'replace' => 'if (false) {',
+            'rationale' => 'Invalid UTF-8 in a posted name or text reaches the database, which refuses it.',
         ],
         [
             'id' => 'suggestion-short-names',
