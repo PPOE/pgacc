@@ -151,7 +151,7 @@ lookup_stub_members($members);
 // organization and "(nicht bezahlt)"), the suggestions from the booking's
 // text (number 7802) and name (7801), the notes.
 $page = lookup_page('/index.php?action=edit&id=97001', $bgf);
-assert_contains($page, '<input type="text" name="mitgliedsnummer0" value="0" list="mitgliederliste" onchange="clicked();" />', 'bgf number field');
+assert_contains($page, '<input type="text" name="mitgliedsnummer0" value="" list="mitgliederliste" placeholder="Nummer oder Name" onchange="clicked();" />', 'bgf number field');
 assert_contains($page, '<datalist id="mitgliederliste"><option value="7805">7805 – Beit (Synthetic National Unit)</option>', 'bgf member list');
 assert_contains($page, '<option value="7802">7802 – Otto Lookupova (Synthetic Regional Unit) (nicht bezahlt)</option>', 'bgf member list unpaid');
 assert_contains($page, '<option value="7803">7803 – Eve &lt;b&gt;Tagged&lt;/b&gt; (Synthetic National Unit)</option>', 'bgf member list escaped');
@@ -165,7 +165,7 @@ assert_contains($page, '<div class="field_note">Vorschläge: 7801 – Mira Looku
 $hint = 'Mit einer Nummer ersetzt das Speichern den Namen durch den Mitgliedsnamen; der Zahlername bleibt im Buchungstext.'
     . ' Die Art der Einnahme wird nicht automatisch geändert. Ist dies ein Mitgliedsbeitrag, bitte „Mitgliedsbeitrag“ selbst wählen.'
     . ' Laut Bundesfinanzordnung §2 legen Mitglieder ihren Beitrag zwischen 20 € und 1000 € pro Jahr fest; der Teil über 1000 € pro Jahr gilt als Spende.';
-assert_contains($page, 'list="mitgliederliste" onchange="clicked();" /> <details class="hint"><summary title="' . $hint . '">ⓘ</summary><span>' . $hint
+assert_contains($page, 'placeholder="Nummer oder Name" onchange="clicked();" /> <details class="hint"><summary aria-label="Hinweis" title="Hinweis">ⓘ</summary><span>' . $hint
     . '</span></details><div class="field_note">Vorschläge: ', 'bgf notes');
 assert_not_contains($page, 'Nächste offene Buchung', 'bgf edit page without a save');
 assert_not_contains($page, 'name="mq0"', 'no search field');
@@ -282,7 +282,8 @@ assert_contains($saved, '<div class="slot_notice"><a href="index.php?action=edit
 assert_not_contains($saved, 'Vorschläge', 'member number set');
 assert_not_contains($saved, 'Mitgliedsnamen', 'member number set');
 assert_contains($saved, 'list="mitgliederliste"', 'member list after the save');
-assert_contains($saved, '<details class="hint"><summary title="Die Art der Einnahme', 'type hint after the save');
+assert_contains($saved, 'name="mitgliedsnummer0" value="7802" list="mitgliederliste"', 'saved number shown');
+assert_contains($saved, '<summary aria-label="Hinweis" title="Hinweis">ⓘ</summary><span>Die Art der Einnahme', 'type hint after the save');
 // (Rbgf,2 may change 97002, which would be its next open booking.)
 foreach (['organization' => $unit, 'Rbgf' => $readOnly, 'Rbgf,2' => $readOnlyTwo] as $label => $cookies) {
     assert_not_contains(lookup_page('/index.php?action=edit&id=97001&hint=5', $cookies), 'Nächste offene Buchung', "$label next open booking");
@@ -298,6 +299,22 @@ assert_not_contains(lookup_page('/index.php?action=edit&id=97001&hint=5', $bgf),
 pg_free_result(lookup_query($database, 'UPDATE vouchers SET member_id = 0 WHERE id = ANY($1::integer[])', [$cleanup['others']]));
 $cleanup['others'] = null;
 pg_free_result(lookup_query($database, 'UPDATE vouchers SET member_id = 0 WHERE NOT deleted AND voucher_id = 97002'));
+
+// The empty number field (shown for 0) is saved as 0, without a note.
+$empty = http_request('/index.php?action=edit', 'POST', lookup_form(
+    97002,
+    $row2['id'],
+    2,
+    'Synthetic Unknown Payer',
+    'Synthetic open member row',
+    ['speichern' => 'Speichern', 'mitgliedsnummer0' => ''],
+), $bgf);
+assert_status($empty, 302, 'empty number');
+assert_location($empty, 'index.php?action=edit&id=97002&hint=5', 'empty number');
+$row2 = lookup_row($database, 97002);
+if ($row2['member'] !== 't' || $row2['member_id'] !== '0') {
+    fail_test('empty number: ' . var_export($row2, true));
+}
 
 // A number that the member list does not have: saved as typed, with a note
 // for bgf; an organization user's save stays as before.

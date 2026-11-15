@@ -190,7 +190,8 @@ constraints; no backup table, owners, permissions, credentials or rows).
   Buchung"; an organization user, `Rbgf` and finalized vouchers get the
   form as before (no member list request, counted by the stub; neither for
   bgf on a voucher without a member's row, viewed or saved), another
-  organization's voucher is not shown. A saved number resets the approvals;
+  organization's voucher is not shown. Number 0 is an empty field with a
+  placeholder (saved as 0 again); a saved number resets the approvals;
   without the member list a note, the plain field and the refused save. A
   shutdown function removes the synthetic rows and undoes the other
   changes to the shared database, also after a failed check.

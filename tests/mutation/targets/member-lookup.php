@@ -12,6 +12,7 @@
  * See tests/mutation/README.md for the format.
  */
 $lookup = '$lookup = has_right($rights, \'bgf\') && !$received;';
+$listed = "\$listed = \$lookup && \$voucher['member'] == 'true' && member_datalist_needed(true);";
 $suggestion = "'m.id = ANY(\$1::integer[]) OR (length(trim(m.name)) >= 5'";
 $unknown = "if (\$members_error === null && has_right(\$rights, 'bgf') && posted_unknown_member(\$parts, \$rights)) {";
 $typeHint = "if (\$voucher['member'] == 'true' && \$voucher['dir'] == 'in' && \$voucher['type'] != 1) {";
@@ -26,15 +27,21 @@ return [
     'mutations' => [
         [
             'id' => 'lookup-on-non-member-rows',
-            'search' => "(\$lookup && \$voucher['member'] == 'true' && member_datalist_needed(true) ? ' list=\"'",
-            'replace' => "(\$lookup && member_datalist_needed(true) ? ' list=\"'",
+            'search' => $listed,
+            'replace' => str_replace(" && \$voucher['member'] == 'true'", '', $listed),
             'rationale' => 'A page without members\' rows fetches the member list.',
         ],
         [
             'id' => 'list-attribute-without-member-list',
-            'search' => "member_datalist_needed(true) ? ' list=\"'",
-            'replace' => "(member_datalist_needed(true) || true) ? ' list=\"'",
+            'search' => $listed,
+            'replace' => str_replace('member_datalist_needed(true);', '(member_datalist_needed(true) || true);', $listed),
             'rationale' => 'Without the member list the number field points to a list that is not there.',
+        ],
+        [
+            'id' => 'zero-number-shown',
+            'search' => "(\$listed && intval(\$voucher['mitgliedsnummer']) == 0 ? '' :",
+            'replace' => "(false ? '' :",
+            'rationale' => 'The number field of the member list shows 0, which filters the list by "0".',
         ],
         [
             'id' => 'suggestion-limit-removed',

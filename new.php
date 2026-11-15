@@ -521,6 +521,10 @@ function page_edit_form($part, $voucher, $rights, $lookup = false)
         }
         pg_free_result($result);
     }
+    // The member lookup's number field (bgf, a member's row): the member
+    // list, and empty instead of 0 so that the list is not filtered by "0"
+    // (an empty number is posted as 0, get_param()).
+    $listed = $lookup && $voucher['member'] == 'true' && member_datalist_needed(true);
     echo '
 </select>
 </div>
@@ -528,7 +532,7 @@ function page_edit_form($part, $voucher, $rights, $lookup = false)
 <label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; Nr. ' . ($voucher['member'] == 'true' ? member_number($voucher['mitgliedsnummer']) : intval($voucher['mitgliedsnummer'])) : '') . '
 </div>
 <div id="mitgliedsnummer' . $part . '">
-<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '"' . ($lookup && $voucher['member'] == 'true' && member_datalist_needed(true) ? ' list="' . MEMBER_DATALIST_ID . '"' : '') . ' onchange="clicked();" />' . ($lookup && $voucher['member'] == 'true' ? member_lookup_html($voucher) : '') . '
+<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . ($listed && intval($voucher['mitgliedsnummer']) == 0 ? '' : $voucher['mitgliedsnummer']) . '"' . ($listed ? ' list="' . MEMBER_DATALIST_ID . '" placeholder="Nummer oder Name"' : '') . ' onchange="clicked();" />' . ($lookup && $voucher['member'] == 'true' ? member_lookup_html($voucher) : '') . '
 </div>
 <div id="gegenkonto' . $part . '">
 <label class="ui_field_label" for="gegenkonto' . $part . '">Fremdkonto</label><input type="text" name="gegenkonto' . $part . '" value="' . html_escape($voucher['gegenkonto']) . '" onchange="clicked();" />
@@ -637,12 +641,12 @@ function member_lookup_html($voucher)
     return ($hints !== [] ? ' ' . info_hint_html(implode(' ', $hints)) : '') . $html;
 }
 
-// The explanation $text (plain text) behind a small info marker, HTML: a
-// details element, opened by click, tap or keyboard without JavaScript, and
-// the text as the marker's tooltip.
+// The explanation $text (plain text) behind a small info marker "Hinweis",
+// HTML: a details element, opened by click, tap or keyboard without
+// JavaScript.
 function info_hint_html($text)
 {
-    return '<details class="hint"><summary title="' . html_escape($text) . '">ⓘ</summary><span>' . html_escape($text) . '</span></details>';
+    return '<details class="hint"><summary aria-label="Hinweis" title="Hinweis">ⓘ</summary><span>' . html_escape($text) . '</span></details>';
 }
 
 function page_new_buchung($part, $part_to_remove, $rights, $add)
