@@ -669,8 +669,9 @@ function merge()
         page_edit_buchung($rights, $vouchers, $parts, $part_to_remove, 2);
         $parts++;
     }
-    // One member list for the number fields of all rows (member lookup).
-    if ($lookup) {
+    // One member list for the number fields of the members' rows (member
+    // lookup), if a row used it.
+    if (member_datalist_needed()) {
         echo member_datalist_html();
     }
 

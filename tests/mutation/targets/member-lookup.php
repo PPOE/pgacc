@@ -25,9 +25,15 @@ return [
     'timeout' => 120,
     'mutations' => [
         [
+            'id' => 'lookup-on-non-member-rows',
+            'search' => "(\$lookup && \$voucher['member'] == 'true' && member_datalist_needed(true) ? ' list=\"'",
+            'replace' => "(\$lookup && member_datalist_needed(true) ? ' list=\"'",
+            'rationale' => 'A page without members\' rows fetches the member list.',
+        ],
+        [
             'id' => 'list-attribute-without-member-list',
-            'search' => "(\$lookup && member_list() !== null ? ' list=\"'",
-            'replace' => "(\$lookup ? ' list=\"'",
+            'search' => "member_datalist_needed(true) ? ' list=\"'",
+            'replace' => "(member_datalist_needed(true) || true) ? ' list=\"'",
             'rationale' => 'Without the member list the number field points to a list that is not there.',
         ],
         [
@@ -50,7 +56,7 @@ return [
         ],
         [
             'id' => 'unknown-number-not-noted',
-            'search' => "if (\$voucher['member'] == 'true' && intval(\$voucher['mitgliedsnummer']) > 0 && !isset(\$members[intval(\$voucher['mitgliedsnummer'])])) {",
+            'search' => "if (\$voucher['member'] == 'true' && intval(\$voucher['mitgliedsnummer']) > 0 && !isset(member_list()[intval(\$voucher['mitgliedsnummer'])])) {",
             'replace' => 'if (false) {',
             'rationale' => 'A number that the member list does not have is saved without a note.',
         ],
@@ -78,8 +84,8 @@ return [
         [
             'id' => 'datalist-without-lookup',
             'file' => 'edit.php',
-            'search' => "    if (\$lookup) {\n        echo member_datalist_html();",
-            'replace' => "    if (true) {\n        echo member_datalist_html();",
+            'search' => '    if (member_datalist_needed()) {',
+            'replace' => '    if (true) {',
             'rationale' => 'Users without the exact bgf right get the list of all members.',
         ],
         [

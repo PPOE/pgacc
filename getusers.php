@@ -344,6 +344,19 @@ function member_option_text($row)
         . ($row['paid'] == 0 ? ' (nicht bezahlt)' : '');
 }
 
+// Whether a number field of this request uses the member list of the edit
+// page (member_datalist_html()). $use: a member's number field asks for it,
+// which loads the member list (member_list()); true if it is loaded. Without
+// $use nothing is loaded, so a page without members' rows fetches nothing.
+function member_datalist_needed($use = false)
+{
+    static $needed = false;
+    if ($use && member_list() !== null) {
+        $needed = true;
+    }
+    return $needed;
+}
+
 // The member list of the edit page for the exact bgf right, who sees every
 // member anyway: a datalist of all members (member_option_text()) for the
 // member number fields (list="mitgliederliste"), which the browser filters

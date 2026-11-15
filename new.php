@@ -121,14 +121,13 @@ function posted_member_part($parts, $rights)
     }
     return false;
 }
-// Whether a posted member's part has a member number that the loaded member
-// list (member_list()) does not have.
+// Whether a posted member's part has a member number that the member list
+// (member_list(), loaded for the members' parts of the save) does not have.
 function posted_unknown_member($parts, $rights)
 {
-    $members = member_list();
     for ($part = 0; $part < $parts; $part++) {
         $voucher = get_voucher($part, $rights, false);
-        if ($voucher['member'] == 'true' && intval($voucher['mitgliedsnummer']) > 0 && !isset($members[intval($voucher['mitgliedsnummer'])])) {
+        if ($voucher['member'] == 'true' && intval($voucher['mitgliedsnummer']) > 0 && !isset(member_list()[intval($voucher['mitgliedsnummer'])])) {
             return true;
         }
     }
@@ -529,7 +528,7 @@ function page_edit_form($part, $voucher, $rights, $lookup = false)
 <label class="ui_field_label" for="member' . $part . '">Mitglied</label><input type="checkbox" id="member' . $part . '" name="member' . $part . '" value="1" ' . ($voucher['member'] == 'true' ? ' checked="checked"' : '') . ' onchange="clicked();" />' . (intval($voucher['mitgliedsnummer']) > 0 ? ' &middot; Nr. ' . ($voucher['member'] == 'true' ? member_number($voucher['mitgliedsnummer']) : intval($voucher['mitgliedsnummer'])) : '') . '
 </div>
 <div id="mitgliedsnummer' . $part . '">
-<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '"' . ($lookup && member_list() !== null ? ' list="' . MEMBER_DATALIST_ID . '"' : '') . ' onchange="clicked();" />' . ($lookup ? member_lookup_html($voucher) : '') . '
+<label class="ui_field_label" for="mitgliedsnummer' . $part . '">Mitgliedsnummer</label><input type="text" name="mitgliedsnummer' . $part . '" value="' . $voucher['mitgliedsnummer'] . '"' . ($lookup && $voucher['member'] == 'true' && member_datalist_needed(true) ? ' list="' . MEMBER_DATALIST_ID . '"' : '') . ' onchange="clicked();" />' . ($lookup && $voucher['member'] == 'true' ? member_lookup_html($voucher) : '') . '
 </div>
 <div id="gegenkonto' . $part . '">
 <label class="ui_field_label" for="gegenkonto' . $part . '">Fremdkonto</label><input type="text" name="gegenkonto' . $part . '" value="' . html_escape($voucher['gegenkonto']) . '" onchange="clicked();" />
@@ -607,12 +606,12 @@ function page_edit_form($part, $voucher, $rights, $lookup = false)
     block_end();
 }
 
-// The member lookup of a row of the edit page (exact bgf right, rows of a
-// voucher that is not finalized; page_edit()), HTML after the number field,
-// whose list is the members of member_datalist_html(): a note when the member
-// list cannot be loaded; for a member's row without a number of the member
-// list the suggestions (member_suggestions()) and the note that a save
-// replaces the name; for a member's income row of another type than the
+// The member lookup of a member's row of the edit page (exact bgf right,
+// rows of a voucher that is not finalized; page_edit()), HTML after the
+// number field, whose list is the members of member_datalist_html(): a note
+// when the member list cannot be loaded; for a row without a number of the
+// member list the suggestions (member_suggestions()) and the note that a
+// save replaces the name; for an income row of another type than the
 // membership fee (1) a hint. The notes are behind one info marker
 // (info_hint_html()).
 function member_lookup_html($voucher)
@@ -623,7 +622,7 @@ function member_lookup_html($voucher)
     }
     $html = '';
     $hints = [];
-    if ($voucher['member'] == 'true' && !isset($members[intval($voucher['mitgliedsnummer'])])) {
+    if (!isset($members[intval($voucher['mitgliedsnummer'])])) {
         $rows = member_suggestions($voucher['name'], $voucher['comment']);
         if ($rows !== []) {
             $html .= '<div class="field_note">Vorschläge: ' . implode(', ', array_map('member_option_text', array_slice($rows, 0, MEMBER_LOOKUP_LIMIT)))
@@ -631,7 +630,7 @@ function member_lookup_html($voucher)
         }
         $hints[] = 'Mit einer Nummer ersetzt das Speichern den Namen durch den Mitgliedsnamen; der Zahlername bleibt im Buchungstext.';
     }
-    if ($voucher['member'] == 'true' && $voucher['dir'] == 'in' && $voucher['type'] != 1) {
+    if ($voucher['dir'] == 'in' && $voucher['type'] != 1) {
         $hints[] = 'Die Art der Einnahme wird nicht automatisch geändert. Ist dies ein Mitgliedsbeitrag, bitte „Mitgliedsbeitrag“ selbst wählen.'
             . ' Laut Bundesfinanzordnung §2 legen Mitglieder ihren Beitrag zwischen 20 € und 1000 € pro Jahr fest; der Teil über 1000 € pro Jahr gilt als Spende.';
     }

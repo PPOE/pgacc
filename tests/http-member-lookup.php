@@ -10,7 +10,7 @@
  * suggestions, the hints, the note on an unknown number and the "Nächste
  * offene Buchung" link; other users (an organization, Rbgf) see the form as
  * before and cause no member list request. The rows are synthetic (voucher
- * numbers 97001-97004); every change to the shared database is undone by a
+ * numbers 97001-97005); every change to the shared database is undone by a
  * shutdown function, also when a check fails.
  */
 require __DIR__ . '/http-test-helpers.php';
@@ -104,7 +104,7 @@ register_shutdown_function(function () use ($database, &$cleanup) {
     if ($cleanup['others'] !== null) {
         @pg_query_params($database, 'UPDATE vouchers SET member_id = 0 WHERE id = ANY($1::integer[])', [$cleanup['others']]);
     }
-    @pg_query($database, 'DELETE FROM vouchers WHERE voucher_id BETWEEN 97001 AND 97004');
+    @pg_query($database, 'DELETE FROM vouchers WHERE voucher_id BETWEEN 97001 AND 97005');
     @file_get_contents('http://mitglieder.piratenpartei.at/__stub/mode?set=ok');
     pg_close($database);
 });
@@ -120,7 +120,7 @@ for ($i = 1; $i <= 25; $i++) {
     $members[] = [7900 + $i, sprintf('Bulk Searchname %02d', $i), 38, 1];
 }
 
-lookup_query($database, 'DELETE FROM vouchers WHERE voucher_id BETWEEN 97001 AND 97004');
+lookup_query($database, 'DELETE FROM vouchers WHERE voucher_id BETWEEN 97001 AND 97005');
 $insert = 'INSERT INTO vouchers (voucher_id, type, orga, member, member_id, name, amount, account, comment, committed,'
     . ' receipt_received, deleted, date, ack1, ack2, person_type, file, vaccount)'
     . ' VALUES ($1, 8, $2, true, 0, $3, 5000, \'TEST-ACCOUNT-1\', $4, false, $5, false, timestamp \'2024-09-01 00:00:00\', $6, NULL, 2, 0, \'\')';
@@ -133,6 +133,9 @@ pg_free_result(lookup_query($database, $insert, [97003, 1, 'Mira Lookupova', 'Sy
 // Two rows: one member list for both number fields.
 pg_free_result(lookup_query($database, $insert, [97004, 1, 'Synthetic Payer A', 'Synthetic row A', 'false', null]));
 pg_free_result(lookup_query($database, $insert, [97004, 1, 'Synthetic Payer B', 'Synthetic row B', 'false', null]));
+// No member's row: no member list.
+pg_free_result(lookup_query($database, $insert, [97005, 1, 'Synthetic Supplier', 'Synthetic row 7802', 'false', null]));
+pg_free_result(lookup_query($database, 'UPDATE vouchers SET member = false WHERE voucher_id = 97005'));
 $row1 = lookup_row($database, 97001);
 $row2 = lookup_row($database, 97002);
 
@@ -172,6 +175,26 @@ assert_not_contains($page, 'mitgliedpick', 'no pick');
 $two = lookup_page('/index.php?action=edit&id=97004', $bgf);
 if (substr_count($two, 'list="mitgliederliste"') !== 2 || substr_count($two, '<datalist') !== 1) {
     fail_test('two rows: two number fields, one member list');
+}
+
+// bgf on a voucher without a member's row: no member list request.
+$requests = lookup_stub_requests();
+$noMember = lookup_page('/index.php?action=edit&id=97005', $bgf);
+assert_contains($noMember, '<input type="text" name="mitgliedsnummer0" value="0" onchange="clicked();" />', 'no member row');
+assert_not_contains($noMember, 'datalist', 'no member row');
+assert_not_contains($noMember, 'Vorschläge', 'no member row');
+$noMemberSave = http_request('/index.php?action=edit', 'POST', lookup_form(
+    97005,
+    lookup_row($database, 97005)['id'],
+    1,
+    'Synthetic Supplier',
+    'Synthetic row 7802',
+    ['speichern' => 'Speichern', 'member0' => null],
+), $bgf);
+assert_status($noMemberSave, 302, 'save without a member row');
+assert_location($noMemberSave, 'index.php?action=edit&id=97005&hint=5', 'save without a member row');
+if (lookup_stub_requests() !== $requests) {
+    fail_test('a voucher without a member row requested the member list');
 }
 
 // Redraws of posted values: no type hint for a membership fee or an

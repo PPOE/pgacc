@@ -10,8 +10,8 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Edit page: member lookup for users with the exact `bgf` right (not `Rbgf`,
   not organization users, whose form is unchanged and who cause no member
   list request). On a voucher that is not finalized, the "Mitgliedsnummer"
-  field of each row offers the whole member list (one HTML `datalist` per
-  page; "number – name (organization)", "(nicht bezahlt)" for members who
+  field of each member's row offers the whole member list (one HTML
+  `datalist` per page, loaded only for members' rows; "number – name (organization)", "(nicht bezahlt)" for members who
   have not paid): the browser filters it by number or name while typing and
   puts the picked number into the field, without JavaScript and without
   another request. For a member's row without a number of the member list,
